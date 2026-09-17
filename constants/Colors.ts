@@ -1,26 +1,45 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
-
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
-
+/** Shared ProsCard color palette. */
 export const Colors = {
+  palette: {
+    midnightBase: '#020617',
+    midnightBaseAlt: '#070d1e',
+    navyGradient: '#0a1128',
+    navyGradientAlt: '#0d1b3e',
+    surfaceDark: '#111827',
+    surfaceDarkAlt: '#0f172a',
+    borderSlate: '#1e293b',
+    borderSlateLight: '#334155',
+    lightSurface: '#ffffff',
+    primaryWhite: '#ffffff',
+    darkBody: '#0f172a',
+    darkBodyAlt: '#1e293b',
+    muted: '#94a3b8',
+    mutedLight: '#cbd5e1',
+    primaryCta: '#2563eb',
+    brandCyan: '#00a8e8',
+    brandCyanLight: '#38bdf8',
+    toggleYellow: '#facc15',
+  },
   light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    text: '#0f172a',
+    background: '#ffffff',
+    tint: '#2563eb',
+    icon: '#1e293b',
+    tabIconDefault: '#94a3b8',
+    tabIconSelected: '#00a8e8',
+    surface: '#ffffff',
+    border: '#334155',
+    mutedText: '#94a3b8',
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    text: '#ffffff',
+    background: '#020617',
+    tint: '#38bdf8',
+    icon: '#cbd5e1',
+    tabIconDefault: '#94a3b8',
+    tabIconSelected: '#38bdf8',
+    surface: '#111827',
+    border: '#1e293b',
+    mutedText: '#cbd5e1',
   },
-};
+} as const;
