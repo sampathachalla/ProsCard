@@ -2,7 +2,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Platform, View } from 'react-native';
-// Update the import path if ThemeContext is actually in 'fitApp/context/ThemeContext'
+// Update the import path if ThemeContext is actually in 'ProsCard/context/ThemeContext'
 import { ThemeProvider, useThemeContext } from '../context/ThemeContext';
 
 // Load Tailwind styles only on web (for NativeWind)
@@ -20,10 +20,7 @@ function ThemedLayoutWrapper() {
       <View className={theme === 'dark' ? 'dark flex-1' : 'flex-1'}>
         <SafeAreaView className="flex-1 bg-background dark:bg-dark-background" edges={['top', 'left', 'right']}>
           <Stack screenOptions={{ headerShown: false }} />
-          <StatusBar
-            style={Platform.OS === 'android' ? 'light' : 'auto'}
-            backgroundColor={Platform.OS === 'android' ? '#121212' : undefined}
-          />
+          <StatusBar style={Platform.OS === 'android' ? 'light' : 'auto'} />
         </SafeAreaView>
       </View>
     </SafeAreaProvider>

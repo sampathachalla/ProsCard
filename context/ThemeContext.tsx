@@ -20,7 +20,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const { setColorScheme } = useColorScheme();
 
   useEffect(() => {
-    const systemColor = Appearance.getColorScheme() || 'light';
+    const systemColor = Appearance.getColorScheme() === 'dark' ? 'dark' : 'light';
     setTheme(systemColor);
     setColorScheme(systemColor);
   }, []);

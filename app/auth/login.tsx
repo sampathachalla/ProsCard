@@ -1,4 +1,3 @@
-import { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,68 +6,19 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  SafeAreaView,
 } from 'react-native';
-import { Link, useFocusEffect, useRouter } from 'expo-router'; // ✅ only use useRouter here
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Link } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
-
-// ✅ Smooth continuous typewriter effect
-type TypewriterTextProps = {
-  text: string;
-  speed?: number;
-  style?: any;
-};
-
-function TypewriterText({ text, speed = 100, style }: TypewriterTextProps) {
-  const [displayedText, setDisplayedText] = useState('');
-  const [index, setIndex] = useState(0);
-
-  useEffect(() => {
-    const loop = () => {
-      let i = 0;
-      const interval = setInterval(() => {
-        setDisplayedText(text.slice(0, i));
-        i++;
-        if (i > text.length) {
-          i = 0;
-        }
-      }, speed);
-      return interval;
-    };
-
-    const interval = loop();
-    return () => clearInterval(interval);
-  }, [text, speed]);
-
-  return <Text style={style}>{displayedText}</Text>;
-}
+import { Colors } from '@/constants/Colors';
+import { TypewriterText } from '../../components/authComponents/Components/TypewriterText';
+import { useLogin } from '../../components/authComponents/Hooks/useLogin';
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const router = useRouter(); // ✅ useRouter hook only
-
-  useFocusEffect(
-    useCallback(() => {
-      setEmail('');
-      setPassword('');
-    }, [])
-  );
-
-  // ✅ Dummy Login Logic
-  const handleLogin = async () => {
-    if (email === 'sampath' && password === 'sam2001') {
-      const user = { id: 'u123456', username: 'sampath' };
-      await AsyncStorage.setItem('userInfo', JSON.stringify(user));
-      router.replace('/(tabs)/homepage'); // ✅ use correct path with folder alias
-    } else {
-      alert('Invalid credentials');
-    }
-  };
+  const { email, setEmail, password, setPassword, handleLogin } = useLogin();
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: '#FAFAFA' }}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: Colors.light.background }}>
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -79,18 +29,18 @@ export default function LoginScreen() {
         >
           <View className="flex-1 justify-center items-center px-6 py-12">
             {/* Branding */}
-            <Text style={{ fontSize: 40, fontWeight: '800', color: '#D7263D', marginBottom: 4 }}>
-              Zytrix
+            <Text style={{ fontSize: 40, fontWeight: '800', color: Colors.light.tint, marginBottom: 4 }}>
+              ProsCard
             </Text>
 
             {/* Typewriter Slogan */}
             <View style={{ height: 24, marginBottom: 20 }}>
               <TypewriterText
-                text="Your fitness, your way"
+                text="Your card, your way"
                 speed={120}
                 style={{
                   fontSize: 14,
-                  color: '#7A7A7A',
+                  color: Colors.light.mutedText,
                 }}
               />
             </View>
@@ -101,13 +51,13 @@ export default function LoginScreen() {
                 placeholder="Email or username"
                 style={{
                   borderBottomWidth: 1,
-                  borderColor: '#DADADA',
+                  borderColor: Colors.light.border,
                   marginBottom: 20,
                   paddingVertical: 10,
                   fontSize: 14,
-                  color: '#1A1A1A',
+                  color: Colors.light.text,
                 }}
-                placeholderTextColor="#7A7A7A"
+                placeholderTextColor={Colors.light.mutedText}
                 value={email}
                 onChangeText={setEmail}
                 autoCapitalize="none"
@@ -116,13 +66,13 @@ export default function LoginScreen() {
                 placeholder="Password"
                 style={{
                   borderBottomWidth: 1,
-                  borderColor: '#DADADA',
+                  borderColor: Colors.light.border,
                   marginBottom: 8,
                   paddingVertical: 10,
                   fontSize: 14,
-                  color: '#1A1A1A',
+                  color: Colors.light.text,
                 }}
-                placeholderTextColor="#7A7A7A"
+                placeholderTextColor={Colors.light.mutedText}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
@@ -131,7 +81,7 @@ export default function LoginScreen() {
               {/* 🔐 Forgot Password Link */}
               <View style={{ alignItems: 'flex-end', marginBottom: 20 }}>
                 <TouchableOpacity onPress={() => { /* TODO: Link to forgot password screen */ }}>
-                  <Text style={{ fontSize: 13, color: '#D7263D', fontWeight: '500' }}>
+                  <Text style={{ fontSize: 13, color: Colors.light.tint, fontWeight: '500' }}>
                     Forgot Password?
                   </Text>
                 </TouchableOpacity>
@@ -139,15 +89,15 @@ export default function LoginScreen() {
 
               <TouchableOpacity
                 style={{
-                  backgroundColor: '#D7263D',
+                  backgroundColor: Colors.light.tint,
                   padding: 14,
                   borderRadius: 14,
                 }}
-                onPress={handleLogin} // ✅ Added handler here
+                onPress={handleLogin}
               >
                 <Text
                   style={{
-                    color: '#FFFFFF',
+                    color: Colors.palette.primaryWhite,
                     textAlign: 'center',
                     fontWeight: '700',
                     fontSize: 16,
@@ -159,16 +109,16 @@ export default function LoginScreen() {
             </View>
 
             {/* Divider */}
-            <Text style={{ color: '#7A7A7A', marginVertical: 24 }}>or continue with</Text>
+            <Text style={{ color: Colors.light.mutedText, marginVertical: 24 }}>or continue with</Text>
 
             {/* Google Button */}
             <TouchableOpacity
               style={{
-                backgroundColor: '#FFFFFF',
+                backgroundColor: Colors.light.surface,
                 paddingVertical: 12,
                 paddingHorizontal: 24,
                 borderRadius: 50,
-                borderColor: '#DADADA',
+                borderColor: Colors.light.border,
                 borderWidth: 1,
                 marginBottom: 24,
                 flexDirection: 'row',
@@ -179,16 +129,16 @@ export default function LoginScreen() {
                 // TODO: Handle Google login
               }}
             >
-              <FontAwesome name="google" size={20} color="#D7263D" />
-              <Text style={{ fontSize: 16, fontWeight: '600', color: '#2E2E2E' }}>
+              <FontAwesome name="google" size={20} color={Colors.light.tint} />
+              <Text style={{ fontSize: 16, fontWeight: '600', color: Colors.light.secondary }}>
                 Sign in with Google
               </Text>
             </TouchableOpacity>
 
             {/* Footer */}
-            <Text style={{ fontSize: 14, color: '#1A1A1A' }}>
+            <Text style={{ fontSize: 14, color: Colors.light.text }}>
               Don’t have an account?{' '}
-              <Link href="/auth/signup" style={{ color: '#FF6F00', fontWeight: '600' }}>
+              <Link href="/auth/signup" style={{ color: Colors.light.accent, fontWeight: '600' }}>
                 Sign up
               </Link>
             </Text>

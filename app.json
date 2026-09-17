@@ -1,17 +1,15 @@
 {
   "expo": {
-    "name": "fitApp",
-    "slug": "fitApp",
+    "name": "ProsCard",
+    "slug": "ProsCard",
     "version": "1.0.0",
     "orientation": "portrait",
-    "scheme": "fitapp",
+    "scheme": "proscard",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
     "android": {
-      "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "backgroundColor": "#ffffff"
       }
@@ -28,7 +26,15 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ]
+      ],
+      "expo-font",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "ProsCard uses the camera to scan QR codes on business cards."
+        }
+      ],
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true

@@ -11,27 +11,27 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // ✅ Light Mode Palette (Zytrix)
-        background: '#FAFAFA',
-        card: '#F2F2F2',
-        primary: '#D7263D',
-        secondary: '#2E2E2E',
-        accent: '#FF6F00',
-        textPrimary: '#1A1A1A',
-        textMuted: '#7A7A7A',
-        success: '#32CD32',
-        error: '#C62828',
+        // ✅ Light Mode Palette (mirrors constants/Colors.ts `light`)
+        background: '#ffffff',
+        card: '#ffffff',
+        primary: '#2563eb',
+        secondary: '#1e293b',
+        accent: '#facc15',
+        textPrimary: '#0f172a',
+        textMuted: '#94a3b8',
+        success: '#22c55e',
+        error: '#ef4444',
 
-        // ✅ Dark Mode Palette (flat-prefixed for class-based dark mode)
-        'dark-background': '#121212',
-        'dark-card': '#1E1E1E',
-        'dark-primary': '#D7263D',
-        'dark-secondary': '#E0E0E0',
-        'dark-accent': '#FF6F00',
-        'dark-textPrimary': '#EDEDED',
-        'dark-textMuted': '#9E9E9E',
-        'dark-success': '#00FF7F',
-        'dark-error': '#EF5350',
+        // ✅ Dark Mode Palette (mirrors constants/Colors.ts `dark`)
+        'dark-background': '#020617',
+        'dark-card': '#111827',
+        'dark-primary': '#38bdf8',
+        'dark-secondary': '#cbd5e1',
+        'dark-accent': '#facc15',
+        'dark-textPrimary': '#ffffff',
+        'dark-textMuted': '#cbd5e1',
+        'dark-success': '#4ade80',
+        'dark-error': '#f87171',
       }
     }
   },

@@ -19,6 +19,10 @@ export const Colors = {
     brandCyan: '#00a8e8',
     brandCyanLight: '#38bdf8',
     toggleYellow: '#facc15',
+    success: '#22c55e',
+    successLight: '#4ade80',
+    error: '#ef4444',
+    errorLight: '#f87171',
   },
   light: {
     text: '#0f172a',
@@ -30,6 +34,10 @@ export const Colors = {
     surface: '#ffffff',
     border: '#334155',
     mutedText: '#94a3b8',
+    accent: '#facc15',
+    secondary: '#1e293b',
+    success: '#22c55e',
+    error: '#ef4444',
   },
   dark: {
     text: '#ffffff',
@@ -41,5 +49,9 @@ export const Colors = {
     surface: '#111827',
     border: '#1e293b',
     mutedText: '#cbd5e1',
+    accent: '#facc15',
+    secondary: '#cbd5e1',
+    success: '#4ade80',
+    error: '#f87171',
   },
 } as const;
