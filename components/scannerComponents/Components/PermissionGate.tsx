@@ -1,11 +1,11 @@
 // components/scannerComponents/PermissionGate.tsx
 import { View, Text, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Camera } from 'lucide-react-native';
 
 export function PermissionGate({ onRequestPermission }: { onRequestPermission: () => void }) {
   return (
     <View className="flex-1 bg-background dark:bg-dark-background items-center justify-center px-8">
-      <Ionicons name="camera-outline" size={56} color="#7A7A7A" />
+      <Camera color="#7A7A7A" size={56} strokeWidth={1.8} />
       <Text className="text-textPrimary dark:text-dark-textPrimary text-lg font-bold mt-4 text-center">
         Camera access needed
       </Text>

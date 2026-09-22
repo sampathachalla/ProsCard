@@ -1,6 +1,6 @@
 // components/contactsComponents/Components/ContactRow.tsx
 import { View, Text, TouchableOpacity, Alert } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Phone } from 'lucide-react-native';
 import { Colors } from '@/constants/Colors';
 import type { Contact } from '../types/contact.types';
 
@@ -28,7 +28,7 @@ export function ContactRow({ contact }: { contact: Contact }) {
         className="w-9 h-9 rounded-full bg-background dark:bg-dark-background items-center justify-center"
         onPress={() => Alert.alert('Call', `Calling ${contact.phone}...`)}
       >
-        <Ionicons name="call" size={16} color={Colors.light.tint} />
+        <Phone color={Colors.light.tint} size={16} strokeWidth={2.2} />
       </TouchableOpacity>
     </TouchableOpacity>
   );

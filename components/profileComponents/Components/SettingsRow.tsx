@@ -1,15 +1,15 @@
-// components/profileComponents/SettingsRow.tsx
+// components/profileComponents/Components/SettingsRow.tsx
 import { View, Text, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { ChevronRight, type LucideIcon } from 'lucide-react-native';
 import { Colors } from '@/constants/Colors';
 
 export function SettingsRow({
-  icon,
+  icon: Icon,
   label,
   onPress,
   right,
 }: {
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: LucideIcon;
   label: string;
   onPress?: () => void;
   right?: React.ReactNode;
@@ -21,12 +21,12 @@ export function SettingsRow({
       disabled={!onPress}
     >
       <View className="w-9 h-9 rounded-full bg-background dark:bg-dark-background items-center justify-center mr-3">
-        <Ionicons name={icon} size={18} color={Colors.light.tint} />
+        <Icon color={Colors.light.tint} size={18} strokeWidth={2.2} />
       </View>
       <Text className="flex-1 text-textPrimary dark:text-dark-textPrimary font-medium">
         {label}
       </Text>
-      {right ?? <Ionicons name="chevron-forward" size={18} color={Colors.light.mutedText} />}
+      {right ?? <ChevronRight color={Colors.light.mutedText} size={18} strokeWidth={2} />}
     </TouchableOpacity>
   );
 }

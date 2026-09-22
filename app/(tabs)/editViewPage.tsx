@@ -1,6 +1,7 @@
 // app/(tabs)/editViewPage.tsx
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { PencilLine } from 'lucide-react-native';
+import { PageHeader } from '@/components/uiComponents/PageHeader';
 import { CardPreview } from '../../components/editViewComponents/Components/CardPreview';
 import { CardDetails } from '../../components/editViewComponents/Components/CardDetails';
 import { CardForm } from '../../components/editViewComponents/Components/CardForm';
@@ -12,24 +13,21 @@ export default function EditViewPage() {
 
   return (
     <View className="flex-1 bg-background dark:bg-dark-background">
-      <View className="px-6 pt-6 pb-2 flex-row justify-between items-center">
-        <View>
-          <Text className="text-textPrimary dark:text-dark-textPrimary text-2xl font-extrabold">
-            {isEditing ? 'Edit Card' : 'View Card'}
-          </Text>
-          <Text className="text-textMuted dark:text-dark-textMuted text-sm mt-1">
-            {isEditing ? 'Update your details below' : 'This is what others see when you share'}
-          </Text>
-        </View>
-        {!isEditing && (
+      <PageHeader
+        title={isEditing ? 'Edit Card' : 'View Card'}
+        subtitle={isEditing ? 'Update your details below' : 'This is what others see when you share'}
+        right={
+          !isEditing ? (
           <TouchableOpacity
             className="bg-primary dark:bg-dark-primary rounded-full w-11 h-11 items-center justify-center"
             onPress={startEditing}
+            accessibilityLabel="Edit card"
           >
-            <Ionicons name="create-outline" size={20} color="#FFFFFF" />
+            <PencilLine color="#FFFFFF" size={20} strokeWidth={2.2} />
           </TouchableOpacity>
-        )}
-      </View>
+          ) : null
+        }
+      />
 
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 12, paddingBottom: 32 }}

@@ -14,10 +14,7 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: palette.tint,
         tabBarInactiveTintColor: palette.tabIconDefault,
-        tabBarStyle: {
-          backgroundColor: palette.surface,
-          borderTopColor: palette.border,
-        },
+        tabBarStyle: { display: 'none' },
       }}
     >
       <Tabs.Screen name="homepage" options={{ title: 'Home' }} />

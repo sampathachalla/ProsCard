@@ -27,7 +27,6 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-font",
       [
         "expo-camera",
         {

@@ -1,11 +1,12 @@
 // app/(tabs)/scannerPage.tsx
 import { View, Text, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import { CameraView } from 'expo-camera';
-import { Ionicons } from '@expo/vector-icons';
+import { RefreshCw } from 'lucide-react-native';
 import { Colors } from '@/constants/Colors';
 import { ScannerOverlay } from '../../components/scannerComponents/Components/ScannerOverlay';
 import { PermissionGate } from '../../components/scannerComponents/Components/PermissionGate';
 import { useScanner } from '../../components/scannerComponents/Hooks/useScanner';
+import { PageHeader } from '@/components/uiComponents/PageHeader';
 
 export default function ScannerScreen() {
   const {
@@ -36,23 +37,25 @@ export default function ScannerScreen() {
   };
 
   if (!permission) {
-    return <View className="flex-1 bg-background dark:bg-dark-background" />;
+    return (
+      <View className="flex-1 bg-background dark:bg-dark-background">
+        <PageHeader title="Scan a Card" subtitle="Point your camera at a ProsCard QR code" />
+      </View>
+    );
   }
 
   if (!permission.granted) {
-    return <PermissionGate onRequestPermission={requestPermission} />;
+    return (
+      <View className="flex-1 bg-background dark:bg-dark-background">
+        <PageHeader title="Scan a Card" subtitle="Point your camera at a ProsCard QR code" />
+        <PermissionGate onRequestPermission={requestPermission} />
+      </View>
+    );
   }
 
   return (
     <View className="flex-1 bg-background dark:bg-dark-background">
-      <View className="px-6 pt-6 pb-2">
-        <Text className="text-textPrimary dark:text-dark-textPrimary text-2xl font-extrabold">
-          Scan a Card
-        </Text>
-        <Text className="text-textMuted dark:text-dark-textMuted text-sm mt-1">
-          Point your camera at a ProsCard QR code
-        </Text>
-      </View>
+      <PageHeader title="Scan a Card" subtitle="Point your camera at a ProsCard QR code" />
 
       <View className="flex-1 mx-6 mt-4 mb-8 rounded-3xl overflow-hidden">
         <CameraView
@@ -72,7 +75,7 @@ export default function ScannerScreen() {
           <Text className="text-textMuted dark:text-dark-textMuted text-xs" numberOfLines={1}>
             Last scan: {lastScan}
           </Text>
-          <Ionicons name="refresh" size={18} color={Colors.light.tint} />
+          <RefreshCw color={Colors.light.tint} size={18} strokeWidth={2.2} />
         </TouchableOpacity>
       )}
     </View>

@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link } from 'expo-router';
-import { FontAwesome } from '@expo/vector-icons';
+import { Globe } from 'lucide-react-native';
 import { Colors } from '@/constants/Colors';
 import { TypewriterText } from '../../components/authComponents/Components/TypewriterText';
 import { useLogin } from '../../components/authComponents/Hooks/useLogin';
@@ -129,7 +129,7 @@ export default function LoginScreen() {
                 // TODO: Handle Google login
               }}
             >
-              <FontAwesome name="google" size={20} color={Colors.light.tint} />
+              <Globe color={Colors.light.tint} size={20} strokeWidth={2.2} />
               <Text style={{ fontSize: 16, fontWeight: '600', color: Colors.light.secondary }}>
                 Sign in with Google
               </Text>
