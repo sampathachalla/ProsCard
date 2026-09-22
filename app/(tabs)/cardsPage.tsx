@@ -36,7 +36,12 @@ export default function CardsPageScreen() {
           <Pressable
             accessibilityRole="button"
             className="mb-3 flex-row items-center overflow-hidden rounded-2xl border border-slate-200/80 bg-card active:opacity-85 dark:border-slate-700/60 dark:bg-dark-card"
-            onPress={() => router.push('/(tabs)/editViewPage')}
+            onPress={() =>
+              router.push({
+                pathname: '/cards/[cardId]',
+                params: { cardId: item.id },
+              })
+            }
           >
             <LinearGradient
               colors={item.gradient}

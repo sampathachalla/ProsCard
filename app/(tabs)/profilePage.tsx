@@ -3,16 +3,24 @@ import { View, Text, TouchableOpacity, ScrollView, Switch, Alert } from 'react-n
 import { useRouter } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { useThemeContext } from '../../context/ThemeContext';
-import { Bell, CreditCard, HelpCircle, Info, Moon, User } from 'lucide-react-native';
+import { Bell, CreditCard, HelpCircle, Info, Moon, User, Wrench } from 'lucide-react-native';
 import { SettingsRow } from '../../components/profileComponents/Components/SettingsRow';
 import { useProfile } from '../../components/profileComponents/Hooks/useProfile';
 import { getInitials } from '../../components/profileComponents/Utils/initials';
 import { PageHeader } from '@/components/uiComponents/PageHeader';
+import { FLOATING_TOOL_DEFINITIONS, useFloatingTools } from '@/components/toolsButton';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { theme, toggleTheme } = useThemeContext();
   const { user, logout } = useProfile();
+  const {
+    enabled: toolsEnabled,
+    enabledTools,
+    hydrated: toolsHydrated,
+    setEnabled: setToolsEnabled,
+    toggleTool,
+  } = useFloatingTools();
 
   const handleLogout = () => {
     Alert.alert('Log out', 'Are you sure you want to log out?', [
@@ -63,6 +71,42 @@ export default function ProfileScreen() {
           />
         }
       />
+      <SettingsRow
+        icon={Wrench}
+        label="Floating card tools"
+        right={
+          <Switch
+            disabled={!toolsHydrated}
+            value={toolsEnabled}
+            onValueChange={setToolsEnabled}
+            trackColor={{ false: Colors.light.border, true: Colors.light.tint }}
+            thumbColor={Colors.palette.primaryWhite}
+          />
+        }
+      />
+      {toolsEnabled ? (
+        <>
+          <Text className="mb-2 ml-1 mt-3 text-xs font-semibold uppercase text-textMuted dark:text-dark-textMuted">
+            Quick tools
+          </Text>
+          {FLOATING_TOOL_DEFINITIONS.map((tool) => (
+            <SettingsRow
+              key={tool.id}
+              icon={tool.icon}
+              label={tool.label}
+              right={
+                <Switch
+                  disabled={!toolsHydrated}
+                  value={enabledTools.includes(tool.id)}
+                  onValueChange={() => toggleTool(tool.id)}
+                  trackColor={{ false: Colors.light.border, true: Colors.light.tint }}
+                  thumbColor={Colors.palette.primaryWhite}
+                />
+              }
+            />
+          ))}
+        </>
+      ) : null}
 
       <Text className="text-textMuted dark:text-dark-textMuted text-xs font-semibold uppercase mb-2 mt-4 ml-1">
         Support

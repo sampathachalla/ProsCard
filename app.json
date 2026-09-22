@@ -16,10 +16,15 @@
     },
     "web": {
       "bundler": "metro",
-      "output": "static"
+      "output": "server"
     },
     "plugins": [
-      "expo-router",
+      [
+        "expo-router",
+        {
+          "unstable_useServerRendering": true
+        }
+      ],
       [
         "expo-splash-screen",
         {

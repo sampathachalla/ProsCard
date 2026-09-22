@@ -1,5 +1,6 @@
 // components/editViewComponents/Services/editViewService.ts
 import { Colors } from '@/constants/Colors';
+import { getCardById } from '@/components/cardsComponents/Services/cardsService';
 import type { EditableCard } from '../types/editView.types';
 
 const DEFAULT_CARD: EditableCard = {
@@ -14,6 +15,21 @@ const DEFAULT_CARD: EditableCard = {
 
 export function getPrimaryCard(): EditableCard {
   return DEFAULT_CARD;
+}
+
+export function getEditableCard(cardId?: string): EditableCard {
+  const card = cardId ? getCardById(cardId) : undefined;
+  if (!card) return getPrimaryCard();
+
+  return {
+    id: card.id,
+    name: card.name,
+    title: card.title,
+    company: card.company,
+    phone: card.phone,
+    email: card.email,
+    gradient: card.gradient,
+  };
 }
 
 export function saveCard(card: EditableCard): Promise<EditableCard> {

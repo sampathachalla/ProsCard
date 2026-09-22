@@ -43,7 +43,10 @@ export const CardActionsBottomSheet = forwardRef<BottomSheet, CardActionsBottomS
           if (onEdit) {
             onEdit();
           } else {
-            router.push('/(tabs)/editViewPage');
+            router.push({
+              pathname: '/(tabs)/editViewPage',
+              params: { cardId: card?.id ?? '1', edit: '1' },
+            });
           }
         },
       },

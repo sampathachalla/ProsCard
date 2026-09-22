@@ -1,6 +1,7 @@
 // app/(tabs)/editViewPage.tsx
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { PencilLine } from 'lucide-react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { PageHeader } from '@/components/uiComponents/PageHeader';
 import { CardPreview } from '../../components/editViewComponents/Components/CardPreview';
 import { CardDetails } from '../../components/editViewComponents/Components/CardDetails';
@@ -8,8 +9,11 @@ import { CardForm } from '../../components/editViewComponents/Components/CardFor
 import { useEditView } from '../../components/editViewComponents/Hooks/useEditView';
 
 export default function EditViewPage() {
+  const params = useLocalSearchParams<{ cardId?: string | string[]; edit?: string | string[] }>();
+  const cardId = Array.isArray(params.cardId) ? params.cardId[0] : params.cardId;
+  const editParam = Array.isArray(params.edit) ? params.edit[0] : params.edit;
   const { card, draft, isEditing, isSaving, startEditing, cancelEditing, updateField, submit } =
-    useEditView();
+    useEditView(cardId, editParam === '1');
 
   return (
     <View className="flex-1 bg-background dark:bg-dark-background">

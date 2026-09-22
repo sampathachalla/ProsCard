@@ -15,8 +15,10 @@ import { getBusinessCardHeight, getBusinessCardWidth } from '../Utils/businessCa
 type BusinessCardCarouselProps = {
   activeIndex: number;
   cards: BusinessCardData[];
+  height: number;
   progress: SharedValue<number>;
   onActiveIndexChange?: (index: number) => void;
+  onCardDoubleTap?: (card: BusinessCardData) => void;
 };
 
 const CARD_GAP = 14;
@@ -26,12 +28,14 @@ function AnimatedCardWrapper({
   card,
   index,
   height,
+  onDoubleTap,
   width,
   progress,
 }: {
   card: BusinessCardData;
   index: number;
   height: number;
+  onDoubleTap?: () => void;
   width: number;
   progress: SharedValue<number>;
 }) {
@@ -48,7 +52,7 @@ function AnimatedCardWrapper({
 
   return (
     <Animated.View style={animatedStyle}>
-      <BusinessCard card={card} height={height} width={width} />
+      <BusinessCard card={card} height={height} onDoubleTap={onDoubleTap} width={width} />
     </Animated.View>
   );
 }
@@ -56,15 +60,17 @@ function AnimatedCardWrapper({
 export function BusinessCardCarousel({
   activeIndex,
   cards,
+  height,
   progress,
   onActiveIndexChange,
+  onCardDoubleTap,
 }: BusinessCardCarouselProps) {
   const listRef = useRef<FlashListRef<BusinessCardData>>(null);
   const activeIndexRef = useRef(0);
-  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
+  const { width: windowWidth } = useWindowDimensions();
 
-  const cardWidth = getBusinessCardWidth(windowWidth, cards.length);
-  const cardHeight = getBusinessCardHeight(cardWidth, windowHeight);
+  const cardWidth = getBusinessCardWidth(windowWidth, cards.length, height);
+  const cardHeight = getBusinessCardHeight(cardWidth, height);
   const interval = cardWidth + CARD_GAP;
 
 
@@ -117,7 +123,7 @@ export function BusinessCardCarousel({
   }
 
   return (
-    <View style={{ height: cardHeight + 16 }} className="justify-center py-2">
+    <View style={{ height }} className="justify-center py-2">
       <FlashList
         ref={listRef}
         accessibilityLabel="Business card carousel"
@@ -144,6 +150,7 @@ export function BusinessCardCarousel({
             card={item}
             index={index}
             height={cardHeight}
+            onDoubleTap={() => onCardDoubleTap?.(item)}
             width={cardWidth}
             progress={progress}
           />

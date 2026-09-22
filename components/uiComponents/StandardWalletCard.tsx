@@ -2,6 +2,7 @@ import type { ImageSourcePropType, StyleProp, ViewStyle } from 'react-native';
 import { StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BrandLogo } from './BrandLogo';
+import { QRCodeView } from './QRCodeView';
 import { Text } from './Text';
 
 type StandardWalletCardProps = {
@@ -17,6 +18,14 @@ type StandardWalletCardProps = {
 };
 
 const CARD_ASPECT_RATIO = 1.586;
+
+type StandardWalletCardBackProps = {
+  category: string;
+  gradient: [string, string];
+  qrValue: string;
+  selected?: boolean;
+  width: number;
+};
 
 export function StandardWalletCard({
   category,
@@ -82,6 +91,49 @@ export function StandardWalletCard({
   );
 }
 
+export function StandardWalletCardBack({
+  category,
+  gradient,
+  qrValue,
+  selected = false,
+  width,
+}: StandardWalletCardBackProps) {
+  const height = width / CARD_ASPECT_RATIO;
+  const qrSize = Math.min(126, height * 0.48);
+
+  return (
+    <LinearGradient
+      colors={gradient}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={[
+        styles.card,
+        styles.cardBack,
+        { width, height },
+        selected ? styles.selectedCard : null,
+      ]}
+    >
+      <View pointerEvents="none" style={styles.orbitOuter} />
+      <View pointerEvents="none" style={styles.orbitInner} />
+
+      <View style={styles.backHeader}>
+        <Text style={styles.backCategory}>{category}</Text>
+        <Text style={styles.backHint}>Tap to flip</Text>
+      </View>
+
+      <QRCodeView
+        backgroundColor="#ffffff"
+        foregroundColor="#0f172a"
+        padding={9}
+        size={qrSize}
+        value={qrValue}
+      />
+
+      <Text style={styles.backCaption}>Scan to connect</Text>
+    </LinearGradient>
+  );
+}
+
 const styles = StyleSheet.create({
   card: {
     borderColor: 'rgba(203, 213, 225, 0.9)',
@@ -97,6 +149,33 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.2,
     shadowRadius: 14,
+  },
+  backCaption: {
+    color: 'rgba(255, 255, 255, 0.88)',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  backCategory: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  backHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    zIndex: 2,
+  },
+  backHint: {
+    color: 'rgba(255, 255, 255, 0.72)',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  cardBack: {
+    alignItems: 'center',
+    paddingBottom: 12,
+    paddingTop: 12,
   },
   categoryPill: {
     backgroundColor: 'rgba(15, 23, 42, 0.4)',

@@ -3,22 +3,27 @@ import { LinearGradient } from 'expo-linear-gradient';
 import mindProsLogo from '@/assets/mindpros-logo.png';
 import type { BusinessCard as BusinessCardData } from '@/components/cardsComponents/types/card.types';
 import { BrandLogo } from '@/components/uiComponents/BrandLogo';
+import { CardTapGesture } from '@/components/gestures';
 import { QRCodeView } from '@/components/uiComponents/QRCodeView';
 import { Text } from '@/components/uiComponents/Text';
 
 type BusinessCardProps = {
   card: BusinessCardData;
   height: number;
+  onDoubleTap?: () => void;
   width: number;
 };
 
-export function BusinessCard({ card, height, width }: BusinessCardProps) {
+export function BusinessCard({ card, height, onDoubleTap, width }: BusinessCardProps) {
   const identityHeight = Math.round(height * 0.40);
   const qrSectionHeight = height - identityHeight;
-  const qrSize = Math.min(185, Math.max(145, width * 0.54));
+  const qrSize = Math.min(
+    185,
+    Math.max(112, Math.min(width * 0.54, qrSectionHeight * 0.62)),
+  );
   const qrValue = `https://proscard.app/card/${card.id}`;
 
-  return (
+  const cardView = (
     <View
       accessibilityLabel={`${card.name}, ${card.title} digital business card`}
       style={[
@@ -79,6 +84,10 @@ export function BusinessCard({ card, height, width }: BusinessCardProps) {
       </View>
     </View>
   );
+
+  if (!onDoubleTap) return cardView;
+
+  return <CardTapGesture onDoubleTap={onDoubleTap}>{cardView}</CardTapGesture>;
 }
 
 const styles = StyleSheet.create({

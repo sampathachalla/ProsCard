@@ -48,3 +48,7 @@ export const CARDS: BusinessCard[] = [
 export function getCards(): BusinessCard[] {
   return CARDS;
 }
+
+export function getCardById(cardId: string): BusinessCard | undefined {
+  return CARDS.find((card) => card.id === cardId);
+}

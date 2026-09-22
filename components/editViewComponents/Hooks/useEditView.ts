@@ -2,13 +2,13 @@
 import { useState } from 'react';
 import { Alert } from 'react-native';
 import type { CardFieldKey, EditableCard } from '../types/editView.types';
-import { getPrimaryCard, saveCard } from '../Services/editViewService';
+import { getEditableCard, saveCard } from '../Services/editViewService';
 import { validateCard } from '../Utils/validateCard';
 
-export function useEditView() {
-  const [card, setCard] = useState<EditableCard>(getPrimaryCard());
-  const [draft, setDraft] = useState<EditableCard>(card);
-  const [isEditing, setIsEditing] = useState(false);
+export function useEditView(cardId?: string, startInEditMode = false) {
+  const [card, setCard] = useState<EditableCard>(() => getEditableCard(cardId));
+  const [draft, setDraft] = useState<EditableCard>(() => getEditableCard(cardId));
+  const [isEditing, setIsEditing] = useState(startInEditMode);
   const [isSaving, setIsSaving] = useState(false);
 
   const startEditing = () => {

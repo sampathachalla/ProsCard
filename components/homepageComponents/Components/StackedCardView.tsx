@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, View, useWindowDimensions } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import Animated, {
@@ -8,25 +8,32 @@ import Animated, {
 } from 'react-native-reanimated';
 import mindProsLogo from '@/assets/mindpros-logo.png';
 import type { BusinessCard } from '@/components/cardsComponents/types/card.types';
-import { StandardWalletCard } from '@/components/uiComponents/StandardWalletCard';
+import {
+  StandardWalletCard,
+  StandardWalletCardBack,
+} from '@/components/uiComponents/StandardWalletCard';
+import { FlippableCard } from '@/components/gestures';
 import { Text } from '@/components/uiComponents/Text';
-import { getCardShowcaseHeight } from '../Utils/businessCardLayout';
 
 type StackedCardViewProps = {
   activeIndex: number;
+  bottomInset: number;
   cards: BusinessCard[];
+  height: number;
   onActiveIndexChange: (index: number) => void;
+  onCardDoubleTap?: (card: BusinessCard) => void;
 };
 
 const FOCUSED_CARD_TOP = 8;
-const COLLAPSED_CARD_STEP = 18;
-const COLLAPSED_STACK_VISIBLE_HEIGHT = 76;
+const COLLAPSED_CARD_STEP = 48;
+const COLLAPSED_STACK_VISIBLE_HEIGHT = 48;
 
 type WalletStackItemProps = {
   card: BusinessCard;
   cardWidth: number;
   index: number;
   onPress: (index: number) => void;
+  onDoubleTap: (index: number) => void;
   selected: boolean;
   targetScale: number;
   targetY: number;
@@ -38,6 +45,7 @@ function WalletStackItem({
   cardWidth,
   index,
   onPress,
+  onDoubleTap,
   selected,
   targetScale,
   targetY,
@@ -71,56 +79,101 @@ function WalletStackItem({
     <Animated.View
       style={[
         {
-          left: '50%',
-          marginLeft: -(cardWidth / 2),
+          alignItems: 'center',
           position: 'absolute',
           top: 0,
+          width: '100%',
           zIndex,
         },
         animatedStyle,
       ]}
     >
-      <Pressable
+      <FlippableCard
         accessibilityLabel={`${card.category} card for ${card.name}`}
-        accessibilityRole="button"
-        accessibilityState={{ selected }}
-        onPress={() => onPress(index)}
-        className="active:opacity-95"
-      >
-        <StandardWalletCard
-          category={card.category}
-          company={card.company}
-          gradient={card.gradient}
-          logoSource={mindProsLogo}
-          name={card.name}
-          selected={selected}
-          title={card.title}
-          width={cardWidth}
-        />
-      </Pressable>
+        back={
+          <StandardWalletCardBack
+            category={card.category}
+            gradient={card.gradient}
+            qrValue={`https://proscard.app/card/${card.id}`}
+            selected={selected}
+            width={cardWidth}
+          />
+        }
+        flipEnabled={selected}
+        front={
+          <StandardWalletCard
+            category={card.category}
+            company={card.company}
+            gradient={card.gradient}
+            logoSource={mindProsLogo}
+            name={card.name}
+            selected={selected}
+            title={card.title}
+            width={cardWidth}
+          />
+        }
+        height={cardWidth / 1.586}
+        onDoubleTap={() => onDoubleTap(index)}
+        onSingleTapWhenDisabled={() => onPress(index)}
+        width={cardWidth}
+      />
     </Animated.View>
   );
 }
 
 export function StackedCardView({
-  activeIndex,
+  bottomInset,
   cards,
+  height,
   onActiveIndexChange,
+  onCardDoubleTap,
 }: StackedCardViewProps) {
-  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
-  const cardWidth = Math.min(360, Math.max(280, windowWidth - 40));
-  const containerHeight = getCardShowcaseHeight(windowWidth, windowHeight, cards.length);
+  const { width: windowWidth } = useWindowDimensions();
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  const containerHeight = height;
+  const cardWidth = Math.min(
+    360,
+    Math.max(240, Math.min(windowWidth - 40, (containerHeight - 96) * 1.586)),
+  );
+  const cardHeight = cardWidth / 1.586;
+  const defaultStackStep =
+    cards.length > 1
+      ? Math.max(
+          0,
+          (containerHeight - cardHeight - FOCUSED_CARD_TOP) / (cards.length - 1),
+        )
+      : 0;
 
   const collapsedCardOrder = useMemo(() => {
     return cards
       .map((_, index) => index)
-      .filter((index) => index !== activeIndex);
-  }, [activeIndex, cards]);
+      .filter((index) => index !== expandedIndex);
+  }, [cards, expandedIndex]);
+  const collapsedStackTop = Math.max(
+    FOCUSED_CARD_TOP,
+    containerHeight -
+      bottomInset -
+      COLLAPSED_STACK_VISIBLE_HEIGHT -
+      Math.max(0, collapsedCardOrder.length - 1) * COLLAPSED_CARD_STEP,
+  );
 
   const selectCard = (index: number) => {
-    if (index === activeIndex) return;
+    if (index === expandedIndex) return;
+
     Haptics.selectionAsync().catch(() => {});
+    setExpandedIndex(index);
     onActiveIndexChange(index);
+  };
+
+  const openCard = (index: number) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    onCardDoubleTap?.(cards[index]);
+  };
+
+  const collapseStack = () => {
+    if (expandedIndex === null) return;
+    Haptics.selectionAsync().catch(() => {});
+    setExpandedIndex(null);
   };
 
   if (cards.length === 0) {
@@ -139,20 +192,35 @@ export function StackedCardView({
   return (
     <View
       accessibilityLabel={`Wallet stack with ${cards.length} cards`}
-      className="overflow-hidden px-5"
+      className="overflow-hidden"
       style={{ height: containerHeight }}
     >
+      {expandedIndex !== null ? (
+        <Pressable
+          accessibilityLabel="Return to the wallet stack"
+          accessibilityRole="button"
+          className="absolute inset-0"
+          onPress={collapseStack}
+        />
+      ) : null}
+
       {cards.map((card, index) => {
-        const selected = index === activeIndex;
+        const isExpanded = expandedIndex !== null;
+        const selected = index === expandedIndex;
         const collapsedIndex = collapsedCardOrder.indexOf(index);
-        const targetY = selected
-          ? FOCUSED_CARD_TOP
-          : containerHeight -
-            COLLAPSED_STACK_VISIBLE_HEIGHT +
-            collapsedIndex * COLLAPSED_CARD_STEP;
-        const targetScale = selected
-          ? 1
-          : 0.94 + collapsedIndex * 0.015;
+        const targetY = isExpanded
+          ? selected
+            ? FOCUSED_CARD_TOP
+            : collapsedStackTop + collapsedIndex * COLLAPSED_CARD_STEP
+          : FOCUSED_CARD_TOP + index * defaultStackStep;
+        const targetScale = isExpanded && !selected
+          ? 0.94 + collapsedIndex * 0.015
+          : 1;
+        const zIndex = isExpanded
+          ? selected
+            ? cards.length + 1
+            : collapsedIndex + 1
+          : index + 1;
 
         return (
           <WalletStackItem
@@ -160,11 +228,12 @@ export function StackedCardView({
             card={card}
             cardWidth={cardWidth}
             index={index}
+            onDoubleTap={openCard}
             onPress={selectCard}
             selected={selected}
             targetScale={targetScale}
             targetY={targetY}
-            zIndex={selected ? cards.length + 1 : collapsedIndex + 1}
+            zIndex={zIndex}
           />
         );
       })}
