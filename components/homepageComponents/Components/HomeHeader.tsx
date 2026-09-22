@@ -31,7 +31,7 @@ export function HomeHeader({
   };
 
   return (
-    <View className="min-h-[44px] flex-row items-center">
+    <View className="min-h-[52px] flex-row items-center">
       <BrandLogo
         accessibilityLabel="MindPROS company logo"
         size="sm"

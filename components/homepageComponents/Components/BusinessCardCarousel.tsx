@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { View, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { FlashList, type FlashListRef } from '@shopify/flash-list';
 import * as Haptics from 'expo-haptics';
@@ -10,7 +10,7 @@ import Animated, {
 import type { BusinessCard as BusinessCardData } from '@/components/cardsComponents/types/card.types';
 import { Text } from '@/components/uiComponents/Text';
 import { BusinessCard } from './BusinessCard';
-import { getBusinessCardHeight } from '../Utils/businessCardLayout';
+import { getBusinessCardHeight, getBusinessCardWidth } from '../Utils/businessCardLayout';
 
 type BusinessCardCarouselProps = {
   activeIndex: number;
@@ -63,10 +63,7 @@ export function BusinessCardCarousel({
   const activeIndexRef = useRef(0);
   const { height: windowHeight, width: windowWidth } = useWindowDimensions();
 
-  const cardWidth = useMemo(
-    () => Math.min(340, Math.max(270, windowWidth - (cards.length > 1 ? 64 : 40))),
-    [cards.length, windowWidth],
-  );
+  const cardWidth = getBusinessCardWidth(windowWidth, cards.length);
   const cardHeight = getBusinessCardHeight(cardWidth, windowHeight);
   const interval = cardWidth + CARD_GAP;
 

@@ -24,15 +24,17 @@ export default function HomepageScreen() {
 
   return (
     <View className="flex-1 bg-background dark:bg-dark-background">
+      <View className="px-5 pb-3 pt-2">
+        <HomeHeader userName={userName} />
+      </View>
+
       <ScrollView
+        automaticallyAdjustContentInsets={false}
         className="flex-1"
+        contentInsetAdjustmentBehavior="never"
         contentContainerStyle={{ paddingBottom: Math.max(insets.bottom + 8, 20) }}
         showsVerticalScrollIndicator={false}
       >
-        <View className="px-5 pb-4">
-          <HomeHeader userName={userName} />
-        </View>
-
         <CardShowcaseSection
           activeIndex={activeCardIndex}
           cards={cards}
