@@ -1,17 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, View, useWindowDimensions } from 'react-native';
-import * as Haptics from 'expo-haptics';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
-import mindProsLogo from '@/assets/mindpros-logo.png';
 import type { BusinessCard } from '@/components/cardsComponents/types/card.types';
-import {
-  StandardWalletCard,
-  StandardWalletCardBack,
-} from '@/components/uiComponents/StandardWalletCard';
+import type { Profile } from '@/components/profileComponents/types/profile.types';
+import { CardSectionFace } from '@/components/cardsComponents/Components/CardSectionFace';
 import { FlippableCard } from '@/components/gestures';
 import { Text } from '@/components/uiComponents/Text';
 
@@ -22,6 +18,8 @@ type StackedCardViewProps = {
   height: number;
   onActiveIndexChange: (index: number) => void;
   onCardDoubleTap?: (card: BusinessCard) => void;
+  onCardSwipeDown?: (card: BusinessCard) => void;
+  profile: Profile;
 };
 
 const FOCUSED_CARD_TOP = 8;
@@ -34,6 +32,8 @@ type WalletStackItemProps = {
   index: number;
   onPress: (index: number) => void;
   onDoubleTap: (index: number) => void;
+  onSwipeDown: (index: number) => void;
+  profile: Profile;
   selected: boolean;
   targetScale: number;
   targetY: number;
@@ -46,6 +46,8 @@ function WalletStackItem({
   index,
   onPress,
   onDoubleTap,
+  onSwipeDown,
+  profile,
   selected,
   targetScale,
   targetY,
@@ -91,29 +93,15 @@ function WalletStackItem({
       <FlippableCard
         accessibilityLabel={`${card.category} card for ${card.name}`}
         back={
-          <StandardWalletCardBack
-            category={card.category}
-            gradient={card.gradient}
-            qrValue={`https://proscard.app/card/${card.id}`}
-            selected={selected}
-            width={cardWidth}
-          />
+          <CardSectionFace card={card} height={cardWidth / 1.586} profile={profile} sectionId="professional" width={cardWidth} />
         }
         flipEnabled={selected}
         front={
-          <StandardWalletCard
-            category={card.category}
-            company={card.company}
-            gradient={card.gradient}
-            logoSource={mindProsLogo}
-            name={card.name}
-            selected={selected}
-            title={card.title}
-            width={cardWidth}
-          />
+          <CardSectionFace card={card} height={cardWidth / 1.586} profile={profile} sectionId="identity" width={cardWidth} />
         }
         height={cardWidth / 1.586}
         onDoubleTap={() => onDoubleTap(index)}
+        onSwipeDown={() => onSwipeDown(index)}
         onSingleTapWhenDisabled={() => onPress(index)}
         width={cardWidth}
       />
@@ -127,6 +115,8 @@ export function StackedCardView({
   height,
   onActiveIndexChange,
   onCardDoubleTap,
+  onCardSwipeDown,
+  profile,
 }: StackedCardViewProps) {
   const { width: windowWidth } = useWindowDimensions();
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
@@ -160,19 +150,20 @@ export function StackedCardView({
   const selectCard = (index: number) => {
     if (index === expandedIndex) return;
 
-    Haptics.selectionAsync().catch(() => {});
     setExpandedIndex(index);
     onActiveIndexChange(index);
   };
 
   const openCard = (index: number) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     onCardDoubleTap?.(cards[index]);
+  };
+
+  const showQr = (index: number) => {
+    onCardSwipeDown?.(cards[index]);
   };
 
   const collapseStack = () => {
     if (expandedIndex === null) return;
-    Haptics.selectionAsync().catch(() => {});
     setExpandedIndex(null);
   };
 
@@ -229,7 +220,9 @@ export function StackedCardView({
             cardWidth={cardWidth}
             index={index}
             onDoubleTap={openCard}
+            onSwipeDown={showQr}
             onPress={selectCard}
+            profile={profile}
             selected={selected}
             targetScale={targetScale}
             targetY={targetY}

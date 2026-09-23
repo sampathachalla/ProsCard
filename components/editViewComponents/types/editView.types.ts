@@ -1,12 +1,6 @@
 // components/editViewComponents/types/editView.types.ts
-export type EditableCard = {
-  id: string;
-  name: string;
-  title: string;
-  company: string;
-  phone: string;
-  email: string;
-  gradient: [string, string];
-};
+import type { BusinessCard } from '@/components/cardsComponents/types/card.types';
+
+export type EditableCard = BusinessCard;
 
 export type CardFieldKey = 'name' | 'title' | 'company' | 'phone' | 'email';

@@ -14,6 +14,8 @@ import {
 import { HomeActions } from '@/components/homepageComponents/Components/HomeActions';
 import { HomeHeader } from '@/components/homepageComponents/Components/HomeHeader';
 import { useThemeContext } from '@/context/ThemeContext';
+import { useProfileSnapshot } from '@/components/profileComponents/Hooks/useProfileSnapshot';
+import { QRCodeModal } from '@/components/uiComponents/QRCodeModal';
 
 export default function HomepageScreen() {
   const { cards } = useCards();
@@ -21,6 +23,8 @@ export default function HomepageScreen() {
   const [activeCardIndex, setActiveCardIndex] = useState(0);
   const [showcaseHeight, setShowcaseHeight] = useState(0);
   const [viewMode, setViewMode] = useState<CardViewMode>('carousel');
+  const [qrCardId, setQrCardId] = useState<string | null>(null);
+  const { profile } = useProfileSnapshot();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { theme } = useThemeContext();
@@ -86,6 +90,8 @@ export default function HomepageScreen() {
             height={showcaseHeight}
             onActiveIndexChange={setActiveCardIndex}
             onCardDoubleTap={(card) => handleCardPress(card.id)}
+            onCardSwipeDown={(card) => setQrCardId(card.id)}
+            profile={profile}
             viewMode={viewMode}
           />
         ) : null}
@@ -121,6 +127,12 @@ export default function HomepageScreen() {
         cards={cards}
         selectedIndex={activeCardIndex}
         onSelectCard={setActiveCardIndex}
+      />
+      <QRCodeModal
+        visible={Boolean(qrCardId)}
+        cardName={cards.find((card) => card.id === qrCardId)?.name ?? 'ProsCard'}
+        url={`https://proscard.app/card/${qrCardId ?? ''}`}
+        onClose={() => setQrCardId(null)}
       />
     </View>
   );

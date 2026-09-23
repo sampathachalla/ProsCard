@@ -18,11 +18,13 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen name="homepage" options={{ title: 'Home' }} />
+      <Tabs.Screen name="onboardingPage" options={{ href: null }} />
       <Tabs.Screen name="cardsPage" options={{ href: null }} />
       <Tabs.Screen name="scannerPage" options={{ href: null }} />
       <Tabs.Screen name="editViewPage" options={{ href: null }} />
       <Tabs.Screen name="contactsPage" options={{ href: null }} />
       <Tabs.Screen name="profilePage" options={{ href: null }} />
+      <Tabs.Screen name="accountPage" options={{ href: null }} />
     </Tabs>
   );
 }

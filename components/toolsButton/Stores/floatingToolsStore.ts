@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { DEFAULT_FLOATING_TOOLS } from '../toolDefinitions';
+import { DEFAULT_FLOATING_TOOLS, MAX_QUICK_TOOLS } from '../toolDefinitions';
 import type { FloatingToolId } from '../types';
 
 export type NormalizedToolPosition = {
@@ -31,19 +31,24 @@ export const useFloatingToolsStore = create<FloatingToolsState>()(
       setHydrated: (hydrated) => set({ hydrated }),
       setPosition: (position) => set({ position }),
       toggleTool: (toolId) =>
-        set((state) => ({
-          enabledTools: state.enabledTools.includes(toolId)
-            ? state.enabledTools.filter((id) => id !== toolId)
-            : [...state.enabledTools, toolId],
-        })),
+        set((state) => {
+          if (state.enabledTools.includes(toolId)) {
+            return { enabledTools: state.enabledTools.filter((id) => id !== toolId) };
+          }
+          if (state.enabledTools.length >= MAX_QUICK_TOOLS) {
+            return state;
+          }
+          return { enabledTools: [...state.enabledTools, toolId] };
+        }),
     }),
     {
       migrate: (persistedState) => {
         const state = persistedState as Partial<FloatingToolsState>;
         const previousTools = (state.enabledTools ?? DEFAULT_FLOATING_TOOLS) as string[];
+        const renamedTools = previousTools.map((id) => (id === 'share' ? 'wallet' : id));
         return {
           ...state,
-          enabledTools: previousTools.map((id) => (id === 'share' ? 'wallet' : id)),
+          enabledTools: renamedTools.slice(0, MAX_QUICK_TOOLS),
         } as FloatingToolsState;
       },
       name: 'proscard-floating-tools',
@@ -51,7 +56,7 @@ export const useFloatingToolsStore = create<FloatingToolsState>()(
       partialize: ({ enabled, enabledTools, position }) => ({ enabled, enabledTools, position }),
       skipHydration: true,
       storage: createJSONStorage(() => AsyncStorage),
-      version: 1,
+      version: 2,
     },
   ),
 );

@@ -1,13 +1,16 @@
 import { useMemo, type ReactNode } from 'react';
 import { View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import * as Haptics from 'expo-haptics';
 
 export type CardTapGestureProps = {
   children: ReactNode;
   containerClassName?: string;
   doubleTapMaxDuration?: number;
   enabled?: boolean;
+  hapticsEnabled?: boolean;
   onDoubleTap: () => void;
+  onSwipeDown?: () => void;
   onSingleTap?: () => void;
 };
 
@@ -16,7 +19,9 @@ export function CardTapGesture({
   containerClassName,
   doubleTapMaxDuration = 260,
   enabled = true,
+  hapticsEnabled = true,
   onDoubleTap,
+  onSwipeDown,
   onSingleTap,
 }: CardTapGestureProps) {
   const gesture = useMemo(() => {
@@ -25,22 +30,50 @@ export function CardTapGesture({
       .numberOfTaps(2)
       .maxDuration(doubleTapMaxDuration)
       .onEnd((_event, success) => {
-        if (success) onDoubleTap();
+        if (success) {
+          if (hapticsEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+          onDoubleTap();
+        }
       })
       .runOnJS(true);
 
-    if (!onSingleTap) return doubleTap;
+    const swipeDown = onSwipeDown
+      ? Gesture.Pan()
+          .enabled(enabled)
+          .activeOffsetY(10)
+          .failOffsetY(-14)
+          .failOffsetX([-96, 96])
+          .minPointers(1)
+          .maxPointers(1)
+          .shouldCancelWhenOutside(false)
+          .onEnd((event, success) => {
+            const projectedDistance = event.translationY + Math.max(0, event.velocityY) * 0.08;
+            if (success && event.translationY >= 28 && projectedDistance >= 52) {
+              if (hapticsEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+              onSwipeDown();
+            }
+          })
+          .runOnJS(true)
+      : null;
+
+    if (!onSingleTap) {
+      return swipeDown ? Gesture.Race(swipeDown, doubleTap) : doubleTap;
+    }
 
     const singleTap = Gesture.Tap()
       .enabled(enabled)
       .numberOfTaps(1)
       .onEnd((_event, success) => {
-        if (success) onSingleTap();
+        if (success) {
+          if (hapticsEnabled) Haptics.selectionAsync().catch(() => {});
+          onSingleTap();
+        }
       })
       .runOnJS(true);
 
-    return Gesture.Exclusive(doubleTap, singleTap);
-  }, [doubleTapMaxDuration, enabled, onDoubleTap, onSingleTap]);
+    const taps = Gesture.Exclusive(doubleTap, singleTap);
+    return swipeDown ? Gesture.Race(swipeDown, taps) : taps;
+  }, [doubleTapMaxDuration, enabled, hapticsEnabled, onDoubleTap, onSingleTap, onSwipeDown]);
 
   return (
     <GestureDetector gesture={gesture}>

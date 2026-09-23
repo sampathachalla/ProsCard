@@ -1,4 +1,63 @@
 // components/cardsComponents/types/card.types.ts
+export type CardSectionId = 'identity' | 'professional' | 'bio' | 'connections';
+export type CardTemplateId = 'classic' | 'minimal' | 'bold' | 'glass';
+export type DynamicCardFieldType = 'text' | 'email' | 'phone' | 'url';
+export type CardFontStyle = 'modern' | 'classic' | 'rounded' | 'mono';
+export type CardThemeId = 'ocean' | 'midnight' | 'violet' | 'sand';
+
+export type CardVisualTheme = {
+  id: CardThemeId;
+  backgroundColor: string;
+  surfaceColor: string;
+  textColor: string;
+  mutedTextColor: string;
+  accentColor: string;
+  gradient: [string, string];
+  fontStyle: CardFontStyle;
+};
+
+export const CARD_THEME_PRESETS: Record<CardThemeId, Omit<CardVisualTheme, 'fontStyle'>> = {
+  ocean: { id: 'ocean', backgroundColor: '#eff6ff', surfaceColor: '#ffffff', textColor: '#0f172a', mutedTextColor: '#64748b', accentColor: '#0284c7', gradient: ['#2563eb', '#00a8e8'] },
+  midnight: { id: 'midnight', backgroundColor: '#020617', surfaceColor: '#0f172a', textColor: '#f8fafc', mutedTextColor: '#94a3b8', accentColor: '#38bdf8', gradient: ['#111827', '#020617'] },
+  violet: { id: 'violet', backgroundColor: '#f5f3ff', surfaceColor: '#ffffff', textColor: '#2e1065', mutedTextColor: '#7c3aed', accentColor: '#7c3aed', gradient: ['#4f46e5', '#7c3aed'] },
+  sand: { id: 'sand', backgroundColor: '#fffbeb', surfaceColor: '#fff7ed', textColor: '#451a03', mutedTextColor: '#92400e', accentColor: '#ea580c', gradient: ['#f59e0b', '#ea580c'] },
+};
+
+export const DEFAULT_CARD_THEME: CardVisualTheme = { ...CARD_THEME_PRESETS.ocean, fontStyle: 'modern' };
+
+export type DynamicCardField = {
+  id: string;
+  title: string;
+  type: DynamicCardFieldType;
+  value: string;
+};
+
+export type CardSectionFieldId =
+  | 'preferredName' | 'coverPhoto' | 'profilePhoto' | 'logo'
+  | 'tagline' | 'accreditations' | 'prefix' | 'suffix'
+  | 'firstName' | 'middleName' | 'lastName' | 'title' | 'company'
+  | 'bio';
+
+export type CardSectionLayouts = Record<CardSectionId, CardTemplateId>;
+export type CardSectionThemes = Record<CardSectionId, CardVisualTheme>;
+export type CardSectionOverrides = Partial<Record<CardSectionFieldId, string>>;
+
+export const DEFAULT_CARD_SECTION_LAYOUTS: CardSectionLayouts = {
+  identity: 'classic',
+  professional: 'classic',
+  bio: 'classic',
+  connections: 'classic',
+};
+
+export function createDefaultCardSectionThemes(theme: CardVisualTheme = DEFAULT_CARD_THEME): CardSectionThemes {
+  return {
+    identity: { ...theme, gradient: [...theme.gradient] },
+    professional: { ...theme, gradient: [...theme.gradient] },
+    bio: { ...theme, gradient: [...theme.gradient] },
+    connections: { ...theme, gradient: [...theme.gradient] },
+  };
+}
+
 export type BusinessCard = {
   id: string;
   category: string;
@@ -8,4 +67,10 @@ export type BusinessCard = {
   phone: string;
   email: string;
   gradient: [string, string];
+  sectionLayouts: CardSectionLayouts;
+  sectionThemes: CardSectionThemes;
+  sectionOverrides: CardSectionOverrides;
+  connectionFields: DynamicCardField[];
+  connectionFieldsCustomized: boolean;
+  cardTheme: CardVisualTheme;
 };

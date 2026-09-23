@@ -2,27 +2,81 @@
 import { useState } from 'react';
 import { Alert } from 'react-native';
 import type { CardFieldKey, EditableCard } from '../types/editView.types';
+import type { CardSectionFieldId, CardSectionId, CardTemplateId, CardVisualTheme, DynamicCardField } from '@/components/cardsComponents/types/card.types';
 import { getEditableCard, saveCard } from '../Services/editViewService';
 import { validateCard } from '../Utils/validateCard';
+
+const SECTION_FIELD_IDS: Record<Exclude<CardSectionId, 'connections'>, CardSectionFieldId[]> = {
+  identity: ['preferredName', 'coverPhoto', 'profilePhoto', 'logo'],
+  professional: ['tagline', 'accreditations', 'prefix', 'suffix', 'firstName', 'middleName', 'lastName', 'title', 'company'],
+  bio: ['bio'],
+};
 
 export function useEditView(cardId?: string, startInEditMode = false) {
   const [card, setCard] = useState<EditableCard>(() => getEditableCard(cardId));
   const [draft, setDraft] = useState<EditableCard>(() => getEditableCard(cardId));
   const [isEditing, setIsEditing] = useState(startInEditMode);
   const [isSaving, setIsSaving] = useState(false);
+  const hasChanges = JSON.stringify(draft) !== JSON.stringify(card);
+  const hasSectionChanges = (section: CardSectionId) => {
+    const commonChanged =
+      draft.sectionLayouts[section] !== card.sectionLayouts[section] ||
+      JSON.stringify(draft.sectionThemes[section]) !== JSON.stringify(card.sectionThemes[section]);
+    if (section === 'connections') {
+      return commonChanged ||
+        draft.connectionFieldsCustomized !== card.connectionFieldsCustomized ||
+        JSON.stringify(draft.connectionFields) !== JSON.stringify(card.connectionFields);
+    }
+
+    const fieldsChanged = SECTION_FIELD_IDS[section].some(
+      (field) => draft.sectionOverrides[field] !== card.sectionOverrides[field],
+    );
+    if (section === 'identity') return commonChanged || fieldsChanged || draft.name !== card.name;
+    if (section === 'professional') return commonChanged || fieldsChanged || draft.title !== card.title || draft.company !== card.company;
+    return commonChanged || fieldsChanged;
+  };
 
   const startEditing = () => {
-    setDraft(card);
+    if (!hasChanges) {
+      setDraft({ ...card, cardTheme: { ...card.cardTheme, gradient: [...card.cardTheme.gradient] }, sectionThemes: Object.fromEntries(Object.entries(card.sectionThemes).map(([section, theme]) => [section, { ...theme, gradient: [...theme.gradient] }])) as EditableCard['sectionThemes'], sectionLayouts: { ...card.sectionLayouts }, sectionOverrides: { ...card.sectionOverrides }, connectionFields: card.connectionFields.map((field) => ({ ...field })) });
+    }
     setIsEditing(true);
   };
 
+  const stopEditing = () => setIsEditing(false);
+
   const cancelEditing = () => {
-    setDraft(card);
+    setDraft({ ...card, cardTheme: { ...card.cardTheme, gradient: [...card.cardTheme.gradient] }, sectionThemes: Object.fromEntries(Object.entries(card.sectionThemes).map(([section, theme]) => [section, { ...theme, gradient: [...theme.gradient] }])) as EditableCard['sectionThemes'], sectionLayouts: { ...card.sectionLayouts }, sectionOverrides: { ...card.sectionOverrides }, connectionFields: card.connectionFields.map((field) => ({ ...field })) });
     setIsEditing(false);
   };
 
   const updateField = (field: CardFieldKey, value: string) => {
     setDraft((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const updateSectionLayout = (section: CardSectionId, template: CardTemplateId) => {
+    setDraft((prev) => ({ ...prev, sectionLayouts: { ...prev.sectionLayouts, [section]: template } }));
+  };
+
+  const updateSectionField = (field: CardSectionFieldId, value: string) => {
+    setDraft((prev) => ({
+      ...prev,
+      ...(field === 'preferredName' ? { name: value } : {}),
+      ...(field === 'title' ? { title: value } : {}),
+      ...(field === 'company' ? { company: value } : {}),
+      sectionOverrides: { ...prev.sectionOverrides, [field]: value },
+    }));
+  };
+
+  const replaceConnectionFields = (fields: DynamicCardField[]) => {
+    setDraft((prev) => ({ ...prev, connectionFields: fields, connectionFieldsCustomized: true }));
+  };
+
+  const updateSectionTheme = (section: CardSectionId, theme: CardVisualTheme) => {
+    setDraft((prev) => ({
+      ...prev,
+      sectionThemes: { ...prev.sectionThemes, [section]: { ...theme, gradient: [...theme.gradient] } },
+    }));
   };
 
   const submit = async () => {
@@ -41,5 +95,45 @@ export function useEditView(cardId?: string, startInEditMode = false) {
     }
   };
 
-  return { card, draft, isEditing, isSaving, startEditing, cancelEditing, updateField, submit };
+  const submitSection = async (section: CardSectionId) => {
+    const sectionOverrides = { ...card.sectionOverrides };
+    if (section !== 'connections') {
+      SECTION_FIELD_IDS[section].forEach((field) => {
+        const value = draft.sectionOverrides[field];
+        if (value === undefined) delete sectionOverrides[field];
+        else sectionOverrides[field] = value;
+      });
+    }
+
+    const candidate: EditableCard = {
+      ...card,
+      ...(section === 'identity' ? { name: draft.name } : {}),
+      ...(section === 'professional' ? { title: draft.title, company: draft.company } : {}),
+      sectionThemes: {
+        ...card.sectionThemes,
+        [section]: { ...draft.sectionThemes[section], gradient: [...draft.sectionThemes[section].gradient] },
+      },
+      sectionLayouts: { ...card.sectionLayouts, [section]: draft.sectionLayouts[section] },
+      sectionOverrides,
+      connectionFields: section === 'connections' ? draft.connectionFields.map((field) => ({ ...field })) : card.connectionFields.map((field) => ({ ...field })),
+      connectionFieldsCustomized: section === 'connections' ? draft.connectionFieldsCustomized : card.connectionFieldsCustomized,
+    };
+
+    const error = validateCard(candidate);
+    if (error) {
+      Alert.alert('Check your details', error);
+      return false;
+    }
+
+    setIsSaving(true);
+    try {
+      const saved = await saveCard(candidate);
+      setCard(saved);
+      return true;
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return { card, draft, hasChanges, hasSectionChanges, isEditing, isSaving, startEditing, stopEditing, cancelEditing, updateField, updateSectionLayout, updateSectionField, replaceConnectionFields, updateSectionTheme, submit, submitSection };
 }

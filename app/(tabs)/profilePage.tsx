@@ -1,19 +1,27 @@
 // app/(tabs)/profilePage.tsx
-import { View, Text, TouchableOpacity, ScrollView, Switch, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Switch, Alert, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
+import Constants from 'expo-constants';
 import { Colors } from '@/constants/Colors';
 import { useThemeContext } from '../../context/ThemeContext';
-import { Bell, CreditCard, HelpCircle, Info, Moon, User, Wrench } from 'lucide-react-native';
+import { Bell, CreditCard, HelpCircle, Info, Moon, User } from 'lucide-react-native';
 import { SettingsRow } from '../../components/profileComponents/Components/SettingsRow';
 import { useProfile } from '../../components/profileComponents/Hooks/useProfile';
-import { getInitials } from '../../components/profileComponents/Utils/initials';
+import { useProfileSnapshot } from '../../components/profileComponents/Hooks/useProfileSnapshot';
+import { useNotificationPreference } from '../../components/profileComponents/Hooks/useNotificationPreference';
+import { ProfileDetails } from '../../components/profileComponents/Components/ProfileDetails';
+import { SocialLinksRow } from '../../components/profileComponents/Components/SocialLinksRow';
 import { PageHeader } from '@/components/uiComponents/PageHeader';
-import { FLOATING_TOOL_DEFINITIONS, useFloatingTools } from '@/components/toolsButton';
+import { useFloatingTools } from '@/components/toolsButton';
+import { QuickToolsSection } from '../../components/profileComponents/Components/QuickToolsSection';
+
+const SUPPORT_EMAIL = 'support@proscard.app';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { theme, toggleTheme } = useThemeContext();
-  const { user, logout } = useProfile();
+  const { logout } = useProfile();
+  const { profile } = useProfileSnapshot();
   const {
     enabled: toolsEnabled,
     enabledTools,
@@ -21,6 +29,11 @@ export default function ProfileScreen() {
     setEnabled: setToolsEnabled,
     toggleTool,
   } = useFloatingTools();
+  const {
+    enabled: notificationsEnabled,
+    hydrated: notificationsHydrated,
+    setEnabled: setNotificationsEnabled,
+  } = useNotificationPreference();
 
   const handleLogout = () => {
     Alert.alert('Log out', 'Are you sure you want to log out?', [
@@ -29,32 +42,54 @@ export default function ProfileScreen() {
     ]);
   };
 
+  const handleHelpAndSupport = async () => {
+    const mailUrl = `mailto:${SUPPORT_EMAIL}?subject=ProsCard%20Support`;
+    const canOpen = await Linking.canOpenURL(mailUrl);
+    if (canOpen) {
+      Linking.openURL(mailUrl);
+      return;
+    }
+    Alert.alert(
+      'Help & support',
+      `No email app is set up on this device. Reach us at ${SUPPORT_EMAIL}.`,
+    );
+  };
+
+  const handleAbout = () => {
+    const version = Constants.expoConfig?.version ?? '1.0.0';
+    Alert.alert('ProsCard', `Version ${version}`);
+  };
+
   return (
     <View className="flex-1 bg-background dark:bg-dark-background">
-      <PageHeader title="Profile" subtitle="Account and app preferences" />
+      <PageHeader title="Profile" subtitle="Your info, contact, and app preferences" />
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 12, paddingBottom: 32 }}
         showsVerticalScrollIndicator={false}
       >
-      <View className="items-center mb-8">
-        <View className="w-20 h-20 rounded-full bg-primary dark:bg-dark-primary items-center justify-center mb-3">
-          <Text className="text-white text-2xl font-bold">{getInitials(user?.username)}</Text>
-        </View>
-        <Text className="text-textPrimary dark:text-dark-textPrimary text-xl font-extrabold">
-          {user?.username ?? 'Guest'}
-        </Text>
-        <Text className="text-textMuted dark:text-dark-textMuted text-sm mt-1">
-          {user ? `@${user.username}` : 'Not signed in'}
-        </Text>
-      </View>
+      <SettingsRow icon={User} label="Account" onPress={() => router.push('/(tabs)/accountPage')} />
 
-      <Text className="text-textMuted dark:text-dark-textMuted text-xs font-semibold uppercase mb-2 ml-1">
+      <ProfileDetails profile={profile} />
+      <SocialLinksRow social={profile.social} />
+
+      <Text className="text-textMuted dark:text-dark-textMuted text-xs font-semibold uppercase mb-2 mt-4 ml-1">
         Account
       </Text>
-      <SettingsRow icon={User} label="Edit profile" onPress={() => Alert.alert('Edit profile', 'Coming soon.')} />
       <SettingsRow icon={CreditCard} label="Manage my cards" onPress={() => router.push('/(tabs)/cardsPage')} />
-      <SettingsRow icon={Bell} label="Notifications" onPress={() => Alert.alert('Notifications', 'Coming soon.')} />
+      <SettingsRow
+        icon={Bell}
+        label="Notifications"
+        right={
+          <Switch
+            disabled={!notificationsHydrated}
+            value={notificationsEnabled}
+            onValueChange={setNotificationsEnabled}
+            trackColor={{ false: Colors.light.border, true: Colors.light.tint }}
+            thumbColor={Colors.palette.primaryWhite}
+          />
+        }
+      />
 
       <Text className="text-textMuted dark:text-dark-textMuted text-xs font-semibold uppercase mb-2 mt-4 ml-1">
         Preferences
@@ -71,48 +106,19 @@ export default function ProfileScreen() {
           />
         }
       />
-      <SettingsRow
-        icon={Wrench}
-        label="Floating card tools"
-        right={
-          <Switch
-            disabled={!toolsHydrated}
-            value={toolsEnabled}
-            onValueChange={setToolsEnabled}
-            trackColor={{ false: Colors.light.border, true: Colors.light.tint }}
-            thumbColor={Colors.palette.primaryWhite}
-          />
-        }
+      <QuickToolsSection
+        toolsEnabled={toolsEnabled}
+        setToolsEnabled={setToolsEnabled}
+        enabledTools={enabledTools}
+        hydrated={toolsHydrated}
+        toggleTool={toggleTool}
       />
-      {toolsEnabled ? (
-        <>
-          <Text className="mb-2 ml-1 mt-3 text-xs font-semibold uppercase text-textMuted dark:text-dark-textMuted">
-            Quick tools
-          </Text>
-          {FLOATING_TOOL_DEFINITIONS.map((tool) => (
-            <SettingsRow
-              key={tool.id}
-              icon={tool.icon}
-              label={tool.label}
-              right={
-                <Switch
-                  disabled={!toolsHydrated}
-                  value={enabledTools.includes(tool.id)}
-                  onValueChange={() => toggleTool(tool.id)}
-                  trackColor={{ false: Colors.light.border, true: Colors.light.tint }}
-                  thumbColor={Colors.palette.primaryWhite}
-                />
-              }
-            />
-          ))}
-        </>
-      ) : null}
 
       <Text className="text-textMuted dark:text-dark-textMuted text-xs font-semibold uppercase mb-2 mt-4 ml-1">
         Support
       </Text>
-      <SettingsRow icon={HelpCircle} label="Help & support" onPress={() => Alert.alert('Help & support', 'Coming soon.')} />
-      <SettingsRow icon={Info} label="About ProsCard" onPress={() => Alert.alert('ProsCard', 'Version 1.0.0')} />
+      <SettingsRow icon={HelpCircle} label="Help & support" onPress={handleHelpAndSupport} />
+      <SettingsRow icon={Info} label="About ProsCard" onPress={handleAbout} />
 
       <TouchableOpacity
         className="mt-6 rounded-2xl py-4 items-center border border-error dark:border-dark-error"

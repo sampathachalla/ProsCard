@@ -1,6 +1,5 @@
 import { useEffect, type ReactNode } from 'react';
 import { View } from 'react-native';
-import * as Haptics from 'expo-haptics';
 import Animated, {
   interpolate,
   useAnimatedStyle,
@@ -18,6 +17,7 @@ export type FlippableCardProps = {
   hapticsEnabled?: boolean;
   height: number;
   onDoubleTap: () => void;
+  onSwipeDown?: () => void;
   onSingleTapWhenDisabled?: () => void;
   perspective?: number;
   resetDuration?: number;
@@ -33,6 +33,7 @@ export function FlippableCard({
   hapticsEnabled = true,
   height,
   onDoubleTap,
+  onSwipeDown,
   onSingleTapWhenDisabled,
   perspective = 1000,
   resetDuration = 240,
@@ -66,16 +67,15 @@ export function FlippableCard({
       return;
     }
 
-    if (hapticsEnabled) Haptics.selectionAsync().catch(() => {});
     progress.set(withTiming(progress.get() >= 0.5 ? 0 : 1, { duration: flipDuration }));
   };
 
   return (
-    <CardTapGesture onDoubleTap={onDoubleTap} onSingleTap={handleSingleTap}>
+    <CardTapGesture hapticsEnabled={hapticsEnabled} onDoubleTap={onDoubleTap} onSingleTap={handleSingleTap} onSwipeDown={onSwipeDown}>
       <View
         accessibilityLabel={`${accessibilityLabel}. ${
           flipEnabled ? 'Single tap to flip.' : 'Single tap to focus.'
-        } Double tap to open details.`}
+        } Double tap to open details.${onSwipeDown ? ' Swipe down to show the QR code.' : ''}`}
         accessibilityRole="button"
         style={{ height, width }}
       >

@@ -1,6 +1,7 @@
 import { View } from 'react-native';
 import Animated, { FadeIn, FadeOut, useSharedValue } from 'react-native-reanimated';
 import type { BusinessCard } from '@/components/cardsComponents/types/card.types';
+import type { Profile } from '@/components/profileComponents/types/profile.types';
 import { BusinessCardCarousel } from './BusinessCardCarousel';
 import type { CardViewMode } from './CardSectionHeader';
 import { CarouselFooter } from './CarouselFooter';
@@ -13,6 +14,8 @@ type CardShowcaseSectionProps = {
   height: number;
   onActiveIndexChange: (index: number) => void;
   onCardDoubleTap?: (card: BusinessCard) => void;
+  onCardSwipeDown?: (card: BusinessCard) => void;
+  profile: Profile;
   viewMode: CardViewMode;
 };
 
@@ -25,6 +28,8 @@ export function CardShowcaseSection({
   height,
   onActiveIndexChange,
   onCardDoubleTap,
+  onCardSwipeDown,
+  profile,
   viewMode,
 }: CardShowcaseSectionProps) {
   const carouselProgress = useSharedValue(0);
@@ -49,6 +54,8 @@ export function CardShowcaseSection({
             progress={carouselProgress}
             onActiveIndexChange={onActiveIndexChange}
             onCardDoubleTap={onCardDoubleTap}
+            onCardSwipeDown={onCardSwipeDown}
+            profile={profile}
           />
         ) : (
           <StackedCardView
@@ -58,6 +65,8 @@ export function CardShowcaseSection({
             height={contentHeight}
             onActiveIndexChange={onActiveIndexChange}
             onCardDoubleTap={onCardDoubleTap}
+            onCardSwipeDown={onCardSwipeDown}
+            profile={profile}
           />
         )}
       </Animated.View>

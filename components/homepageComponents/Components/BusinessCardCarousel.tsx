@@ -8,6 +8,7 @@ import Animated, {
   useAnimatedStyle,
 } from 'react-native-reanimated';
 import type { BusinessCard as BusinessCardData } from '@/components/cardsComponents/types/card.types';
+import type { Profile } from '@/components/profileComponents/types/profile.types';
 import { Text } from '@/components/uiComponents/Text';
 import { BusinessCard } from './BusinessCard';
 import { getBusinessCardHeight, getBusinessCardWidth } from '../Utils/businessCardLayout';
@@ -19,6 +20,8 @@ type BusinessCardCarouselProps = {
   progress: SharedValue<number>;
   onActiveIndexChange?: (index: number) => void;
   onCardDoubleTap?: (card: BusinessCardData) => void;
+  onCardSwipeDown?: (card: BusinessCardData) => void;
+  profile: Profile;
 };
 
 const CARD_GAP = 14;
@@ -29,6 +32,8 @@ function AnimatedCardWrapper({
   index,
   height,
   onDoubleTap,
+  onSwipeDown,
+  profile,
   width,
   progress,
 }: {
@@ -36,6 +41,8 @@ function AnimatedCardWrapper({
   index: number;
   height: number;
   onDoubleTap?: () => void;
+  onSwipeDown?: () => void;
+  profile: Profile;
   width: number;
   progress: SharedValue<number>;
 }) {
@@ -52,7 +59,7 @@ function AnimatedCardWrapper({
 
   return (
     <Animated.View style={animatedStyle}>
-      <BusinessCard card={card} height={height} onDoubleTap={onDoubleTap} width={width} />
+      <BusinessCard card={card} height={height} onDoubleTap={onDoubleTap} onSwipeDown={onSwipeDown} profile={profile} width={width} />
     </Animated.View>
   );
 }
@@ -64,6 +71,8 @@ export function BusinessCardCarousel({
   progress,
   onActiveIndexChange,
   onCardDoubleTap,
+  onCardSwipeDown,
+  profile,
 }: BusinessCardCarouselProps) {
   const listRef = useRef<FlashListRef<BusinessCardData>>(null);
   const activeIndexRef = useRef(0);
@@ -151,6 +160,8 @@ export function BusinessCardCarousel({
             index={index}
             height={cardHeight}
             onDoubleTap={() => onCardDoubleTap?.(item)}
+            onSwipeDown={() => onCardSwipeDown?.(item)}
+            profile={profile}
             width={cardWidth}
             progress={progress}
           />

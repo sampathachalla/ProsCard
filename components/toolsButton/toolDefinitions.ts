@@ -1,6 +1,8 @@
 import { Copy, ExternalLink, Pencil, WalletCards } from 'lucide-react-native';
 import type { FloatingToolDefinition, FloatingToolId } from './types';
 
+export const MAX_QUICK_TOOLS = 3;
+
 export const DEFAULT_FLOATING_TOOLS: FloatingToolId[] = ['copy', 'wallet', 'edit'];
 
 export const FLOATING_TOOL_DEFINITIONS: FloatingToolDefinition[] = [

@@ -3,7 +3,7 @@ import { Pressable, View, type LayoutChangeEvent } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Wrench } from 'lucide-react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { Colors } from '@/constants/Colors';
 import { useThemeContext } from '@/context/ThemeContext';
 import { Text } from '@/components/uiComponents/Text';
@@ -23,7 +23,8 @@ type FloatingToolsButtonProps = {
 
 const TOOL_OPTION_HEIGHT = 48;
 const TOOL_OPTION_WIDTH = 132;
-const TOOL_ARC_RADIUS = 118;
+const TOOL_ARC_RADIUS = 136;
+const TOOL_TRIGGER_CLEARANCE = 24;
 const TOOL_SELECTION_THRESHOLD = 30;
 
 type ArcDirection = 'down' | 'left' | 'right' | 'up';
@@ -43,9 +44,9 @@ function getArcAngles(direction: ArcDirection) {
     case 'left':
       return [115, 245];
     case 'up':
-      return [200, 340];
+      return [215, 325];
     case 'down':
-      return [20, 160];
+      return [35, 145];
   }
 }
 
@@ -58,6 +59,86 @@ function getArcTargets(direction: ArcDirection, count: number) {
       x: Math.cos(angle) * TOOL_ARC_RADIUS,
       y: Math.sin(angle) * TOOL_ARC_RADIUS,
     };
+  });
+}
+
+function getContainedArcTargets({
+  bounds,
+  buttonPosition,
+  count,
+  direction,
+}: {
+  bounds: { height: number; width: number };
+  buttonPosition: { x: number; y: number };
+  count: number;
+  direction: ArcDirection;
+}) {
+  const targets = getArcTargets(direction, count);
+  if (!targets.length || !bounds.width || !bounds.height) return targets;
+
+  const buttonCenterX = buttonPosition.x + FLOATING_TOOL_SIZE / 2;
+  const buttonCenterY = buttonPosition.y + FLOATING_TOOL_SIZE / 2;
+  const menuGap = FLOATING_TOOL_EDGE_GAP;
+  const left = Math.min(
+    ...targets.map((target) => buttonCenterX + target.x - TOOL_OPTION_WIDTH / 2),
+  );
+  const right = Math.max(
+    ...targets.map((target) => buttonCenterX + target.x + TOOL_OPTION_WIDTH / 2),
+  );
+  const top = Math.min(
+    ...targets.map((target) => buttonCenterY + target.y - TOOL_OPTION_HEIGHT / 2),
+  );
+  const bottom = Math.max(
+    ...targets.map((target) => buttonCenterY + target.y + TOOL_OPTION_HEIGHT / 2),
+  );
+
+  let shiftX = 0;
+  let shiftY = 0;
+  if (left < menuGap) shiftX = menuGap - left;
+  else if (right > bounds.width - menuGap) shiftX = bounds.width - menuGap - right;
+  if (top < menuGap) shiftY = menuGap - top;
+  else if (bottom > bounds.height - menuGap) shiftY = bounds.height - menuGap - bottom;
+
+  const minimumXDistance = TOOL_OPTION_WIDTH / 2 + FLOATING_TOOL_SIZE / 2 + TOOL_TRIGGER_CLEARANCE;
+  const minimumYDistance = TOOL_OPTION_HEIGHT / 2 + FLOATING_TOOL_SIZE / 2 + TOOL_TRIGGER_CLEARANCE;
+  const minimumCenterX = menuGap + TOOL_OPTION_WIDTH / 2;
+  const maximumCenterX = bounds.width - menuGap - TOOL_OPTION_WIDTH / 2;
+  const minimumCenterY = menuGap + TOOL_OPTION_HEIGHT / 2;
+  const maximumCenterY = bounds.height - menuGap - TOOL_OPTION_HEIGHT / 2;
+
+  return targets.map((target) => {
+    let targetX = target.x + shiftX;
+    let targetY = target.y + shiftY;
+    const overlapsTrigger = Math.abs(targetX) < minimumXDistance && Math.abs(targetY) < minimumYDistance;
+
+    if (overlapsTrigger) {
+      const candidates = [
+        { x: -minimumXDistance, y: targetY },
+        { x: minimumXDistance, y: targetY },
+        { x: targetX, y: -minimumYDistance },
+        { x: targetX, y: minimumYDistance },
+      ].filter((candidate) => {
+        const centerX = buttonCenterX + candidate.x;
+        const centerY = buttonCenterY + candidate.y;
+        return centerX >= minimumCenterX && centerX <= maximumCenterX && centerY >= minimumCenterY && centerY <= maximumCenterY;
+      });
+
+      const closest = candidates.reduce<{ x: number; y: number } | null>((best, candidate) => {
+        if (!best) return candidate;
+        const bestDistance = Math.hypot(best.x - targetX, best.y - targetY);
+        const candidateDistance = Math.hypot(candidate.x - targetX, candidate.y - targetY);
+        return candidateDistance < bestDistance ? candidate : best;
+      }, null);
+
+      if (closest) {
+        targetX = closest.x;
+        targetY = closest.y;
+      }
+    }
+
+    const centerX = clamp(buttonCenterX + targetX, minimumCenterX, maximumCenterX);
+    const centerY = clamp(buttonCenterY + targetY, minimumCenterY, maximumCenterY);
+    return { x: centerX - buttonCenterX, y: centerY - buttonCenterY };
   });
 }
 
@@ -77,16 +158,26 @@ export function FloatingToolsButton({ actions }: FloatingToolsButtonProps) {
     [actions, enabledTools],
   );
   const arcDirection = getArcDirection(position);
+  const buttonPosition = useMemo(
+    () => toScreenPosition(position, bounds.width, bounds.height),
+    [bounds.height, bounds.width, position],
+  );
   const arcTargets = useMemo(
-    () => getArcTargets(arcDirection, visibleActions.length),
-    [arcDirection, visibleActions.length],
+    () =>
+      getContainedArcTargets({
+        bounds,
+        buttonPosition,
+        count: visibleActions.length,
+        direction: arcDirection,
+      }),
+    [arcDirection, bounds, buttonPosition, visibleActions.length],
   );
 
   useEffect(() => {
     if (!bounds.width || !bounds.height) return;
     const next = toScreenPosition(position, bounds.width, bounds.height);
-    x.set(withSpring(next.x, { damping: 20, stiffness: 220 }));
-    y.set(withSpring(next.y, { damping: 20, stiffness: 220 }));
+    x.set(next.x);
+    y.set(next.y);
   }, [bounds.height, bounds.width, position, x, y]);
 
   const savePosition = (nextX: number, nextY: number) => {
@@ -180,8 +271,6 @@ export function FloatingToolsButton({ actions }: FloatingToolsButtonProps) {
     if (menuOpen) closeMenu();
     else setMenuOpen(true);
   };
-  const buttonPosition = toScreenPosition(position, bounds.width, bounds.height);
-
   if (!enabled || !hydrated) return null;
 
   return (

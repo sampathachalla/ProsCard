@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Alert, Linking, Platform, ScrollView, Share, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import type { GenerateMetadataFunction } from 'expo-router/server';
@@ -5,6 +6,8 @@ import { CardDetailView } from '@/components/cardsComponents/Components/CardDeta
 import { getCardById } from '@/components/cardsComponents/Services/cardsService';
 import { CardTapGesture } from '@/components/gestures';
 import { Text } from '@/components/uiComponents/Text';
+import { QRCodeModal } from '@/components/uiComponents/QRCodeModal';
+import { useProfileSnapshot } from '@/components/profileComponents/Hooks/useProfileSnapshot';
 import {
   FLOATING_TOOL_DEFINITIONS,
   FloatingToolsButton,
@@ -39,6 +42,8 @@ export default function CardDetailPage() {
   const { cardId } = useLocalSearchParams<{ cardId: string }>();
   const router = useRouter();
   const card = getCardById(cardId);
+  const { profile } = useProfileSnapshot();
+  const [showQr, setShowQr] = useState(false);
 
   const getCardUrl = () => {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
@@ -109,14 +114,16 @@ export default function CardDetailPage() {
     <CardTapGesture
       containerClassName="flex-1 bg-background dark:bg-dark-background"
       onDoubleTap={handleBack}
+      onSwipeDown={() => setShowQr(true)}
     >
       <ScrollView
         contentContainerStyle={{ paddingBottom: 32, paddingHorizontal: 20, paddingTop: 12 }}
         showsVerticalScrollIndicator={false}
       >
-        <CardDetailView card={card} />
+        <CardDetailView card={card} profile={profile} />
       </ScrollView>
       <FloatingToolsButton actions={toolActions} />
+      <QRCodeModal visible={showQr} cardName={card.name} url={getCardUrl()} onClose={() => setShowQr(false)} />
     </CardTapGesture>
   );
 }
