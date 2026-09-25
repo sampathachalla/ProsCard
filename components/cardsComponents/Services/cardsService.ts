@@ -1,14 +1,22 @@
 // components/cardsComponents/Services/cardsService.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '@/constants/Colors';
+import { buildCustomSectionTheme } from '@/utils/cardThemeColor';
 import { CARD_THEME_PRESETS, createDefaultCardSectionThemes, DEFAULT_CARD_SECTION_LAYOUTS, DEFAULT_CARD_THEME, type BusinessCard, type CardVisualTheme } from '../types/card.types';
 
 const PRIMARY_CARD_KEY = 'primaryCard';
 const USER_CARDS_KEY = 'userCards';
 
 function themeForGradient(gradient: [string, string]): CardVisualTheme {
-  const preset = Object.values(CARD_THEME_PRESETS).find((item) => item.gradient[0].toLowerCase() === gradient[0].toLowerCase()) ?? DEFAULT_CARD_THEME;
-  return { ...preset, gradient: [gradient[0], gradient[1]], fontStyle: 'modern' };
+  const preset = Object.values(CARD_THEME_PRESETS).find(
+    (item) =>
+      item.gradient[0].toLowerCase() === gradient[0].toLowerCase() &&
+      item.gradient[1].toLowerCase() === gradient[1].toLowerCase(),
+  );
+  if (preset) {
+    return { ...preset, gradient: [gradient[0], gradient[1]], fontStyle: 'modern' };
+  }
+  return buildCustomSectionTheme(gradient, 'modern');
 }
 
 function defaultSectionData(gradient: [string, string] = DEFAULT_CARD_THEME.gradient) {
@@ -39,6 +47,10 @@ export function normalizeCard(card: BusinessCard | (Omit<BusinessCard, 'sectionL
         return [section, savedTheme ? { ...theme, ...savedTheme, gradient: [...savedTheme.gradient] } : theme];
       }),
     ) as BusinessCard['sectionThemes'],
+    customThemes: (card.customThemes ?? []).map((item) => ({
+      ...item,
+      gradient: [item.gradient[0], item.gradient[1]] as [string, string],
+    })),
   };
 }
 
@@ -46,13 +58,32 @@ export const CARDS: BusinessCard[] = [
   {
     id: '1',
     category: 'Professional',
-    name: 'Sampath Kambhampati',
+    name: 'Dr. Sampath Kumar Kambhampati PhD',
     title: 'Founder & CEO',
-    company: 'ProsCard',
+    company: 'MindPros Technologies',
     phone: '+1 (555) 010-2030',
     email: 'sampath@proscard.app',
     gradient: [Colors.light.tint, Colors.palette.brandCyan],
     ...defaultSectionData([Colors.light.tint, Colors.palette.brandCyan]),
+    sectionLayouts: {
+      identity: 'classic',
+      professional: 'classic',
+      bio: 'classic',
+      connections: 'classic',
+    },
+    sectionOverrides: {
+      preferredName: 'Dr. Sampath Kambhampati',
+      title: 'Founder & Chief Executive Officer',
+      company: 'MindPros Technologies',
+      tagline: 'Building next-generation digital networking tools for visionary professionals.',
+      accreditations: 'MBA, AWS Certified Architect, PMP',
+      prefix: 'Dr.',
+      firstName: 'Sampath',
+      middleName: 'Kumar',
+      lastName: 'Kambhampati',
+      suffix: 'PhD',
+      bio: 'Founder and product architect dedicated to crafting high-impact digital experiences that empower creators, executives, and organizations to connect and build meaningful relationships globally.',
+    },
   },
   {
     id: '2',
@@ -64,6 +95,25 @@ export const CARDS: BusinessCard[] = [
     email: 'sampath@mindpros.studio',
     gradient: [Colors.palette.surfaceDark, Colors.palette.midnightBase],
     ...defaultSectionData([Colors.palette.surfaceDark, Colors.palette.midnightBase]),
+    sectionLayouts: {
+      identity: 'minimal',
+      professional: 'minimal',
+      bio: 'minimal',
+      connections: 'minimal',
+    },
+    sectionOverrides: {
+      preferredName: 'Sampath K.',
+      title: 'Lead Product & UX Designer',
+      company: 'MindPros Studio',
+      tagline: 'Designing intuitive interfaces and delightful user-centric mobile products.',
+      accreditations: 'Nielsen Norman Certified, Figma Pro',
+      prefix: '',
+      firstName: 'Sampath',
+      middleName: '',
+      lastName: 'Kambhampati',
+      suffix: '',
+      bio: 'Specializing in design systems, micro-interactions, and mobile UX. Passionate about minimalism, typography, and human-computer interaction.',
+    },
   },
   {
     id: '3',
@@ -75,6 +125,25 @@ export const CARDS: BusinessCard[] = [
     email: 'sampath@mindpros.ai',
     gradient: ['#4f46e5', '#7c3aed'],
     ...defaultSectionData(['#4f46e5', '#7c3aed']),
+    sectionLayouts: {
+      identity: 'bold',
+      professional: 'bold',
+      bio: 'bold',
+      connections: 'bold',
+    },
+    sectionOverrides: {
+      preferredName: 'Sampath Kambhampati',
+      title: 'Principal AI & Full Stack Engineer',
+      company: 'MindPros AI Labs',
+      tagline: 'Scaling distributed intelligence and realtime agentic workflows.',
+      accreditations: 'M.S. Computer Science, GCP Professional Cloud Architect',
+      prefix: 'Eng.',
+      firstName: 'Sampath',
+      middleName: 'K.',
+      lastName: 'Kambhampati',
+      suffix: 'M.S.',
+      bio: 'Deep expertise in React Native, TypeScript, cloud microservices, and neural search systems. Building scalable, resilient platforms for millions of users.',
+    },
   },
   {
     id: '4',
@@ -86,6 +155,25 @@ export const CARDS: BusinessCard[] = [
     email: 'sampath@mindpros.vc',
     gradient: ['#0f766e', '#059669'],
     ...defaultSectionData(['#0f766e', '#059669']),
+    sectionLayouts: {
+      identity: 'glass',
+      professional: 'glass',
+      bio: 'glass',
+      connections: 'glass',
+    },
+    sectionOverrides: {
+      preferredName: 'Sampath Kambhampati',
+      title: 'General Partner & Angel Investor',
+      company: 'MindPros Ventures',
+      tagline: 'Backing early-stage founders shaping the future of AI and developer tools.',
+      accreditations: 'Kauffman Fellow, YC Alum',
+      prefix: '',
+      firstName: 'Sampath',
+      middleName: '',
+      lastName: 'Kambhampati',
+      suffix: 'Kauffman Fellow',
+      bio: 'Investing in seed-stage founders across AI infrastructure, B2B SaaS, and consumer tech. Always excited to meet passionate builders.',
+    },
   },
 ];
 

@@ -117,7 +117,7 @@ export default function CardDetailPage() {
       onSwipeDown={() => setShowQr(true)}
     >
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 32, paddingHorizontal: 20, paddingTop: 12 }}
+        contentContainerStyle={{ paddingBottom: 32, paddingTop: 12 }}
         showsVerticalScrollIndicator={false}
       >
         <CardDetailView card={card} profile={profile} />

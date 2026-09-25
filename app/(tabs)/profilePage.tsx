@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import { Colors } from '@/constants/Colors';
 import { useThemeContext } from '../../context/ThemeContext';
-import { Bell, CreditCard, HelpCircle, Info, Moon, User } from 'lucide-react-native';
+import { Bell, CreditCard, Focus, HelpCircle, Info, Moon, User } from 'lucide-react-native';
 import { SettingsRow } from '../../components/profileComponents/Components/SettingsRow';
 import { useProfile } from '../../components/profileComponents/Hooks/useProfile';
 import { useProfileSnapshot } from '../../components/profileComponents/Hooks/useProfileSnapshot';
@@ -14,6 +14,7 @@ import { SocialLinksRow } from '../../components/profileComponents/Components/So
 import { PageHeader } from '@/components/uiComponents/PageHeader';
 import { useFloatingTools } from '@/components/toolsButton';
 import { QuickToolsSection } from '../../components/profileComponents/Components/QuickToolsSection';
+import { useEditorPreferences } from '../../components/profileComponents/Hooks/useEditorPreferences';
 
 const SUPPORT_EMAIL = 'support@proscard.app';
 
@@ -34,6 +35,11 @@ export default function ProfileScreen() {
     hydrated: notificationsHydrated,
     setEnabled: setNotificationsEnabled,
   } = useNotificationPreference();
+  const {
+    hydrated: editorPreferencesHydrated,
+    sectionHighlightEnabled,
+    setSectionHighlightEnabled,
+  } = useEditorPreferences();
 
   const handleLogout = () => {
     Alert.alert('Log out', 'Are you sure you want to log out?', [
@@ -101,6 +107,19 @@ export default function ProfileScreen() {
           <Switch
             value={theme === 'dark'}
             onValueChange={toggleTheme}
+            trackColor={{ false: Colors.light.border, true: Colors.light.tint }}
+            thumbColor={Colors.palette.primaryWhite}
+          />
+        }
+      />
+      <SettingsRow
+        icon={Focus}
+        label="Editing section highlight"
+        right={
+          <Switch
+            disabled={!editorPreferencesHydrated}
+            value={sectionHighlightEnabled}
+            onValueChange={setSectionHighlightEnabled}
             trackColor={{ false: Colors.light.border, true: Colors.light.tint }}
             thumbColor={Colors.palette.primaryWhite}
           />

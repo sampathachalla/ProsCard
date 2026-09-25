@@ -38,9 +38,17 @@ if ! curl -fsS http://127.0.0.1:4040/api/tunnels >/dev/null 2>&1; then
   exit 1
 fi
 
-TUNNEL_RESPONSE=$(curl -fsS -X POST http://127.0.0.1:4040/api/tunnels \
-  -H 'Content-Type: application/json' \
-  --data "{\"name\":\"proscard\",\"addr\":\"http://127.0.0.1:8081\",\"proto\":\"http\",\"hostname\":\"${TUNNEL_HOST}\",\"bind_tls\":true}")
+TUNNEL_RESPONSE=""
+for attempt in {1..50}; do
+  TUNNEL_RESPONSE=$(curl -fsS -X POST http://127.0.0.1:4040/api/tunnels \
+    -H 'Content-Type: application/json' \
+    --data "{\"name\":\"proscard\",\"addr\":\"http://127.0.0.1:8081\",\"proto\":\"http\",\"hostname\":\"${TUNNEL_HOST}\",\"bind_tls\":true}" \
+    2>/dev/null || true)
+  if [[ "${TUNNEL_RESPONSE}" == *"${TUNNEL_URL}"* ]]; then
+    break
+  fi
+  sleep 0.2
+done
 
 if [[ "${TUNNEL_RESPONSE}" != *"${TUNNEL_URL}"* ]]; then
   print -u2 "Unable to create the Expo tunnel: ${TUNNEL_RESPONSE}"

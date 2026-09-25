@@ -3,15 +3,18 @@ import { Modal, Pressable, ScrollView, View, useWindowDimensions } from 'react-n
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { AlignLeft, BriefcaseBusiness, Eye, Link2, RotateCcw, Save as SaveIcon, UserRound, Wrench, type LucideIcon } from 'lucide-react-native';
+import { AlignLeft, BriefcaseBusiness, Eye, Link2, RotateCcw, Save as SaveIcon, UserRound, type LucideIcon } from 'lucide-react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { EditorAnimatedPresentationProvider } from '@/components/uiComponents/editor/EditorAnimatedPresentationContext';
 import { PageHeader } from '@/components/uiComponents/PageHeader';
 import { ThemedBottomSheet } from '@/components/uiComponents/ThemedBottomSheet';
 import { Text } from '@/components/uiComponents/Text';
 import { EditHomeBar, type EditHomeTab } from '@/components/uiComponents/EditHomeBar';
+import { FloatingEditBarButton } from '@/components/uiComponents/FloatingEditBarButton';
 import { CardDetailView } from '@/components/cardsComponents/Components/CardDetailView';
 import { CardSectionEditor } from '@/components/editViewComponents/Components/CardSectionEditor';
 import { useProfileSnapshot } from '@/components/profileComponents/Hooks/useProfileSnapshot';
+import { useEditorPreferences } from '@/components/profileComponents/Hooks/useEditorPreferences';
 import type { CardSectionId } from '@/components/cardsComponents/types/card.types';
 import { useEditView } from '@/components/editViewComponents/Hooks/useEditView';
 import { CardTapGesture } from '@/components/gestures';
@@ -33,25 +36,28 @@ export default function EditViewPage() {
   const safeAreaInsets = useSafeAreaInsets();
   const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const { profile } = useProfileSnapshot();
+  const { hydrated: editorPreferencesHydrated, sectionHighlightEnabled } = useEditorPreferences();
   const sheetRef = useRef<BottomSheet>(null);
   const cardScrollRef = useRef<ScrollView>(null);
   const sectionOffsets = useRef<Partial<Record<CardSectionId, number>>>({});
-  const previewScrollY = useRef(0);
-  const previewDragStartY = useRef<number | null>(null);
-  const previewDragCurrentY = useRef<number | null>(null);
   const sectionPickerScrollY = useRef(0);
   const sectionPickerDragStartY = useRef<number | null>(null);
   const sectionPickerDragCurrentY = useRef<number | null>(null);
   const snapPoints = useMemo(() => ['55%', '100%'], []);
   const [headerHeight, setHeaderHeight] = useState(0);
+  const [sheetIndex, setSheetIndex] = useState(-1);
+  const [homeBarCollapsed, setHomeBarCollapsed] = useState(false);
   const [activeSection, setActiveSection] = useState<CardSectionId>('identity');
   const [activeEditTab, setActiveEditTab] = useState<EditHomeTab>('layout');
+  const [stylingOpen, setStylingOpen] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [sectionPickerOpen, setSectionPickerOpen] = useState(false);
-  const { card, draft, hasChanges, hasSectionChanges, isEditing, isSaving, startEditing, stopEditing, cancelEditing, updateSectionLayout, updateSectionField, replaceConnectionFields, updateSectionTheme, submit, submitSection } = useEditView(cardId, false);
+  const { card, draft, hasChanges, hasSectionChanges, isEditing, isSaving, startEditing, stopEditing, cancelEditing, updateSectionLayout, updateSectionField, replaceConnectionFields, resetSection, updateSectionTheme, saveCustomSectionTheme, submit, submitSection } = useEditView(cardId, false);
 
   const openSection = (section: CardSectionId) => {
     startEditing();
+    setHomeBarCollapsed(false);
+    setStylingOpen(false);
     setSectionPickerOpen(false);
     setActiveSection(section);
     requestAnimationFrame(() => {
@@ -90,6 +96,16 @@ export default function EditViewPage() {
   };
 
   const closeEditor = () => sheetRef.current?.close();
+  const returnToEditHomeBar = () => {
+    setStylingOpen(false);
+    setHomeBarCollapsed(false);
+    sheetRef.current?.snapToIndex(0);
+  };
+  const compactBarHidden = homeBarCollapsed && sheetIndex === 0;
+  const changeEditTab = (tab: EditHomeTab) => {
+    setActiveEditTab(tab);
+    setStylingOpen(false);
+  };
   const handleHeaderBack = () => {
     if (isEditing) {
       closeEditor();
@@ -99,8 +115,11 @@ export default function EditViewPage() {
       setSectionPickerOpen(false);
       return;
     }
-    if (router.canGoBack()) router.back();
-    else router.replace('/(tabs)/homepage');
+    if (cardId) {
+      router.replace({ pathname: '/cards/[cardId]', params: { cardId } });
+      return;
+    }
+    router.replace('/(tabs)/cardsPage');
   };
   const saveSection = async () => {
     await submitSection(activeSection);
@@ -114,6 +133,11 @@ export default function EditViewPage() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
     cancelEditing();
   };
+  const undoActiveSectionChanges = () => {
+    if (!hasSectionChanges(activeSection) || isSaving) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+    resetSection(activeSection);
+  };
   const previewCard = () => {
     Haptics.selectionAsync().catch(() => {});
     setPreviewVisible(true);
@@ -122,89 +146,137 @@ export default function EditViewPage() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     setPreviewVisible(false);
   };
-  const startPreviewDrag = (pageY: number) => {
-    previewDragStartY.current = previewScrollY.current <= 2 ? pageY : null;
-    previewDragCurrentY.current = pageY;
-  };
-  const finishPreviewDrag = () => {
-    const startY = previewDragStartY.current;
-    const currentY = previewDragCurrentY.current;
-    previewDragStartY.current = null;
-    previewDragCurrentY.current = null;
-    if (startY !== null && currentY !== null && currentY - startY >= 72) closePreview();
-  };
   const previewCardData = isEditing ? draft : card;
 
   return <View className="flex-1 bg-background dark:bg-dark-background">
     <View onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}>
       <PageHeader
-        title={isEditing ? `Edit ${SECTION_TITLES[activeSection]}` : 'Edit Card'}
-        subtitle={isEditing ? 'Swipe down or double tap to close without saving' : (card.name || 'Choose a section to customize')}
+        title={isEditing ? (stylingOpen ? `Style ${SECTION_TITLES[activeSection]}` : `Edit ${SECTION_TITLES[activeSection]}`) : 'Edit Card'}
+        subtitle={isEditing ? (stylingOpen ? `Styling opened from ${activeEditTab === 'layout' ? 'Layout' : 'Content'}` : 'Double tap to return to the edit bar') : (card.name || 'Choose a section to customize')}
         onBackPress={handleHeaderBack}
         right={isEditing ? (
-          <Pressable
-            accessibilityLabel={`Preview ${card.name || 'card'}`}
-            accessibilityRole="button"
-            onPress={previewCard}
-            className="flex-row items-center rounded-full border border-primary px-3 py-2 active:opacity-70 dark:border-dark-primary"
-          >
-            <Eye color="#3b82f6" size={17} />
-            <Text className="ml-1.5 text-sm font-bold text-primary dark:text-dark-primary">Preview</Text>
-          </Pressable>
+          hasSectionChanges(activeSection) ? (
+            <Pressable
+              accessibilityLabel={`Undo unsaved ${SECTION_TITLES[activeSection]} changes`}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: isSaving }}
+              className="flex-row items-center rounded-full border border-amber-500 bg-amber-500/15 px-3 py-2 active:opacity-70"
+              disabled={isSaving}
+              onPress={undoActiveSectionChanges}
+            >
+              <RotateCcw color="#f59e0b" size={17} />
+              <Text className="ml-1.5 text-sm font-bold text-amber-600 dark:text-amber-400">Undo</Text>
+            </Pressable>
+          ) : (
+            <Pressable
+              accessibilityLabel={`Preview ${card.name || 'card'}`}
+              accessibilityRole="button"
+              onPress={previewCard}
+              className="flex-row items-center rounded-full border border-primary px-3 py-2 active:opacity-70 dark:border-dark-primary"
+            >
+              <Eye color="#3b82f6" size={17} />
+              <Text className="ml-1.5 text-sm font-bold text-primary dark:text-dark-primary">Preview</Text>
+            </Pressable>
+          )
         ) : (
           <View className="flex-row items-center gap-2">
             {hasChanges ? (
+              <>
+                <Pressable
+                  accessibilityLabel="Undo all unsaved card changes"
+                  accessibilityRole="button"
+                  accessibilityState={{ disabled: isSaving }}
+                  className="h-11 w-11 items-center justify-center rounded-full border border-amber-500 bg-amber-500"
+                  disabled={isSaving}
+                  onPress={undoAllChanges}
+                >
+                  <RotateCcw color="#ffffff" size={20} />
+                </Pressable>
+                <Pressable
+                  accessibilityLabel="Save all card changes"
+                  accessibilityRole="button"
+                  accessibilityState={{ disabled: isSaving, busy: isSaving }}
+                  className="h-11 w-11 items-center justify-center rounded-full border border-emerald-500 bg-emerald-600"
+                  disabled={isSaving}
+                  onPress={saveAllChanges}
+                >
+                  <SaveIcon color="#ffffff" size={20} />
+                </Pressable>
+              </>
+            ) : (
               <Pressable
-                accessibilityLabel="Undo all unsaved card changes"
+                accessibilityLabel={`Preview ${card.name || 'card'}`}
                 accessibilityRole="button"
-                accessibilityState={{ disabled: isSaving }}
-                className="h-11 w-11 items-center justify-center rounded-full border border-amber-500 bg-amber-500"
-                disabled={isSaving}
-                onPress={undoAllChanges}
+                onPress={previewCard}
+                className="flex-row items-center rounded-full border border-primary px-3 py-2 active:opacity-70 dark:border-dark-primary"
               >
-                <RotateCcw color="#ffffff" size={20} />
+                <Eye color="#3b82f6" size={17} />
+                <Text className="ml-1.5 text-sm font-bold text-primary dark:text-dark-primary">Preview</Text>
               </Pressable>
-            ) : null}
-            <Pressable
-              accessibilityLabel={hasChanges ? 'Save all card changes' : 'No card changes to save'}
-              accessibilityRole="button"
-              accessibilityState={{ disabled: !hasChanges || isSaving, busy: isSaving }}
-              className={`h-11 w-11 items-center justify-center rounded-full border ${hasChanges ? 'border-emerald-500 bg-emerald-600' : 'border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-800'}`}
-              disabled={!hasChanges || isSaving}
-              onPress={saveAllChanges}
-            >
-              <SaveIcon color={hasChanges ? '#ffffff' : '#94a3b8'} size={20} />
-            </Pressable>
+            )}
           </View>
         )}
       />
     </View>
     <ScrollView
       ref={cardScrollRef}
-      contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: isEditing ? Math.max(120, windowHeight * 0.62) : 40 }}
+      contentContainerStyle={{
+        paddingTop: 12,
+        paddingBottom: isEditing
+          ? Math.max(120, windowHeight * 0.62)
+          : 78 + Math.max(safeAreaInsets.bottom, 10),
+      }}
       showsVerticalScrollIndicator={false}
     >
-      <CardDetailView
-        card={isEditing ? draft : card}
-        profile={profile}
-        onSectionLayout={(section, y) => { sectionOffsets.current[section] = y; }}
-      />
+      <CardTapGesture
+        enabled={!isEditing}
+        onDoubleTap={() => router.replace('/(tabs)/homepage')}
+      >
+        <CardDetailView
+          activeSection={isEditing && editorPreferencesHydrated && sectionHighlightEnabled ? activeSection : undefined}
+          card={isEditing ? draft : card}
+          profile={profile}
+          onSectionLayout={(section, y) => { sectionOffsets.current[section] = y; }}
+        />
+      </CardTapGesture>
     </ScrollView>
 
-    {!isEditing && !sectionPickerOpen ? (
-      <Pressable
-        accessibilityLabel="Choose a card section to customize"
-        accessibilityRole="button"
-        className="absolute right-5 h-14 w-14 items-center justify-center rounded-full border border-white/30 bg-primary shadow-lg shadow-black/30 active:scale-95 dark:bg-dark-primary"
-        onPress={openSectionPicker}
+    {!isEditing && !previewVisible ? (
+      <View
+        className="absolute inset-x-0 bottom-0 border-t border-slate-200 bg-card dark:border-slate-700 dark:bg-dark-card"
         style={{
-          bottom: Math.max(safeAreaInsets.bottom + 18, 24),
-          elevation: 24,
+          elevation: 28,
+          paddingBottom: Math.max(safeAreaInsets.bottom, 8),
+          paddingHorizontal: windowWidth < 380 ? 4 : 10,
+          paddingTop: 6,
           zIndex: 200,
         }}
       >
-        <Wrench color="#ffffff" size={23} strokeWidth={2.4} />
-      </Pressable>
+        <View
+          accessibilityRole="tablist"
+          className="flex-row"
+          style={{ alignSelf: 'center', maxWidth: 760, width: '100%' }}
+        >
+          {SECTION_CHOICES.map(({ icon: Icon, id, title }) => (
+            <Pressable
+              key={id}
+              accessibilityLabel={`Edit ${title}`}
+              accessibilityRole="button"
+              onPress={() => openSection(id)}
+              className="min-w-0 flex-1 items-center justify-center px-1 active:opacity-70"
+              style={{ minHeight: 52, paddingVertical: 3 }}
+            >
+              <Icon color="#3b82f6" size={19} strokeWidth={2.2} />
+              <Text
+                className="mt-1 text-center text-[10px] font-semibold text-textPrimary dark:text-dark-textPrimary"
+                numberOfLines={1}
+              >
+                {id === 'connections' ? 'Contact' : title}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
     ) : null}
 
     <Modal animationType="fade" onRequestClose={() => setSectionPickerOpen(false)} presentationStyle="overFullScreen" transparent visible={sectionPickerOpen}>
@@ -254,51 +326,99 @@ export default function EditViewPage() {
       containerStyle={{ zIndex: 50 }}
       backdropEnabled={false}
       enablePanDownToClose
-      footer={isEditing ? (
+      footer={isEditing && !compactBarHidden ? (
         <View
           className="border-t border-slate-200 bg-card dark:border-slate-700 dark:bg-dark-card"
           style={{
-            paddingBottom: Math.max(safeAreaInsets.bottom, 14),
+            paddingBottom: Math.max(safeAreaInsets.bottom, 8),
             paddingHorizontal: windowWidth < 380 ? 8 : 16,
-            paddingTop: 12,
+            paddingTop: 6,
           }}
         >
           <View style={{ alignSelf: 'center', maxWidth: 760, width: '100%' }}>
-            <EditHomeBar activeTab={activeEditTab} isSaving={isSaving} onChange={setActiveEditTab} onSave={saveSection} saveDisabled={!hasSectionChanges(activeSection)} />
+            <EditHomeBar
+              activeTab={activeEditTab}
+              isSaving={isSaving}
+              onChange={changeEditTab}
+              onSave={saveSection}
+              saveDisabled={!hasSectionChanges(activeSection)}
+            />
           </View>
         </View>
       ) : null}
-      onChange={(index) => { if (index === -1 && !isSaving) { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); if (isEditing) stopEditing(); } }}
+      onChange={(index) => {
+        setSheetIndex(index);
+        if (index === -1 && !isSaving) {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+          if (isEditing) stopEditing();
+        }
+      }}
     >
       <View className="flex-1">
-        <BottomSheetScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 104 + Math.max(safeAreaInsets.bottom, 14) }} keyboardShouldPersistTaps="handled">
-          <CardTapGesture onDoubleTap={closeEditor}>
+        <EditorAnimatedPresentationProvider>
+        <BottomSheetScrollView
+          contentContainerStyle={{
+            paddingHorizontal: 20,
+            paddingBottom:
+              compactBarHidden
+                ? 24
+                : 104 + Math.max(safeAreaInsets.bottom, 14),
+          }}
+          keyboardShouldPersistTaps="handled"
+        >
+          <CardTapGesture onDoubleTap={returnToEditHomeBar}>
             <View>
-              <CardSectionEditor activeEditTab={activeEditTab} activeSection={activeSection} card={draft} profile={profile} showSectionNavigation={false} onActiveSectionChange={setActiveSection} onConnectionsChange={replaceConnectionFields} onFieldChange={updateSectionField} onLayoutChange={updateSectionLayout} onThemeChange={updateSectionTheme} />
+              <CardSectionEditor
+                activeEditTab={activeEditTab}
+                activeSection={activeSection}
+                card={draft}
+                editBarCollapsed={homeBarCollapsed}
+                fullOpen={sheetIndex === 1}
+                profile={profile}
+                showSectionNavigation={false}
+                onActiveSectionChange={setActiveSection}
+                onConnectionsChange={replaceConnectionFields}
+                onFieldChange={updateSectionField}
+                onLayoutChange={updateSectionLayout}
+                onCloseStyling={() => setStylingOpen(false)}
+                onOpenStyling={() => setStylingOpen(true)}
+                onProfessionalFieldFocus={() => {
+                  if (sheetIndex !== 1) sheetRef.current?.snapToIndex(1);
+                }}
+                onThemeChange={updateSectionTheme}
+                onSaveCustomTheme={saveCustomSectionTheme}
+                stylingOpen={stylingOpen}
+              />
             </View>
           </CardTapGesture>
         </BottomSheetScrollView>
+        </EditorAnimatedPresentationProvider>
       </View>
     </ThemedBottomSheet>
 
-    <Modal animationType="slide" onRequestClose={closePreview} presentationStyle="fullScreen" visible={previewVisible}>
+    {isEditing && sheetIndex >= 0 ? (
+      <FloatingEditBarButton
+        barOpen={!homeBarCollapsed}
+        bottomInset={compactBarHidden ? Math.max(safeAreaInsets.bottom, 14) : 66 + Math.max(safeAreaInsets.bottom, 8)}
+        minY={sheetIndex === 0 ? headerHeight + (windowHeight - headerHeight) * 0.45 + 12 : headerHeight + 12}
+        onToggle={() => setHomeBarCollapsed((current) => !current)}
+        visible={sheetIndex === 0}
+      />
+    ) : null}
+
+    <Modal animationType="fade" onRequestClose={closePreview} presentationStyle="fullScreen" visible={previewVisible}>
       <SafeAreaView
         className="flex-1 bg-background dark:bg-dark-background"
         edges={['left', 'right']}
         style={{ paddingTop: Math.max(safeAreaInsets.top, 12), paddingBottom: Math.max(safeAreaInsets.bottom, 8) }}
       >
-        <PageHeader title="Preview Card" subtitle="Preview mode · Unsaved changes are included" onBackPress={closePreview} />
-        <View className="mx-5 mb-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 dark:border-amber-700 dark:bg-amber-950/40">
-          <Text className="text-center text-xs font-semibold text-amber-800 dark:text-amber-200">This is a private preview. Changes are not saved or published until you select Save.</Text>
-        </View>
+        <PageHeader
+          title="Preview Card"
+          subtitle="Private preview · Changes are not saved until you select Save"
+          onBackPress={closePreview}
+        />
         <ScrollView
-          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
-          onScroll={(event) => { previewScrollY.current = event.nativeEvent.contentOffset.y; }}
-          onTouchCancel={finishPreviewDrag}
-          onTouchEnd={finishPreviewDrag}
-          onTouchMove={(event) => { previewDragCurrentY.current = event.nativeEvent.touches[0]?.pageY ?? previewDragCurrentY.current; }}
-          onTouchStart={(event) => startPreviewDrag(event.nativeEvent.touches[0]?.pageY ?? 0)}
-          scrollEventThrottle={16}
+          contentContainerStyle={{ paddingBottom: 40 }}
           showsVerticalScrollIndicator={false}
         >
           <CardDetailView card={previewCardData} profile={profile} />

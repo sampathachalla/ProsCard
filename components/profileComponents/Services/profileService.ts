@@ -5,37 +5,38 @@ import type { Profile, StoredUser } from '../types/profile.types';
 const PROFILE_STORAGE_KEY = 'userProfile';
 
 export const DEFAULT_PROFILE: Profile = {
-  prefix: '',
-  firstName: '',
-  middleName: '',
-  lastName: '',
-  suffix: '',
-  preferredName: '',
-  accreditations: '',
-  fullName: '',
-  title: '',
-  department: '',
-  organization: '',
+  prefix: 'Dr.',
+  firstName: 'Sampath',
+  middleName: 'Kumar',
+  lastName: 'Kambhampati',
+  suffix: 'PhD',
+  preferredName: 'Sampath Kambhampati',
+  accreditations: 'MBA, AWS Certified Architect, PMP',
+  fullName: 'Dr. Sampath Kumar Kambhampati PhD',
+  title: 'Founder & CEO',
+  department: 'Executive Leadership',
+  organization: 'MindPros Technologies',
   companyLogoUrl: '',
-  coverPhotoUrl: '',
-  email: '',
-  phone: '',
-  photoUrl: '',
-  website: '',
+  coverPhotoUrl: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1400&q=80',
+  email: 'sampath@proscard.app',
+  phone: '+1 (555) 010-2030',
+  photoUrl: 'https://i.pravatar.cc/600?img=12',
+  website: 'https://proscard.app',
   social: {
-    linkedin: '',
-    x: '',
-    instagram: '',
-    facebook: '',
-    github: '',
-    portfolio: '',
-    whatsapp: '',
-    youtube: '',
-    tiktok: '',
+    linkedin: 'https://linkedin.com/in/sampath',
+    x: 'https://x.com/sampath',
+    instagram: 'https://instagram.com/sampath',
+    facebook: 'https://facebook.com/sampath',
+    github: 'https://github.com/sampath',
+    portfolio: 'https://sampath.dev',
+    whatsapp: '+15550102030',
+    youtube: 'https://youtube.com/@sampath',
+    tiktok: 'https://tiktok.com/@sampath',
   },
-  tagline: '',
-  businessAddress: '',
-  shortBio: '',
+  tagline: 'Building next-generation digital networking tools for visionary professionals worldwide.',
+  businessAddress: '500 Howard St, Suite 400, San Francisco, CA 94105',
+  shortBio:
+    'Founder and product builder focused on creating thoughtful digital experiences that help professionals connect, share their work, and build meaningful relationships across global ecosystems.',
 };
 
 export async function getStoredUser(): Promise<StoredUser | null> {
@@ -55,8 +56,8 @@ export async function getProfile(): Promise<Profile> {
   return {
     ...DEFAULT_PROFILE,
     ...parsed,
-    firstName: parsed.firstName || legacyNameParts[0] || '',
-    lastName: parsed.lastName || (legacyNameParts.length > 1 ? legacyNameParts.slice(1).join(' ') : ''),
+    firstName: parsed.firstName || legacyNameParts[0] || DEFAULT_PROFILE.firstName,
+    lastName: parsed.lastName || (legacyNameParts.length > 1 ? legacyNameParts.slice(1).join(' ') : DEFAULT_PROFILE.lastName),
     social: {
       ...DEFAULT_PROFILE.social,
       ...(parsed.social ?? {}),
@@ -65,6 +66,5 @@ export async function getProfile(): Promise<Profile> {
 }
 
 export function saveProfile(profile: Profile): Promise<Profile> {
-  // Placeholder until a real profile backend exists.
   return AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile)).then(() => profile);
 }

@@ -3,7 +3,13 @@ export type CardSectionId = 'identity' | 'professional' | 'bio' | 'connections';
 export type CardTemplateId = 'classic' | 'minimal' | 'bold' | 'glass';
 export type DynamicCardFieldType = 'text' | 'email' | 'phone' | 'url';
 export type CardFontStyle = 'modern' | 'classic' | 'rounded' | 'mono';
-export type CardThemeId = 'ocean' | 'midnight' | 'violet' | 'sand';
+export type CardThemeId = 'ocean' | 'midnight' | 'violet' | 'sand' | 'sunset' | 'aurora' | 'custom';
+
+export type SavedSectionTheme = {
+  id: string;
+  name: string;
+  gradient: [string, string];
+};
 
 export type CardVisualTheme = {
   id: CardThemeId;
@@ -14,13 +20,36 @@ export type CardVisualTheme = {
   accentColor: string;
   gradient: [string, string];
   fontStyle: CardFontStyle;
+  /** Set when this section uses a saved custom theme from the card library. */
+  customThemeId?: string;
+  customThemeName?: string;
 };
 
-export const CARD_THEME_PRESETS: Record<CardThemeId, Omit<CardVisualTheme, 'fontStyle'>> = {
+export type CardThemePresetId = Exclude<CardThemeId, 'custom'>;
+
+export const CARD_THEME_PRESETS: Record<CardThemePresetId, Omit<CardVisualTheme, 'fontStyle'>> = {
   ocean: { id: 'ocean', backgroundColor: '#eff6ff', surfaceColor: '#ffffff', textColor: '#0f172a', mutedTextColor: '#64748b', accentColor: '#0284c7', gradient: ['#2563eb', '#00a8e8'] },
   midnight: { id: 'midnight', backgroundColor: '#020617', surfaceColor: '#0f172a', textColor: '#f8fafc', mutedTextColor: '#94a3b8', accentColor: '#38bdf8', gradient: ['#111827', '#020617'] },
   violet: { id: 'violet', backgroundColor: '#f5f3ff', surfaceColor: '#ffffff', textColor: '#2e1065', mutedTextColor: '#7c3aed', accentColor: '#7c3aed', gradient: ['#4f46e5', '#7c3aed'] },
   sand: { id: 'sand', backgroundColor: '#fffbeb', surfaceColor: '#fff7ed', textColor: '#451a03', mutedTextColor: '#92400e', accentColor: '#ea580c', gradient: ['#f59e0b', '#ea580c'] },
+  sunset: {
+    id: 'sunset',
+    backgroundColor: '#fff7ed',
+    surfaceColor: '#ffffff',
+    textColor: '#431407',
+    mutedTextColor: '#c2410c',
+    accentColor: '#f97316',
+    gradient: ['#fb923c', '#ec4899'],
+  },
+  aurora: {
+    id: 'aurora',
+    backgroundColor: '#ecfdf5',
+    surfaceColor: '#ffffff',
+    textColor: '#064e3b',
+    mutedTextColor: '#0f766e',
+    accentColor: '#14b8a6',
+    gradient: ['#10b981', '#06b6d4'],
+  },
 };
 
 export const DEFAULT_CARD_THEME: CardVisualTheme = { ...CARD_THEME_PRESETS.ocean, fontStyle: 'modern' };
@@ -73,4 +102,6 @@ export type BusinessCard = {
   connectionFields: DynamicCardField[];
   connectionFieldsCustomized: boolean;
   cardTheme: CardVisualTheme;
+  /** User-created gradient themes for this card (shown first in the theme picker). */
+  customThemes?: SavedSectionTheme[];
 };

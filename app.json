@@ -38,6 +38,12 @@
           "cameraPermission": "ProsCard uses the camera to scan QR codes on business cards."
         }
       ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "ProsCard needs access to your photo library to upload profile, cover, and logo images."
+        }
+      ],
       "expo-asset"
     ],
     "experiments": {

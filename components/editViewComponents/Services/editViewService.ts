@@ -19,6 +19,7 @@ const DEFAULT_CARD: EditableCard = {
   connectionFieldsCustomized: false,
   cardTheme: { ...DEFAULT_CARD_THEME },
   sectionThemes: createDefaultCardSectionThemes(),
+  customThemes: [],
 };
 
 export function getPrimaryCard(): EditableCard {
@@ -44,6 +45,10 @@ export function getEditableCard(cardId?: string): EditableCard {
     connectionFieldsCustomized: card.connectionFieldsCustomized,
     cardTheme: { ...card.cardTheme, gradient: [...card.cardTheme.gradient] },
     sectionThemes: Object.fromEntries(Object.entries(card.sectionThemes).map(([section, theme]) => [section, { ...theme, gradient: [...theme.gradient] }] )) as EditableCard['sectionThemes'],
+    customThemes: (card.customThemes ?? []).map((item) => ({
+      ...item,
+      gradient: [item.gradient[0], item.gradient[1]] as [string, string],
+    })),
   };
 }
 
