@@ -106,7 +106,7 @@ export async function runStepperStressTests(
       },
     ],
     [
-      'STRESS-STEP-03: Step 2 validation blocks advancing when fullName is empty or invalid',
+      'STRESS-STEP-03: Step 2 validation blocks advancing when identity fields are empty',
       async () => {
         const { getHook, unmount } = await mountHook();
         try {
@@ -114,9 +114,9 @@ export async function runStepperStressTests(
           await act(async () => { getHook().nextStep(); });
           assertEqual(getHook().currentStep, 2);
 
-          // Clear fullName
+          // Clear identity fields
           await act(async () => {
-            getHook().updateDraft({ fullName: '' });
+            getHook().updateDraft({ firstName: '', lastName: '', title: '' });
           });
 
           // Attempt to advance
@@ -125,18 +125,18 @@ export async function runStepperStressTests(
             res = getHook().nextStep();
           });
 
-          assertEqual(res, false, 'nextStep must fail when fullName is empty');
+          assertEqual(res, false, 'nextStep must fail when identity fields are empty');
           assertEqual(getHook().currentStep, 2, 'Must stay on Step 2');
-          assert(Boolean(getHook().errors.fullName), 'errors.fullName must be set');
+          assert(Boolean(getHook().errors.firstName), 'errors.firstName must be set');
 
-          // Try 1 char name
+          // Try firstName only without lastName/title
           await act(async () => {
-            getHook().updateDraft({ fullName: 'A' });
+            getHook().updateDraft({ firstName: 'Ada', lastName: '', title: '' });
           });
           await act(async () => {
             res = getHook().nextStep();
           });
-          assertEqual(res, false, 'nextStep must fail when fullName < 2 chars');
+          assertEqual(res, false, 'nextStep must fail when lastName/title missing');
           assertEqual(getHook().currentStep, 2);
         } finally {
           await unmount();
@@ -150,28 +150,28 @@ export async function runStepperStressTests(
         try {
           // Step 1 -> Step 2
           await act(async () => { getHook().nextStep(); });
-          await act(async () => { getHook().updateDraft({ fullName: '', phone: '123' }); });
+          await act(async () => { getHook().updateDraft({ firstName: '', lastName: '', title: '' }); });
 
-          // Trigger errors on both fullName and phone
+          // Trigger errors on firstName and lastName
           await act(async () => { getHook().nextStep(); });
-          assert(Boolean(getHook().errors.fullName), 'fullName error present');
-          assert(Boolean(getHook().errors.phone), 'phone error present');
+          assert(Boolean(getHook().errors.firstName), 'firstName error present');
+          assert(Boolean(getHook().errors.lastName), 'lastName error present');
 
-          // Update ONLY fullName
+          // Update ONLY firstName
           await act(async () => {
-            getHook().updateDraft({ fullName: 'Ada Lovelace' });
+            getHook().updateDraft({ firstName: 'Ada' });
           });
 
-          // fullName error must be cleared, phone error must remain
-          assertEqual(getHook().errors.fullName, undefined, 'fullName error must be cleared');
-          assert(Boolean(getHook().errors.phone), 'phone error must still remain');
+          // firstName error must be cleared, lastName error must remain
+          assertEqual(getHook().errors.firstName, undefined, 'firstName error must be cleared');
+          assert(Boolean(getHook().errors.lastName), 'lastName error must still remain');
         } finally {
           await unmount();
         }
       },
     ],
     [
-      'STRESS-STEP-05: Step 3 validation blocks advancing when workEmail is empty or invalid',
+      'STRESS-STEP-05: Step 3 validation blocks advancing when email is empty or invalid',
       async () => {
         const { getHook, unmount } = await mountHook();
         try {
@@ -179,28 +179,33 @@ export async function runStepperStressTests(
           await act(async () => { getHook().nextStep(); });
           // Provide valid Step 2
           await act(async () => {
-            getHook().updateDraft({ fullName: 'Ada Lovelace', phone: '' });
+            getHook().updateDraft({
+              firstName: 'Ada',
+              lastName: 'Lovelace',
+              fullName: 'Ada Lovelace',
+              title: 'Engineer',
+            });
           });
           // Step 2 -> Step 3
           await act(async () => { getHook().nextStep(); });
           assertEqual(getHook().currentStep, 3, 'Must be on Step 3');
 
           // Empty email
-          await act(async () => { getHook().updateDraft({ workEmail: '' }); });
+          await act(async () => { getHook().updateDraft({ email: '' }); });
           let res = true;
           await act(async () => { res = getHook().nextStep(); });
-          assertEqual(res, false, 'nextStep must fail when workEmail is empty');
+          assertEqual(res, false, 'nextStep must fail when email is empty');
           assertEqual(getHook().currentStep, 3);
-          assert(Boolean(getHook().errors.workEmail), 'errors.workEmail must be set');
+          assert(Boolean(getHook().errors.email), 'errors.email must be set');
 
           // Invalid email
-          await act(async () => { getHook().updateDraft({ workEmail: 'notanemail' }); });
+          await act(async () => { getHook().updateDraft({ email: 'notanemail' }); });
           await act(async () => { res = getHook().nextStep(); });
           assertEqual(res, false, 'nextStep must fail on invalid email format');
           assertEqual(getHook().currentStep, 3);
 
           // Valid email
-          await act(async () => { getHook().updateDraft({ workEmail: 'ada@lovelace.org' }); });
+          await act(async () => { getHook().updateDraft({ email: 'ada@lovelace.org' }); });
           await act(async () => { res = getHook().nextStep(); });
           assertEqual(res, true, 'nextStep must succeed with valid email');
           assertEqual(getHook().currentStep, 4, 'Must advance to Step 4');
@@ -215,7 +220,7 @@ export async function runStepperStressTests(
         const { getHook, unmount } = await mountHook();
         try {
           await act(async () => {
-            getHook().updateDraft({ fullName: 'Ada Lovelace', workEmail: 'ada@lovelace.org' });
+            getHook().updateDraft({ firstName: 'Ada', lastName: 'Lovelace', fullName: 'Ada Lovelace', title: 'Engineer', email: 'ada@lovelace.org' });
             getHook().goToStep(4);
           });
           assertEqual(getHook().currentStep, 4);
@@ -238,7 +243,7 @@ export async function runStepperStressTests(
         const { getHook, unmount } = await mountHook();
         try {
           await act(async () => {
-            getHook().updateDraft({ fullName: 'Ada Lovelace', workEmail: 'ada@lovelace.org' });
+            getHook().updateDraft({ firstName: 'Ada', lastName: 'Lovelace', fullName: 'Ada Lovelace', title: 'Engineer', email: 'ada@lovelace.org' });
             getHook().goToStep(5);
           });
           assertEqual(getHook().currentStep, 5);
@@ -258,7 +263,7 @@ export async function runStepperStressTests(
         const { getHook, unmount } = await mountHook();
         try {
           await act(async () => {
-            getHook().updateDraft({ fullName: 'Ada Lovelace', workEmail: 'ada@lovelace.org' });
+            getHook().updateDraft({ firstName: 'Ada', lastName: 'Lovelace', fullName: 'Ada Lovelace', title: 'Engineer', email: 'ada@lovelace.org' });
             getHook().goToStep(4);
           });
           assertEqual(getHook().currentStep, 4);
@@ -291,7 +296,7 @@ export async function runStepperStressTests(
         const { getHook, unmount } = await mountHook();
         try {
           await act(async () => {
-            getHook().updateDraft({ fullName: 'Ada Lovelace', workEmail: 'ada@lovelace.org' });
+            getHook().updateDraft({ firstName: 'Ada', lastName: 'Lovelace', fullName: 'Ada Lovelace', title: 'Engineer', email: 'ada@lovelace.org' });
             getHook().goToStep(3);
           });
           assertEqual(getHook().currentStep, 3);
@@ -332,15 +337,15 @@ export async function runStepperStressTests(
 
           // On Step 2: mandatory! skipStep should invoke validation and fail
           await act(async () => {
-            getHook().updateDraft({ fullName: '' });
+            getHook().updateDraft({ firstName: '', lastName: '', title: '' });
           });
           await act(async () => { getHook().skipStep(); });
           assertEqual(getHook().currentStep, 2, 'Step 2 skipStep must NOT skip mandatory step');
-          assert(Boolean(getHook().errors.fullName), 'fullName error must be triggered on skip attempt');
+          assert(Boolean(getHook().errors.firstName), 'firstName error must be triggered on skip attempt');
 
           // Provide valid Step 2 & 3, go to Step 4
           await act(async () => {
-            getHook().updateDraft({ fullName: 'Ada Lovelace', workEmail: 'ada@lovelace.org' });
+            getHook().updateDraft({ firstName: 'Ada', lastName: 'Lovelace', fullName: 'Ada Lovelace', title: 'Engineer', email: 'ada@lovelace.org' });
           });
           await act(async () => {
             getHook().goToStep(4);
@@ -366,10 +371,10 @@ export async function runStepperStressTests(
           // Fill Step 2
           await act(async () => {
             getHook().updateDraft({
+              firstName: 'Grace',
+              lastName: 'Hopper',
               fullName: 'Grace Hopper',
               title: 'Rear Admiral',
-              phone: '+1 (555) 000-1111',
-              location: 'Arlington, VA',
             });
           });
 
@@ -380,8 +385,11 @@ export async function runStepperStressTests(
           await act(async () => {
             getHook().updateDraft({
               organization: 'US Navy',
-              workEmail: 'grace@navy.mil',
+              email: 'grace@navy.mil',
+              phone: '+1 (555) 000-1111',
+              businessAddress: 'Arlington, VA',
               shortBio: 'Pioneer in computer programming',
+              website: 'navy.mil/hopper',
             });
           });
 
@@ -393,7 +401,6 @@ export async function runStepperStressTests(
             getHook().updateDraft({
               github: 'ghopper',
               linkedin: 'gracehopper',
-              website: 'navy.mil/hopper',
             });
           });
 
@@ -419,11 +426,11 @@ export async function runStepperStressTests(
           assertEqual(d.fullName, 'Grace Hopper');
           assertEqual(d.title, 'Rear Admiral');
           assertEqual(d.phone, '+1 (555) 000-1111');
-          assertEqual(d.location, 'Arlington, VA');
+          assertEqual(d.businessAddress, 'Arlington, VA');
 
           // Verify Step 3, 4, 5 data is ALSO retained while on Step 2
           assertEqual(d.organization, 'US Navy');
-          assertEqual(d.workEmail, 'grace@navy.mil');
+          assertEqual(d.email, 'grace@navy.mil');
           assertEqual(d.shortBio, 'Pioneer in computer programming');
           assertEqual(d.github, 'ghopper');
           assertEqual(d.cardCategory, 'Business');
@@ -435,7 +442,7 @@ export async function runStepperStressTests(
 
           d = getHook().draft;
           assertEqual(d.fullName, 'Grace Hopper');
-          assertEqual(d.workEmail, 'grace@navy.mil');
+          assertEqual(d.email, 'grace@navy.mil');
           assertEqual(d.github, 'ghopper');
           assertEqual(d.cardCategory, 'Business');
         } finally {
@@ -450,7 +457,7 @@ export async function runStepperStressTests(
         try {
           // Go to Step 5 with empty required fields
           await act(async () => {
-            getHook().updateDraft({ fullName: '', workEmail: '' });
+            getHook().updateDraft({ firstName: '', lastName: '', fullName: '', title: '', email: '' });
           });
 
           let result = true;
@@ -460,7 +467,7 @@ export async function runStepperStressTests(
 
           assertEqual(result, false, 'finalizeOnboarding must return false for incomplete draft');
           assertEqual(getHook().currentStep, 2, 'Must kick back to Step 2 (firstErrorStep)');
-          assert(Boolean(getHook().errors.fullName), 'errors.fullName must be set');
+          assert(Boolean(getHook().errors.firstName), 'errors.firstName must be set');
           assertEqual(getHook().isSaving, false, 'isSaving must reset to false');
         } finally {
           await unmount();
@@ -475,9 +482,11 @@ export async function runStepperStressTests(
         try {
           await act(async () => {
             getHook().updateDraft({
+              firstName: 'Katherine',
+              lastName: 'Johnson',
               fullName: 'Katherine Johnson',
               title: 'Mathematician',
-              workEmail: 'katherine@nasa.gov',
+              email: 'katherine@nasa.gov',
               organization: 'NASA',
               cardCategory: 'Professional',
               cardGradient: ['#2563eb', '#00a8e8'],
@@ -551,7 +560,7 @@ export async function runStepperStressTests(
           // Must halt at first invalid step (Step 2) rather than jumping to Step 4
           const stepAfterJump = getHook().currentStep;
           assertEqual(stepAfterJump, 2, 'Halts transition at first invalid step (Step 2)');
-          assert(Boolean(getHook().errors.fullName), 'Errors must be set on first invalid step');
+          assert(Boolean(getHook().errors.firstName), 'Errors must be set on first invalid step');
         } finally {
           await unmount();
         }
@@ -565,7 +574,12 @@ export async function runStepperStressTests(
           // Fire multiple rapid updates and jumps
           await act(async () => {
             getHook().nextStep();
-            getHook().updateDraft({ fullName: 'Rapid User' });
+            getHook().updateDraft({
+              firstName: 'Rapid',
+              lastName: 'User',
+              fullName: 'Rapid User',
+              title: 'Engineer',
+            });
             getHook().nextStep();
           });
           // State should be internally coherent

@@ -292,12 +292,14 @@ async function runM3Tests() {
 
   const mockDraft = {
     ...INITIAL_ONBOARDING_DRAFT,
+    firstName: 'Jane',
+    lastName: 'Doe',
     fullName: 'Jane Doe',
     title: 'Lead Designer',
     organization: 'MindPros Design',
-    workEmail: 'jane@mindpros.com',
+    email: 'jane@mindpros.com',
     phone: '+1 555 456 7890',
-    location: 'New York, NY',
+    businessAddress: 'New York, NY',
     linkedin: 'janedoe',
     cardCategory: 'Personal',
     cardGradient: ['#ea580c', '#ec4899'] as [string, string],

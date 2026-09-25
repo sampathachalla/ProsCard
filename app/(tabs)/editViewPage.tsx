@@ -3,7 +3,7 @@ import { Modal, Pressable, ScrollView, View, useWindowDimensions } from 'react-n
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { AlignLeft, BriefcaseBusiness, Eye, Link2, RotateCcw, Save as SaveIcon, UserRound, type LucideIcon } from 'lucide-react-native';
+import { AlignLeft, BriefcaseBusiness, Eye, Link2, Pencil, RotateCcw, Save as SaveIcon, UserRound, type LucideIcon } from 'lucide-react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EditorAnimatedPresentationProvider } from '@/components/uiComponents/editor/EditorAnimatedPresentationContext';
 import { PageHeader } from '@/components/uiComponents/PageHeader';
@@ -17,7 +17,7 @@ import { useProfileSnapshot } from '@/components/profileComponents/Hooks/useProf
 import { useEditorPreferences } from '@/components/profileComponents/Hooks/useEditorPreferences';
 import type { CardSectionId } from '@/components/cardsComponents/types/card.types';
 import { useEditView } from '@/components/editViewComponents/Hooks/useEditView';
-import { CardTapGesture } from '@/components/gestures';
+import { useThemeContext } from '@/context/ThemeContext';
 
 const SECTION_TITLES: Record<CardSectionId, string> = {
   identity: 'Identity', professional: 'Professional identity', bio: 'About', connections: 'Contact & links',
@@ -36,7 +36,12 @@ export default function EditViewPage() {
   const safeAreaInsets = useSafeAreaInsets();
   const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const { profile } = useProfileSnapshot();
-  const { hydrated: editorPreferencesHydrated, sectionHighlightEnabled } = useEditorPreferences();
+  const { theme } = useThemeContext();
+  const {
+    glassmorphicEditorEnabled,
+    hydrated: editorPreferencesHydrated,
+    sectionHighlightEnabled,
+  } = useEditorPreferences();
   const sheetRef = useRef<BottomSheet>(null);
   const cardScrollRef = useRef<ScrollView>(null);
   const sectionOffsets = useRef<Partial<Record<CardSectionId, number>>>({});
@@ -53,6 +58,13 @@ export default function EditViewPage() {
   const [previewVisible, setPreviewVisible] = useState(false);
   const [sectionPickerOpen, setSectionPickerOpen] = useState(false);
   const { card, draft, hasChanges, hasSectionChanges, isEditing, isSaving, startEditing, stopEditing, cancelEditing, updateSectionLayout, updateSectionField, replaceConnectionFields, resetSection, updateSectionTheme, saveCustomSectionTheme, submit, submitSection } = useEditView(cardId, false);
+  const editorChromeBackground = glassmorphicEditorEnabled
+    ? theme === 'dark'
+      ? 'rgba(2, 6, 23, 0.74)'
+      : 'rgba(255, 255, 255, 0.76)'
+    : theme === 'dark'
+      ? '#020617'
+      : '#ffffff';
 
   const openSection = (section: CardSectionId) => {
     startEditing();
@@ -96,11 +108,6 @@ export default function EditViewPage() {
   };
 
   const closeEditor = () => sheetRef.current?.close();
-  const returnToEditHomeBar = () => {
-    setStylingOpen(false);
-    setHomeBarCollapsed(false);
-    sheetRef.current?.snapToIndex(0);
-  };
   const compactBarHidden = homeBarCollapsed && sheetIndex === 0;
   const changeEditTab = (tab: EditHomeTab) => {
     setActiveEditTab(tab);
@@ -149,10 +156,23 @@ export default function EditViewPage() {
   const previewCardData = isEditing ? draft : card;
 
   return <View className="flex-1 bg-background dark:bg-dark-background">
-    <View onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}>
+    <View
+      onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
+      style={{
+        backgroundColor: editorChromeBackground,
+        borderBottomColor: 'rgba(148, 163, 184, 0.18)',
+        borderBottomWidth: 1,
+        elevation: 24,
+        left: 0,
+        position: 'absolute',
+        right: 0,
+        top: 0,
+        zIndex: 220,
+      }}
+    >
       <PageHeader
         title={isEditing ? (stylingOpen ? `Style ${SECTION_TITLES[activeSection]}` : `Edit ${SECTION_TITLES[activeSection]}`) : 'Edit Card'}
-        subtitle={isEditing ? (stylingOpen ? `Styling opened from ${activeEditTab === 'layout' ? 'Layout' : 'Content'}` : 'Double tap to return to the edit bar') : (card.name || 'Choose a section to customize')}
+        subtitle={isEditing ? (stylingOpen ? `Styling opened from ${activeEditTab === 'layout' ? 'Layout' : 'Content'}` : 'Customize this card section') : (card.name || 'Choose a section to customize')}
         onBackPress={handleHeaderBack}
         right={isEditing ? (
           hasSectionChanges(activeSection) ? (
@@ -228,23 +248,19 @@ export default function EditViewPage() {
       }}
       showsVerticalScrollIndicator={false}
     >
-      <CardTapGesture
-        enabled={!isEditing}
-        onDoubleTap={() => router.replace('/(tabs)/homepage')}
-      >
-        <CardDetailView
-          activeSection={isEditing && editorPreferencesHydrated && sectionHighlightEnabled ? activeSection : undefined}
-          card={isEditing ? draft : card}
-          profile={profile}
-          onSectionLayout={(section, y) => { sectionOffsets.current[section] = y; }}
-        />
-      </CardTapGesture>
+      <CardDetailView
+        activeSection={isEditing && editorPreferencesHydrated && sectionHighlightEnabled ? activeSection : undefined}
+        card={isEditing ? draft : card}
+        profile={profile}
+        onSectionLayout={(section, y) => { sectionOffsets.current[section] = y; }}
+      />
     </ScrollView>
 
     {!isEditing && !previewVisible ? (
       <View
         className="absolute inset-x-0 bottom-0 border-t border-slate-200 bg-card dark:border-slate-700 dark:bg-dark-card"
         style={{
+          backgroundColor: editorChromeBackground,
           elevation: 28,
           paddingBottom: Math.max(safeAreaInsets.bottom, 8),
           paddingHorizontal: windowWidth < 380 ? 4 : 10,
@@ -326,10 +342,12 @@ export default function EditViewPage() {
       containerStyle={{ zIndex: 50 }}
       backdropEnabled={false}
       enablePanDownToClose
+      glassmorphic={glassmorphicEditorEnabled}
       footer={isEditing && !compactBarHidden ? (
         <View
           className="border-t border-slate-200 bg-card dark:border-slate-700 dark:bg-dark-card"
           style={{
+            backgroundColor: editorChromeBackground,
             paddingBottom: Math.max(safeAreaInsets.bottom, 8),
             paddingHorizontal: windowWidth < 380 ? 8 : 16,
             paddingTop: 6,
@@ -366,31 +384,29 @@ export default function EditViewPage() {
           }}
           keyboardShouldPersistTaps="handled"
         >
-          <CardTapGesture onDoubleTap={returnToEditHomeBar}>
-            <View>
-              <CardSectionEditor
-                activeEditTab={activeEditTab}
-                activeSection={activeSection}
-                card={draft}
-                editBarCollapsed={homeBarCollapsed}
-                fullOpen={sheetIndex === 1}
-                profile={profile}
-                showSectionNavigation={false}
-                onActiveSectionChange={setActiveSection}
-                onConnectionsChange={replaceConnectionFields}
-                onFieldChange={updateSectionField}
-                onLayoutChange={updateSectionLayout}
-                onCloseStyling={() => setStylingOpen(false)}
-                onOpenStyling={() => setStylingOpen(true)}
-                onProfessionalFieldFocus={() => {
-                  if (sheetIndex !== 1) sheetRef.current?.snapToIndex(1);
-                }}
-                onThemeChange={updateSectionTheme}
-                onSaveCustomTheme={saveCustomSectionTheme}
-                stylingOpen={stylingOpen}
-              />
-            </View>
-          </CardTapGesture>
+          <View>
+            <CardSectionEditor
+              activeEditTab={activeEditTab}
+              activeSection={activeSection}
+              card={draft}
+              editBarCollapsed={homeBarCollapsed}
+              fullOpen={sheetIndex === 1}
+              profile={profile}
+              showSectionNavigation={false}
+              onActiveSectionChange={setActiveSection}
+              onConnectionsChange={replaceConnectionFields}
+              onFieldChange={updateSectionField}
+              onLayoutChange={updateSectionLayout}
+              onCloseStyling={() => setStylingOpen(false)}
+              onOpenStyling={() => setStylingOpen(true)}
+              onProfessionalFieldFocus={() => {
+                if (sheetIndex !== 1) sheetRef.current?.snapToIndex(1);
+              }}
+              onThemeChange={updateSectionTheme}
+              onSaveCustomTheme={saveCustomSectionTheme}
+              stylingOpen={stylingOpen}
+            />
+          </View>
         </BottomSheetScrollView>
         </EditorAnimatedPresentationProvider>
       </View>
@@ -412,17 +428,37 @@ export default function EditViewPage() {
         edges={['left', 'right']}
         style={{ paddingTop: Math.max(safeAreaInsets.top, 12), paddingBottom: Math.max(safeAreaInsets.bottom, 8) }}
       >
-        <PageHeader
-          title="Preview Card"
-          subtitle="Private preview · Changes are not saved until you select Save"
-          onBackPress={closePreview}
-        />
         <ScrollView
           contentContainerStyle={{ paddingBottom: 40 }}
           showsVerticalScrollIndicator={false}
         >
           <CardDetailView card={previewCardData} profile={profile} />
         </ScrollView>
+        <Pressable
+          accessibilityLabel="Exit preview"
+          accessibilityRole="button"
+          onPress={closePreview}
+          className="absolute right-4 min-h-[44px] flex-row items-center justify-center rounded-full border border-white/30 px-3.5 active:scale-95"
+          style={{
+            backgroundColor: 'rgba(2, 6, 23, 0.42)',
+            elevation: 30,
+            top: Math.max(safeAreaInsets.top + 8, 16),
+          }}
+        >
+          <Eye color="#ffffff" size={19} strokeWidth={2.2} />
+          <View className="ml-2 h-2 w-2 rounded-full bg-emerald-400" />
+          <Text className="ml-1.5 text-sm font-bold text-white">Preview</Text>
+        </Pressable>
+        <Pressable
+          accessibilityLabel="Back to edit"
+          accessibilityRole="button"
+          onPress={closePreview}
+          className="absolute right-5 flex-row items-center rounded-full border border-white/30 bg-primary px-4 py-3 shadow-xl shadow-black/30 active:scale-95 dark:bg-dark-primary"
+          style={{ bottom: Math.max(safeAreaInsets.bottom + 18, 24), elevation: 30 }}
+        >
+          <Pencil color="#ffffff" size={18} strokeWidth={2.4} />
+          <Text className="ml-2 text-sm font-bold text-white">Back to edit</Text>
+        </Pressable>
       </SafeAreaView>
     </Modal>
   </View>;

@@ -3,8 +3,10 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 type EditorPreferenceState = {
+  glassmorphicEditorEnabled: boolean;
   sectionHighlightEnabled: boolean;
   hydrated: boolean;
+  setGlassmorphicEditorEnabled: (enabled: boolean) => void;
   setSectionHighlightEnabled: (enabled: boolean) => void;
   setHydrated: (hydrated: boolean) => void;
 };
@@ -12,18 +14,23 @@ type EditorPreferenceState = {
 export const useEditorPreferenceStore = create<EditorPreferenceState>()(
   persist(
     (set) => ({
+      glassmorphicEditorEnabled: true,
       sectionHighlightEnabled: true,
       hydrated: false,
+      setGlassmorphicEditorEnabled: (glassmorphicEditorEnabled) => set({ glassmorphicEditorEnabled }),
       setSectionHighlightEnabled: (sectionHighlightEnabled) => set({ sectionHighlightEnabled }),
       setHydrated: (hydrated) => set({ hydrated }),
     }),
     {
       name: 'proscard-editor-preferences',
       onRehydrateStorage: () => (state) => state?.setHydrated(true),
-      partialize: ({ sectionHighlightEnabled }) => ({ sectionHighlightEnabled }),
+      partialize: ({ glassmorphicEditorEnabled, sectionHighlightEnabled }) => ({
+        glassmorphicEditorEnabled,
+        sectionHighlightEnabled,
+      }),
       skipHydration: true,
       storage: createJSONStorage(() => AsyncStorage),
-      version: 1,
+      version: 2,
     },
   ),
 );

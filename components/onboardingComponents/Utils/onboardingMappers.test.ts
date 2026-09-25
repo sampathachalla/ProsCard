@@ -31,12 +31,13 @@ export function runOnboardingMappersTests(): { passed: number; failed: number } 
       () => {
         const draft: OnboardingDraft = {
           ...INITIAL_ONBOARDING_DRAFT,
-          fullName: '  Jane Doe  ',
+          firstName: 'Jane',
+          lastName: 'Doe',
           title: '  Senior Director  ',
           phone: '  +1234567890  ',
-          location: '  New York, NY  ',
+          businessAddress: '  New York, NY  ',
           organization: '  Acme Corp  ',
-          workEmail: '  jane@acme.com  ',
+          email: '  jane@acme.com  ',
           shortBio: '  Building great software  ',
           linkedin: 'janedoe',
           github: 'janedoe',
@@ -67,12 +68,13 @@ export function runOnboardingMappersTests(): { passed: number; failed: number } 
       () => {
         const draft: OnboardingDraft = {
           ...INITIAL_ONBOARDING_DRAFT,
-          fullName: 'Alice Smith',
+          firstName: 'Alice',
+          lastName: 'Smith',
           title: 'CTO',
           phone: '+1 555 987 6543',
-          location: 'Austin, TX',
+          businessAddress: 'Austin, TX',
           organization: 'Tech Innovations',
-          workEmail: 'alice@tech.io',
+          email: 'alice@tech.io',
           shortBio: 'Tech leader',
           linkedin: '',
           github: '',
@@ -98,6 +100,8 @@ export function runOnboardingMappersTests(): { passed: number; failed: number } 
       'test_mapProfileToDraft_populates_draft_values_cleanly',
       () => {
         const profile: Partial<Profile> = {
+          firstName: 'Bob',
+          lastName: 'Builder',
           fullName: 'Bob Builder',
           title: 'Architect',
           email: 'bob@build.com',
@@ -122,9 +126,9 @@ export function runOnboardingMappersTests(): { passed: number; failed: number } 
         const draft = mapProfileToDraft(profile);
         assertEqual(draft.fullName, 'Bob Builder');
         assertEqual(draft.title, 'Architect');
-        assertEqual(draft.workEmail, 'bob@build.com');
+        assertEqual(draft.email, 'bob@build.com');
         assertEqual(draft.phone, '+15551234');
-        assertEqual(draft.location, 'Seattle, WA');
+        assertEqual(draft.businessAddress, 'Seattle, WA');
         assertEqual(draft.organization, 'Build Co');
         assertEqual(draft.shortBio, 'Designing structures');
         assertEqual(draft.linkedin, 'https://linkedin.com/in/bob');

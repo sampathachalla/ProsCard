@@ -9,6 +9,7 @@ export type CardTapGestureProps = {
   doubleTapMaxDuration?: number;
   enabled?: boolean;
   hapticsEnabled?: boolean;
+  simultaneousWithNative?: boolean;
   onDoubleTap: () => void;
   onSwipeDown?: () => void;
   onSingleTap?: () => void;
@@ -20,6 +21,7 @@ export function CardTapGesture({
   doubleTapMaxDuration = 260,
   enabled = true,
   hapticsEnabled = true,
+  simultaneousWithNative = false,
   onDoubleTap,
   onSwipeDown,
   onSingleTap,
@@ -57,7 +59,10 @@ export function CardTapGesture({
       : null;
 
     if (!onSingleTap) {
-      return swipeDown ? Gesture.Race(swipeDown, doubleTap) : doubleTap;
+      const interaction = swipeDown ? Gesture.Race(swipeDown, doubleTap) : doubleTap;
+      return simultaneousWithNative
+        ? Gesture.Simultaneous(Gesture.Native(), interaction)
+        : interaction;
     }
 
     const singleTap = Gesture.Tap()
@@ -72,8 +77,11 @@ export function CardTapGesture({
       .runOnJS(true);
 
     const taps = Gesture.Exclusive(doubleTap, singleTap);
-    return swipeDown ? Gesture.Race(swipeDown, taps) : taps;
-  }, [doubleTapMaxDuration, enabled, hapticsEnabled, onDoubleTap, onSingleTap, onSwipeDown]);
+    const interaction = swipeDown ? Gesture.Race(swipeDown, taps) : taps;
+    return simultaneousWithNative
+      ? Gesture.Simultaneous(Gesture.Native(), interaction)
+      : interaction;
+  }, [doubleTapMaxDuration, enabled, hapticsEnabled, onDoubleTap, onSingleTap, onSwipeDown, simultaneousWithNative]);
 
   return (
     <GestureDetector gesture={gesture}>

@@ -57,10 +57,10 @@ export function runOnboardingComponentsTests(): { passed: number; failed: number
       () => {
         assertEqual(ONBOARDING_STEPS_META.length, 5);
         assertEqual(ONBOARDING_STEPS_META[0].title, 'Welcome');
-        assertEqual(ONBOARDING_STEPS_META[1].title, 'Personal Details');
-        assertEqual(ONBOARDING_STEPS_META[2].title, 'Professional Info');
-        assertEqual(ONBOARDING_STEPS_META[3].title, 'Social & Web');
-        assertEqual(ONBOARDING_STEPS_META[4].title, 'Card Preview');
+        assertEqual(ONBOARDING_STEPS_META[1].title, 'Identity');
+        assertEqual(ONBOARDING_STEPS_META[2].title, 'Contact');
+        assertEqual(ONBOARDING_STEPS_META[3].title, 'Presence');
+        assertEqual(ONBOARDING_STEPS_META[4].title, 'Card style');
       },
     ],
 
@@ -136,8 +136,9 @@ export function runOnboardingComponentsTests(): { passed: number; failed: number
           draft = { ...draft, ...fields };
         };
 
-        updateDraft({ fullName: 'John Doe' });
-        assertEqual(draft.fullName, 'John Doe');
+        updateDraft({ firstName: 'John', lastName: 'Doe', fullName: 'John Doe' });
+        assertEqual(draft.firstName, 'John');
+        assertEqual(draft.lastName, 'Doe');
 
         updateDraft({ title: 'Lead Architect' });
         assertEqual(draft.title, 'Lead Architect');
@@ -145,8 +146,8 @@ export function runOnboardingComponentsTests(): { passed: number; failed: number
         updateDraft({ phone: '+1234567890' });
         assertEqual(draft.phone, '+1234567890');
 
-        updateDraft({ location: 'Austin, TX' });
-        assertEqual(draft.location, 'Austin, TX');
+        updateDraft({ businessAddress: 'Austin, TX' });
+        assertEqual(draft.businessAddress, 'Austin, TX');
       },
     ],
     [
@@ -160,8 +161,8 @@ export function runOnboardingComponentsTests(): { passed: number; failed: number
         updateDraft({ organization: 'ProsCard Inc' });
         assertEqual(draft.organization, 'ProsCard Inc');
 
-        updateDraft({ workEmail: 'john@proscard.app' });
-        assertEqual(draft.workEmail, 'john@proscard.app');
+        updateDraft({ email: 'john@proscard.app' });
+        assertEqual(draft.email, 'john@proscard.app');
 
         updateDraft({ shortBio: 'Full stack developer building mobile apps.' });
         assertEqual(draft.shortBio, 'Full stack developer building mobile apps.');

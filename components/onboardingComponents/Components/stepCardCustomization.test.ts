@@ -68,8 +68,8 @@ export function runStepCardCustomizationTests(): { passed: number; failed: numbe
           title: 'Lead Systems Architect',
           organization: 'Cyberdyne Systems',
           phone: '+1 (555) 019-2834',
-          location: 'Los Angeles, CA',
-          workEmail: 'sarah@cyberdyne.io',
+          businessAddress: 'Los Angeles, CA',
+          email: 'sarah@cyberdyne.io',
           shortBio: 'Pioneering defensive automation and neural architectures.',
           linkedin: 'sarahconnor',
           github: 'sconnor',
@@ -106,10 +106,10 @@ export function runStepCardCustomizationTests(): { passed: number; failed: numbe
         const expectedIds = [
           'pro-cyan',
           'midnight',
-          'royal-purple',
-          'emerald-teal',
-          'sunset-amber',
-          'slate-charcoal',
+          'slate',
+          'teal',
+          'indigo',
+          'copper',
         ];
 
         CARD_GRADIENT_PRESETS.forEach((preset, index) => {
@@ -140,21 +140,21 @@ export function runStepCardCustomizationTests(): { passed: number; failed: numbe
           });
         };
 
-        // Select Royal Violet
-        const royalViolet = CARD_GRADIENT_PRESETS.find((p) => p.id === 'royal-purple')!;
-        handleSelectPreset(royalViolet);
-        assertEqual(draft.cardGradient[0], '#4f46e5');
-        assertEqual(draft.cardGradient[1], '#7c3aed');
+        // Select Indigo
+        const indigo = CARD_GRADIENT_PRESETS.find((p) => p.id === 'indigo')!;
+        handleSelectPreset(indigo);
+        assertEqual(draft.cardGradient[0], '#3730a3');
+        assertEqual(draft.cardGradient[1], '#4f46e5');
         assertEqual(draft.cardCategory, 'Business');
 
-        // Select Emerald Teal
-        const emeraldTeal = CARD_GRADIENT_PRESETS.find((p) => p.id === 'emerald-teal')!;
-        handleSelectPreset(emeraldTeal);
+        // Select Teal
+        const teal = CARD_GRADIENT_PRESETS.find((p) => p.id === 'teal')!;
+        handleSelectPreset(teal);
         assertEqual(draft.cardGradient[0], '#0f766e');
         assertEqual(draft.cardGradient[1], '#059669');
         assertEqual(draft.cardCategory, 'Networking');
 
-        // Select Midnight Dark
+        // Select Midnight
         const midnight = CARD_GRADIENT_PRESETS.find((p) => p.id === 'midnight')!;
         handleSelectPreset(midnight);
         assertEqual(draft.cardGradient[0], '#111827');
@@ -167,7 +167,7 @@ export function runStepCardCustomizationTests(): { passed: number; failed: numbe
     [
       'test_stepCardCustomization_active_theme_selection_state_detection',
       () => {
-        const currentGradient: [string, string] = ['#EA580C', '#EC4899']; // sunset-amber in uppercase
+        const currentGradient: [string, string] = ['#9A3412', '#B45309']; // copper in uppercase
 
         const isPresetSelected = (preset: CardGradientPreset) => {
           return (
@@ -178,7 +178,7 @@ export function runStepCardCustomizationTests(): { passed: number; failed: numbe
 
         const activePresets = CARD_GRADIENT_PRESETS.filter(isPresetSelected);
         assertEqual(activePresets.length, 1);
-        assertEqual(activePresets[0].id, 'sunset-amber');
+        assertEqual(activePresets[0].id, 'copper');
       },
     ],
 
@@ -219,8 +219,8 @@ export function runStepCardCustomizationTests(): { passed: number; failed: numbe
           title: 'Staff Architect',
           organization: 'ProsCard',
           phone: '+1 (555) 234-5678',
-          location: 'San Francisco, CA',
-          workEmail: 'john@proscard.app',
+          businessAddress: 'San Francisco, CA',
+          email: 'john@proscard.app',
           shortBio: '',
           linkedin: 'john-architect',
           github: 'johnarch',
@@ -232,14 +232,14 @@ export function runStepCardCustomizationTests(): { passed: number; failed: numbe
         };
 
         const chips: { label: string; key: string }[] = [];
-        if (draft.workEmail?.trim()) {
-          chips.push({ label: draft.workEmail.trim(), key: 'email' });
+        if (draft.email?.trim()) {
+          chips.push({ label: draft.email.trim(), key: 'email' });
         }
         if (draft.phone?.trim()) {
           chips.push({ label: draft.phone.trim(), key: 'phone' });
         }
-        if (draft.location?.trim()) {
-          chips.push({ label: draft.location.trim(), key: 'location' });
+        if (draft.businessAddress?.trim()) {
+          chips.push({ label: draft.businessAddress.trim(), key: 'address' });
         }
         if (draft.linkedin?.trim()) {
           chips.push({ label: `in/${draft.linkedin.trim()}`, key: 'linkedin' });
@@ -272,7 +272,7 @@ export function runStepCardCustomizationTests(): { passed: number; failed: numbe
         assertEqual(chips[0].label, 'john@proscard.app');
         assertEqual(chips[1].key, 'phone');
         assertEqual(chips[1].label, '+1 (555) 234-5678');
-        assertEqual(chips[2].key, 'location');
+        assertEqual(chips[2].key, 'address');
         assertEqual(chips[2].label, 'San Francisco, CA');
         assertEqual(chips[3].key, 'linkedin');
         assertEqual(chips[3].label, 'in/john-architect');
@@ -293,22 +293,22 @@ export function runStepCardCustomizationTests(): { passed: number; failed: numbe
       () => {
         const draft: OnboardingDraft = {
           ...INITIAL_ONBOARDING_DRAFT,
-          workEmail: 'test@mindpros.com',
+          email: 'test@mindpros.com',
           phone: '   ',
-          location: '',
+          businessAddress: '',
           linkedin: '',
           github: '   ',
         };
 
         const chips: { label: string; key: string }[] = [];
-        if (draft.workEmail?.trim()) {
-          chips.push({ label: draft.workEmail.trim(), key: 'email' });
+        if (draft.email?.trim()) {
+          chips.push({ label: draft.email.trim(), key: 'email' });
         }
         if (draft.phone?.trim()) {
           chips.push({ label: draft.phone.trim(), key: 'phone' });
         }
-        if (draft.location?.trim()) {
-          chips.push({ label: draft.location.trim(), key: 'location' });
+        if (draft.businessAddress?.trim()) {
+          chips.push({ label: draft.businessAddress.trim(), key: 'address' });
         }
         if (draft.linkedin?.trim()) {
           chips.push({ label: `in/${draft.linkedin.trim()}`, key: 'linkedin' });

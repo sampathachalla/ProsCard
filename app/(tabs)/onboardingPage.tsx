@@ -121,9 +121,9 @@ export function OnboardingScreen() {
         onSkip={currentStep === 1 || currentStep === 4 ? skipStep : undefined}
         nextLabel={
           isLastStep
-            ? 'Create My Card'
+            ? 'Create my card'
             : currentStep === 1
-            ? 'Get Started'
+            ? 'Continue'
             : 'Continue'
         }
         isSaving={isSaving}

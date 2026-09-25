@@ -28,59 +28,82 @@ export function runValidateOnboardingTests(): { passed: number; failed: number }
 
   const testCases: [string, () => void][] = [
     [
-      'test_validatePersonalStep_empty_fullName_returns_required_error',
+      'test_validatePersonalStep_empty_firstName_returns_required_error',
       () => {
-        const result = validatePersonalStep({ fullName: '   ', title: '', phone: '', location: '' });
-        assertEqual(result.fullName, 'Full name is required.');
+        const result = validatePersonalStep({ firstName: '', lastName: 'Doe', title: 'Engineer' });
+        assertEqual(result.firstName, 'First name is required.');
       },
     ],
     [
-      'test_validatePersonalStep_short_fullName_returns_length_error',
+      'test_validatePersonalStep_empty_lastName_returns_required_error',
       () => {
-        const result = validatePersonalStep({ fullName: 'A', title: '', phone: '', location: '' });
-        assertEqual(result.fullName, 'Full name must be at least 2 characters.');
+        const result = validatePersonalStep({ firstName: 'Jane', lastName: '', title: 'Engineer' });
+        assertEqual(result.lastName, 'Last name is required.');
       },
     ],
     [
-      'test_validatePersonalStep_valid_fullName_passes',
+      'test_validatePersonalStep_empty_title_returns_required_error',
       () => {
-        const result = validatePersonalStep({ fullName: 'Jane Doe', title: 'Engineer', phone: '', location: 'NYC' });
+        const result = validatePersonalStep({ firstName: 'Jane', lastName: 'Doe', title: '' });
+        assertEqual(result.title, 'Title is required.');
+      },
+    ],
+    [
+      'test_validatePersonalStep_valid_identity_passes',
+      () => {
+        const result = validatePersonalStep({ firstName: 'Jane', lastName: 'Doe', title: 'Engineer' });
         assertDeepEqual(result, {});
       },
     ],
     [
-      'test_validatePersonalStep_invalid_phone_returns_error',
+      'test_validatePersonalStep_title_too_long_returns_error',
       () => {
-        const result = validatePersonalStep({ fullName: 'Jane Doe', title: '', phone: '123', location: '' });
+        const result = validatePersonalStep({
+          firstName: 'Jane',
+          lastName: 'Doe',
+          title: 'T'.repeat(81),
+        });
+        assertEqual(result.title, 'Title must be 80 characters or less.');
+      },
+    ],
+    [
+      'test_validateProfessionalStep_empty_email_returns_error',
+      () => {
+        const result = validateProfessionalStep({ organization: 'Acme', email: '', phone: '' });
+        assertEqual(result.email, 'Email is required.');
+      },
+    ],
+    [
+      'test_validateProfessionalStep_invalid_email_returns_error',
+      () => {
+        const result = validateProfessionalStep({
+          organization: 'Acme',
+          email: 'notanemail',
+          phone: '',
+        });
+        assertEqual(result.email, 'Enter a valid email address.');
+      },
+    ],
+    [
+      'test_validateProfessionalStep_valid_email_passes',
+      () => {
+        const result = validateProfessionalStep({
+          organization: 'Acme',
+          email: 'jane@acme.com',
+          phone: '',
+        });
+        assertDeepEqual(result, {});
+      },
+    ],
+    [
+      'test_validateProfessionalStep_invalid_phone_returns_error',
+      () => {
+        const result = validateProfessionalStep({
+          organization: 'Acme',
+          email: 'jane@acme.com',
+          phone: '123',
+        });
         assertEqual(result.phone, 'Enter a valid phone number.');
-      },
-    ],
-    [
-      'test_validatePersonalStep_valid_phone_passes',
-      () => {
-        const result = validatePersonalStep({ fullName: 'Jane Doe', title: '', phone: '+1 (555) 123-4567', location: '' });
-        assertDeepEqual(result, {});
-      },
-    ],
-    [
-      'test_validateProfessionalStep_empty_workEmail_returns_error',
-      () => {
-        const result = validateProfessionalStep({ organization: 'Acme', workEmail: '', shortBio: '' });
-        assertEqual(result.workEmail, 'Work email is required.');
-      },
-    ],
-    [
-      'test_validateProfessionalStep_invalid_workEmail_returns_error',
-      () => {
-        const result = validateProfessionalStep({ organization: 'Acme', workEmail: 'notanemail', shortBio: '' });
-        assertEqual(result.workEmail, 'Enter a valid email address.');
-      },
-    ],
-    [
-      'test_validateProfessionalStep_valid_workEmail_passes',
-      () => {
-        const result = validateProfessionalStep({ organization: 'Acme', workEmail: 'jane@acme.com', shortBio: 'Hello' });
-        assertDeepEqual(result, {});
       },
     ],
     [
@@ -90,7 +113,6 @@ export function runValidateOnboardingTests(): { passed: number; failed: number }
           linkedin: '',
           github: '',
           x: '',
-          website: '',
           portfolio: '',
         });
         assertDeepEqual(result, {});
@@ -103,7 +125,6 @@ export function runValidateOnboardingTests(): { passed: number; failed: number }
           linkedin: 'https://linkedin.com/in/janedoe',
           github: 'janedoe',
           x: '@janedoe',
-          website: 'janedoe.com',
           portfolio: 'https://janedoe.dev',
         });
         assertDeepEqual(result, {});
@@ -166,16 +187,14 @@ export function runValidateOnboardingTests(): { passed: number; failed: number }
       },
     ],
     [
-      'test_validateSocialStep_enforces_url_format_on_website_and_portfolio',
+      'test_validateSocialStep_enforces_url_format_on_portfolio',
       () => {
         const result = validateSocialStep({
           linkedin: 'janedoe',
           github: 'janedoe',
           x: '@janedoe',
-          website: 'not_a_url',
           portfolio: 'not_a_url',
         });
-        assertEqual(Boolean(result.website), true);
         assertEqual(Boolean(result.portfolio), true);
         assertEqual(Boolean(result.linkedin), false);
       },
@@ -186,7 +205,7 @@ export function runValidateOnboardingTests(): { passed: number; failed: number }
         const result = validateAllSteps(INITIAL_ONBOARDING_DRAFT);
         assertEqual(result.isValid, false);
         assertEqual(result.firstErrorStep, 2);
-        assertEqual(Boolean(result.errors.fullName), true);
+        assertEqual(Boolean(result.errors.firstName), true);
       },
     ],
     [
@@ -194,8 +213,10 @@ export function runValidateOnboardingTests(): { passed: number; failed: number }
       () => {
         const completeDraft = {
           ...INITIAL_ONBOARDING_DRAFT,
-          fullName: 'Sampath K',
-          workEmail: 'sampath@proscard.app',
+          firstName: 'Sampath',
+          lastName: 'K',
+          title: 'Engineer',
+          email: 'sampath@proscard.app',
         };
         const result = validateOnboardingDraft(completeDraft);
         assertEqual(result.isValid, true);

@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import { Colors } from '@/constants/Colors';
 import { useThemeContext } from '../../context/ThemeContext';
-import { Bell, CreditCard, Focus, HelpCircle, Info, Moon, User } from 'lucide-react-native';
+import { Bell, CreditCard, Focus, HelpCircle, Info, Moon, Sparkles, User } from 'lucide-react-native';
 import { SettingsRow } from '../../components/profileComponents/Components/SettingsRow';
 import { useProfile } from '../../components/profileComponents/Hooks/useProfile';
 import { useProfileSnapshot } from '../../components/profileComponents/Hooks/useProfileSnapshot';
@@ -36,8 +36,10 @@ export default function ProfileScreen() {
     setEnabled: setNotificationsEnabled,
   } = useNotificationPreference();
   const {
+    glassmorphicEditorEnabled,
     hydrated: editorPreferencesHydrated,
     sectionHighlightEnabled,
+    setGlassmorphicEditorEnabled,
     setSectionHighlightEnabled,
   } = useEditorPreferences();
 
@@ -120,6 +122,19 @@ export default function ProfileScreen() {
             disabled={!editorPreferencesHydrated}
             value={sectionHighlightEnabled}
             onValueChange={setSectionHighlightEnabled}
+            trackColor={{ false: Colors.light.border, true: Colors.light.tint }}
+            thumbColor={Colors.palette.primaryWhite}
+          />
+        }
+      />
+      <SettingsRow
+        icon={Sparkles}
+        label="Glassmorphic editor chrome"
+        right={
+          <Switch
+            disabled={!editorPreferencesHydrated}
+            value={glassmorphicEditorEnabled}
+            onValueChange={setGlassmorphicEditorEnabled}
             trackColor={{ false: Colors.light.border, true: Colors.light.tint }}
             thumbColor={Colors.palette.primaryWhite}
           />

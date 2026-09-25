@@ -10,6 +10,7 @@ type PageHeaderProps = {
   subtitle?: string;
   right?: ReactNode;
   onBackPress?: () => void;
+  showBackButton?: boolean;
   className?: string;
 };
 
@@ -18,6 +19,7 @@ export function PageHeader({
   subtitle,
   right,
   onBackPress,
+  showBackButton = true,
   className = '',
 }: PageHeaderProps) {
   const router = useRouter();
@@ -37,14 +39,16 @@ export function PageHeader({
 
   return (
     <View className={`flex-row items-center px-5 pb-3 pt-3 ${className}`}>
-      <IconButton
-        accessibilityLabel="Go back"
-        icon={ArrowLeft}
-        variant="ghost"
-        onPress={handleBack}
-      />
+      {showBackButton ? (
+        <IconButton
+          accessibilityLabel="Go back"
+          icon={ArrowLeft}
+          variant="ghost"
+          onPress={handleBack}
+        />
+      ) : null}
 
-      <View className="min-w-0 flex-1 ml-3">
+      <View className={`min-w-0 flex-1 ${showBackButton ? 'ml-3' : ''}`}>
         <Text variant="heading" numberOfLines={1}>
           {title}
         </Text>

@@ -1,7 +1,16 @@
 // components/onboardingComponents/types/onboardingStepper.types.ts
 
+/**
+ * Onboarding draft aligned 1:1 with Profile + SocialLinks field names.
+ * Card-only fields (gradient / category) stay on the draft for step 5.
+ *
+ * Field tiers (progressive disclosure):
+ * - must: required to create a usable card
+ * - nice: shown by default, optional / skippable
+ * - later: behind "Add more" expanders; completable in profile after onboarding
+ */
 export interface OnboardingDraft {
-  // Step 2: Personal Identity
+  // Identity
   prefix: string;
   firstName: string;
   middleName: string;
@@ -9,20 +18,26 @@ export interface OnboardingDraft {
   suffix: string;
   preferredName: string;
   accreditations: string;
+  /** Derived from structured name parts; not a primary input. */
   fullName: string;
   tagline: string;
   title: string;
-  profilePhotoUrl: string;
-  coverPhotoUrl: string;
-  phone: string;
-  location: string;
-  // Step 3: Professional Info
+
+  // Professional / contact
   department: string;
   organization: string;
   companyLogoUrl: string;
-  workEmail: string;
+  email: string;
+  phone: string;
+  website: string;
+  businessAddress: string;
   shortBio: string;
-  // Step 4: Social & Web Presence
+
+  // Media
+  photoUrl: string;
+  coverPhotoUrl: string;
+
+  // Social
   linkedin: string;
   github: string;
   x: string;
@@ -31,18 +46,22 @@ export interface OnboardingDraft {
   whatsapp: string;
   youtube: string;
   tiktok: string;
-  website: string;
   portfolio: string;
-  // Step 5: Card Customization & Live Preview
+
+  // Card customization (not Profile)
   cardGradient: [string, string];
   cardCategory: string;
 }
+
+export type FieldTier = 'must' | 'nice' | 'later';
 
 export interface StepMetadata {
   index: number;
   title: string;
   subtitle: string;
   canSkip: boolean;
+  /** Short enterprise progress copy shown in the stepper header. */
+  progressLabel: string;
 }
 
 export type ValidationErrors = Record<string, string>;
@@ -53,8 +72,8 @@ export interface ValidationResult {
 }
 
 export interface UseOnboardingStepperReturn {
-  currentStep: number; // 1 to 5
-  totalSteps: number; // 5
+  currentStep: number;
+  totalSteps: number;
   draft: OnboardingDraft;
   errors: Record<string, string>;
   isSaving: boolean;
@@ -64,7 +83,7 @@ export interface UseOnboardingStepperReturn {
   updateDraft: (fields: Partial<OnboardingDraft>) => void;
   clearError?: (field: string) => void;
   goToStep: (step: number) => void;
-  nextStep: () => boolean; // returns false if validation failed
+  nextStep: () => boolean;
   prevStep: () => void;
   skipStep: () => void;
   finalizeOnboarding: () => Promise<boolean>;
@@ -80,45 +99,55 @@ export const ONBOARDING_STEPS_META: StepMetadata[] = [
   {
     index: 1,
     title: 'Welcome',
-    subtitle: 'Your modern digital business card platform',
+    subtitle: 'Set up your digital business card',
     canSkip: true,
+    progressLabel: 'Getting started',
   },
   {
     index: 2,
-    title: 'Personal Details',
-    subtitle: 'Let contacts know who you are',
+    title: 'Identity',
+    subtitle: 'Who should appear on your card',
     canSkip: false,
+    progressLabel: 'Name & role',
   },
   {
     index: 3,
-    title: 'Professional Info',
-    subtitle: 'Where you work and your primary role',
+    title: 'Contact',
+    subtitle: 'How people can reach you',
     canSkip: false,
+    progressLabel: 'Work & contact',
   },
   {
     index: 4,
-    title: 'Social & Web',
-    subtitle: 'Share your online profiles and portfolio',
+    title: 'Presence',
+    subtitle: 'Photo and links (optional)',
     canSkip: true,
+    progressLabel: 'Photo & links',
   },
   {
     index: 5,
-    title: 'Card Preview',
-    subtitle: 'Choose your card style and preview in 3D',
+    title: 'Card style',
+    subtitle: 'Choose a theme and create your card',
     canSkip: false,
+    progressLabel: 'Finalize',
   },
 ];
 
 export const CARD_GRADIENT_PRESETS: CardGradientPreset[] = [
   { id: 'pro-cyan', label: 'Pros Cyan', gradient: ['#2563eb', '#00a8e8'] },
-  { id: 'midnight', label: 'Midnight Dark', gradient: ['#111827', '#020617'] },
-  { id: 'royal-purple', label: 'Royal Violet', gradient: ['#4f46e5', '#7c3aed'] },
-  { id: 'emerald-teal', label: 'Emerald Teal', gradient: ['#0f766e', '#059669'] },
-  { id: 'sunset-amber', label: 'Sunset Coral', gradient: ['#ea580c', '#ec4899'] },
-  { id: 'slate-charcoal', label: 'Slate Minimal', gradient: ['#334155', '#0f172a'] },
+  { id: 'midnight', label: 'Midnight', gradient: ['#111827', '#020617'] },
+  { id: 'slate', label: 'Slate', gradient: ['#334155', '#0f172a'] },
+  { id: 'teal', label: 'Teal', gradient: ['#0f766e', '#059669'] },
+  { id: 'indigo', label: 'Indigo', gradient: ['#3730a3', '#4f46e5'] },
+  { id: 'copper', label: 'Copper', gradient: ['#9a3412', '#b45309'] },
 ];
 
-export const DEFAULT_CARD_CATEGORIES: string[] = ['Professional', 'Personal', 'Business', 'Networking'];
+export const DEFAULT_CARD_CATEGORIES: string[] = [
+  'Professional',
+  'Personal',
+  'Business',
+  'Networking',
+];
 
 export const INITIAL_CARD_GRADIENT: [string, string] = ['#2563eb', '#00a8e8'];
 export const DEFAULT_CARD_CATEGORY = 'Professional';
@@ -134,15 +163,16 @@ export const INITIAL_ONBOARDING_DRAFT: OnboardingDraft = {
   fullName: '',
   tagline: '',
   title: '',
-  profilePhotoUrl: '',
-  coverPhotoUrl: '',
-  phone: '',
-  location: '',
   department: '',
   organization: '',
   companyLogoUrl: '',
-  workEmail: '',
+  email: '',
+  phone: '',
+  website: '',
+  businessAddress: '',
   shortBio: '',
+  photoUrl: '',
+  coverPhotoUrl: '',
   linkedin: '',
   github: '',
   x: '',
@@ -151,7 +181,6 @@ export const INITIAL_ONBOARDING_DRAFT: OnboardingDraft = {
   whatsapp: '',
   youtube: '',
   tiktok: '',
-  website: '',
   portfolio: '',
   cardGradient: INITIAL_CARD_GRADIENT,
   cardCategory: DEFAULT_CARD_CATEGORY,

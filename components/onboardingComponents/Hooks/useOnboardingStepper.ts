@@ -53,7 +53,7 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
           ...prev,
           ...profileDraft,
           fullName: profileDraft.fullName || user?.username || '',
-          firstName: profileDraft.firstName || user?.username || '',
+          firstName: profileDraft.firstName || user?.username || prev.firstName,
         };
         draftRef.current = next;
         return next;

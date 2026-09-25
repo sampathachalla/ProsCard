@@ -53,24 +53,18 @@ export default function CardDetailPage() {
     return `${publicOrigin.replace(/\/$/, '')}/cards/${cardId}`;
   };
 
-  const handleBack = () => {
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      router.replace('/(tabs)/homepage');
-    }
-  };
+  const goToHomepage = () => router.replace('/(tabs)/homepage');
 
   if (!card) {
     return (
       <CardTapGesture
         containerClassName="flex-1 bg-background dark:bg-dark-background"
-        onDoubleTap={handleBack}
+        onDoubleTap={goToHomepage}
       >
         <View className="flex-1 items-center justify-center px-8">
           <Text variant="heading" className="text-center">Card not found</Text>
           <Text variant="muted" className="mt-2 text-center">
-            This card is no longer available. Double tap to go back.
+            This card is no longer available. Double tap to return home.
           </Text>
         </View>
       </CardTapGesture>
@@ -113,8 +107,9 @@ export default function CardDetailPage() {
   return (
     <CardTapGesture
       containerClassName="flex-1 bg-background dark:bg-dark-background"
-      onDoubleTap={handleBack}
+      onDoubleTap={goToHomepage}
       onSwipeDown={() => setShowQr(true)}
+      simultaneousWithNative
     >
       <ScrollView
         contentContainerStyle={{ paddingBottom: 32, paddingTop: 12 }}

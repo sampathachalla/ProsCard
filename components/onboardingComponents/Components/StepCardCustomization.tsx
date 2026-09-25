@@ -46,10 +46,10 @@ export const CARD_ASPECT_RATIO = 1.586;
 export const PRESET_CATEGORY_MAP: Record<string, string> = {
   'pro-cyan': 'Professional',
   midnight: 'Personal',
-  'royal-purple': 'Business',
-  'emerald-teal': 'Networking',
-  'sunset-amber': 'Personal',
-  'slate-charcoal': 'Professional',
+  slate: 'Professional',
+  teal: 'Networking',
+  indigo: 'Business',
+  copper: 'Personal',
 };
 
 export interface StepCardCustomizationProps {
@@ -72,7 +72,12 @@ export function StepCardCustomization({
   const cardHeight = Math.round(cardWidth / CARD_ASPECT_RATIO);
 
   // Safe fallback values matching design defaults
-  const safeName = draft.fullName?.trim() || 'Your Name';
+  const displayName =
+    draft.preferredName?.trim() ||
+    [draft.firstName, draft.lastName].map((p) => p?.trim()).filter(Boolean).join(' ') ||
+    draft.fullName?.trim() ||
+    'Your Name';
+  const safeName = displayName;
   const safeTitle = draft.title?.trim() || 'Professional Role';
   const safeCompany = draft.organization?.trim() || 'Company / Organization';
   const safeCategory = draft.cardCategory || 'Professional';
@@ -82,7 +87,7 @@ export function StepCardCustomization({
       : ['#2563eb', '#00a8e8'];
 
   const qrUrl = `https://proscard.mindpros.com/p/${encodeURIComponent(
-    draft.fullName?.trim() || 'user'
+    draft.firstName?.trim() || draft.fullName?.trim() || 'user'
   )}`;
 
   // Handle Preset Gradient Selection
@@ -115,14 +120,14 @@ export function StepCardCustomization({
   const summaryChips = useMemo(() => {
     const chips: { icon: LucideIcon; label: string; key: string }[] = [];
 
-    if (draft.workEmail?.trim()) {
-      chips.push({ icon: Mail, label: draft.workEmail.trim(), key: 'email' });
+    if (draft.email?.trim()) {
+      chips.push({ icon: Mail, label: draft.email.trim(), key: 'email' });
     }
     if (draft.phone?.trim()) {
       chips.push({ icon: Phone, label: draft.phone.trim(), key: 'phone' });
     }
-    if (draft.location?.trim()) {
-      chips.push({ icon: MapPin, label: draft.location.trim(), key: 'location' });
+    if (draft.businessAddress?.trim()) {
+      chips.push({ icon: MapPin, label: draft.businessAddress.trim(), key: 'address' });
     }
     if (draft.linkedin?.trim()) {
       chips.push({ icon: Link2, label: `in/${draft.linkedin.trim()}`, key: 'linkedin' });
@@ -155,9 +160,9 @@ export function StepCardCustomization({
 
     return chips;
   }, [
-    draft.workEmail,
+    draft.email,
     draft.phone,
-    draft.location,
+    draft.businessAddress,
     draft.linkedin,
     draft.github,
     draft.x,
@@ -177,17 +182,17 @@ export function StepCardCustomization({
         showsVerticalScrollIndicator={false}
       >
         {/* Informational Banner */}
-        <View className="mb-5 flex-row items-start rounded-2xl border border-blue-100 bg-blue-50/70 p-4 dark:border-blue-900/40 dark:bg-blue-950/30">
+        <View className="mb-5 flex-row items-start rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/50">
           <Sparkles
             size={20}
             className="mr-3 mt-0.5 shrink-0 text-primary dark:text-dark-primary"
           />
           <View className="flex-1">
             <Text className="text-sm font-bold text-textPrimary dark:text-dark-textPrimary">
-              Card Customization & 3D Preview
+              Card style
             </Text>
             <Text className="mt-0.5 text-xs leading-4 text-textMuted dark:text-dark-textMuted">
-              Personalize your card theme. Tap the card below anytime to flip between front and back in 3D.
+              Choose a category and theme. Tap the card to preview the reverse side.
             </Text>
           </View>
         </View>

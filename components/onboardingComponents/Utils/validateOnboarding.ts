@@ -45,26 +45,80 @@ export function normalizeUrl(
   return `https://${trimmed}`;
 }
 
+/** Step 2 — Identity: must = firstName, lastName, title */
 export function validatePersonalStep(
-  draft: Pick<OnboardingDraft, 'fullName' | 'title' | 'phone' | 'location'> &
-    Partial<Pick<OnboardingDraft, 'firstName' | 'lastName' | 'tagline' | 'profilePhotoUrl' | 'coverPhotoUrl'>>
+  draft: Pick<OnboardingDraft, 'firstName' | 'lastName' | 'title'> &
+    Partial<
+      Pick<
+        OnboardingDraft,
+        | 'fullName'
+        | 'prefix'
+        | 'middleName'
+        | 'suffix'
+        | 'preferredName'
+        | 'accreditations'
+        | 'tagline'
+      >
+    >
 ): ValidationErrors {
   const errors: ValidationErrors = {};
-  const trimmedName = draft.fullName?.trim() || '';
-  const usesStructuredName = Boolean(draft.firstName?.trim() || draft.lastName?.trim());
 
-  if (usesStructuredName && !draft.firstName?.trim()) {
+  if (!draft.firstName?.trim()) {
     errors.firstName = 'First name is required.';
+  } else if (draft.firstName.trim().length > 50) {
+    errors.firstName = 'First name must be 50 characters or less.';
   }
-  if (usesStructuredName && !draft.lastName?.trim()) {
+
+  if (!draft.lastName?.trim()) {
     errors.lastName = 'Last name is required.';
+  } else if (draft.lastName.trim().length > 50) {
+    errors.lastName = 'Last name must be 50 characters or less.';
   }
-  if (!usesStructuredName && !trimmedName) {
-    errors.fullName = 'Full name is required.';
-  } else if (!usesStructuredName && trimmedName.length < 2) {
-    errors.fullName = 'Full name must be at least 2 characters.';
-  } else if (trimmedName.length > 50) {
-    errors.fullName = 'Full name must be 50 characters or less.';
+
+  if (!draft.title?.trim()) {
+    errors.title = 'Title is required.';
+  } else if (draft.title.trim().length > 80) {
+    errors.title = 'Title must be 80 characters or less.';
+  }
+
+  if (draft.tagline && draft.tagline.trim().length > 120) {
+    errors.tagline = 'Tagline must be 120 characters or less.';
+  }
+  if (draft.preferredName && draft.preferredName.trim().length > 50) {
+    errors.preferredName = 'Preferred name must be 50 characters or less.';
+  }
+  if (draft.accreditations && draft.accreditations.trim().length > 80) {
+    errors.accreditations = 'Accreditations must be 80 characters or less.';
+  }
+
+  return errors;
+}
+
+/** Step 3 — Contact: must = email; nice = organization, phone */
+export function validateProfessionalStep(
+  draft: Pick<OnboardingDraft, 'email' | 'organization' | 'phone'> &
+    Partial<
+      Pick<
+        OnboardingDraft,
+        'department' | 'companyLogoUrl' | 'website' | 'businessAddress' | 'shortBio'
+      >
+    >
+): ValidationErrors {
+  const errors: ValidationErrors = {};
+  const trimmedEmail = draft.email?.trim() || '';
+
+  if (!trimmedEmail) {
+    errors.email = 'Email is required.';
+  } else if (!EMAIL_PATTERN.test(trimmedEmail)) {
+    errors.email = 'Enter a valid email address.';
+  }
+
+  if (draft.organization && draft.organization.trim().length > 100) {
+    errors.organization = 'Company name must be 100 characters or less.';
+  }
+
+  if (draft.department && draft.department.trim().length > 100) {
+    errors.department = 'Department must be 100 characters or less.';
   }
 
   const trimmedPhone = draft.phone?.trim() || '';
@@ -75,58 +129,63 @@ export function validatePersonalStep(
     }
   }
 
-  if (draft.title && draft.title.trim().length > 80) {
-    errors.title = 'Title must be 80 characters or less.';
+  if (draft.businessAddress && draft.businessAddress.trim().length > 100) {
+    errors.businessAddress = 'Address must be 100 characters or less.';
   }
-
-  if (draft.location && draft.location.trim().length > 100) {
-    errors.location = 'Location must be 100 characters or less.';
-  }
-  if (draft.tagline && draft.tagline.trim().length > 120) errors.tagline = 'Tagline must be 120 characters or less.';
-
-  for (const [key, value] of [['profilePhotoUrl', draft.profilePhotoUrl], ['coverPhotoUrl', draft.coverPhotoUrl]] as const) {
-    if (value?.trim() && !URL_PATTERN.test(value.trim())) errors[key] = 'Enter a valid image URL.';
-  }
-
-  return errors;
-}
-
-export function validateProfessionalStep(
-  draft: Pick<OnboardingDraft, 'organization' | 'workEmail' | 'shortBio'> &
-    Partial<Pick<OnboardingDraft, 'department' | 'companyLogoUrl'>>
-): ValidationErrors {
-  const errors: ValidationErrors = {};
-  const trimmedEmail = draft.workEmail?.trim() || '';
-
-  if (!trimmedEmail) {
-    errors.workEmail = 'Work email is required.';
-  } else if (!EMAIL_PATTERN.test(trimmedEmail)) {
-    errors.workEmail = 'Enter a valid email address.';
-  }
-
-  if (draft.organization && draft.organization.trim().length > 100) {
-    errors.organization = 'Company name must be 100 characters or less.';
-  }
-
-  if (draft.department && draft.department.trim().length > 100) errors.department = 'Department must be 100 characters or less.';
-  if (draft.companyLogoUrl?.trim() && !URL_PATTERN.test(draft.companyLogoUrl.trim())) errors.companyLogoUrl = 'Enter a valid logo URL.';
 
   if (draft.shortBio && draft.shortBio.trim().length > 240) {
     errors.shortBio = 'Bio must be 240 characters or less.';
   }
 
+  if (draft.website?.trim() && !URL_PATTERN.test(draft.website.trim())) {
+    errors.website = 'Enter a valid website URL.';
+  }
+
+  const logo = draft.companyLogoUrl?.trim() || '';
+  const isLocalUri =
+    logo.startsWith('file:') ||
+    logo.startsWith('content:') ||
+    logo.startsWith('ph://') ||
+    logo.startsWith('assets-library:') ||
+    logo.startsWith('data:');
+  if (logo && !isLocalUri && !URL_PATTERN.test(logo)) {
+    errors.companyLogoUrl = 'Enter a valid logo URL.';
+  }
+
   return errors;
 }
 
+/** Step 4 — Presence: all optional */
 export function validateSocialStep(
-  draft: Pick<OnboardingDraft, 'linkedin' | 'github' | 'x' | 'website' | 'portfolio'> &
-    Partial<Pick<OnboardingDraft, 'facebook' | 'instagram' | 'whatsapp' | 'youtube' | 'tiktok'>>
+  draft: Partial<
+    Pick<
+      OnboardingDraft,
+      | 'photoUrl'
+      | 'coverPhotoUrl'
+      | 'linkedin'
+      | 'github'
+      | 'x'
+      | 'facebook'
+      | 'instagram'
+      | 'whatsapp'
+      | 'youtube'
+      | 'tiktok'
+      | 'portfolio'
+    >
+  >
 ): ValidationErrors {
   const errors: ValidationErrors = {};
 
-  const validateUrlOnly = (value: string | undefined, fieldKey: string, label: string) => {
+  const isLocalOrEmptyUri = (value: string) =>
+    !value ||
+    value.startsWith('file:') ||
+    value.startsWith('content:') ||
+    value.startsWith('ph://') ||
+    value.startsWith('assets-library:');
+
+  const validateRemoteUrl = (value: string | undefined, fieldKey: string, label: string) => {
     const trimmed = value?.trim() || '';
-    if (!trimmed) return;
+    if (!trimmed || isLocalOrEmptyUri(trimmed)) return;
     if (!URL_PATTERN.test(trimmed)) {
       errors[fieldKey] = `Enter a valid ${label}.`;
     }
@@ -141,16 +200,17 @@ export function validateSocialStep(
     }
   };
 
-  validateUrlOnly(draft.website, 'website', 'website URL');
+  validateRemoteUrl(draft.photoUrl, 'photoUrl', 'image URL');
+  validateRemoteUrl(draft.coverPhotoUrl, 'coverPhotoUrl', 'image URL');
   validateUrlOrHandle(draft.linkedin, 'linkedin', 'LinkedIn URL or profile');
   validateUrlOrHandle(draft.github, 'github', 'GitHub URL or username');
   validateUrlOrHandle(draft.x, 'x', 'X/Twitter handle or URL');
-  validateUrlOnly(draft.portfolio, 'portfolio', 'portfolio URL');
-  validateUrlOnly(draft.facebook, 'facebook', 'Facebook URL');
-  validateUrlOnly(draft.instagram, 'instagram', 'Instagram URL');
-  validateUrlOnly(draft.whatsapp, 'whatsapp', 'WhatsApp URL');
-  validateUrlOnly(draft.youtube, 'youtube', 'YouTube URL');
-  validateUrlOnly(draft.tiktok, 'tiktok', 'TikTok URL');
+  validateRemoteUrl(draft.facebook, 'facebook', 'Facebook URL');
+  validateRemoteUrl(draft.instagram, 'instagram', 'Instagram URL');
+  validateRemoteUrl(draft.whatsapp, 'whatsapp', 'WhatsApp URL');
+  validateRemoteUrl(draft.youtube, 'youtube', 'YouTube URL');
+  validateRemoteUrl(draft.tiktok, 'tiktok', 'TikTok URL');
+  validateRemoteUrl(draft.portfolio, 'portfolio', 'portfolio URL');
 
   return errors;
 }
@@ -159,7 +219,12 @@ export function validateCustomizationStep(
   draft: Pick<OnboardingDraft, 'cardGradient' | 'cardCategory'>
 ): ValidationErrors {
   const errors: ValidationErrors = {};
-  if (!draft.cardGradient || draft.cardGradient.length !== 2 || !draft.cardGradient[0] || !draft.cardGradient[1]) {
+  if (
+    !draft.cardGradient ||
+    draft.cardGradient.length !== 2 ||
+    !draft.cardGradient[0] ||
+    !draft.cardGradient[1]
+  ) {
     errors.cardGradient = 'Please select a valid card theme.';
   }
   if (!draft.cardCategory?.trim()) {
