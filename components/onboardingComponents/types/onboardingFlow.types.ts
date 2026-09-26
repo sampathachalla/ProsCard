@@ -5,6 +5,7 @@ export type OnboardingFlowGroupId =
   | 'name_formal'
   | 'role_company'
   | 'credentials'
+  | 'tagline'
   | 'contact_email'
   | 'contact_phone'
   | 'work_extra'
@@ -30,6 +31,8 @@ export interface FieldSpec {
   keyboardType?: 'default' | 'email-address' | 'phone-pad' | 'url';
   autoCapitalize?: 'none' | 'words' | 'characters' | 'sentences';
   maxLength?: number;
+  /** Underline fields without leading icon (name / role style). */
+  hideIcon?: boolean;
 }
 
 /** One card: conversational prompt + inputs together (no separate question screen). */
@@ -40,6 +43,10 @@ export type OnboardingFlowItem =
       groupId: OnboardingFlowGroupId;
       title: string;
       subtitle?: string;
+      /** Fixed two-line helper under the title (avoids awkward wraps). */
+      subtitleLines?: [string, string];
+      /** Cycles on screen with a fade animation (e.g. Professional, Friendly). */
+      highlightWords?: string[];
       fields: FieldSpec[];
       skippable?: boolean;
     }
@@ -56,33 +63,25 @@ export const ONBOARDING_FLOW: OnboardingFlowItem[] = [
     kind: 'group',
     groupId: 'name_legal',
     title: 'What name should appear on your card?',
-    subtitle: 'Use the name people know you by professionally.',
+    subtitle: 'Use the name people know you by.',
+    highlightWords: ['Professional', 'Friendly', 'Clear', 'Confident', 'Memorable'],
     fields: [
       {
         key: 'firstName',
-        label: 'First name',
-        placeholder: 'Alex',
+        label: '',
+        placeholder: 'First name',
         required: true,
         autoCapitalize: 'words',
         maxLength: 50,
       },
       {
         key: 'lastName',
-        label: 'Last name',
-        placeholder: 'Morgan',
+        label: '',
+        placeholder: 'Last name',
         required: true,
         autoCapitalize: 'words',
         maxLength: 50,
       },
-    ],
-  },
-  {
-    kind: 'group',
-    groupId: 'name_formal',
-    title: 'Any prefix, middle name, or suffix?',
-    subtitle: 'Optional formal name details.',
-    skippable: true,
-    fields: [
       {
         key: 'prefix',
         label: 'Prefix',
@@ -109,46 +108,62 @@ export const ONBOARDING_FLOW: OnboardingFlowItem[] = [
   {
     kind: 'group',
     groupId: 'role_company',
-    title: "What's your job title and company?",
-    subtitle: 'Your title is required; company helps people recognize where you work.',
+    title: 'What do you do?',
+    subtitle: 'Your title and company show on your card.',
+    highlightWords: ['Leader', 'Expert', 'Builder', 'Trusted'],
     fields: [
       {
         key: 'title',
-        label: 'Job title',
-        placeholder: 'e.g. Senior Product Manager',
+        label: '',
+        placeholder: 'Job title',
         required: true,
         autoCapitalize: 'words',
         maxLength: 80,
-        hint: 'Shown on the front of your card.',
+        hideIcon: true,
       },
       {
         key: 'organization',
-        label: 'Company / organization',
-        placeholder: 'e.g. Acme Innovations',
+        label: '',
+        placeholder: 'Company or organization',
         autoCapitalize: 'words',
         maxLength: 100,
+        hideIcon: true,
       },
     ],
   },
   {
     kind: 'group',
     groupId: 'credentials',
-    title: 'Education, degrees, or accreditations?',
-    subtitle: 'Optional credentials that add credibility on your card.',
+    title: 'What sets you apart?',
+    subtitleLines: ['Optional credentials', 'degrees, certs, or licenses.'],
+    highlightWords: ['Certified', 'Credentialed', 'Trusted', 'Recognized'],
     skippable: true,
     fields: [
       {
         key: 'accreditations',
-        label: 'Accreditations / degrees',
-        placeholder: 'e.g. MS, PhD, CPA',
+        label: '',
+        placeholder: 'Degrees, certs, or licenses',
         autoCapitalize: 'characters',
         maxLength: 80,
+        hideIcon: true,
       },
+    ],
+  },
+  {
+    kind: 'group',
+    groupId: 'tagline',
+    title: 'Add a tagline?',
+    subtitle: 'One short line on your card.',
+    highlightWords: ['Memorable', 'Clear', 'Personal', 'Distinct'],
+    skippable: true,
+    fields: [
       {
         key: 'tagline',
-        label: 'Tagline',
-        placeholder: 'A short one-line introduction',
+        label: '',
+        placeholder: 'One-line tagline',
+        autoCapitalize: 'sentences',
         maxLength: 120,
+        hideIcon: true,
       },
     ],
   },

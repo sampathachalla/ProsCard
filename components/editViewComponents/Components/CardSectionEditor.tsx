@@ -1147,6 +1147,7 @@ export function CardSectionEditor({
       {stylingOpen ? (
         <View>
           <CardStylingCustomizer
+            activeTemplateId={card.sectionLayouts[activeSection]}
             backLabel={`Back to ${activeEditTab === 'layout' ? 'Layout' : 'Content'}`}
             customThemes={card.customThemes ?? []}
             onBack={onCloseStyling}
@@ -1183,6 +1184,7 @@ export function CardSectionEditor({
                 selectedTemplateId={section.templateId}
                 theme={card.sectionThemes[activeSection]}
                 onSelect={(templateId) => onLayoutChange(activeSection, templateId)}
+                fullOpen={fullOpen}
               />
             </>
           ) : (

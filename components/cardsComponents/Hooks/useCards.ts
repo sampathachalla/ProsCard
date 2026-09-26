@@ -1,6 +1,5 @@
 // components/cardsComponents/Hooks/useCards.ts
-import { useCallback, useEffect, useState } from 'react';
-import { useFocusEffect } from 'expo-router';
+import { useEffect, useState } from 'react';
 import type { BusinessCard } from '../types/card.types';
 import { getCards, hydrateCards, subscribeCards } from '../Services/cardsService';
 
@@ -18,12 +17,6 @@ export function useCards() {
 
     return unsubscribe;
   }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      setCards([...getCards()]);
-    }, [])
-  );
 
   return { cards };
 }

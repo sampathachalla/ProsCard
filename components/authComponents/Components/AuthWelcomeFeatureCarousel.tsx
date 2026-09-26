@@ -1,8 +1,12 @@
-import { useState } from 'react';
-import { View } from 'react-native';
+import React, { useRef, useState } from 'react';
+import {
+  ScrollView,
+  View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from 'react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { CreditCard, QrCode, Sparkles } from 'lucide-react-native';
-import PagerView from 'react-native-pager-view';
 import { useSharedValue } from 'react-native-reanimated';
 import { Colors } from '@/constants/Colors';
 import { useThemeContext } from '@/context/ThemeContext';
@@ -10,7 +14,7 @@ import { Text } from '@/components/uiComponents/Text';
 import { PaginationDots } from '@/components/uiComponents/PaginationDots';
 
 /** Tall enough to swipe comfortably on the card, not just the dots. */
-const CAROUSEL_HEIGHT = 200;
+const CAROUSEL_HEIGHT = 180;
 
 type FeatureCard = {
   id: string;
@@ -51,11 +55,11 @@ function FeatureCarouselCard({
 
   return (
     <View className="flex-1 rounded-2xl border border-slate-200/90 bg-slate-50 px-5 py-5 dark:border-slate-300/25 dark:bg-slate-100/95">
-      <View className="mb-4 h-12 w-12 items-center justify-center rounded-2xl border border-primary/15 bg-white dark:border-primary/20 dark:bg-white/90">
-        <Icon size={24} color={iconColor} strokeWidth={2.2} />
+      <View className="mb-3 h-11 w-11 items-center justify-center rounded-2xl border border-primary/15 bg-white dark:border-primary/20 dark:bg-white/90">
+        <Icon size={22} color={iconColor} strokeWidth={2.2} />
       </View>
       <Text className="text-base font-bold text-textPrimary dark:text-slate-900">{item.title}</Text>
-      <Text className="mt-2 text-[13px] leading-5 text-textMuted dark:text-slate-600">
+      <Text className="mt-1.5 text-[13px] leading-5 text-textMuted dark:text-slate-600">
         {item.description}
       </Text>
     </View>
@@ -65,11 +69,19 @@ function FeatureCarouselCard({
 export function AuthWelcomeFeatureCarousel() {
   const [pageWidth, setPageWidth] = useState(0);
   const progress = useSharedValue(0);
+  const scrollRef = useRef<ScrollView>(null);
 
   const { theme } = useThemeContext();
   const isDark = theme === 'dark';
   const tint = isDark ? Colors.dark.tint : Colors.light.tint;
   const inactiveDot = isDark ? 'rgba(148,163,184,0.45)' : 'rgba(148,163,184,0.55)';
+
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (pageWidth > 0) {
+      const offsetX = event.nativeEvent.contentOffset.x;
+      progress.value = offsetX / pageWidth;
+    }
+  };
 
   return (
     <View
@@ -82,28 +94,25 @@ export function AuthWelcomeFeatureCarousel() {
       }}
     >
       {pageWidth > 0 ? (
-        <PagerView
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          decelerationRate="fast"
           style={{ width: pageWidth, height: CAROUSEL_HEIGHT }}
-          initialPage={0}
-          overdrag={false}
-          offscreenPageLimit={1}
-          onPageScroll={(event) => {
-            const { position, offset } = event.nativeEvent;
-            progress.value = position + offset;
-          }}
-          onPageSelected={(event) => {
-            progress.value = event.nativeEvent.position;
-          }}
         >
           {FEATURE_CARDS.map((item) => (
-            <View key={item.id} collapsable={false} style={{ width: pageWidth, height: CAROUSEL_HEIGHT }}>
+            <View key={item.id} style={{ width: pageWidth, height: CAROUSEL_HEIGHT, paddingHorizontal: 4 }}>
               <FeatureCarouselCard item={item} iconColor={tint} />
             </View>
           ))}
-        </PagerView>
+        </ScrollView>
       ) : null}
 
-      <View className="mt-4">
+      <View className="mt-3">
         <PaginationDots
           count={FEATURE_CARDS.length}
           progress={progress}

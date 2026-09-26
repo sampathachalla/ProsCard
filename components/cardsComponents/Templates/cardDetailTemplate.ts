@@ -7,7 +7,7 @@ import type { Profile } from '@/components/profileComponents/types/profile.types
 export const DUMMY_CARD_MEDIA = {
   coverPhoto: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1400&q=80',
   profilePhoto: 'https://i.pravatar.cc/600?img=12',
-  logo: Asset.fromModule(mindProsLogoDark as number).uri,
+  logo: '',
 } as const;
 
 export const DUMMY_CARD_PROFESSIONAL = {

@@ -20,6 +20,7 @@ function isOptionalGroup(groupId: OnboardingFlowGroupId): boolean {
   return (
     groupId === 'name_formal' ||
     groupId === 'credentials' ||
+    groupId === 'tagline' ||
     groupId === 'contact_phone' ||
     groupId === 'work_extra' ||
     groupId === 'presence'
@@ -37,7 +38,13 @@ export function validateFlowGroup(
 
   switch (groupId) {
     case 'name_legal':
-      return pickErrors(validatePersonalStep(draft), ['firstName', 'lastName']);
+      return pickErrors(validatePersonalStep(draft), [
+        'firstName',
+        'lastName',
+        'prefix',
+        'middleName',
+        'suffix',
+      ]);
     case 'name_formal':
       return pickErrors(validatePersonalStep(draft), [
         'prefix',
@@ -50,7 +57,9 @@ export function validateFlowGroup(
     case 'role_company':
       return pickErrors(validatePersonalStep(draft), ['title', 'organization']);
     case 'credentials':
-      return pickErrors(validatePersonalStep(draft), ['accreditations', 'tagline']);
+      return pickErrors(validatePersonalStep(draft), ['accreditations']);
+    case 'tagline':
+      return pickErrors(validatePersonalStep(draft), ['tagline']);
     case 'contact_email':
       return pickErrors(validateProfessionalStep(draft), ['email']);
     case 'contact_phone':

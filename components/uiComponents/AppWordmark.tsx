@@ -14,10 +14,10 @@ export function AppWordmark({ className = '' }: AppWordmarkProps) {
       minimumFontScale={0.72}
       numberOfLines={1}
       style={{
-        fontSize: 32,
+        fontSize: 40,
         fontWeight: '800',
-        letterSpacing: -1.1,
-        lineHeight: 38,
+        letterSpacing: -1.2,
+        lineHeight: 46,
       }}
     >
       ProsCard

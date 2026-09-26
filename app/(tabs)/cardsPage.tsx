@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FlatList, View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCards } from '@/components/cardsComponents/Hooks/useCards';
 import { useProfileSnapshot } from '@/components/profileComponents/Hooks/useProfileSnapshot';
 import { CardSectionFace } from '@/components/cardsComponents/Components/CardSectionFace';
@@ -13,6 +14,7 @@ export default function CardsPageScreen() {
   const { cards } = useCards();
   const { profile } = useProfileSnapshot();
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [qrCardId, setQrCardId] = useState<string | null>(null);
   const columns = width >= 1000 ? 3 : width >= 640 ? 2 : 1;
@@ -28,7 +30,7 @@ export default function CardsPageScreen() {
       numColumns={columns}
       keyExtractor={(item) => item.id}
       columnWrapperStyle={columns > 1 ? { gap } : undefined}
-      contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 32, gap }}
+      contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: Math.max(insets.bottom, 20) + 16, gap }}
       showsVerticalScrollIndicator={false}
       ListEmptyComponent={<View className="mt-16 items-center justify-center px-6"><Text variant="heading" className="text-center">No cards yet</Text><Text variant="muted" className="mt-2 text-center">Create a card from the home screen or editor.</Text></View>}
       renderItem={({ item }) => <View style={{ width: cardWidth }}><FlippableCard accessibilityLabel={`${item.category} card for ${item.name}`} front={<CardSectionFace card={item} height={cardHeight} profile={profile} sectionId="identity" width={cardWidth} />} back={<CardSectionFace card={item} height={cardHeight} profile={profile} sectionId="professional" width={cardWidth} />} height={cardHeight} width={cardWidth} onDoubleTap={() => router.push({ pathname: '/cards/[cardId]', params: { cardId: item.id } })} onSwipeDown={() => setQrCardId(item.id)} /></View>}

@@ -38,13 +38,13 @@ export default function SignupScreen() {
       <Animated.View entering={FadeIn.duration(400)} className="mb-6 items-center">
         <BrandLogo
           accessibilityLabel="MindPROS company logo"
-          size="header"
+          size="xl"
           variant="wordmark"
         />
-        <View className="mt-4">
-          <ProsCardTitle size="md" />
+        <View className="-mt-1">
+          <ProsCardTitle accent={false} size="lg" tone="initials" />
         </View>
-        <Text className="mt-4 text-center text-[22px] font-bold text-[#1c1c1c] dark:text-white">
+        <Text className="mt-3 text-center text-[22px] font-bold text-[#1c1c1c] dark:text-white">
           Sign up to create your card
         </Text>
         <Text className="mt-1.5 text-center text-[14px] text-[#737373] dark:text-slate-400">

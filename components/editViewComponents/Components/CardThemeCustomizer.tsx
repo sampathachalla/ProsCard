@@ -1,14 +1,25 @@
-import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+  useWindowDimensions,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Check, ChevronLeft, Palette, Plus, Type as TypeIcon } from 'lucide-react-native';
 import {
   CARD_THEME_PRESETS,
   type CardFontStyle,
+  type CardTemplateId,
   type CardThemePresetId,
   type CardVisualTheme,
   type SavedSectionTheme,
   type ThemePaletteTier,
+  getTemplatePaletteTier,
 } from '@/components/cardsComponents/types/card.types';
 import { getCardFontFamily, MULTI_TIER_PRESETS, type MultiTierPreset } from '@/components/cardsComponents/Templates/cardTheme';
 import { Text } from '@/components/uiComponents/Text';
@@ -130,7 +141,98 @@ function CreateStyleTile({
   );
 }
 
+/** 2x2 grid of 4 items per page; swipe sideways for the rest, with dot pagination like the layout picker. */
+function ThemeGroupCarousel({
+  editorPaneWidth,
+  gridGap,
+  groupKey,
+  items,
+  renderItem,
+}: {
+  editorPaneWidth: number;
+  gridGap: number;
+  groupKey: string;
+  items: ThemeListItem[];
+  renderItem: (item: ThemeListItem, cardWidth: number) => ReactNode;
+}) {
+  const pages = useMemo(() => {
+    const chunked: ThemeListItem[][] = [];
+    for (let i = 0; i < items.length; i += 4) {
+      chunked.push(items.slice(i, i + 4));
+    }
+    return chunked;
+  }, [items]);
+
+  const [currentPage, setCurrentPage] = useState(0);
+  const scrollRef = useRef<ScrollView>(null);
+  const itemWidth = (editorPaneWidth - gridGap) / 2;
+
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const offsetX = event.nativeEvent.contentOffset.x;
+    const nextIdx = Math.round(offsetX / editorPaneWidth);
+    if (nextIdx !== currentPage && nextIdx >= 0 && nextIdx < pages.length) {
+      setCurrentPage(nextIdx);
+    }
+  };
+
+  const scrollToPage = (pageIndex: number) => {
+    setCurrentPage(pageIndex);
+    scrollRef.current?.scrollTo({ x: pageIndex * editorPaneWidth, animated: true });
+  };
+
+  const itemKey = (item: ThemeListItem) =>
+    item.kind === 'saved' ? item.saved.id : item.kind === 'create' ? 'create' : item.preset.id;
+
+  return (
+    <View>
+      <ScrollView
+        ref={scrollRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        decelerationRate="fast"
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        style={{ width: editorPaneWidth }}
+      >
+        {pages.map((page, pageIndex) => (
+          <View
+            key={`${groupKey}-theme-page-${pageIndex}`}
+            className="flex-row flex-wrap"
+            style={{ gap: gridGap, width: editorPaneWidth }}
+          >
+            {page.map((item) => (
+              <View key={itemKey(item)} style={{ width: itemWidth }}>
+                {renderItem(item, itemWidth)}
+              </View>
+            ))}
+          </View>
+        ))}
+      </ScrollView>
+
+      {pages.length > 1 ? (
+        <View className="mt-2 flex-row items-center justify-center gap-1.5">
+          {pages.map((_, idx) => (
+            <Pressable
+              key={idx}
+              onPress={() => scrollToPage(idx)}
+              accessibilityRole="button"
+              accessibilityLabel={`Go to style page ${idx + 1}`}
+              className={`h-1.5 rounded-full ${
+                currentPage === idx
+                  ? 'w-5 bg-primary dark:bg-dark-primary'
+                  : 'w-1.5 bg-slate-300 dark:bg-slate-700'
+              }`}
+            />
+          ))}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 export function CardStylingCustomizer({
+  activeTemplateId,
   backLabel,
   customThemes,
   onBack,
@@ -138,6 +240,7 @@ export function CardStylingCustomizer({
   onSaveCustomTheme,
   theme,
 }: {
+  activeTemplateId?: CardTemplateId;
   backLabel: string;
   customThemes: SavedSectionTheme[];
   onBack: () => void;
@@ -153,23 +256,23 @@ export function CardStylingCustomizer({
   const [customEditorOpen, setCustomEditorOpen] = useState(false);
   const [draftThemeName, setDraftThemeName] = useState('');
   const [activeStylingPanel, setActiveStylingPanel] = useState<'theme' | 'font'>('theme');
-  const [selectedTier, setSelectedTier] = useState<'all' | 2 | 3 | 4>('all');
+  const layoutTier = activeTemplateId ? getTemplatePaletteTier(activeTemplateId) : theme.paletteTier || 3;
 
   const themeItems = useMemo<ThemeListItem[]>(() => {
     const list: ThemeListItem[] = [{ kind: 'create' as const }];
     customThemes.forEach((saved) => {
       const tier = saved.paletteTier || 2;
-      if (selectedTier === 'all' || tier === selectedTier) {
+      if (tier === layoutTier) {
         list.push({ kind: 'saved' as const, saved });
       }
     });
     MULTI_TIER_PRESETS.forEach((preset) => {
-      if (selectedTier === 'all' || preset.tier === selectedTier) {
+      if (preset.tier === layoutTier) {
         list.push({ kind: 'tier-preset' as const, preset });
       }
     });
     return list;
-  }, [customThemes, selectedTier]);
+  }, [customThemes, layoutTier]);
 
   const categorizedThemeItems = useMemo(() => {
     const light: ThemeListItem[] = [{ kind: 'create' }];
@@ -191,7 +294,9 @@ export function CardStylingCustomizer({
   const compactThemeGridHeight = themeGroups.reduce(
     (height, group) => {
       const visibleRows = Math.min(2, Math.ceil(group.items.length / 2));
-      return height + 28 + visibleRows * fontCardHeight + Math.max(0, visibleRows - 1) * gridGap;
+      const pageCount = Math.ceil(group.items.length / 4);
+      const dotsRowHeight = pageCount > 1 ? 22 : 0;
+      return height + 28 + visibleRows * fontCardHeight + Math.max(0, visibleRows - 1) * gridGap + dotsRowHeight;
     },
     gridGap,
   );
@@ -361,35 +466,14 @@ export function CardStylingCustomizer({
         <ThemeCreateEditor
           gradient={[theme.gradient[0], theme.gradient[1]]}
           fontStyle={theme.fontStyle}
+          initialTier={layoutTier}
           onPreviewChange={onChange}
           onSave={handleSaveCustomTheme}
           saveDisabled={!draftThemeName.trim()}
         />
       ) : activeStylingPanel === 'theme' ? (
         <>
-          <EditorSectionLabel
-            title="Section styling"
-            subtitle="Themes are grouped by tier & brightness so every layout uses readable contrast."
-          />
-          <View className="mb-3 flex-row gap-1.5 rounded-xl border border-slate-200 bg-card p-1 dark:border-slate-700 dark:bg-dark-card">
-            {(['all', 2, 3, 4] as const).map((tier) => {
-              const active = selectedTier === tier;
-              const label = tier === 'all' ? 'All' : `${tier} Colors`;
-              return (
-                <Pressable
-                  key={tier}
-                  onPress={() => setSelectedTier(tier)}
-                  className={`flex-1 items-center justify-center rounded-lg py-1.5 ${
-                    active ? 'bg-primary' : 'active:opacity-70'
-                  }`}
-                >
-                  <Text className={`text-xs font-bold ${active ? 'text-white' : 'text-textSecondary dark:text-dark-textSecondary'}`}>
-                    {label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+          <EditorSectionLabel title="Section styling" />
           <EditorPresentationCrossfade
             compactHeight={compactThemeGridHeight}
             expandedHeight={gridHeight}
@@ -400,30 +484,13 @@ export function CardStylingCustomizer({
                     <Text className="mb-2 text-xs font-bold uppercase tracking-wider text-textSecondary dark:text-dark-textSecondary">
                       {group.title}
                     </Text>
-                    <ScrollView
-                      horizontal
-                      pagingEnabled
-                      showsHorizontalScrollIndicator={false}
-                      decelerationRate="fast"
-                      style={{ width: editorPaneWidth }}
-                    >
-                      {Array.from({ length: Math.ceil(group.items.length / 4) }, (_, pageIndex) => (
-                        <View
-                          key={`${group.key}-theme-page-${pageIndex}`}
-                          className="flex-row flex-wrap"
-                          style={{ gap: gridGap, width: editorPaneWidth }}
-                        >
-                          {group.items.slice(pageIndex * 4, pageIndex * 4 + 4).map((item) => {
-                            const key = item.kind === 'saved' ? item.saved.id : item.kind === 'create' ? 'create' : item.preset.id;
-                            return (
-                              <View key={key} style={{ width: (editorPaneWidth - gridGap) / 2 }}>
-                                {renderThemeItem(item, (editorPaneWidth - gridGap) / 2, fontCardHeight)}
-                              </View>
-                            );
-                          })}
-                        </View>
-                      ))}
-                    </ScrollView>
+                    <ThemeGroupCarousel
+                      editorPaneWidth={editorPaneWidth}
+                      gridGap={gridGap}
+                      groupKey={group.key}
+                      items={group.items}
+                      renderItem={(item, cardWidth) => renderThemeItem(item, cardWidth, fontCardHeight)}
+                    />
                   </View>
                 ))}
               </View>

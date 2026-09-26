@@ -1,8 +1,9 @@
-import type {
-  CardFontStyle,
-  CardTemplateId,
-  CardVisualTheme,
-  ResolvedLayoutSlots,
+import {
+  type CardFontStyle,
+  type CardTemplateId,
+  type CardVisualTheme,
+  type ResolvedLayoutSlots,
+  getTemplatePaletteTier,
 } from '@/components/cardsComponents/types/card.types';
 
 type SavedSectionThemeMeta = {
@@ -178,6 +179,47 @@ export function isColorLight(hex: string): boolean {
 }
 
 /**
+ * Accurately determines if a color string (rgba, rgb, hex, or named) is visually light or dark.
+ */
+export function isRgbaOrHexLight(color: string): boolean {
+  if (!color) return true;
+  const clean = color.trim();
+  const rgbMatch = clean.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+  if (rgbMatch) {
+    const r = parseInt(rgbMatch[1], 10);
+    const g = parseInt(rgbMatch[2], 10);
+    const b = parseInt(rgbMatch[3], 10);
+    const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+    return luminance >= 0.45;
+  }
+  if (clean.startsWith('#')) {
+    return isColorLight(clean);
+  }
+  return true;
+}
+
+/**
+ * Returns pure high-contrast primary text color (#ffffff for dark backgrounds, #0f172a for light backgrounds)
+ */
+export function getContrastTextColor(bgHex: string): string {
+  return isColorLight(bgHex) ? '#0f172a' : '#ffffff';
+}
+
+/**
+ * Returns high-contrast secondary text color (#cbd5e1 for dark backgrounds, #334155 for light backgrounds)
+ */
+export function getContrastSecondaryColor(bgHex: string): string {
+  return isColorLight(bgHex) ? '#334155' : '#cbd5e1';
+}
+
+/**
+ * Returns high-contrast muted text color (#94a3b8 for dark backgrounds, #64748b for light backgrounds)
+ */
+export function getContrastMutedColor(bgHex: string): string {
+  return isColorLight(bgHex) ? '#64748b' : '#94a3b8';
+}
+
+/**
  * Resolves color slots for any section layout template given a theme (2, 3, or 4 colors).
  * Auto-derives missing slots gracefully and computes contrast-safe text and logo backdrops.
  */
@@ -188,11 +230,18 @@ export function resolveLayoutColorSlots({
   templateId: CardTemplateId;
   theme: CardVisualTheme;
 }): ResolvedLayoutSlots {
-  const palette = theme.paletteColors && theme.paletteColors.length >= 2
-    ? theme.paletteColors
-    : [theme.backgroundColor, theme.surfaceColor, theme.accentColor, theme.gradient[1]];
+  // The active layout's own tier is authoritative: `theme.paletteTier` can be
+  // stale after switching to a layout with a different color-tier requirement
+  // without also picking a new color theme.
+  const tier = getTemplatePaletteTier(templateId);
 
-  const tier = (theme.paletteTier || (palette.length as 2 | 3 | 4)) || 3;
+  const palette = theme.paletteColors && theme.paletteColors.length >= tier
+    ? theme.paletteColors
+    : tier === 2
+      ? [theme.backgroundColor, theme.accentColor]
+      : tier === 3
+        ? [theme.backgroundColor, theme.surfaceColor, theme.accentColor]
+        : [theme.backgroundColor, theme.surfaceColor, theme.accentColor, theme.gradient[1] || theme.accentColor];
 
   let baseColor: string;
   let surfaceColor: string;
@@ -227,28 +276,214 @@ export function resolveLayoutColorSlots({
     : relativeLuminance(baseColor);
   const isDark = effectiveBgLuminance < 0.45;
 
-  const textPrimary = isDark ? '#f8fafc' : '#0f172a';
-  const textSecondary = isDark ? '#cbd5e1' : '#334155';
-  const textMuted = isDark ? '#94a3b8' : '#64748b';
+  const isSurfaceLight = isColorLight(surfaceColor);
+  const isBaseLight = isColorLight(baseColor);
+  const isGradientLight = (relativeLuminance(theme.gradient[0]) + relativeLuminance(theme.gradient[1])) / 2 >= 0.45;
+  const isAccentLight = isColorLight(accentColor);
+
+  // Surface-specific contrast text
+  const surfaceTextPrimary = isSurfaceLight ? '#0f172a' : '#f8fafc';
+  const surfaceTextSecondary = isSurfaceLight ? '#334155' : '#cbd5e1';
+  const surfaceTextMuted = isSurfaceLight ? '#64748b' : '#94a3b8';
+
+  // Base background-specific contrast text
+  const bgTextPrimary = isBaseLight ? '#0f172a' : '#f8fafc';
+  const bgTextSecondary = isBaseLight ? '#334155' : '#cbd5e1';
+  const bgTextMuted = isBaseLight ? '#64748b' : '#94a3b8';
+
+  // Accent & Gradient contrast text
+  const accentText = isAccentLight ? '#0f172a' : '#ffffff';
+  const gradientText = isGradientLight ? '#0f172a' : '#ffffff';
+
+  // Default textPrimary / textSecondary matches the main container (surface for standard layouts, gradient for bold)
+  const isPrimaryDark = isBold ? !isGradientLight : !isSurfaceLight;
+  const textPrimary = isPrimaryDark ? '#f8fafc' : '#0f172a';
+  const textSecondary = isPrimaryDark ? '#cbd5e1' : '#334155';
+  const textMuted = isPrimaryDark ? '#94a3b8' : '#64748b';
 
   // Logo backdrop ensures dark or light logos are never swallowed by the background
-  const isSurfaceLight = isColorLight(surfaceColor);
   const logoBackdrop = isSurfaceLight ? 'rgba(15, 23, 42, 0.88)' : 'rgba(255, 255, 255, 0.94)';
   const logoBorder = isSurfaceLight ? 'rgba(255, 255, 255, 0.18)' : 'rgba(15, 23, 42, 0.12)';
   const borderColor = isDark ? mixHexColors(accentColor, '#ffffff', 0.15) : mixHexColors(accentColor, '#020617', 0.12);
 
   return {
     accent: accentColor,
+    accentText,
     background: isBold ? theme.gradient[0] : baseColor,
+    bgTextMuted,
+    bgTextPrimary,
+    bgTextSecondary,
     borderColor,
+    gradientText,
     highlight: highlightColor,
     isDark,
     logoBackdrop,
     logoBorder,
     surface: surfaceColor,
+    surfaceTextMuted,
+    surfaceTextPrimary,
+    surfaceTextSecondary,
     textMuted,
     textPrimary,
     textSecondary,
+  };
+}
+
+export type LogoPlacementContext =
+  | 'on-cover'
+  | 'on-surface'
+  | 'glass'
+  | 'neon'
+  | 'banner'
+  | 'badge'
+  | 'floating';
+
+export type ResolvedLogoBoxStyle = {
+  backgroundColor: string;
+  borderColor: string;
+  borderWidth: number;
+  borderRadius: number;
+  shadowColor: string;
+  shadowOffset: { width: number; height: number };
+  shadowOpacity: number;
+  shadowRadius: number;
+  elevation: number;
+};
+
+/**
+ * Engine-driven styling for company logo containers. Computes dynamic background, border,
+ * glass/frosted contrast, and glow/shadow based on the selected theme, color slots, and layout context.
+ */
+export function resolveLogoBoxStyle({
+  compact = false,
+  placement,
+  slots,
+  templateId,
+  theme,
+}: {
+  compact?: boolean;
+  placement?: LogoPlacementContext;
+  slots?: ResolvedLayoutSlots;
+  templateId?: CardTemplateId;
+  theme?: CardVisualTheme;
+}): ResolvedLogoBoxStyle {
+  const effectiveSlots = slots ?? (theme && templateId ? resolveLayoutColorSlots({ templateId, theme }) : undefined);
+  const accent = effectiveSlots?.accent ?? theme?.accentColor ?? '#2563eb';
+  const surface = effectiveSlots?.surface ?? theme?.surfaceColor ?? '#ffffff';
+  const background = effectiveSlots?.background ?? theme?.backgroundColor ?? '#eff6ff';
+  const isDark = effectiveSlots?.isDark ?? (theme ? getCardThemeColorMode(theme) === 'dark' : false);
+  const isSurfaceLight = isColorLight(surface);
+
+  let effectivePlacement = placement;
+  if (!effectivePlacement && templateId) {
+    switch (templateId) {
+      case 'bold':
+      case 'spotlight':
+        effectivePlacement = 'on-cover';
+        break;
+      case 'glass':
+        effectivePlacement = 'glass';
+        break;
+      case 'neon':
+        effectivePlacement = 'neon';
+        break;
+      case 'banner':
+        effectivePlacement = 'banner';
+        break;
+      case 'badge':
+        effectivePlacement = 'badge';
+        break;
+      case 'cards':
+        effectivePlacement = 'floating';
+        break;
+      default:
+        effectivePlacement = 'on-surface';
+    }
+  }
+
+  const radius = compact ? 12 : 16;
+
+  if (effectivePlacement === 'neon') {
+    return {
+      backgroundColor: 'rgba(9, 13, 22, 0.94)',
+      borderColor: accent,
+      borderWidth: 1.5,
+      borderRadius: compact ? 8 : 12,
+      shadowColor: accent,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.55,
+      shadowRadius: 8,
+      elevation: 4,
+    };
+  }
+
+  if (effectivePlacement === 'glass') {
+    return {
+      backgroundColor: 'rgba(15, 23, 42, 0.85)',
+      borderColor: 'rgba(255, 255, 255, 0.24)',
+      borderWidth: 1,
+      borderRadius: radius,
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.22,
+      shadowRadius: 6,
+      elevation: 3,
+    };
+  }
+
+  if (effectivePlacement === 'banner') {
+    return {
+      backgroundColor: 'rgba(15, 23, 42, 0.88)',
+      borderColor: 'rgba(255, 255, 255, 0.25)',
+      borderWidth: 1,
+      borderRadius: radius,
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+      elevation: 3,
+    };
+  }
+
+  if (effectivePlacement === 'on-cover') {
+    return {
+      backgroundColor: 'rgba(15, 23, 42, 0.86)',
+      borderColor: 'rgba(255, 255, 255, 0.22)',
+      borderWidth: 1,
+      borderRadius: radius,
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.32,
+      shadowRadius: 6,
+      elevation: 3,
+    };
+  }
+
+  if (effectivePlacement === 'badge') {
+    return {
+      backgroundColor: 'rgba(15, 23, 42, 0.88)',
+      borderColor: isSurfaceLight ? 'rgba(15, 23, 42, 0.22)' : 'rgba(255, 255, 255, 0.18)',
+      borderWidth: 1,
+      borderRadius: radius,
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 5,
+      elevation: 3,
+    };
+  }
+
+  // Standard 'on-surface' or 'floating': dark high-contrast container with outline matching surrounding surface
+  return {
+    backgroundColor: 'rgba(15, 23, 42, 0.88)',
+    borderColor: isSurfaceLight ? 'rgba(15, 23, 42, 0.18)' : 'rgba(255, 255, 255, 0.16)',
+    borderWidth: 1,
+    borderRadius: radius,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    elevation: 3,
   };
 }
 

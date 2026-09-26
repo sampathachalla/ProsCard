@@ -390,11 +390,23 @@ export async function runStepperStressTests(
               firstName: 'Ada',
               lastName: 'Lovelace',
               fullName: 'Ada Lovelace',
+              title: 'Engineer',
+              organization: 'Analytical Engines',
             });
             getHook().nextStep();
           });
+          await advanceToGroup(getHook, 'credentials');
 
-          const beforeSkip = getHook().flowIndex;
+          await act(async () => {
+            getHook().skipStep();
+          });
+          const item0 = getHook().currentItem;
+          assertEqual(
+            item0.kind === 'group' ? item0.groupId : null,
+            'tagline',
+            'skip credentials must land on tagline group'
+          );
+
           await act(async () => {
             getHook().skipStep();
           });
@@ -402,8 +414,8 @@ export async function runStepperStressTests(
           assertEqual(item1.kind, 'group', 'skip must land on next group card');
           assertEqual(
             item1.kind === 'group' ? item1.groupId : null,
-            'role_company',
-            'skip must land on role_company group'
+            'contact_email',
+            'skip tagline must land on contact_email group'
           );
         } finally {
           await unmount();

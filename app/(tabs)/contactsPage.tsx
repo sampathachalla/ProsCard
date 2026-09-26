@@ -1,5 +1,6 @@
 // app/(tabs)/contactsPage.tsx
 import { View, Text, TextInput, FlatList } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Search, Users } from 'lucide-react-native';
 import { PageHeader } from '@/components/uiComponents/PageHeader';
 import { ContactRow } from '../../components/contactsComponents/Components/ContactRow';
@@ -7,6 +8,7 @@ import { useContacts } from '../../components/contactsComponents/Hooks/useContac
 
 export default function ContactsScreen() {
   const { query, setQuery, contacts, filtered } = useContacts();
+  const insets = useSafeAreaInsets();
 
   return (
     <View className="flex-1 bg-background dark:bg-dark-background">
@@ -28,7 +30,10 @@ export default function ContactsScreen() {
         data={filtered}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <ContactRow contact={item} />}
-        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 32 }}
+        contentContainerStyle={{
+          paddingHorizontal: 24,
+          paddingBottom: Math.max(insets.bottom, 20) + 16,
+        }}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View className="items-center justify-center mt-16">

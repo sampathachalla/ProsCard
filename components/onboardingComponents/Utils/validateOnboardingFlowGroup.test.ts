@@ -13,7 +13,7 @@ export function runValidateOnboardingFlowGroupTests(): { passed: number; failed:
 
   const cases: [string, () => void][] = [
     [
-      'validateFlowGroup name_legal requires first and last name',
+      'validateFlowGroup name_legal requires first and last name only',
       () => {
         const errors = validateFlowGroup('name_legal', {
           ...INITIAL_ONBOARDING_DRAFT,

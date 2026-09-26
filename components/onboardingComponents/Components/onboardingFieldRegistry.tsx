@@ -242,7 +242,7 @@ export function renderOnboardingField(
   }
 
   const value = String(draft[spec.key] ?? '');
-  const icon = FIELD_ICONS[spec.key];
+  const icon = spec.hideIcon ? undefined : FIELD_ICONS[spec.key];
   const nameKeys = new Set(['prefix', 'firstName', 'middleName', 'lastName', 'suffix']);
 
   const onChangeText = (text: string) => {
@@ -256,6 +256,26 @@ export function renderOnboardingField(
     }
     updateDraft({ [spec.key]: text } as Partial<OnboardingDraft>);
   };
+
+  if (spec.key === 'tagline') {
+    return (
+      <OnboardingFormField
+        key={spec.key}
+        label={spec.label}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={spec.placeholder}
+        error={errors[spec.key]}
+        icon={icon}
+        required={spec.required}
+        hint={spec.hint}
+        maxLength={spec.maxLength}
+        multiline
+        numberOfLines={2}
+        autoCapitalize={spec.autoCapitalize ?? 'sentences'}
+      />
+    );
+  }
 
   if (spec.key === 'shortBio') {
     return (

@@ -1,6 +1,7 @@
 // app/(tabs)/profilePage.tsx
 import { View, Text, TouchableOpacity, ScrollView, Switch, Alert, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import { Colors } from '@/constants/Colors';
 import { useThemeContext } from '../../context/ThemeContext';
@@ -19,6 +20,7 @@ const SUPPORT_EMAIL = 'support@proscard.app';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { theme, toggleTheme } = useThemeContext();
   const { logout } = useProfile();
   const { profile } = useProfileSnapshot();
@@ -72,7 +74,11 @@ export default function ProfileScreen() {
       <PageHeader title="Profile" subtitle="Your info, contact, and app preferences" />
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 12, paddingBottom: 32 }}
+        contentContainerStyle={{
+          paddingHorizontal: 24,
+          paddingTop: 12,
+          paddingBottom: Math.max(insets.bottom, 24) + 24,
+        }}
         showsVerticalScrollIndicator={false}
       >
       <SettingsRow icon={User} label="Account" onPress={() => router.push('/(tabs)/accountPage')} />

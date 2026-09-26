@@ -241,7 +241,7 @@ export default function EditViewPage() {
     <ScrollView
       ref={cardScrollRef}
       contentContainerStyle={{
-        paddingTop: 12,
+        paddingTop: headerHeight > 0 ? headerHeight + 12 : safeAreaInsets.top + 68,
         paddingBottom: isEditing
           ? Math.max(120, windowHeight * 0.62)
           : 78 + Math.max(safeAreaInsets.bottom, 10),

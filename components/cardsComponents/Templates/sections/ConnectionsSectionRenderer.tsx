@@ -183,12 +183,16 @@ export function ConnectionsSectionRenderer({
                 disabled={!resolveActionUrl(field)}
                 onPress={() => handlePress(field)}
                 className="flex-row items-center border px-3 py-2.5 active:opacity-70"
-                style={{ borderColor: slots.borderColor, borderRadius: 8 }}
+                style={{
+                  backgroundColor: slots.isDark ? 'rgba(15, 23, 42, 0.45)' : 'rgba(255, 255, 255, 0.25)',
+                  borderColor: slots.isDark ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.12)',
+                  borderRadius: 10,
+                }}
               >
                 <View className="mr-3 h-9 w-9 items-center justify-center" style={{ backgroundColor: slots.surface, borderRadius: 8 }}>
                   <ConnectionIcon color={slots.accent} field={field} size={18} />
                 </View>
-                {renderCopy(presentation, slots.textPrimary)}
+                {renderCopy(presentation, slots.gradientText)}
               </Pressable>
             );
           })}

@@ -4,6 +4,7 @@ import {
   Text,
   TextInput,
   Pressable,
+  Platform,
   type KeyboardTypeOptions,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
@@ -72,78 +73,84 @@ export function OnboardingFormField({
 
   const iconColor = getIconColor();
 
+  const isMinimal = label.trim().length === 0;
+
   return (
-    <View className="mb-4 w-full">
-      {/* Label and Character count row */}
-      <View className="flex-row items-center justify-between mb-1.5 px-0.5">
-        <Text className="text-xs font-semibold uppercase tracking-wider text-textMuted dark:text-dark-textMuted">
-          {label}
-          {required && <Text className="text-error dark:text-dark-error font-bold"> *</Text>}
-        </Text>
-        {maxLength && (
-          <Text className="text-[11px] font-medium text-textMuted dark:text-dark-textMuted">
-            {value?.length || 0}/{maxLength}
+    <View className={`w-full ${isMinimal ? 'mb-7' : 'mb-4'}`}>
+      {label.trim().length > 0 ? (
+        <View className="mb-1.5 px-0.5">
+          <Text className="text-xs font-semibold uppercase tracking-wider text-textMuted dark:text-dark-textMuted">
+            {label}
+            {required && <Text className="text-error dark:text-dark-error font-bold"> *</Text>}
           </Text>
-        )}
-      </View>
+        </View>
+      ) : null}
 
-      {/* Input container */}
-      <View
-        className={`flex-row items-center rounded-2xl px-3.5 bg-slate-50 dark:bg-slate-900/70 border transition-all ${
-          hasError
-            ? 'border-error dark:border-dark-error bg-red-50/20 dark:bg-red-950/20'
-            : isFocused
-            ? 'border-primary dark:border-dark-primary shadow-sm shadow-blue-500/10'
-            : 'border-slate-200 dark:border-slate-800'
-        } ${multiline ? 'items-start py-3' : 'py-1'}`}
-        style={multiline ? { minHeight: 104 } : { minHeight: 52 }}
-      >
-        {/* Leading icon */}
-        {Icon && (
-          <View className={`mr-2.5 ${multiline ? 'mt-1' : ''}`}>
-            <Icon size={20} color={iconColor} strokeWidth={2} />
-          </View>
-        )}
+      <View className="pb-2">
+        <View
+          className={`flex-row items-center ${multiline ? 'items-start pt-1' : ''}`}
+          style={multiline ? { minHeight: 96 } : { minHeight: 44 }}
+        >
+          {Icon ? (
+            <View className={`mr-2.5 ${multiline ? 'mt-1' : ''}`}>
+              <Icon size={20} color={iconColor} strokeWidth={2} />
+            </View>
+          ) : null}
 
-        {/* Text Input */}
-        <TextInput
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder || label}
-          placeholderTextColor={theme === 'dark' ? '#64748b' : '#94a3b8'}
-          keyboardType={keyboardType}
-          autoCapitalize={autoCapitalize}
-          autoCorrect={autoCorrect}
-          secureTextEntry={secureTextEntry}
-          editable={editable}
-          multiline={multiline}
-          numberOfLines={numberOfLines}
-          maxLength={maxLength}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          textAlignVertical={multiline ? 'top' : 'center'}
-          accessibilityLabel={label}
-          accessibilityHint={hint || placeholder}
-          className="flex-1 text-base font-normal text-textPrimary dark:text-dark-textPrimary py-2"
-          style={multiline ? { minHeight: 80 } : undefined}
+          <TextInput
+            value={value}
+            onChangeText={onChangeText}
+            placeholder={placeholder || label}
+            placeholderTextColor={theme === 'dark' ? '#64748b' : '#94a3b8'}
+            keyboardType={keyboardType}
+            autoCapitalize={autoCapitalize}
+            autoCorrect={autoCorrect}
+            secureTextEntry={secureTextEntry}
+            editable={editable}
+            multiline={multiline}
+            numberOfLines={numberOfLines}
+            maxLength={maxLength}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            textAlignVertical={multiline ? 'top' : 'center'}
+            accessibilityLabel={label}
+            accessibilityHint={hint || placeholder}
+            underlineColorAndroid="transparent"
+            className={`flex-1 border-0 bg-transparent font-normal text-textPrimary dark:text-dark-textPrimary py-1.5 outline-none ${
+              isMinimal ? 'text-lg' : 'text-base'
+            }`}
+            style={[
+              multiline ? { minHeight: 72 } : null,
+              Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null,
+            ]}
+          />
+
+          {showClear ? (
+            <Pressable
+              onPress={handleClear}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={`Clear ${label}`}
+              className="ml-1 p-1 active:opacity-70"
+            >
+              <X
+                size={16}
+                color={theme === 'dark' ? '#94a3b8' : '#64748b'}
+                strokeWidth={2.5}
+              />
+            </Pressable>
+          ) : null}
+        </View>
+
+        <View
+          className={`mt-1 h-[2px] w-full rounded-full ${
+            hasError
+              ? 'bg-error dark:bg-dark-error'
+              : isFocused
+              ? 'bg-primary dark:bg-dark-primary'
+              : 'bg-slate-300 dark:bg-slate-600'
+          }`}
         />
-
-        {/* Clear Button */}
-        {showClear && (
-          <Pressable
-            onPress={handleClear}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel={`Clear ${label}`}
-            className="p-1.5 rounded-full bg-slate-200/80 dark:bg-slate-800/80 ml-1 active:opacity-70"
-          >
-            <X
-              size={14}
-              color={theme === 'dark' ? '#cbd5e1' : '#64748b'}
-              strokeWidth={2.5}
-            />
-          </Pressable>
-        )}
       </View>
 
       {/* Inline Validation Error Message */}

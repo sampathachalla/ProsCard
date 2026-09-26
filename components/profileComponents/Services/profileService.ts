@@ -65,6 +65,19 @@ export async function getProfile(): Promise<Profile> {
   };
 }
 
+type ProfileListener = (profile: Profile) => void;
+const listeners = new Set<ProfileListener>();
+
+export function subscribeProfile(listener: ProfileListener): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
 export function saveProfile(profile: Profile): Promise<Profile> {
-  return AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile)).then(() => profile);
+  return AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile)).then(() => {
+    listeners.forEach((listener) => listener(profile));
+    return profile;
+  });
 }

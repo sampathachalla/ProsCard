@@ -22,9 +22,16 @@ import {
   type LucideIcon,
 } from 'lucide-react-native';
 import { Text } from '@/components/uiComponents/Text';
+import mindProsLogoDark from '@/assets/mindpros-logo-dark.png';
+import mindProsLogoLight from '@/assets/mindpros-logo-light.png';
 import type { CardDetailField } from '../cardDetailTemplate';
-import type { CardVisualTheme } from '../../types/card.types';
+import type { CardTemplateId, CardVisualTheme, ResolvedLayoutSlots } from '../../types/card.types';
 import { getCardFontFamily, getCardLetterSpacing } from '../cardTheme';
+import {
+  type LogoPlacementContext,
+  isRgbaOrHexLight,
+  resolveLogoBoxStyle,
+} from '@/utils/cardThemeColor';
 
 export function resolveActionUrl(field: CardDetailField): string | null {
   if (!field.value || !field.value.trim()) return null;
@@ -112,44 +119,74 @@ export function IdentityImage({
 }
 
 export function UniversalLogoBadge({
+  backdropColor,
+  borderColor,
+  cardTheme,
   compact = false,
   field,
+  placement,
+  slots,
   style,
+  templateId,
 }: {
   backdropColor?: string;
   borderColor?: string;
+  cardTheme?: CardVisualTheme;
   compact?: boolean;
   field?: CardDetailField;
+  placement?: LogoPlacementContext;
+  slots?: ResolvedLayoutSlots;
   style?: object;
+  templateId?: CardTemplateId;
 }) {
-  if (!field?.value) return null;
   const logoWidth = compact ? 80 : 128;
   const logoHeight = compact ? 30 : 48;
+
+  const engineStyle = resolveLogoBoxStyle({
+    compact,
+    placement,
+    slots,
+    templateId,
+    theme: cardTheme,
+  });
+
+  const effectiveBg = backdropColor || engineStyle.backgroundColor;
+  const isBackdropLight = isRgbaOrHexLight(effectiveBg);
+
+  const defaultBrandLogo = isBackdropLight ? mindProsLogoLight : mindProsLogoDark;
+
+  const resolvedSource =
+    field?.value && typeof field.value === 'string' && field.value.startsWith('http')
+      ? { uri: field.value }
+      : field?.value && typeof field.value === 'string' && field.value.length > 0
+        ? { uri: field.value }
+        : defaultBrandLogo;
 
   return (
     <View
       style={[
         {
           alignItems: 'center',
-          backgroundColor: 'rgba(15, 23, 42, 0.82)',
-          borderColor: 'rgba(255, 255, 255, 0.14)',
-          borderRadius: compact ? 12 : 16,
-          borderWidth: 1,
+          backgroundColor: effectiveBg,
+          borderColor: borderColor || engineStyle.borderColor,
+          borderRadius: engineStyle.borderRadius,
+          borderWidth: engineStyle.borderWidth,
           height: logoHeight + (compact ? 8 : 12),
           justifyContent: 'center',
           paddingHorizontal: compact ? 8 : 12,
           paddingVertical: compact ? 4 : 6,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.18,
-          shadowRadius: 4,
+          shadowColor: engineStyle.shadowColor,
+          shadowOffset: engineStyle.shadowOffset,
+          shadowOpacity: engineStyle.shadowOpacity,
+          shadowRadius: engineStyle.shadowRadius,
+          elevation: engineStyle.elevation,
           width: logoWidth + (compact ? 14 : 22),
         },
         style,
       ]}
     >
       <Image
-        source={{ uri: field.value }}
+        source={resolvedSource}
         contentFit="contain"
         style={{ width: logoWidth, height: logoHeight }}
       />

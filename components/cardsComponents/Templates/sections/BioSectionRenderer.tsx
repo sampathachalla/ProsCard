@@ -73,17 +73,17 @@ export function BioSectionRenderer({
         className={`items-center justify-center overflow-hidden px-6 py-5 ${boxed ? 'mb-5 rounded-[28px] shadow-lg' : ''}`}
         style={{ height: compact ? '100%' : undefined, minHeight: compact ? undefined : 132 }}
       >
-        <View className="mb-3 h-1 w-12 rounded-full" style={{ backgroundColor: slots.textPrimary }} />
+        <View className="mb-3 h-1 w-12 rounded-full" style={{ backgroundColor: slots.gradientText }} />
         <Text
           {...sharedTextProps}
           className={`leading-relaxed ${compact ? 'text-center text-sm font-extrabold' : 'text-center text-lg font-extrabold'}`}
-          style={{ color: slots.textPrimary, fontFamily, letterSpacing }}
+          style={{ color: slots.gradientText, fontFamily, letterSpacing }}
         >
           {bioText}
         </Text>
-        <View className="mt-3 h-1 w-7 rounded-full" style={{ backgroundColor: slots.accent }} />
+        <View className="mt-3 h-1 w-7 rounded-full" style={{ backgroundColor: slots.highlight }} />
         <View className="absolute left-3 top-2 opacity-20">
-          <Quote color={slots.textPrimary} size={compact ? 34 : 48} strokeWidth={1.4} />
+          <Quote color={slots.gradientText} size={compact ? 34 : 48} strokeWidth={1.4} />
         </View>
       </LinearGradient>
     );

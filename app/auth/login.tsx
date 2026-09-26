@@ -32,14 +32,14 @@ export default function LoginScreen() {
         />
       }
     >
-      <Animated.View entering={FadeIn.duration(400)} className="mb-8 items-center">
+      <Animated.View entering={FadeIn.duration(400)} className="mb-6 items-center">
         <BrandLogo
           accessibilityLabel="MindPROS company logo"
-          size="header"
+          size="xl"
           variant="wordmark"
         />
-        <View className="mt-4">
-          <ProsCardTitle size="md" />
+        <View className="-mt-1">
+          <ProsCardTitle accent={false} size="lg" tone="initials" />
         </View>
       </Animated.View>
 

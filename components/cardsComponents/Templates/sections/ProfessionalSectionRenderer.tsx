@@ -183,6 +183,7 @@ export function ProfessionalSectionRenderer({
 
   // Bold layout: centered networking-card statement over gradient
   if (section.templateId === 'bold') {
+    const boldSlots = { ...slots, textPrimary: slots.gradientText, textSecondary: slots.isDark ? '#e2e8f0' : '#334155' };
     return (
       <LinearGradient
         colors={gradient}
@@ -190,13 +191,13 @@ export function ProfessionalSectionRenderer({
         style={{ height: compact ? '100%' : undefined }}
       >
         <View className="w-full items-center">
-          <ProfessionalName {...shared} align="center" name={professionalName} accreditations={accreditations} />
+          <ProfessionalName {...shared} slots={boldSlots} align="center" name={professionalName} accreditations={accreditations} />
           <View className={compact ? 'mt-2' : 'mt-4'}>
-            <ProfessionalRole {...shared} align="center" title={title} company={company} />
+            <ProfessionalRole {...shared} slots={boldSlots} align="center" title={title} company={company} />
           </View>
           {tagline ? (
             <View className={`w-full ${compact ? 'mt-2' : 'mt-4'}`}>
-              <ProfessionalTagline {...shared} tagline={tagline} />
+              <ProfessionalTagline {...shared} slots={boldSlots} tagline={tagline} />
             </View>
           ) : null}
         </View>

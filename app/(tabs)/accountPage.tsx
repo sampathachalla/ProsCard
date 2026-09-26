@@ -1,6 +1,7 @@
 // app/(tabs)/accountPage.tsx
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PageHeader } from '@/components/uiComponents/PageHeader';
 import { ProfileHero } from '@/components/profileComponents/Components/ProfileHero';
 import { ProfileForm } from '@/components/profileComponents/Components/ProfileForm';
@@ -8,6 +9,7 @@ import { useProfileEditor } from '@/components/profileComponents/Hooks/useProfil
 
 export default function AccountScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { draft, isSaving, updateField, updateSocial, submit } = useProfileEditor();
 
   const goToProfile = () => {
@@ -24,7 +26,11 @@ export default function AccountScreen() {
       <PageHeader title="Profile" subtitle="Update your details below" onBackPress={goToProfile} />
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 12, paddingBottom: 32 }}
+        contentContainerStyle={{
+          paddingHorizontal: 24,
+          paddingTop: 12,
+          paddingBottom: Math.max(insets.bottom, 24) + 24,
+        }}
         showsVerticalScrollIndicator={false}
       >
         <ProfileHero profile={draft} isEditing onEditPress={() => {}} />

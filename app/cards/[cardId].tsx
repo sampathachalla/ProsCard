@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { Alert, Linking, Platform, ScrollView, Share, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import type { GenerateMetadataFunction } from 'expo-router/server';
+import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import { CardDetailView } from '@/components/cardsComponents/Components/CardDetailView';
 import { getCardById } from '@/components/cardsComponents/Services/cardsService';
 import { CardTapGesture } from '@/components/gestures';
+import { PageHeader } from '@/components/uiComponents/PageHeader';
 import { Text } from '@/components/uiComponents/Text';
 import { QRCodeModal } from '@/components/uiComponents/QRCodeModal';
 import { useProfileSnapshot } from '@/components/profileComponents/Hooks/useProfileSnapshot';
@@ -41,6 +43,7 @@ export const generateMetadata: GenerateMetadataFunction = async (_request, param
 export default function CardDetailPage() {
   const { cardId } = useLocalSearchParams<{ cardId: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const card = getCardById(cardId);
   const { profile } = useProfileSnapshot();
   const [showQr, setShowQr] = useState(false);
@@ -57,17 +60,20 @@ export default function CardDetailPage() {
 
   if (!card) {
     return (
-      <CardTapGesture
-        containerClassName="flex-1 bg-background dark:bg-dark-background"
-        onDoubleTap={goToHomepage}
-      >
-        <View className="flex-1 items-center justify-center px-8">
-          <Text variant="heading" className="text-center">Card not found</Text>
-          <Text variant="muted" className="mt-2 text-center">
-            This card is no longer available. Double tap to return home.
-          </Text>
-        </View>
-      </CardTapGesture>
+      <SafeAreaView className="flex-1 bg-background dark:bg-dark-background" edges={['top', 'bottom', 'left', 'right']}>
+        <PageHeader title="Card Details" onBackPress={goToHomepage} />
+        <CardTapGesture
+          containerClassName="flex-1"
+          onDoubleTap={goToHomepage}
+        >
+          <View className="flex-1 items-center justify-center px-8">
+            <Text variant="heading" className="text-center">Card not found</Text>
+            <Text variant="muted" className="mt-2 text-center">
+              This card is no longer available. Tap back to return home.
+            </Text>
+          </View>
+        </CardTapGesture>
+      </SafeAreaView>
     );
   }
 
@@ -111,8 +117,17 @@ export default function CardDetailPage() {
       onSwipeDown={() => setShowQr(true)}
       simultaneousWithNative
     >
+      <PageHeader
+        title={card.name}
+        subtitle={card.title}
+        onBackPress={goToHomepage}
+      />
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 32, paddingTop: 12 }}
+        contentContainerStyle={{
+          paddingBottom: Math.max(insets.bottom, 24) + 32,
+          paddingTop: 8,
+          paddingHorizontal: 16,
+        }}
         showsVerticalScrollIndicator={false}
       >
         <CardDetailView card={card} profile={profile} />

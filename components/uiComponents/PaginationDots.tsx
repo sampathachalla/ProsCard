@@ -49,7 +49,7 @@ export function PaginationDots({
   return (
     <View
       accessibilityLabel={`Card carousel with ${count} pages`}
-      pointerEvents="none"
+      style={{ pointerEvents: 'none' }}
       className="flex-row items-center justify-center gap-1.5 py-1"
     >
       {Array.from({ length: count }, (_, index) => (

@@ -11,6 +11,7 @@ import { EditorPresentationCrossfade } from '@/components/uiComponents/editor/Ed
 type ThemeCreateEditorProps = {
   gradient: [string, string];
   fontStyle: CardFontStyle;
+  initialTier?: 2 | 3 | 4;
   onPreviewChange: (theme: CardVisualTheme) => void;
   onSave: () => void;
   saveDisabled?: boolean;
@@ -26,11 +27,12 @@ const COLOR_SLOT_LABELS: string[] = [
 export function ThemeCreateEditor({
   gradient,
   fontStyle,
+  initialTier = 3,
   onPreviewChange,
   onSave,
   saveDisabled = false,
 }: ThemeCreateEditorProps) {
-  const [tier, setTier] = useState<2 | 3 | 4>(3);
+  const [tier, setTier] = useState<2 | 3 | 4>(initialTier);
   const [colors, setColors] = useState<string[]>([
     gradient[0],
     '#ffffff',

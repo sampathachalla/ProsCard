@@ -19,6 +19,25 @@ export type CardThemeId = 'ocean' | 'midnight' | 'violet' | 'sand' | 'sunset' | 
 
 export type ThemePaletteTier = 2 | 3 | 4;
 
+export const TEMPLATE_TIER_MAP: Record<CardTemplateId, ThemePaletteTier> = {
+  minimal: 2,
+  compact: 2,
+  bold: 2,
+  split: 2,
+  classic: 3,
+  spotlight: 3,
+  editorial: 3,
+  glass: 3,
+  banner: 4,
+  cards: 4,
+  badge: 4,
+  neon: 4,
+};
+
+export function getTemplatePaletteTier(templateId: CardTemplateId): ThemePaletteTier {
+  return TEMPLATE_TIER_MAP[templateId] ?? 3;
+}
+
 export type SavedSectionTheme = {
   id: string;
   name: string;
@@ -53,6 +72,14 @@ export type ResolvedLayoutSlots = {
   textPrimary: string;
   textSecondary: string;
   textMuted: string;
+  surfaceTextPrimary: string;
+  surfaceTextSecondary: string;
+  surfaceTextMuted: string;
+  bgTextPrimary: string;
+  bgTextSecondary: string;
+  bgTextMuted: string;
+  accentText: string;
+  gradientText: string;
   logoBackdrop: string;
   logoBorder: string;
   borderColor: string;

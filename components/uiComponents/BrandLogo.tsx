@@ -4,7 +4,7 @@ import mindProsLogoDark from '@/assets/mindpros-logo-dark.png';
 import { useThemeContext } from '@/context/ThemeContext';
 import { Text } from './Text';
 
-type BrandLogoSize = 'sm' | 'md' | 'header' | 'lg' | 'xl';
+type BrandLogoSize = 'sm' | 'md' | 'header' | 'lg' | 'xl' | 'xxl';
 type BrandLogoVariant = 'wordmark' | 'badge';
 
 type BrandLogoProps = {
@@ -24,6 +24,7 @@ const textSizeClasses: Record<BrandLogoSize, string> = {
   header: 'text-3xl',
   lg: 'text-4xl',
   xl: 'text-5xl',
+  xxl: 'text-6xl',
 };
 
 const badgeDimensions: Record<BrandLogoSize, { width: number; height: number; borderRadius: number }> = {
@@ -32,6 +33,7 @@ const badgeDimensions: Record<BrandLogoSize, { width: number; height: number; bo
   header: { width: 152, height: 60, borderRadius: 18 },
   lg: { width: 168, height: 68, borderRadius: 21 },
   xl: { width: 240, height: 96, borderRadius: 24 },
+  xxl: { width: 320, height: 128, borderRadius: 28 },
 };
 
 /** Theme-aware MindPros mark: light asset on light UI, dark asset on dark UI. */

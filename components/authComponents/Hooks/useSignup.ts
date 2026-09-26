@@ -1,6 +1,6 @@
 // components/authComponents/Hooks/useSignup.ts
-import { useCallback, useState } from 'react';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'expo-router';
 import { login } from '../Services/authService';
 import type { AuthFieldErrors } from '../Utils/validateAuth';
 
@@ -12,14 +12,12 @@ export function useSignup() {
   const [errors, setErrors] = useState<AuthFieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      setEmail('');
-      setPassword('');
-      setConfirmPassword('');
-      setErrors({});
-    }, [])
-  );
+  useEffect(() => {
+    setEmail('');
+    setPassword('');
+    setConfirmPassword('');
+    setErrors({});
+  }, []);
 
   const clearFieldError = (field: string) => {
     setErrors((prev) => {

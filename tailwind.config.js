@@ -10,6 +10,10 @@ module.exports = {
 
   theme: {
     extend: {
+      fontSize: {
+        /** Onboarding hero question — 44px / 50px line (overrides default 3rem). */
+        '5xl': ['44px', { lineHeight: '50px' }],
+      },
       colors: {
         // ✅ Light Mode Palette (mirrors constants/Colors.ts `light`)
         background: '#ffffff',

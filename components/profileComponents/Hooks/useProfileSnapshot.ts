@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
-import { useFocusEffect } from 'expo-router';
+import { useEffect, useState } from 'react';
 import type { Profile } from '../types/profile.types';
-import { DEFAULT_PROFILE, getProfile, getStoredUser } from '../Services/profileService';
+import { DEFAULT_PROFILE, getProfile, getStoredUser, subscribeProfile } from '../Services/profileService';
 
 async function loadProfile(): Promise<Profile> {
   const [storedProfile, user] = await Promise.all([getProfile(), getStoredUser()]);
@@ -15,13 +14,11 @@ export function useProfileSnapshot() {
 
   useEffect(() => {
     loadProfile().then(setProfile);
+    const unsubscribe = subscribeProfile((updated) => {
+      setProfile(updated);
+    });
+    return unsubscribe;
   }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      loadProfile().then(setProfile);
-    }, []),
-  );
 
   return { profile };
 }

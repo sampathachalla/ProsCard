@@ -39,6 +39,8 @@ export function OnboardingFlowRenderer({
         <OnboardingAnswerSlide
           title={currentItem.title}
           subtitle={currentItem.subtitle}
+          subtitleLines={currentItem.subtitleLines}
+          highlightWords={currentItem.highlightWords}
           fields={currentItem.fields}
           draft={draft}
           updateDraft={updateDraft}

@@ -39,10 +39,12 @@ export function OnboardingScreen() {
 
   const showTopBar = currentItem.kind !== 'welcome';
 
+  const isWelcome = currentItem.kind === 'welcome';
+
   return (
     <SafeAreaView
       className="flex-1 bg-background dark:bg-dark-background"
-      edges={['top', 'left', 'right']}
+      edges={isWelcome ? ['top'] : ['top', 'left', 'right']}
     >
       {showTopBar ? (
         <View className="flex-row items-center justify-between bg-background px-6 pb-1 pt-2 dark:bg-dark-background">

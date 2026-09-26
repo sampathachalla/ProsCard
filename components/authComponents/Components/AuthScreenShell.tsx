@@ -44,13 +44,13 @@ export function AuthScreenShell({
       />
       {/* Ambient background glows with soft opacity */}
       <View
-        pointerEvents="none"
+        style={{ pointerEvents: 'none' }}
         className={`absolute -right-24 -top-24 h-96 w-96 rounded-full blur-3xl opacity-30 ${
           isDark ? 'bg-sky-500/20' : 'bg-sky-400/25'
         }`}
       />
       <View
-        pointerEvents="none"
+        style={{ pointerEvents: 'none' }}
         className={`absolute -bottom-24 -left-24 h-96 w-96 rounded-full blur-3xl opacity-25 ${
           isDark ? 'bg-indigo-500/20' : 'bg-cyan-300/30'
         }`}

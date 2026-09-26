@@ -14,7 +14,7 @@ export interface AuthWelcomeContentProps {
   footer?: ReactNode;
 }
 
-/** App entry welcome — logo, ProsCard title, feature carousel, auth CTAs. */
+/** App entry welcome — MindPROS mark stacked tightly over ProsCard wordmark. */
 export function AuthWelcomeContent({ onGetStarted, footer }: AuthWelcomeContentProps) {
   const handleGetStarted = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
@@ -23,25 +23,32 @@ export function AuthWelcomeContent({ onGetStarted, footer }: AuthWelcomeContentP
 
   return (
     <View className="flex-1 px-7 pb-7 pt-4">
-      <Animated.View entering={FadeIn.duration(500)} className="shrink-0 items-center pt-6">
-        <BrandLogo accessibilityLabel="MindPROS company logo" size="xl" variant="wordmark" />
-        <View className="mt-5">
-          <ProsCardTitle />
-        </View>
-        <Text className="mt-3 max-w-[280px] text-center text-[15px] leading-6 text-textMuted dark:text-dark-textMuted">
-          Create your digital card in minutes. Edit anytime.
-        </Text>
-      </Animated.View>
+      {/* Branding + carousel share one stack so the gap stays small and visible. */}
+      <View className="min-h-0 w-full flex-1 justify-center">
+        <Animated.View entering={FadeIn.duration(500)} className="shrink-0 items-center">
+          <BrandLogo accessibilityLabel="MindPROS company logo" size="xxl" variant="wordmark" />
+          <View className="-mt-1">
+            <ProsCardTitle accent={false} size="xl" tone="initials" />
+          </View>
+          <Text
+            variant="none"
+            className="mt-4 max-w-[300px] text-center text-[17px] leading-7 text-textMuted dark:text-dark-textMuted"
+          >
+            Create your digital card in minutes. Edit anytime.
+          </Text>
+        </Animated.View>
 
-      <View className="z-10 min-h-[200px] w-full flex-1 justify-center py-2">
-        <Animated.View entering={FadeInDown.delay(100).duration(450)} className="w-full">
+        <Animated.View
+          entering={FadeInDown.delay(100).duration(450)}
+          className="mt-5 w-full shrink-0"
+        >
           <AuthWelcomeFeatureCarousel />
         </Animated.View>
       </View>
 
       <Animated.View
         entering={FadeInDown.delay(200).duration(450)}
-        className="w-full max-w-[360px] shrink-0 self-center"
+        className="w-full shrink-0 self-center pt-4"
       >
         <Button
           label="Get started"

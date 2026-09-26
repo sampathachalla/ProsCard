@@ -1,6 +1,6 @@
 // components/authComponents/Hooks/useLogin.ts
-import { useCallback, useState } from 'react';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'expo-router';
 import { login } from '../Services/authService';
 import type { AuthFieldErrors } from '../Utils/validateAuth';
 
@@ -11,13 +11,11 @@ export function useLogin() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
-  useFocusEffect(
-    useCallback(() => {
-      setEmail('');
-      setPassword('');
-      setErrors({});
-    }, [])
-  );
+  useEffect(() => {
+    setEmail('');
+    setPassword('');
+    setErrors({});
+  }, []);
 
   const updateEmail = (value: string) => {
     setEmail(value);

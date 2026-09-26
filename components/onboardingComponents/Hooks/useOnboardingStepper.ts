@@ -54,7 +54,13 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
     if (currentItem.kind === 'card_style') return 5;
     const groupId = currentItem.kind === 'group' ? currentItem.groupId : null;
     if (!groupId) return 2;
-    if (groupId === 'name_legal' || groupId === 'name_formal' || groupId === 'role_company' || groupId === 'credentials') {
+    if (
+      groupId === 'name_legal' ||
+      groupId === 'name_formal' ||
+      groupId === 'role_company' ||
+      groupId === 'credentials' ||
+      groupId === 'tagline'
+    ) {
       return 2;
     }
     if (groupId === 'contact_email' || groupId === 'contact_phone' || groupId === 'work_extra') {
