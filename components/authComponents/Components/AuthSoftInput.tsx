@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Platform,
   Pressable,
   TextInput,
   View,
@@ -34,7 +35,6 @@ export function AuthSoftInput({
   accessibilityLabel,
 }: AuthSoftInputProps) {
   const { theme } = useThemeContext();
-  const [focused, setFocused] = useState(false);
   const [showSecret, setShowSecret] = useState(false);
   const isSecure = secureTextEntry && !showSecret;
 
@@ -44,11 +44,12 @@ export function AuthSoftInput({
         className={`flex-row items-center rounded-xl border px-3.5 ${
           error
             ? 'border-red-400 bg-red-50/80 dark:border-red-500/50 dark:bg-red-950/30'
-            : focused
-            ? 'border-sky-400 bg-white dark:border-sky-500 dark:bg-slate-900'
             : 'border-black/8 bg-[#fafafa] dark:border-white/10 dark:bg-slate-900/70'
         }`}
-        style={{ minHeight: 48 }}
+        style={[
+          { minHeight: 48 },
+          Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null,
+        ]}
       >
         <TextInput
           value={value}
@@ -59,10 +60,10 @@ export function AuthSoftInput({
           autoCapitalize={autoCapitalize}
           autoCorrect={autoCorrect}
           secureTextEntry={isSecure}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
           accessibilityLabel={accessibilityLabel || placeholder}
-          className="flex-1 py-3 text-[15px] text-textPrimary dark:text-dark-textPrimary"
+          className="flex-1 border-0 bg-transparent py-3 text-[15px] text-textPrimary outline-none dark:text-dark-textPrimary"
+          style={Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : undefined}
+          underlineColorAndroid="transparent"
         />
         {secureTextEntry ? (
           <Pressable

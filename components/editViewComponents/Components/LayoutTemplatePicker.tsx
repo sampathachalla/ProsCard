@@ -389,8 +389,10 @@ function LayoutThumbnail({ section, template, theme }: { section: CardSectionId;
 }
 
 const CARD_HEIGHT = 100;
+const CARD_HEIGHT_EXPANDED = 140;
 
 export function LayoutTemplatePicker({
+  editBarCollapsed = false,
   showHeader = true,
   section,
   selectedTemplateId,
@@ -398,6 +400,7 @@ export function LayoutTemplatePicker({
   onSelect,
   fullOpen = false,
 }: {
+  editBarCollapsed?: boolean;
   showHeader?: boolean;
   section: CardSectionId;
   selectedTemplateId: CardTemplateId;
@@ -409,6 +412,7 @@ export function LayoutTemplatePicker({
   const editorPaneWidth = Math.min(720, Math.max(260, width - 40));
   const gridGap = 10;
   const itemWidth = (editorPaneWidth - gridGap) / 2;
+  const cardHeight = editBarCollapsed ? CARD_HEIGHT_EXPANDED : CARD_HEIGHT;
 
   // Chunk 12 templates into pages of 4 items (2x2 grid per slide)
   const templatePages = useMemo(() => {
@@ -455,14 +459,9 @@ export function LayoutTemplatePicker({
         selected={selected}
         accessibilityLabel={`Use ${label} layout (${tier} colors)`}
         onPress={() => onSelect(templateId)}
-        style={compactHeight ? { height: CARD_HEIGHT, width: cardWidth } : { width: cardWidth, minHeight: CARD_HEIGHT }}
+        style={compactHeight ? { height: cardHeight, width: cardWidth } : { width: cardWidth, minHeight: cardHeight }}
       >
-        <View className="relative">
-          <LayoutThumbnail section={section} template={templateId} theme={theme} />
-          <View className="absolute right-1.5 top-1.5 rounded-md bg-black/60 px-1.5 py-0.5 shadow-sm">
-            <Text className="text-[9px] font-bold text-white">{tier}C</Text>
-          </View>
-        </View>
+        <LayoutThumbnail section={section} template={templateId} theme={theme} />
       </EditorSelectableCard>
     );
   };

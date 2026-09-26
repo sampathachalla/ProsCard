@@ -12,13 +12,19 @@ type ThemedBottomSheetProps = {
   footer?: ReactNode;
   glassmorphic?: boolean;
   onChange?: (index: number) => void;
+  showHandle?: boolean;
   topInset?: number;
 };
 
 export const ThemedBottomSheet = forwardRef<BottomSheet, ThemedBottomSheetProps>(
-  ({ snapPoints, children, backdropEnabled = true, containerStyle, enablePanDownToClose = true, footer, glassmorphic = false, onChange, topInset = 0 }, ref) => {
+  ({ snapPoints, children, backdropEnabled = true, containerStyle, enablePanDownToClose = true, footer, glassmorphic = false, onChange, showHandle = true, topInset = 0 }, ref) => {
     const { isDark, renderBackdrop, handleIndicatorStyle, backgroundStyle } = useThemedBottomSheet();
     const renderTransparentBackdrop = useCallback(() => null, []);
+    // Keep the handle's reserved space so nothing shifts when it (re)appears;
+    // just make it invisible instead of removing it.
+    const resolvedHandleIndicatorStyle = showHandle
+      ? handleIndicatorStyle
+      : { ...handleIndicatorStyle, backgroundColor: 'transparent' };
     const renderFooter = useCallback(
       (props: BottomSheetFooterProps) => <BottomSheetFooter {...props}>{footer}</BottomSheetFooter>,
       [footer],
@@ -38,7 +44,7 @@ export const ThemedBottomSheet = forwardRef<BottomSheet, ThemedBottomSheetProps>
         android_keyboardInputMode="adjustResize"
         backdropComponent={backdropEnabled ? renderBackdrop : renderTransparentBackdrop}
         footerComponent={footer ? renderFooter : undefined}
-        handleIndicatorStyle={handleIndicatorStyle}
+        handleIndicatorStyle={resolvedHandleIndicatorStyle}
         backgroundStyle={
           glassmorphic
             ? {

@@ -86,8 +86,8 @@ export async function runCardsServiceTests(): Promise<{ passed: number; failed: 
 
   // Teardown: restore default primary card
   await savePrimaryCard({
-    name: 'Sampath Kambhampati',
-    title: 'Founder & CEO',
+    name: 'Sampath Achalla',
+    title: 'FDE',
     company: 'ProsCard',
   });
 

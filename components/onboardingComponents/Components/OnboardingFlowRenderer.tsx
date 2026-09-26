@@ -41,6 +41,7 @@ export function OnboardingFlowRenderer({
           subtitle={currentItem.subtitle}
           subtitleLines={currentItem.subtitleLines}
           highlightWords={currentItem.highlightWords}
+          funTag={currentItem.funTag}
           fields={currentItem.fields}
           draft={draft}
           updateDraft={updateDraft}

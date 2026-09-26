@@ -23,7 +23,9 @@ import {
 } from '../types/onboardingStepper.types';
 import {
   ONBOARDING_FLOW,
+  clampFlowIndex,
   flowIndexForField,
+  flowItemAtIndex,
   indexAfterSkip,
   isFlowItemSkippable,
   type OnboardingFlowItem,
@@ -46,27 +48,40 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
   const totalSteps = ONBOARDING_FLOW.length;
-  const currentItem: OnboardingFlowItem = ONBOARDING_FLOW[flowIndex] ?? ONBOARDING_FLOW[0];
+  const safeFlowIndex = clampFlowIndex(flowIndex);
+  const currentItem: OnboardingFlowItem =
+    flowItemAtIndex(safeFlowIndex) ?? ONBOARDING_FLOW[0] ?? { kind: 'welcome' };
+
+  useEffect(() => {
+    if (flowIndex !== safeFlowIndex) {
+      setFlowIndex(safeFlowIndex);
+    }
+  }, [flowIndex, safeFlowIndex]);
 
   // Legacy coarse step for tests / compat (welcome = 1, everything else = 2–5 bucket)
   const currentStep = useMemo(() => {
     if (currentItem.kind === 'welcome') return 1;
-    if (currentItem.kind === 'card_style') return 5;
     const groupId = currentItem.kind === 'group' ? currentItem.groupId : null;
     if (!groupId) return 2;
-    if (
-      groupId === 'name_legal' ||
-      groupId === 'name_formal' ||
-      groupId === 'role_company' ||
-      groupId === 'credentials' ||
-      groupId === 'tagline'
-    ) {
+    if (groupId === 'contact_email') {
       return 2;
     }
-    if (groupId === 'contact_email' || groupId === 'contact_phone' || groupId === 'work_extra') {
+    if (groupId === 'name_legal' || groupId === 'name_formal') {
       return 3;
     }
-    if (groupId === 'presence') return 4;
+    if (groupId === 'presence') {
+      return 4;
+    }
+    if (groupId === 'short_bio') {
+      return 5;
+    }
+    if (
+      groupId === 'role_company' ||
+      groupId === 'work_logo_website' ||
+      groupId === 'work_dept_address'
+    ) {
+      return 4;
+    }
     return 5;
   }, [currentItem]);
 
@@ -124,24 +139,29 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
     return ONBOARDING_STEPS_META[currentStep - 1] || ONBOARDING_STEPS_META[0];
   }, [currentStep]);
 
-  const canGoBack = flowIndex > 0 && !isSaving;
-  const isLastStep = currentItem.kind === 'card_style';
+  const canGoBack = safeFlowIndex > 0 && !isSaving;
+  const isLastStep = safeFlowIndex === ONBOARDING_FLOW.length - 1;
   const canSkip = isFlowItemSkippable(currentItem) && !isSaving;
 
   const progressLabel = useMemo(
-    () => `${flowIndex + 1} of ${ONBOARDING_FLOW.length}`,
-    [flowIndex]
+    () => `${safeFlowIndex + 1} of ${ONBOARDING_FLOW.length}`,
+    [safeFlowIndex]
   );
 
   const nextStep = useCallback((): boolean => {
     if (isSaving) return false;
 
-    const item = ONBOARDING_FLOW[flowIndex];
+    const index = clampFlowIndex(flowIndex);
+    const item = flowItemAtIndex(index);
+    if (!item) {
+      setFlowIndex(index);
+      return false;
+    }
 
     if (item.kind === 'welcome') {
       setErrors({});
-      if (flowIndex < ONBOARDING_FLOW.length - 1) {
-        setFlowIndex((prev) => prev + 1);
+      if (index < ONBOARDING_FLOW.length - 1) {
+        setFlowIndex(clampFlowIndex(index + 1));
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
       }
       return true;
@@ -155,8 +175,8 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
         return false;
       }
       setErrors({});
-      if (flowIndex < ONBOARDING_FLOW.length - 1) {
-        setFlowIndex((prev) => prev + 1);
+      if (index < ONBOARDING_FLOW.length - 1) {
+        setFlowIndex(clampFlowIndex(index + 1));
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
       }
       return true;
@@ -166,9 +186,10 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
   }, [flowIndex, isSaving]);
 
   const prevStep = useCallback(() => {
-    if (flowIndex > 0 && !isSaving) {
+    const index = clampFlowIndex(flowIndex);
+    if (index > 0 && !isSaving) {
       setErrors({});
-      setFlowIndex((prev) => prev - 1);
+      setFlowIndex(clampFlowIndex(index - 1));
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     }
   }, [flowIndex, isSaving]);
@@ -184,23 +205,25 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
         matchIndex = 0;
       } else if (targetStep === 2) {
         matchIndex = ONBOARDING_FLOW.findIndex(
-          (flowItem) => flowItem.kind === 'group' && flowItem.groupId === 'name_legal'
+          (flowItem) => flowItem.kind === 'group' && flowItem.groupId === 'contact_email'
         );
       } else if (targetStep === 3) {
         matchIndex = ONBOARDING_FLOW.findIndex(
-          (flowItem) => flowItem.kind === 'group' && flowItem.groupId === 'contact_email'
+          (flowItem) => flowItem.kind === 'group' && flowItem.groupId === 'name_legal'
         );
       } else if (targetStep === 4) {
         matchIndex = ONBOARDING_FLOW.findIndex(
           (flowItem) => flowItem.kind === 'group' && flowItem.groupId === 'presence'
         );
       } else if (targetStep === 5) {
-        matchIndex = ONBOARDING_FLOW.findIndex((flowItem) => flowItem.kind === 'card_style');
+        matchIndex = ONBOARDING_FLOW.findIndex(
+          (flowItem) => flowItem.kind === 'group' && flowItem.groupId === 'short_bio'
+        );
       }
 
       if (matchIndex >= 0) {
         setErrors({});
-        setFlowIndex(matchIndex);
+        setFlowIndex(clampFlowIndex(matchIndex));
       }
     },
     [isSaving]
@@ -209,10 +232,15 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
   const skipStep = useCallback(() => {
     if (isSaving) return;
 
-    const item = ONBOARDING_FLOW[flowIndex];
+    const index = clampFlowIndex(flowIndex);
+    const item = flowItemAtIndex(index);
+    if (!item) {
+      setFlowIndex(index);
+      return;
+    }
     if (item.kind === 'welcome') {
       setErrors({});
-      setFlowIndex(1);
+      setFlowIndex(clampFlowIndex(1));
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
       return;
     }
@@ -220,7 +248,7 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
     if (!isFlowItemSkippable(item)) return;
 
     setErrors({});
-    setFlowIndex(indexAfterSkip(flowIndex));
+    setFlowIndex(indexAfterSkip(index));
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
   }, [flowIndex, isSaving]);
 
@@ -228,19 +256,12 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
     if (isSaving) return false;
 
     const currentDraft = draftRef.current;
-    const cardErrors = validateFlowGroup('card_style', currentDraft);
-    if (Object.keys(cardErrors).length > 0) {
-      setErrors(cardErrors);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
-      return false;
-    }
-
     const { isValid, errors: allErrors } = validateAllSteps(currentDraft);
     if (!isValid) {
       setErrors(allErrors);
       const firstKey = Object.keys(allErrors)[0];
       if (firstKey) {
-        setFlowIndex(flowIndexForField(firstKey));
+        setFlowIndex(clampFlowIndex(flowIndexForField(firstKey)));
       }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
       Alert.alert('Incomplete Profile', 'Please fill in the required fields before completing setup.');

@@ -7,8 +7,8 @@ import type { EditableCard } from '../types/editView.types';
 const DEFAULT_CARD: EditableCard = {
   id: '1',
   category: 'Professional',
-  name: 'Sampath Kambhampati',
-  title: 'Founder & CEO',
+  name: 'Sampath Achalla',
+  title: 'FDE',
   company: 'ProsCard',
   phone: '+1 (555) 010-2030',
   email: 'sampath@proscard.app',

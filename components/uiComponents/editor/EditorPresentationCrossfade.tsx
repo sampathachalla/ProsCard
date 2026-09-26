@@ -1,6 +1,11 @@
-import type { ReactNode } from 'react';
-import { View } from 'react-native';
-import Animated, { Extrapolation, interpolate, useAnimatedStyle } from 'react-native-reanimated';
+import { useEffect, type ReactNode } from 'react';
+import Animated, {
+  Extrapolation,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { useEditorAnimatedIndex } from './EditorAnimatedPresentationContext';
 
 /** Sheet index at which compact ↔ expanded crossfade is centered (matches half-open vs full-open). */
@@ -26,12 +31,35 @@ export function EditorPresentationCrossfade({
   const fadeStart = PRESENTATION_MIDPOINT - CROSSFADE_HALF_WIDTH;
   const fadeEnd = PRESENTATION_MIDPOINT + CROSSFADE_HALF_WIDTH;
 
+  // Smoothly animate height changes that come from outside the sheet-position
+  // crossfade (e.g. content growing when the edit bar collapses), instead of
+  // snapping instantly.
+  const animatedCompactHeight = useSharedValue(compactHeight);
+  const animatedExpandedHeight = useSharedValue(expandedHeight);
+
+  useEffect(() => {
+    animatedCompactHeight.value = withTiming(compactHeight, { duration: 280 });
+  }, [animatedCompactHeight, compactHeight]);
+
+  useEffect(() => {
+    animatedExpandedHeight.value = withTiming(expandedHeight, { duration: 280 });
+  }, [animatedExpandedHeight, expandedHeight]);
+
   const containerStyle = useAnimatedStyle(() => {
     const index = animatedIndex.value < 0 ? 0 : animatedIndex.value;
     return {
-      height: interpolate(index, [0, 1], [compactHeight, expandedHeight], Extrapolation.CLAMP),
+      height: interpolate(
+        index,
+        [0, 1],
+        [animatedCompactHeight.value, animatedExpandedHeight.value],
+        Extrapolation.CLAMP,
+      ),
     };
   });
+
+  const compactMinHeightStyle = useAnimatedStyle(() => ({
+    minHeight: animatedCompactHeight.value,
+  }));
 
   const compactStyle = useAnimatedStyle(() => {
     const index = animatedIndex.value < 0 ? 0 : animatedIndex.value;
@@ -51,14 +79,14 @@ export function EditorPresentationCrossfade({
 
   return (
     <Animated.View style={containerStyle}>
-      <View className="relative w-full" style={{ minHeight: compactHeight }}>
+      <Animated.View className="relative w-full" style={compactMinHeightStyle}>
         <Animated.View style={[compactStyle, { position: 'absolute', left: 0, right: 0, top: 0 }]}>
           {compact}
         </Animated.View>
         <Animated.View style={[expandedStyle, { position: 'absolute', left: 0, right: 0, top: 0 }]}>
           {expanded}
         </Animated.View>
-      </View>
+      </Animated.View>
     </Animated.View>
   );
 }

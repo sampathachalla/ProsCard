@@ -55,13 +55,13 @@ export function runValidateOnboardingFlowGroupTests(): { passed: number; failed:
       },
     ],
     [
-      'validateFlowGroup presence optional social urls still validate format',
+      'validateFlowGroup presence validates tagline length',
       () => {
         const errors = validateFlowGroup('presence', {
           ...INITIAL_ONBOARDING_DRAFT,
-          linkedin: 'not a url',
+          tagline: 'T'.repeat(121),
         });
-        if (!errors.linkedin) throw new Error('Expected linkedin format error');
+        if (!errors.tagline) throw new Error('Expected tagline length error');
       },
     ],
   ];

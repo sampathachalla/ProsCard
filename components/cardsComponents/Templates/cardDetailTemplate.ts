@@ -11,19 +11,19 @@ export const DUMMY_CARD_MEDIA = {
 } as const;
 
 export const DUMMY_CARD_PROFESSIONAL = {
-  title: 'Founder & CEO',
+  title: 'FDE',
   company: 'MindPros Technologies',
   tagline: 'Building next-generation digital networking tools for visionary professionals worldwide.',
   accreditations: 'MBA, AWS Certified Architect, PMP',
   prefix: 'Dr.',
   firstName: 'Sampath',
   middleName: 'Kumar',
-  lastName: 'Kambhampati',
+  lastName: 'Achalla',
   suffix: 'PhD',
 } as const;
 
 export const DUMMY_CARD_BIO =
-  'Founder and product builder focused on creating thoughtful digital experiences that help professionals connect, share their work, and build meaningful relationships across global ecosystems.';
+  'Product builder focused on creating thoughtful digital experiences that help professionals connect, share their work, and build meaningful relationships across global ecosystems.';
 
 export type CardDetailFieldType = 'text' | 'image' | 'multiline' | 'email' | 'phone' | 'url';
 
@@ -80,7 +80,7 @@ export function createCardDetailTemplate(
           id: 'preferredName',
           title: 'Preferred name',
           type: 'text',
-          value: override(card, 'preferredName', profile.preferredName || card.name || 'Sampath Kambhampati'),
+          value: override(card, 'preferredName', profile.preferredName || card.name || 'Sampath Achalla'),
         },
         {
           id: 'coverPhoto',

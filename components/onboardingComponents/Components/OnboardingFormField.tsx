@@ -30,6 +30,16 @@ export interface OnboardingFormFieldProps {
   secureTextEntry?: boolean;
   editable?: boolean;
   autoCorrect?: boolean;
+  /** Tighter vertical spacing for inline name rows. */
+  compact?: boolean;
+  /** Hide the trailing clear (×) control. */
+  hideClear?: boolean;
+  variant?: 'underline' | 'boxed';
+  /** Show `{length}/{maxLength}` in the field (boxed variant). */
+  showCharacterCount?: boolean;
+  characterCountPlacement?: 'top' | 'bottom';
+  /** Center input text and character count (tagline-style steps). */
+  centerAlign?: boolean;
 }
 
 export function OnboardingFormField({
@@ -49,12 +59,19 @@ export function OnboardingFormField({
   secureTextEntry = false,
   editable = true,
   autoCorrect = true,
+  compact = false,
+  hideClear = false,
+  variant = 'underline',
+  showCharacterCount = false,
+  characterCountPlacement = 'bottom',
+  centerAlign = false,
 }: OnboardingFormFieldProps) {
   const { theme } = useThemeContext();
   const [isFocused, setIsFocused] = useState(false);
 
   const hasError = Boolean(error);
-  const showClear = editable && !multiline && Boolean(value && value.length > 0);
+  const showClear =
+    !hideClear && editable && !multiline && Boolean(value && value.length > 0);
 
   const handleClear = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
@@ -74,9 +91,89 @@ export function OnboardingFormField({
   const iconColor = getIconColor();
 
   const isMinimal = label.trim().length === 0;
+  const fieldLabel = label.trim().length > 0 ? label : placeholder ?? label;
+  const isBoxed = variant === 'boxed';
+  const countLabel =
+    showCharacterCount && maxLength != null ? `${value.length}/${maxLength}` : null;
+
+  if (isBoxed) {
+    return (
+      <View className={`w-full ${isMinimal ? 'mb-4' : 'mb-4'}`}>
+        {label.trim().length > 0 ? (
+          <View className="mb-1.5 px-0.5">
+            <Text className="text-xs font-semibold uppercase tracking-wider text-textMuted dark:text-dark-textMuted">
+              {label}
+              {required && <Text className="text-error dark:text-dark-error font-bold"> *</Text>}
+            </Text>
+          </View>
+        ) : null}
+
+        <View
+          className={`rounded-2xl border px-4 py-3 ${
+            hasError
+              ? 'border-error bg-red-50/80 dark:border-dark-error dark:bg-red-950/25'
+              : isFocused
+              ? 'border-primary bg-white dark:border-dark-primary dark:bg-slate-900'
+              : 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/80'
+          }`}
+          style={{ minHeight: multiline ? 112 : 52 }}
+        >
+          {countLabel && characterCountPlacement === 'top' ? (
+            <Text className="mb-1 self-end text-xs font-medium text-textMuted dark:text-dark-textMuted">
+              {countLabel}
+            </Text>
+          ) : null}
+          <TextInput
+            value={value}
+            onChangeText={onChangeText}
+            placeholder={placeholder || label}
+            placeholderTextColor={theme === 'dark' ? '#64748b' : '#94a3b8'}
+            keyboardType={keyboardType}
+            autoCapitalize={autoCapitalize}
+            autoCorrect={autoCorrect}
+            secureTextEntry={secureTextEntry}
+            editable={editable}
+            multiline={multiline}
+            numberOfLines={numberOfLines}
+            maxLength={maxLength}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            textAlignVertical={multiline ? 'top' : 'center'}
+            accessibilityLabel={fieldLabel}
+            accessibilityHint={hint || placeholder}
+            underlineColorAndroid="transparent"
+            className="flex-1 border-0 bg-transparent text-base leading-6 text-textPrimary dark:text-dark-textPrimary outline-none"
+            style={[
+              multiline ? { minHeight: 72 } : null,
+              Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null,
+            ]}
+          />
+          {countLabel && characterCountPlacement === 'bottom' ? (
+            <Text className="mt-2 text-right text-xs font-medium text-textMuted dark:text-dark-textMuted">
+              {countLabel}
+            </Text>
+          ) : null}
+        </View>
+
+        {hasError ? (
+          <View className="mt-1.5 flex-row items-center px-1">
+            <AlertCircle
+              size={13}
+              color={theme === 'dark' ? Colors.dark.error : Colors.light.error}
+              strokeWidth={2.2}
+            />
+            <Text className="ml-1 text-xs font-medium text-error dark:text-dark-error">{error}</Text>
+          </View>
+        ) : null}
+        {!hasError && hint ? (
+          <Text className="mt-1 px-1 text-xs text-textMuted dark:text-dark-textMuted">{hint}</Text>
+        ) : null}
+      </View>
+    );
+  }
 
   return (
-    <View className={`w-full ${isMinimal ? 'mb-7' : 'mb-4'}`}>
+    <View className={`w-full ${isMinimal ? (compact ? 'mb-4' : 'mb-6') : 'mb-4'}`}>
       {label.trim().length > 0 ? (
         <View className="mb-1.5 px-0.5">
           <Text className="text-xs font-semibold uppercase tracking-wider text-textMuted dark:text-dark-textMuted">
@@ -113,7 +210,7 @@ export function OnboardingFormField({
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
             textAlignVertical={multiline ? 'top' : 'center'}
-            accessibilityLabel={label}
+            accessibilityLabel={fieldLabel}
             accessibilityHint={hint || placeholder}
             underlineColorAndroid="transparent"
             className={`flex-1 border-0 bg-transparent font-normal text-textPrimary dark:text-dark-textPrimary py-1.5 outline-none ${
@@ -121,6 +218,7 @@ export function OnboardingFormField({
             }`}
             style={[
               multiline ? { minHeight: 72 } : null,
+              centerAlign ? { textAlign: 'center' as const } : null,
               Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null,
             ]}
           />
@@ -130,7 +228,7 @@ export function OnboardingFormField({
               onPress={handleClear}
               hitSlop={8}
               accessibilityRole="button"
-              accessibilityLabel={`Clear ${label}`}
+              accessibilityLabel={`Clear ${fieldLabel}`}
               className="ml-1 p-1 active:opacity-70"
             >
               <X
@@ -151,6 +249,15 @@ export function OnboardingFormField({
               : 'bg-slate-300 dark:bg-slate-600'
           }`}
         />
+        {countLabel ? (
+          <Text
+            className={`mt-2 text-xs font-medium text-textMuted dark:text-dark-textMuted ${
+              centerAlign ? 'text-center' : 'text-right'
+            }`}
+          >
+            {countLabel}
+          </Text>
+        ) : null}
       </View>
 
       {/* Inline Validation Error Message */}

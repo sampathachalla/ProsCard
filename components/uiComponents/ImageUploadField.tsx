@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
-import { ImagePlus, Link2, Trash2, Upload, X } from 'lucide-react-native';
+import { ImagePlus, Link2, Pencil, Trash2, Upload, X } from 'lucide-react-native';
 import { Text } from './Text';
 import { pickImageFromLibrary } from './usePickImage';
 
@@ -16,6 +16,8 @@ type ImageUploadFieldProps = {
   onRemove?: () => void;
   variant?: ImageUploadVariant;
   disabled?: boolean;
+  /** Avatar-only: circle picker with upload icon; edit badge when filled (no remove/url row). */
+  presentation?: 'default' | 'compact';
 };
 
 const VARIANT_CONFIG: Record<
@@ -50,6 +52,7 @@ export function ImageUploadField({
   onRemove,
   variant = 'banner',
   disabled = false,
+  presentation = 'default',
 }: ImageUploadFieldProps) {
   const [isPicking, setIsPicking] = useState(false);
   const [urlModalOpen, setUrlModalOpen] = useState(false);
@@ -83,6 +86,51 @@ export function ImageUploadField({
       setUrlModalOpen(false);
     }
   };
+
+  if (presentation === 'compact' && variant === 'avatar') {
+    return (
+      <View className="mb-5 items-center">
+        <Pressable
+          accessibilityLabel={hasImage ? `Edit ${label || 'profile photo'}` : `Upload ${label || 'profile photo'}`}
+          accessibilityRole="button"
+          disabled={disabled || isPicking}
+          onPress={handlePick}
+          className="relative active:opacity-90"
+        >
+          <View
+            className={`h-32 w-32 items-center justify-center overflow-hidden rounded-full border-2 border-dashed ${
+              hasImage
+                ? 'border-slate-600 bg-slate-900 dark:border-slate-600'
+                : 'border-slate-400 bg-slate-100/80 dark:border-slate-600 dark:bg-[#0f172a]'
+            }`}
+          >
+            {isPicking ? (
+              <ActivityIndicator size="small" color="#38bdf8" />
+            ) : hasImage ? (
+              <Image
+                source={{ uri: value }}
+                contentFit="cover"
+                style={{ width: '100%', height: '100%' }}
+                accessibilityLabel={`${label || 'Profile photo'} preview`}
+              />
+            ) : (
+              <>
+                <Upload color="#64748b" size={32} strokeWidth={2} />
+                <Text className="mt-2 text-center text-xs font-medium text-slate-500 dark:text-slate-400">
+                  Upload photo
+                </Text>
+              </>
+            )}
+          </View>
+          {hasImage && !isPicking ? (
+            <View className="absolute bottom-0 right-0 h-9 w-9 items-center justify-center rounded-full border-2 border-background bg-[#0284c7] dark:border-dark-background">
+              <Pencil color="#ffffff" size={16} strokeWidth={2.4} />
+            </View>
+          ) : null}
+        </Pressable>
+      </View>
+    );
+  }
 
   return (
     <View className="mb-4 rounded-[24px] border border-slate-200 bg-card p-4 dark:border-slate-800 dark:bg-[#0b1120]">

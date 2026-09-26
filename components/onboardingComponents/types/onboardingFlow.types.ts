@@ -8,8 +8,11 @@ export type OnboardingFlowGroupId =
   | 'tagline'
   | 'contact_email'
   | 'contact_phone'
-  | 'work_extra'
+  | 'work_logo_website'
+  | 'work_dept_address'
+  | 'short_bio'
   | 'presence'
+  | 'social_links'
   | 'card_style';
 
 export type FieldWidget =
@@ -17,7 +20,8 @@ export type FieldWidget =
   | 'image_avatar'
   | 'image_banner'
   | 'image_logo'
-  | 'presence_block';
+  | 'presence_block'
+  | 'social_block';
 
 export type DraftFieldKey = keyof OnboardingDraft;
 
@@ -47,6 +51,8 @@ export type OnboardingFlowItem =
       subtitleLines?: [string, string];
       /** Cycles on screen with a fade animation (e.g. Professional, Friendly). */
       highlightWords?: string[];
+      /** Small playful pill under the title. */
+      funTag?: string;
       fields: FieldSpec[];
       skippable?: boolean;
     }
@@ -61,10 +67,32 @@ export const ONBOARDING_FLOW: OnboardingFlowItem[] = [
   { kind: 'welcome' },
   {
     kind: 'group',
+    groupId: 'contact_email',
+    title: 'How can people reach you?',
+    funTag: 'Carrier pigeons retired — email still works.',
+    fields: [
+      {
+        key: 'email',
+        label: '',
+        placeholder: 'Work email',
+        required: true,
+        keyboardType: 'email-address',
+        autoCapitalize: 'none',
+      },
+      {
+        key: 'phone',
+        label: '',
+        placeholder: 'Phone (optional)',
+        keyboardType: 'phone-pad',
+        autoCapitalize: 'none',
+      },
+    ],
+  },
+  {
+    kind: 'group',
     groupId: 'name_legal',
     title: 'What name should appear on your card?',
-    subtitle: 'Use the name people know you by.',
-    highlightWords: ['Professional', 'Friendly', 'Clear', 'Confident', 'Memorable'],
+    funTag: 'Use the name people know you by.',
     fields: [
       {
         key: 'firstName',
@@ -84,33 +112,47 @@ export const ONBOARDING_FLOW: OnboardingFlowItem[] = [
       },
       {
         key: 'prefix',
-        label: 'Prefix',
-        placeholder: 'Dr.',
+        label: '',
+        placeholder: 'Prefix',
         autoCapitalize: 'words',
         maxLength: 15,
       },
       {
         key: 'middleName',
-        label: 'Middle name',
-        placeholder: 'Optional',
+        label: '',
+        placeholder: 'Middle name',
         autoCapitalize: 'words',
         maxLength: 50,
       },
       {
         key: 'suffix',
-        label: 'Suffix',
-        placeholder: 'Jr.',
+        label: '',
+        placeholder: 'Suffix',
         autoCapitalize: 'words',
         maxLength: 15,
+      },
+      {
+        key: 'accreditations',
+        label: '',
+        placeholder: 'Degrees, certs, or licenses (optional)',
+        autoCapitalize: 'characters',
+        maxLength: 80,
+        hideIcon: true,
       },
     ],
   },
   {
     kind: 'group',
+    groupId: 'presence',
+    title: 'Photo and tagline?',
+    skippable: true,
+    fields: [{ key: 'photoUrl', widget: 'presence_block', label: 'Presence' }],
+  },
+  {
+    kind: 'group',
     groupId: 'role_company',
     title: 'What do you do?',
-    subtitle: 'Your title and company show on your card.',
-    highlightWords: ['Leader', 'Expert', 'Builder', 'Trusted'],
+    funTag: 'Your title and company show on your card.',
     fields: [
       {
         key: 'title',
@@ -133,77 +175,8 @@ export const ONBOARDING_FLOW: OnboardingFlowItem[] = [
   },
   {
     kind: 'group',
-    groupId: 'credentials',
-    title: 'What sets you apart?',
-    subtitleLines: ['Optional credentials', 'degrees, certs, or licenses.'],
-    highlightWords: ['Certified', 'Credentialed', 'Trusted', 'Recognized'],
-    skippable: true,
-    fields: [
-      {
-        key: 'accreditations',
-        label: '',
-        placeholder: 'Degrees, certs, or licenses',
-        autoCapitalize: 'characters',
-        maxLength: 80,
-        hideIcon: true,
-      },
-    ],
-  },
-  {
-    kind: 'group',
-    groupId: 'tagline',
-    title: 'Add a tagline?',
-    subtitle: 'One short line on your card.',
-    highlightWords: ['Memorable', 'Clear', 'Personal', 'Distinct'],
-    skippable: true,
-    fields: [
-      {
-        key: 'tagline',
-        label: '',
-        placeholder: 'One-line tagline',
-        autoCapitalize: 'sentences',
-        maxLength: 120,
-        hideIcon: true,
-      },
-    ],
-  },
-  {
-    kind: 'group',
-    groupId: 'contact_email',
-    title: "What's the best email to reach you?",
-    subtitle: 'Required so contacts can reach you from your card.',
-    fields: [
-      {
-        key: 'email',
-        label: 'Work email',
-        placeholder: 'alex@company.com',
-        required: true,
-        keyboardType: 'email-address',
-        autoCapitalize: 'none',
-      },
-    ],
-  },
-  {
-    kind: 'group',
-    groupId: 'contact_phone',
-    title: 'Phone number for your card?',
-    subtitle: 'Optional — enables one-tap calling from your card.',
-    skippable: true,
-    fields: [
-      {
-        key: 'phone',
-        label: 'Phone',
-        placeholder: '+1 (555) 234-5678',
-        keyboardType: 'phone-pad',
-        autoCapitalize: 'none',
-      },
-    ],
-  },
-  {
-    kind: 'group',
-    groupId: 'work_extra',
-    title: 'More work details?',
-    subtitle: 'Department, website, address, bio, or company logo.',
+    groupId: 'work_dept_address',
+    title: 'Department and address?',
     skippable: true,
     fields: [
       {
@@ -214,51 +187,98 @@ export const ONBOARDING_FLOW: OnboardingFlowItem[] = [
         maxLength: 100,
       },
       {
-        key: 'website',
-        label: 'Website',
-        placeholder: 'https://yourcompany.com',
-        keyboardType: 'url',
-        autoCapitalize: 'none',
-      },
-      {
         key: 'businessAddress',
         label: 'Business address',
         placeholder: 'City, State or full address',
         autoCapitalize: 'words',
         maxLength: 100,
       },
-      {
-        key: 'shortBio',
-        label: 'Short bio',
-        placeholder: 'A brief professional summary',
-        maxLength: 240,
-      },
+    ],
+  },
+  {
+    kind: 'group',
+    groupId: 'work_logo_website',
+    title: 'Website and logo?',
+    skippable: true,
+    fields: [
       {
         key: 'companyLogoUrl',
         widget: 'image_logo',
         label: 'Company logo',
         placeholder: '',
       },
+      {
+        key: 'website',
+        label: 'Website',
+        placeholder: 'https://yourcompany.com',
+        keyboardType: 'url',
+        autoCapitalize: 'none',
+      },
     ],
   },
   {
     kind: 'group',
-    groupId: 'presence',
-    title: 'Photo and social links?',
-    subtitle: 'Optional — add now or anytime from Profile.',
+    groupId: 'social_links',
+    title: 'Add social profiles?',
+    funTag: 'LinkedIn, YouTube, and more — all optional.',
     skippable: true,
-    fields: [{ key: 'photoUrl', widget: 'presence_block', label: 'Presence' }],
+    fields: [{ key: 'linkedin', widget: 'social_block', label: 'Social profiles' }],
   },
   {
-    kind: 'card_style',
-    groupId: 'card_style',
-    title: 'How should your card look?',
-    subtitle: 'Pick a theme and category, then create your card.',
+    kind: 'group',
+    groupId: 'short_bio',
+    title: 'Add a short bio?',
+    skippable: true,
+    fields: [
+      {
+        key: 'shortBio',
+        label: '',
+        placeholder: 'What you do and what you care about',
+        autoCapitalize: 'sentences',
+        maxLength: 240,
+        hideIcon: true,
+      },
+    ],
   },
 ];
 
+/** Keep flow index in range when flow length changes (e.g. hot reload). */
+export function clampFlowIndex(index: number): number {
+  const max = Math.max(0, ONBOARDING_FLOW.length - 1);
+  if (!Number.isFinite(index)) return 0;
+  return Math.min(Math.max(0, Math.trunc(index)), max);
+}
+
+export function flowItemAtIndex(index: number): OnboardingFlowItem | undefined {
+  return ONBOARDING_FLOW[clampFlowIndex(index)];
+}
+
 /** Map draft field errors to first flow index that collects that field. */
+const SOCIAL_DRAFT_FIELD_KEYS = new Set([
+  'linkedin',
+  'github',
+  'x',
+  'facebook',
+  'instagram',
+  'whatsapp',
+  'youtube',
+  'tiktok',
+  'portfolio',
+]);
+
 export function flowIndexForField(fieldKey: string): number {
+  if (SOCIAL_DRAFT_FIELD_KEYS.has(fieldKey)) {
+    const socialIndex = ONBOARDING_FLOW.findIndex(
+      (item) => item.kind === 'group' && item.groupId === 'social_links'
+    );
+    if (socialIndex >= 0) return socialIndex;
+  }
+  if (fieldKey === 'tagline') {
+    const presenceIndex = ONBOARDING_FLOW.findIndex(
+      (item) => item.kind === 'group' && item.groupId === 'presence'
+    );
+    if (presenceIndex >= 0) return presenceIndex;
+  }
   for (let i = 0; i < ONBOARDING_FLOW.length; i++) {
     const item = ONBOARDING_FLOW[i];
     if (item.kind === 'group') {
@@ -270,16 +290,16 @@ export function flowIndexForField(fieldKey: string): number {
       return i;
     }
   }
-  return 1;
+  return clampFlowIndex(1);
 }
 
-/** After skip: jump to next group or card_style. */
+/** After skip: jump to next group screen. */
 export function indexAfterSkip(currentIndex: number): number {
-  for (let i = currentIndex + 1; i < ONBOARDING_FLOW.length; i++) {
-    const item = ONBOARDING_FLOW[i];
-    if (item.kind === 'group' || item.kind === 'card_style') return i;
+  const safeIndex = clampFlowIndex(currentIndex);
+  for (let i = safeIndex + 1; i < ONBOARDING_FLOW.length; i++) {
+    if (ONBOARDING_FLOW[i].kind === 'group') return i;
   }
-  return ONBOARDING_FLOW.length - 1;
+  return clampFlowIndex(ONBOARDING_FLOW.length - 1);
 }
 
 export function isFlowItemSkippable(item: OnboardingFlowItem): boolean {

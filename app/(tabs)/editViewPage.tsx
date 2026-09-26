@@ -343,6 +343,7 @@ export default function EditViewPage() {
       backdropEnabled={false}
       enablePanDownToClose
       glassmorphic={glassmorphicEditorEnabled}
+      showHandle={sheetIndex === 1}
       footer={isEditing && !compactBarHidden ? (
         <View
           className="border-t border-slate-200 bg-card dark:border-slate-700 dark:bg-dark-card"
@@ -379,7 +380,7 @@ export default function EditViewPage() {
             paddingHorizontal: 20,
             paddingBottom:
               compactBarHidden
-                ? 24
+                ? Math.max(safeAreaInsets.bottom, 24)
                 : 104 + Math.max(safeAreaInsets.bottom, 14),
           }}
           keyboardShouldPersistTaps="handled"

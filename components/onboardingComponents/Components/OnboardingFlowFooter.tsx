@@ -25,7 +25,7 @@ export function OnboardingFlowFooter({
 }: OnboardingFlowFooterProps) {
   const insets = useSafeAreaInsets();
 
-  if (currentItem.kind === 'welcome' || currentItem.kind === 'card_style') {
+  if (currentItem.kind === 'welcome') {
     return null;
   }
 
@@ -41,7 +41,7 @@ export function OnboardingFlowFooter({
     onSkip();
   };
 
-  const primaryLabel = isLastStep ? 'Create my card' : 'Continue';
+  const primaryLabel = isLastStep ? 'Finish setup' : 'Continue';
 
   const onPrimary =
     currentItem.kind === 'group' && isLastStep ? onFinalize : handleContinue;

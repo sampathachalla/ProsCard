@@ -127,7 +127,7 @@ export function StepWelcome({ onGetStarted, onSkip, isSaving = false }: StepWelc
         }`}
       />
 
-      <View className="w-full flex-1 items-center justify-start pb-8 pt-24">
+      <View className="w-full flex-1 items-center justify-start pb-8 pt-36">
         <Animated.View
           entering={FadeInDown.delay(60).duration(500)}
           className={`w-full overflow-hidden px-6 py-8 ${
@@ -137,9 +137,9 @@ export function StepWelcome({ onGetStarted, onSkip, isSaving = false }: StepWelc
           }`}
         >
           <Animated.View entering={FadeIn.duration(450)} className="items-center">
-            <BrandLogo accessibilityLabel="MindPROS company logo" size="lg" variant="wordmark" />
-            <View className="mt-6">
-              <ProsCardTitle size="4xl" />
+            <BrandLogo accessibilityLabel="MindPROS company logo" size="xxl" variant="wordmark" />
+            <View className="-mt-1">
+              <ProsCardTitle accent={false} size="lg" tone="initials" />
             </View>
             <Text
               variant="none"
@@ -152,18 +152,23 @@ export function StepWelcome({ onGetStarted, onSkip, isSaving = false }: StepWelc
 
         <Animated.View
           entering={FadeInDown.delay(180).duration(450)}
-          className="mt-4 w-full items-center"
+          className="mt-4 w-full items-center px-6"
         >
           <Text className="text-center text-[15px] font-medium leading-[22px] text-slate-600 dark:text-slate-300">
             You made a great choice.
           </Text>
-          <View className="mt-2 w-full items-center">
+        </Animated.View>
+
+        <Animated.View
+          entering={FadeInDown.delay(240).duration(450)}
+          className="w-full items-center px-6"
+          style={{ marginTop: 56 }}
+        >
           <GetStartedButton
             onPress={handleGetStarted}
             isSaving={isSaving}
             width={ctaWidth}
           />
-          </View>
 
           <Pressable
             accessibilityRole="button"

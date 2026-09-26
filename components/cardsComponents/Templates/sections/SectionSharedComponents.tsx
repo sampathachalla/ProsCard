@@ -33,6 +33,53 @@ import {
   resolveLogoBoxStyle,
 } from '@/utils/cardThemeColor';
 
+/**
+ * Plain style shadow presets (not NativeWind `shadow-*` classNames).
+ * Applied via `style` instead of a dynamic className because interpolating
+ * `shadow-*`/`opacity-*` inside a template-literal className races with Expo
+ * Router's navigation context on mount, throwing a spurious
+ * "Couldn't find a navigation context" error.
+ */
+export const BOXED_SHADOW_XS = {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 1 },
+  shadowOpacity: 0.04,
+  shadowRadius: 1,
+  elevation: 1,
+} as const;
+
+export const BOXED_SHADOW_SM = {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 1 },
+  shadowOpacity: 0.06,
+  shadowRadius: 2,
+  elevation: 1,
+} as const;
+
+export const BOXED_SHADOW_MD = {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.1,
+  shadowRadius: 6,
+  elevation: 3,
+} as const;
+
+export const BOXED_SHADOW_LG = {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 10 },
+  shadowOpacity: 0.12,
+  shadowRadius: 15,
+  elevation: 6,
+} as const;
+
+export const BOXED_SHADOW_XL = {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 20 },
+  shadowOpacity: 0.15,
+  shadowRadius: 25,
+  elevation: 10,
+} as const;
+
 export function resolveActionUrl(field: CardDetailField): string | null {
   if (!field.value || !field.value.trim()) return null;
   const val = field.value.trim();
@@ -266,10 +313,11 @@ export function SectionHeaderBadge({
       <View className="flex-row items-center">
         {Icon ? (
           <View
-            className="mr-2 h-6 w-6 items-center justify-center rounded-lg shadow-sm"
-            style={{
-              backgroundColor: light ? 'rgba(255, 255, 255, 0.2)' : `${cardTheme.accentColor}20`,
-            }}
+            className="mr-2 h-6 w-6 items-center justify-center rounded-lg"
+            style={[
+              { backgroundColor: light ? 'rgba(255, 255, 255, 0.2)' : `${cardTheme.accentColor}20` },
+              BOXED_SHADOW_SM,
+            ]}
           >
             <Icon color={light ? '#ffffff' : cardTheme.accentColor} size={13} />
           </View>

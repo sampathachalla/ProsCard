@@ -15,7 +15,11 @@ async function advanceToGroup(
     const item = getHook().currentItem;
     if (item.kind === 'group' && item.groupId === groupId) return;
     await act(async () => {
-      getHook().nextStep();
+      const hook = getHook();
+      if (item.kind === 'group' && item.groupId === 'contact_email' && !hook.draft.email?.trim()) {
+        hook.updateDraft({ email: 'stress@proscard.test' });
+      }
+      hook.nextStep();
     });
   }
   throw new Error(`Could not reach group screen for ${groupId}`);
@@ -25,6 +29,11 @@ async function advanceThroughMandatoryIdentity(
   getHook: () => UseOnboardingStepperReturn
 ) {
   await act(async () => {
+    getHook().nextStep();
+  });
+  await advanceToGroup(getHook, 'contact_email');
+  await act(async () => {
+    getHook().updateDraft({ email: 'ada@example.com' });
     getHook().nextStep();
   });
   await advanceToGroup(getHook, 'name_legal');
@@ -140,6 +149,13 @@ export async function runStepperStressTests(
           });
           assertEqual(res, true, 'nextStep on welcome must succeed');
           assertEqual(getHook().currentItem.kind, 'group', 'Must advance to first group card');
+          assertEqual(
+            getHook().currentItem.kind === 'group'
+              ? getHook().currentItem.groupId
+              : null,
+            'contact_email',
+            'First group after welcome must be email'
+          );
           assertEqual(getHook().canGoBack, true, 'canGoBack must be true after welcome');
         } finally {
           await unmount();
@@ -216,8 +232,16 @@ export async function runStepperStressTests(
       async () => {
         const { getHook, unmount } = await mountHook();
         try {
-          await advanceThroughMandatoryIdentity(getHook);
-          await advanceToGroup(getHook, 'contact_email');
+          await act(async () => {
+            getHook().nextStep();
+          });
+          assertEqual(
+            getHook().currentItem.kind === 'group'
+              ? getHook().currentItem.groupId
+              : null,
+            'contact_email',
+            'Welcome must advance to email first'
+          );
 
           await act(async () => {
             getHook().updateDraft({ email: '' });
@@ -244,13 +268,20 @@ export async function runStepperStressTests(
             res = getHook().nextStep();
           });
           assertEqual(res, true, 'nextStep must succeed with valid email');
+          assertEqual(
+            getHook().currentItem.kind === 'group'
+              ? getHook().currentItem.groupId
+              : null,
+            'name_legal',
+            'Valid email must advance to name step'
+          );
         } finally {
           await unmount();
         }
       },
     ],
     [
-      'STRESS-STEP-06: presence answer is optional and advances to card_style when empty',
+      'STRESS-STEP-06: presence answer is optional and advances to role_company when empty',
       async () => {
         await mockStorage.clear();
         const { getHook, unmount } = await mountHook();
@@ -281,22 +312,26 @@ export async function runStepperStressTests(
             res = getHook().nextStep();
           });
           assertEqual(res, true, 'Optional presence must advance');
-          assertEqual(getHook().currentItem.kind, 'card_style', 'Must arrive at card_style');
-          assertEqual(getHook().isLastStep, true, 'isLastStep must be true on card_style');
+          const item06 = getHook().currentItem;
+          assertEqual(item06.kind, 'group', 'Must advance to role_company group');
+          assertEqual(item06.kind === 'group' ? item06.groupId : null, 'role_company');
+          assertEqual(getHook().isLastStep, false, 'isLastStep must be false before final step');
         } finally {
           await unmount();
         }
       },
     ],
     [
-      'STRESS-STEP-07: nextStep on card_style does not advance past last flow item',
+      'STRESS-STEP-07: nextStep on last flow item does not advance past end',
       async () => {
         const { getHook, unmount } = await mountHook();
         try {
           await act(async () => {
             getHook().goToStep(5);
           });
-          assertEqual(getHook().currentItem.kind, 'card_style');
+          const item07 = getHook().currentItem;
+          assertEqual(item07.kind, 'group');
+          assertEqual(item07.kind === 'group' ? item07.groupId : null, 'short_bio');
 
           const before = getHook().flowIndex;
           await act(async () => {
@@ -395,27 +430,28 @@ export async function runStepperStressTests(
             });
             getHook().nextStep();
           });
-          await advanceToGroup(getHook, 'credentials');
+          await advanceToGroup(getHook, 'short_bio');
 
           await act(async () => {
             getHook().skipStep();
           });
           const item0 = getHook().currentItem;
+          assertEqual(getHook().isLastStep, true, 'short_bio must be the last onboarding step');
           assertEqual(
             item0.kind === 'group' ? item0.groupId : null,
-            'tagline',
-            'skip credentials must land on tagline group'
+            'short_bio',
+            'advanceToGroup must reach short_bio'
           );
 
           await act(async () => {
             getHook().skipStep();
           });
           const item1 = getHook().currentItem;
-          assertEqual(item1.kind, 'group', 'skip must land on next group card');
+          assertEqual(item1.kind, 'group', 'skip must stay on last group');
           assertEqual(
             item1.kind === 'group' ? item1.groupId : null,
-            'contact_email',
-            'skip tagline must land on contact_email group'
+            'short_bio',
+            'skip on last step must remain on short_bio'
           );
         } finally {
           await unmount();
@@ -423,7 +459,7 @@ export async function runStepperStressTests(
       },
     ],
     [
-      'STRESS-STEP-11: Draft fields retained when navigating back and jumping to card_style',
+      'STRESS-STEP-11: Draft fields retained when navigating back and jumping to presence',
       async () => {
         const { getHook, unmount } = await mountHook();
         try {
@@ -448,7 +484,7 @@ export async function runStepperStressTests(
           });
 
           await act(async () => {
-            getHook().goToStep(2);
+            getHook().goToStep(3);
           });
           const item11 = getHook().currentItem;
           assertEqual(item11.kind, 'group');

@@ -22,7 +22,9 @@ export function runOnboardingComponentsTests(): { passed: number; failed: number
         if (groups.length === 0) {
           throw new Error('Flow must include group screens');
         }
-        assertEqual(ONBOARDING_FLOW[ONBOARDING_FLOW.length - 1].kind, 'card_style');
+        assertEqual(ONBOARDING_FLOW[ONBOARDING_FLOW.length - 1].kind, 'group');
+        const lastGroup = ONBOARDING_FLOW[ONBOARDING_FLOW.length - 1];
+        assertEqual(lastGroup.kind === 'group' ? lastGroup.groupId : null, 'short_bio');
       },
     ],
 

@@ -19,11 +19,13 @@ function pickErrors(all: ValidationErrors, keys: string[]): ValidationErrors {
 function isOptionalGroup(groupId: OnboardingFlowGroupId): boolean {
   return (
     groupId === 'name_formal' ||
-    groupId === 'credentials' ||
     groupId === 'tagline' ||
     groupId === 'contact_phone' ||
-    groupId === 'work_extra' ||
-    groupId === 'presence'
+    groupId === 'work_logo_website' ||
+    groupId === 'work_dept_address' ||
+    groupId === 'short_bio' ||
+    groupId === 'presence' ||
+    groupId === 'social_links'
   );
 }
 
@@ -44,6 +46,7 @@ export function validateFlowGroup(
         'prefix',
         'middleName',
         'suffix',
+        'accreditations',
       ]);
     case 'name_formal':
       return pickErrors(validatePersonalStep(draft), [
@@ -56,23 +59,21 @@ export function validateFlowGroup(
       ]);
     case 'role_company':
       return pickErrors(validatePersonalStep(draft), ['title', 'organization']);
-    case 'credentials':
-      return pickErrors(validatePersonalStep(draft), ['accreditations']);
     case 'tagline':
       return pickErrors(validatePersonalStep(draft), ['tagline']);
     case 'contact_email':
-      return pickErrors(validateProfessionalStep(draft), ['email']);
+      return pickErrors(validateProfessionalStep(draft), ['email', 'phone']);
     case 'contact_phone':
       return pickErrors(validateProfessionalStep(draft), ['phone']);
-    case 'work_extra':
-      return pickErrors(validateProfessionalStep(draft), [
-        'department',
-        'website',
-        'businessAddress',
-        'shortBio',
-        'companyLogoUrl',
-      ]);
+    case 'work_logo_website':
+      return pickErrors(validateProfessionalStep(draft), ['website', 'companyLogoUrl']);
+    case 'work_dept_address':
+      return pickErrors(validateProfessionalStep(draft), ['department', 'businessAddress']);
+    case 'short_bio':
+      return pickErrors(validateProfessionalStep(draft), ['shortBio']);
     case 'presence':
+      return pickErrors(validatePersonalStep(draft), ['tagline']);
+    case 'social_links':
       return validateSocialStep(draft);
     case 'card_style':
       return validateCustomizationStep(draft);

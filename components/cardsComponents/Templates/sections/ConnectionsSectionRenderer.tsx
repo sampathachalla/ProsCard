@@ -7,7 +7,13 @@ import { Text } from '@/components/uiComponents/Text';
 import type { CardDetailField, CardDetailSection } from '../cardDetailTemplate';
 import type { CardVisualTheme } from '../../types/card.types';
 import { getCardFontFamily, getCardLetterSpacing } from '../cardTheme';
-import { formatDisplayValue, resolveActionUrl } from './SectionSharedComponents';
+import {
+  BOXED_SHADOW_LG,
+  BOXED_SHADOW_MD,
+  BOXED_SHADOW_SM,
+  formatDisplayValue,
+  resolveActionUrl,
+} from './SectionSharedComponents';
 import { resolveLayoutColorSlots } from '@/utils/cardThemeColor';
 
 type Props = {
@@ -132,12 +138,12 @@ export function ConnectionsSectionRenderer({
   if (section.templateId === 'minimal') {
     return (
       <View
-        className={`flex-row flex-wrap gap-2 overflow-hidden p-3 ${boxed ? 'mb-5 rounded-[28px] border shadow-sm' : ''}`}
-        style={{
+        className={`flex-row flex-wrap gap-2 overflow-hidden p-3 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
+        style={[{
           backgroundColor: slots.background,
           borderColor: boxed ? slots.accent : undefined,
           height: compact ? '100%' : undefined,
-        }}
+        }, boxed ? BOXED_SHADOW_SM : null]}
       >
         {fields.map((field) => {
           const presentation = getConnectionPresentation(field, showEmpty);
@@ -171,8 +177,8 @@ export function ConnectionsSectionRenderer({
     return (
       <LinearGradient
         colors={gradient}
-        className={`overflow-hidden p-4 ${boxed ? 'mb-5 rounded-[28px] shadow-lg' : ''}`}
-        style={{ height: compact ? '100%' : undefined }}
+        className={`overflow-hidden p-4 ${boxed ? 'mb-5 rounded-[28px]' : ''}`}
+        style={[{ height: compact ? '100%' : undefined }, boxed ? BOXED_SHADOW_LG : null]}
       >
         <View className="gap-2">
           {fields.map((field) => {
@@ -205,12 +211,12 @@ export function ConnectionsSectionRenderer({
   if (section.templateId === 'glass') {
     return (
       <View
-        className={`flex-row flex-wrap gap-2.5 overflow-hidden p-4 ${boxed ? 'mb-5 rounded-[28px] border shadow-md' : ''}`}
-        style={{
+        className={`flex-row flex-wrap gap-2.5 overflow-hidden p-4 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
+        style={[{
           backgroundColor: slots.background,
           borderColor: boxed ? slots.highlight : undefined,
           height: compact ? '100%' : undefined,
-        }}
+        }, boxed ? BOXED_SHADOW_MD : null]}
       >
         {fields.map((field) => {
           const presentation = getConnectionPresentation(field, showEmpty);
@@ -245,12 +251,12 @@ export function ConnectionsSectionRenderer({
   if (section.templateId === 'compact') {
     return (
       <View
-        className={`flex-row flex-wrap gap-2 overflow-hidden p-3 ${boxed ? 'mb-5 rounded-[28px] border shadow-sm' : ''}`}
-        style={{
+        className={`flex-row flex-wrap gap-2 overflow-hidden p-3 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
+        style={[{
           backgroundColor: slots.surface,
           borderColor: boxed ? slots.highlight : undefined,
           height: compact ? '100%' : undefined,
-        }}
+        }, boxed ? BOXED_SHADOW_SM : null]}
       >
         {fields.map((field) => {
           const presentation = getConnectionPresentation(field, showEmpty);
@@ -286,12 +292,12 @@ export function ConnectionsSectionRenderer({
   if (section.templateId === 'editorial') {
     return (
       <View
-        className={`overflow-hidden p-4 ${boxed ? 'mb-5 rounded-[28px] border shadow-sm' : ''}`}
-        style={{
+        className={`overflow-hidden p-4 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
+        style={[{
           backgroundColor: slots.surface,
           borderColor: boxed ? slots.highlight : undefined,
           height: compact ? '100%' : undefined,
-        }}
+        }, boxed ? BOXED_SHADOW_SM : null]}
       >
         {fields.map((field, idx) => {
           const presentation = getConnectionPresentation(field, showEmpty);
@@ -331,12 +337,12 @@ export function ConnectionsSectionRenderer({
 
     return (
       <View
-        className={`overflow-hidden p-3.5 gap-2.5 ${boxed ? 'mb-5 rounded-[28px] border shadow-md' : ''}`}
-        style={{
+        className={`overflow-hidden p-3.5 gap-2.5 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
+        style={[{
           backgroundColor: slots.surface,
           borderColor: boxed ? slots.highlight : undefined,
           height: compact ? '100%' : undefined,
-        }}
+        }, boxed ? BOXED_SHADOW_MD : null]}
       >
         {heroField && (
           <Pressable
@@ -395,12 +401,12 @@ export function ConnectionsSectionRenderer({
   if (section.templateId === 'banner') {
     return (
       <View
-        className={`gap-2 overflow-hidden p-3.5 ${boxed ? 'mb-5 rounded-[28px] border shadow-sm' : ''}`}
-        style={{
+        className={`gap-2 overflow-hidden p-3.5 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
+        style={[{
           backgroundColor: slots.background,
           borderColor: boxed ? slots.highlight : undefined,
           height: compact ? '100%' : undefined,
-        }}
+        }, boxed ? BOXED_SHADOW_SM : null]}
       >
         {fields.map((field) => {
           const presentation = getConnectionPresentation(field, showEmpty);
@@ -431,12 +437,12 @@ export function ConnectionsSectionRenderer({
   if (section.templateId === 'cards') {
     return (
       <View
-        className={`flex-row flex-wrap gap-2.5 overflow-hidden p-3.5 ${boxed ? 'mb-5 rounded-[28px] border shadow-sm' : ''}`}
-        style={{
+        className={`flex-row flex-wrap gap-2.5 overflow-hidden p-3.5 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
+        style={[{
           backgroundColor: slots.background,
           borderColor: boxed ? slots.highlight : undefined,
           height: compact ? '100%' : undefined,
-        }}
+        }, boxed ? BOXED_SHADOW_SM : null]}
       >
         {fields.map((field) => {
           const presentation = getConnectionPresentation(field, showEmpty);
@@ -445,12 +451,15 @@ export function ConnectionsSectionRenderer({
               key={field.id}
               disabled={!resolveActionUrl(field)}
               onPress={() => handlePress(field)}
-              className="rounded-2xl border p-3.5 shadow-sm active:opacity-70"
-              style={{
-                backgroundColor: slots.surface,
-                borderColor: slots.highlight,
-                width: useTwoColumns ? '48%' : '100%',
-              }}
+              className="rounded-2xl border p-3.5 active:opacity-70"
+              style={[
+                {
+                  backgroundColor: slots.surface,
+                  borderColor: slots.highlight,
+                  width: useTwoColumns ? '48%' : '100%',
+                },
+                BOXED_SHADOW_SM,
+              ]}
             >
               <View className="mb-2 h-9 w-9 items-center justify-center rounded-xl" style={{ backgroundColor: `${slots.accent}18` }}>
                 <ConnectionIcon color={slots.accent} field={field} size={17} />
@@ -467,12 +476,12 @@ export function ConnectionsSectionRenderer({
   if (section.templateId === 'badge') {
     return (
       <View
-        className={`overflow-hidden p-4 ${boxed ? 'mb-5 rounded-[28px] border shadow-sm' : ''}`}
-        style={{
+        className={`overflow-hidden p-4 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
+        style={[{
           backgroundColor: slots.surface,
           borderColor: boxed ? slots.accent : undefined,
           height: compact ? '100%' : undefined,
-        }}
+        }, boxed ? BOXED_SHADOW_SM : null]}
       >
         <View className="flex-row flex-wrap items-center justify-center gap-3">
           {fields.map((field) => {
@@ -502,12 +511,12 @@ export function ConnectionsSectionRenderer({
   if (section.templateId === 'split') {
     return (
       <View
-        className={`overflow-hidden p-3 ${boxed ? 'mb-5 rounded-[28px] border shadow-sm' : ''}`}
-        style={{
+        className={`overflow-hidden p-3 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
+        style={[{
           backgroundColor: slots.surface,
           borderColor: boxed ? slots.highlight : undefined,
           height: compact ? '100%' : undefined,
-        }}
+        }, boxed ? BOXED_SHADOW_SM : null]}
       >
         <View className="flex-row flex-wrap gap-2">
           {fields.map((field, idx) => {
@@ -541,13 +550,13 @@ export function ConnectionsSectionRenderer({
   if (section.templateId === 'neon') {
     return (
       <View
-        className={`gap-2.5 overflow-hidden p-4 ${boxed ? 'mb-5 rounded-[28px] border shadow-sm' : ''}`}
-        style={{
+        className={`gap-2.5 overflow-hidden p-4 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
+        style={[{
           backgroundColor: '#0F172A',
           borderColor: slots.accent,
           borderWidth: 1.5,
           height: compact ? '100%' : undefined,
-        }}
+        }, boxed ? BOXED_SHADOW_SM : null]}
       >
         {fields.map((field) => {
           const presentation = getConnectionPresentation(field, showEmpty);
@@ -585,12 +594,12 @@ export function ConnectionsSectionRenderer({
   // Action Tiles (classic): clean directory rows
   return (
     <View
-      className={`overflow-hidden px-4 py-2 ${boxed ? 'mb-5 rounded-[28px] border shadow-sm' : ''}`}
-      style={{
+      className={`overflow-hidden px-4 py-2 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
+      style={[{
         backgroundColor: slots.surface,
         borderColor: boxed ? slots.accent : undefined,
         height: compact ? '100%' : undefined,
-      }}
+      }, boxed ? BOXED_SHADOW_SM : null]}
     >
       {fields.map((field, index) => {
         const presentation = getConnectionPresentation(field, showEmpty);

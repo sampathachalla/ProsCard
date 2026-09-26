@@ -5,7 +5,14 @@ import { Text } from '@/components/uiComponents/Text';
 import type { CardDetailSection } from '../cardDetailTemplate';
 import type { CardVisualTheme } from '../../types/card.types';
 import { getCardFontFamily, getCardLetterSpacing } from '../cardTheme';
-import { IdentityImage, UniversalLogoBadge } from './SectionSharedComponents';
+import {
+  BOXED_SHADOW_LG,
+  BOXED_SHADOW_MD,
+  BOXED_SHADOW_SM,
+  BOXED_SHADOW_XL,
+  IdentityImage,
+  UniversalLogoBadge,
+} from './SectionSharedComponents';
 import { resolveLayoutColorSlots } from '@/utils/cardThemeColor';
 
 type Props = {
@@ -89,7 +96,7 @@ export function IdentitySectionRenderer({
   // 1. Split profile (minimal): 40/60 horizontal split
   if (section.templateId === 'minimal') {
     return (
-      <View className={`flex-row overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border shadow-sm' : ''}`} style={shellStyle}>
+      <View className={`flex-row overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`} style={[shellStyle, boxed ? BOXED_SHADOW_SM : null]}>
         <View className="w-[40%] items-center justify-center overflow-hidden p-2" style={{ backgroundColor: slots.background }}>
           <IdentityImage field={cover} {...imageColors} style={{ position: 'absolute', inset: 0 }} />
           <View className="absolute inset-0 bg-black/20" />
@@ -125,7 +132,7 @@ export function IdentitySectionRenderer({
   // 2. Hero banner (bold): full-bleed media
   if (section.templateId === 'bold') {
     return (
-      <View className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border shadow-lg' : ''}`} style={shellStyle}>
+      <View className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`} style={[shellStyle, boxed ? BOXED_SHADOW_LG : null]}>
         <IdentityImage field={cover} {...imageColors} style={{ bottom: 0, left: 0, position: 'absolute', right: 0, top: 0 }} />
         <LinearGradient
           colors={['rgba(0,0,0,0.15)', 'rgba(0,0,0,0.85)']}
@@ -164,7 +171,7 @@ export function IdentitySectionRenderer({
   // 3. Layered profile (glass): cover photo backdrop with floating frosted glass card
   if (section.templateId === 'glass') {
     return (
-      <View className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border shadow-md' : ''}`} style={shellStyle}>
+      <View className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`} style={[shellStyle, boxed ? BOXED_SHADOW_MD : null]}>
         <IdentityImage field={cover} {...imageColors} style={{ position: 'absolute', inset: 0 }} />
         <LinearGradient
           colors={['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.65)']}
@@ -172,8 +179,8 @@ export function IdentitySectionRenderer({
         />
         <View className="flex-1 items-center justify-end p-4">
           <View
-            className="w-full items-center rounded-2xl border p-4 shadow-xl backdrop-blur-md"
-            style={{ backgroundColor: 'rgba(15, 23, 42, 0.85)', borderColor: slots.accent }}
+            className="w-full items-center rounded-2xl border p-4 backdrop-blur-md"
+            style={[{ backgroundColor: 'rgba(15, 23, 42, 0.85)', borderColor: slots.accent }, BOXED_SHADOW_XL]}
           >
             <View style={{ marginTop: -(profileSize / 2) }}>
               <IdentityImage
@@ -211,8 +218,8 @@ export function IdentitySectionRenderer({
   if (section.templateId === 'compact') {
     return (
       <View
-        className={`flex-row items-center justify-between overflow-hidden px-4 py-3 ${boxed ? 'mb-5 rounded-[24px] border shadow-sm' : ''}`}
-        style={{ backgroundColor: slots.surface, borderColor: slots.highlight, minHeight: compact ? 64 : 84 }}
+        className={`flex-row items-center justify-between overflow-hidden px-4 py-3 ${boxed ? 'mb-5 rounded-[24px] border' : ''}`}
+        style={[{ backgroundColor: slots.surface, borderColor: slots.highlight, minHeight: compact ? 64 : 84 }, boxed ? BOXED_SHADOW_SM : null]}
       >
         <View className="flex-row items-center min-w-0 flex-1 mr-3">
           <IdentityImage
@@ -245,7 +252,7 @@ export function IdentitySectionRenderer({
   // 5. Magazine Monograph (editorial): top cover band with offset square avatar and serif title
   if (section.templateId === 'editorial') {
     return (
-      <View className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border shadow-sm' : ''}`} style={shellStyle}>
+      <View className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`} style={[shellStyle, boxed ? BOXED_SHADOW_SM : null]}>
         <View style={{ height: compact ? 90 : 130 }}>
           <IdentityImage field={cover} {...imageColors} style={{ width: '100%', height: '100%' }} />
         </View>
@@ -283,8 +290,8 @@ export function IdentitySectionRenderer({
   if (section.templateId === 'spotlight') {
     return (
       <View
-        className={`items-center justify-center overflow-hidden p-5 ${boxed ? 'mb-5 rounded-[28px] border shadow-md' : ''}`}
-        style={{ minHeight: compact ? 180 : 260, borderColor: slots.accent }}
+        className={`items-center justify-center overflow-hidden p-5 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
+        style={[{ minHeight: compact ? 180 : 260, borderColor: slots.accent }, boxed ? BOXED_SHADOW_MD : null]}
       >
         {/* Full Cover Photo Background */}
         <IdentityImage field={cover} {...imageColors} style={{ position: 'absolute', inset: 0 }} />
@@ -333,7 +340,7 @@ export function IdentitySectionRenderer({
   // 7. Ribbon Header (banner): dedicated top ribbon containing logo, cover band and avatar
   if (section.templateId === 'banner') {
     return (
-      <View className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border shadow-sm' : ''}`} style={shellStyle}>
+      <View className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`} style={[shellStyle, boxed ? BOXED_SHADOW_SM : null]}>
         <View className="flex-row items-center justify-between px-4 py-3" style={{ backgroundColor: slots.accent }}>
           <Text className="text-xs font-black uppercase tracking-wider" style={{ color: slots.accentText }}>Identity Pass</Text>
           <UniversalLogoBadge
@@ -371,15 +378,15 @@ export function IdentitySectionRenderer({
   // 8. Modular Bento (cards): floating identity cardlet over cover photo background
   if (section.templateId === 'cards') {
     return (
-      <View className={`overflow-hidden p-3 ${boxed ? 'mb-5 rounded-[28px] border shadow-sm' : ''}`} style={shellStyle}>
+      <View className={`overflow-hidden p-3 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`} style={[shellStyle, boxed ? BOXED_SHADOW_SM : null]}>
         <IdentityImage field={cover} {...imageColors} style={{ position: 'absolute', inset: 0 }} />
         <LinearGradient
           colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.75)']}
           style={StyleSheet.absoluteFill}
         />
         <View
-          className="flex-1 rounded-2xl border p-4 shadow-xl"
-          style={{ backgroundColor: 'rgba(15, 23, 42, 0.88)', borderColor: slots.accent }}
+          className="flex-1 rounded-2xl border p-4"
+          style={[{ backgroundColor: 'rgba(15, 23, 42, 0.88)', borderColor: slots.accent }, BOXED_SHADOW_XL]}
         >
           <View className="flex-row items-center justify-between">
             <IdentityImage
@@ -414,8 +421,8 @@ export function IdentitySectionRenderer({
   if (section.templateId === 'badge') {
     return (
       <View
-        className={`overflow-hidden p-4 ${boxed ? 'mb-5 rounded-[28px] border shadow-md' : ''}`}
-        style={{ backgroundColor: slots.surface, borderColor: slots.accent, minHeight: compact ? 200 : 270 }}
+        className={`overflow-hidden p-4 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
+        style={[{ backgroundColor: slots.surface, borderColor: slots.accent, minHeight: compact ? 200 : 270 }, boxed ? BOXED_SHADOW_MD : null]}
       >
         <View className="mb-3 items-center">
           <View className="h-1.5 w-14 rounded-full" style={{ backgroundColor: slots.highlight }} />
@@ -456,7 +463,7 @@ export function IdentitySectionRenderer({
   // 10. 50/50 Dual Column (split): left pane for cover photo with avatar & logo, right for preferred name
   if (section.templateId === 'split') {
     return (
-      <View className={`flex-row overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border shadow-sm' : ''}`} style={shellStyle}>
+      <View className={`flex-row overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`} style={[shellStyle, boxed ? BOXED_SHADOW_SM : null]}>
         <View className="w-1/2 items-center justify-center p-4 overflow-hidden" style={{ backgroundColor: slots.background, borderRightWidth: 1, borderRightColor: slots.highlight }}>
           <IdentityImage field={cover} {...imageColors} style={{ position: 'absolute', inset: 0 }} />
           <View className="absolute inset-0 bg-black/35" />
@@ -493,10 +500,11 @@ export function IdentitySectionRenderer({
   if (section.templateId === 'neon') {
     return (
       <View
-        className={`overflow-hidden p-4 ${boxed ? 'mb-5 rounded-[28px] border shadow-sm' : ''}`}
-        style={{ backgroundColor: '#090d16', borderColor: slots.accent, borderWidth: 2, minHeight: compact ? 180 : 250 }}
+        className={`overflow-hidden p-4 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
+        style={[{ backgroundColor: '#090d16', borderColor: slots.accent, borderWidth: 2, minHeight: compact ? 180 : 250 }, boxed ? BOXED_SHADOW_SM : null]}
       >
-        <IdentityImage field={cover} {...imageColors} style={{ position: 'absolute', inset: 0, opacity: 0.22 }} />
+        <IdentityImage field={cover} {...imageColors} style={StyleSheet.absoluteFill} />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(9, 13, 22, 0.78)' }]} />
         <View className="flex-row items-center justify-between border-b pb-3" style={{ borderBottomColor: slots.accent }}>
           <UniversalLogoBadge
             cardTheme={cardTheme}
@@ -506,7 +514,7 @@ export function IdentitySectionRenderer({
             slots={slots}
             templateId={section.templateId}
           />
-          <View className="h-2.5 w-2.5 rounded-full shadow-sm" style={{ backgroundColor: slots.accent }} />
+          <View className="h-2.5 w-2.5 rounded-full" style={[{ backgroundColor: slots.accent }, BOXED_SHADOW_SM]} />
         </View>
         <View className="my-4 flex-row items-center">
           <IdentityImage
@@ -530,7 +538,7 @@ export function IdentitySectionRenderer({
 
   // 12. Editorial cover (classic): cover first, then clean identity row with overlapping avatar
   return (
-    <View className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border shadow-sm' : ''}`} style={shellStyle}>
+    <View className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`} style={[shellStyle, boxed ? BOXED_SHADOW_SM : null]}>
       <View className="relative" style={{ height: compact ? '48%' : 150 }}>
         <IdentityImage field={cover} {...imageColors} style={{ width: '100%', height: '100%' }} />
         <View className="absolute left-3 top-3">

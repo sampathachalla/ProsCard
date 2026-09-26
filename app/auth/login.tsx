@@ -32,18 +32,19 @@ export default function LoginScreen() {
         />
       }
     >
-      <Animated.View entering={FadeIn.duration(400)} className="mb-6 items-center">
-        <BrandLogo
-          accessibilityLabel="MindPROS company logo"
-          size="xl"
-          variant="wordmark"
-        />
-        <View className="-mt-1">
-          <ProsCardTitle accent={false} size="lg" tone="initials" />
-        </View>
-      </Animated.View>
+      <View className="w-full gap-14" style={{ gap: 56 }}>
+        <Animated.View entering={FadeIn.duration(400)} className="items-center">
+          <BrandLogo
+            accessibilityLabel="MindPROS company logo"
+            size="xxl"
+            variant="wordmark"
+          />
+          <View className="-mt-1">
+            <ProsCardTitle accent={false} size="lg" tone="initials" />
+          </View>
+        </Animated.View>
 
-      <Animated.View entering={FadeInDown.delay(80).duration(400)} className="w-full">
+        <Animated.View entering={FadeInDown.delay(80).duration(400)} className="w-full">
         <AuthSoftInput
           value={email}
           onChangeText={setEmail}
@@ -101,7 +102,8 @@ export default function LoginScreen() {
             Continue with Google
           </Text>
         </Pressable>
-      </Animated.View>
+        </Animated.View>
+      </View>
     </AuthScreenShell>
   );
 }

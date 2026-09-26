@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View } from 'react-native';
 import {
   User,
   Briefcase,
@@ -18,12 +18,12 @@ import {
   Play,
   type LucideIcon,
 } from 'lucide-react-native';
+import { Text } from '@/components/uiComponents/Text';
 import { ImageUploadField } from '@/components/uiComponents/ImageUploadField';
 import type { OnboardingDraft } from '../types/onboardingStepper.types';
 import type { FieldSpec } from '../types/onboardingFlow.types';
 import { OnboardingFormField } from './OnboardingFormField';
-import { OptionalFieldsDisclosure } from './OptionalFieldsDisclosure';
-
+import { SocialLinksFieldsBlock } from './SocialLinksFieldsBlock';
 const FIELD_ICONS: Partial<Record<keyof OnboardingDraft, LucideIcon>> = {
   firstName: User,
   lastName: User,
@@ -58,6 +58,32 @@ function rebuildFullName(parts: OnboardingDraft): string {
     .join(' ');
 }
 
+const STRUCTURED_NAME_KEYS = new Set<keyof OnboardingDraft>([
+  'prefix',
+  'firstName',
+  'middleName',
+  'lastName',
+  'suffix',
+]);
+
+const STRUCTURED_NAME_PLACEHOLDERS: Partial<Record<keyof OnboardingDraft, string>> = {
+  prefix: 'Prefix',
+  firstName: 'First name',
+  middleName: 'Middle name',
+  lastName: 'Last name',
+  suffix: 'Suffix',
+};
+
+function structuredNamePresentation(spec: FieldSpec): { label: string; placeholder: string } {
+  if (!STRUCTURED_NAME_KEYS.has(spec.key)) {
+    return { label: spec.label, placeholder: spec.placeholder ?? spec.label };
+  }
+  return {
+    label: '',
+    placeholder: spec.placeholder ?? STRUCTURED_NAME_PLACEHOLDERS[spec.key] ?? spec.label,
+  };
+}
+
 export function PresenceFieldsBlock({
   draft,
   updateDraft,
@@ -71,141 +97,46 @@ export function PresenceFieldsBlock({
     <View>
       <ImageUploadField
         label="Profile photo"
-        description="Your headshot on the card and profile."
         value={draft.photoUrl}
         onChange={(uri) => updateDraft({ photoUrl: uri })}
-        onRemove={() => updateDraft({ photoUrl: '' })}
         variant="avatar"
+        presentation="compact"
       />
 
-      <OnboardingFormField
-        label="LinkedIn"
-        value={draft.linkedin}
-        onChangeText={(text) => updateDraft({ linkedin: text })}
-        placeholder="linkedin.com/in/username or username"
-        error={errors.linkedin}
-        icon={Link2}
-        keyboardType="url"
-        autoCapitalize="none"
-        autoCorrect={false}
-      />
-
-      <OptionalFieldsDisclosure
-        labelCollapsed="Add more links"
-        labelExpanded="Hide additional links"
-        hint="GitHub, X, Instagram, and more"
-      >
-        <ImageUploadField
-          label="Cover photo"
-          description="Optional banner for your profile."
-          value={draft.coverPhotoUrl}
-          onChange={(uri) => updateDraft({ coverPhotoUrl: uri })}
-          onRemove={() => updateDraft({ coverPhotoUrl: '' })}
-          variant="banner"
-        />
-
+      <View className="mt-6 w-full">
+        <View className="mb-3 flex-row items-center gap-2">
+          <View className="h-9 w-9 items-center justify-center rounded-full bg-sky-500/15">
+            <Quote size={18} color="#38bdf8" strokeWidth={2.2} />
+          </View>
+          <View className="flex-1">
+            <Text
+              variant="none"
+              className="text-base font-semibold text-textPrimary dark:text-dark-textPrimary"
+            >
+              Enter your tagline
+            </Text>
+            <Text variant="none" className="mt-0.5 text-sm text-textMuted dark:text-dark-textMuted">
+              One short line on your card
+            </Text>
+          </View>
+        </View>
         <OnboardingFormField
-          label="GitHub"
-          value={draft.github}
-          onChangeText={(text) => updateDraft({ github: text })}
-          placeholder="@username or github.com/username"
-          error={errors.github}
-          icon={GitFork}
-          keyboardType="url"
-          autoCapitalize="none"
-          autoCorrect={false}
+          label=""
+          value={draft.tagline}
+          onChangeText={(text) => updateDraft({ tagline: text })}
+          placeholder="Type your tagline here…"
+          error={errors.tagline}
+          variant="boxed"
+          maxLength={120}
+          multiline
+          numberOfLines={3}
+          autoCapitalize="sentences"
+          showCharacterCount
+          characterCountPlacement="top"
+          hideClear
         />
+      </View>
 
-        <OnboardingFormField
-          label="X (Twitter)"
-          value={draft.x}
-          onChangeText={(text) => updateDraft({ x: text })}
-          placeholder="@username"
-          error={errors.x}
-          icon={AtSign}
-          keyboardType="url"
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-
-        <OnboardingFormField
-          label="Facebook"
-          value={draft.facebook}
-          onChangeText={(text) => updateDraft({ facebook: text })}
-          placeholder="facebook.com/username"
-          error={errors.facebook}
-          icon={AtSign}
-          keyboardType="url"
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-
-        <OnboardingFormField
-          label="Instagram"
-          value={draft.instagram}
-          onChangeText={(text) => updateDraft({ instagram: text })}
-          placeholder="instagram.com/username"
-          error={errors.instagram}
-          icon={AtSign}
-          keyboardType="url"
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-
-        <Text className="mb-3 mt-1 text-xs font-semibold uppercase tracking-wider text-textMuted dark:text-dark-textMuted">
-          Communication
-        </Text>
-        <OnboardingFormField
-          label="WhatsApp"
-          value={draft.whatsapp}
-          onChangeText={(text) => updateDraft({ whatsapp: text })}
-          placeholder="https://wa.me/15551234567"
-          error={errors.whatsapp}
-          icon={MessageCircle}
-          keyboardType="url"
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-
-        <Text className="mb-3 mt-1 text-xs font-semibold uppercase tracking-wider text-textMuted dark:text-dark-textMuted">
-          Media
-        </Text>
-        <OnboardingFormField
-          label="YouTube"
-          value={draft.youtube}
-          onChangeText={(text) => updateDraft({ youtube: text })}
-          placeholder="youtube.com/@channel"
-          error={errors.youtube}
-          icon={Play}
-          keyboardType="url"
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-
-        <OnboardingFormField
-          label="TikTok"
-          value={draft.tiktok}
-          onChangeText={(text) => updateDraft({ tiktok: text })}
-          placeholder="tiktok.com/@username"
-          error={errors.tiktok}
-          icon={Play}
-          keyboardType="url"
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-
-        <OnboardingFormField
-          label="Portfolio"
-          value={draft.portfolio}
-          onChangeText={(text) => updateDraft({ portfolio: text })}
-          placeholder="https://portfolio.me"
-          error={errors.portfolio}
-          icon={Link2}
-          keyboardType="url"
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-      </OptionalFieldsDisclosure>
     </View>
   );
 }
@@ -220,6 +151,17 @@ export function renderOnboardingField(
     return (
       <PresenceFieldsBlock
         key="presence_block"
+        draft={draft}
+        updateDraft={updateDraft}
+        errors={errors}
+      />
+    );
+  }
+
+  if (spec.widget === 'social_block') {
+    return (
+      <SocialLinksFieldsBlock
+        key="social_block"
         draft={draft}
         updateDraft={updateDraft}
         errors={errors}
@@ -266,18 +208,62 @@ export function renderOnboardingField(
         onChangeText={onChangeText}
         placeholder={spec.placeholder}
         error={errors[spec.key]}
-        icon={icon}
         required={spec.required}
         hint={spec.hint}
-        maxLength={spec.maxLength}
+        maxLength={spec.maxLength ?? 120}
         multiline
-        numberOfLines={2}
+        numberOfLines={3}
         autoCapitalize={spec.autoCapitalize ?? 'sentences'}
+        showCharacterCount
+        hideClear
+        compact
+        centerAlign
       />
     );
   }
 
   if (spec.key === 'shortBio') {
+    const bioOnOwnStep = !spec.label;
+    if (bioOnOwnStep) {
+      return (
+        <View key={spec.key} className="w-full">
+          <View className="mb-3 flex-row items-center gap-2">
+            <View className="h-9 w-9 items-center justify-center rounded-full bg-sky-500/15">
+              <FileText size={18} color="#38bdf8" strokeWidth={2.2} />
+            </View>
+            <View className="flex-1">
+              <Text
+                variant="none"
+                className="text-base font-semibold text-textPrimary dark:text-dark-textPrimary"
+              >
+                Write your short bio
+              </Text>
+              <Text
+                variant="none"
+                className="mt-0.5 text-sm text-textMuted dark:text-dark-textMuted"
+              >
+                A brief professional summary on your card
+              </Text>
+            </View>
+          </View>
+          <OnboardingFormField
+            label=""
+            value={value}
+            onChangeText={onChangeText}
+            placeholder="Describe what you do, your experience, or what you care about…"
+            error={errors[spec.key]}
+            variant="boxed"
+            maxLength={spec.maxLength ?? 240}
+            multiline
+            numberOfLines={5}
+            autoCapitalize={spec.autoCapitalize ?? 'sentences'}
+            showCharacterCount
+            characterCountPlacement="top"
+            hideClear
+          />
+        </View>
+      );
+    }
     return (
       <OnboardingFormField
         key={spec.key}
@@ -292,18 +278,20 @@ export function renderOnboardingField(
         maxLength={spec.maxLength}
         multiline
         numberOfLines={4}
-        autoCapitalize={spec.autoCapitalize}
+        autoCapitalize={spec.autoCapitalize ?? 'sentences'}
       />
     );
   }
 
+  const { label, placeholder } = structuredNamePresentation(spec);
+
   return (
     <OnboardingFormField
       key={spec.key}
-      label={spec.label}
+      label={label}
       value={value}
       onChangeText={onChangeText}
-      placeholder={spec.placeholder}
+      placeholder={placeholder}
       error={errors[spec.key]}
       icon={icon}
       keyboardType={spec.keyboardType}
@@ -312,6 +300,13 @@ export function renderOnboardingField(
       required={spec.required}
       hint={spec.hint}
       maxLength={spec.maxLength}
+      compact={STRUCTURED_NAME_KEYS.has(spec.key)}
+      hideClear={
+        STRUCTURED_NAME_KEYS.has(spec.key) ||
+        label === '' ||
+        spec.key === 'email' ||
+        spec.key === 'phone'
+      }
     />
   );
 }

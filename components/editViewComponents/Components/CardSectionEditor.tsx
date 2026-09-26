@@ -1,13 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  LayoutAnimation,
   KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
   ScrollView,
   TextInput,
-  UIManager,
   View,
   useWindowDimensions,
 } from 'react-native';
@@ -239,25 +237,6 @@ function EditorInput({
     </View>
   );
 }
-
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
-
-const CONNECTION_ACTION_ANIMATION = {
-  duration: 420,
-  create: {
-    type: LayoutAnimation.Types.easeInEaseOut,
-    property: LayoutAnimation.Properties.opacity,
-  },
-  update: {
-    type: LayoutAnimation.Types.easeInEaseOut,
-  },
-  delete: {
-    type: LayoutAnimation.Types.easeInEaseOut,
-    property: LayoutAnimation.Properties.opacity,
-  },
-} as const;
 
 const CONNECTION_ROW_DRAG_STEP = 72;
 
@@ -511,7 +490,6 @@ export function CardSectionEditor({
     );
 
   const setEditingConnection = (fieldId: string | null) => {
-    LayoutAnimation.configureNext(CONNECTION_ACTION_ANIMATION);
     setEditingConnectionId(fieldId);
   };
   const moveConnection = (from: number, to: number) => {
@@ -550,7 +528,6 @@ export function CardSectionEditor({
     setCustomFieldPickerOpen(false);
   };
   const toggleCustomFieldPicker = () => {
-    LayoutAnimation.configureNext(CONNECTION_ACTION_ANIMATION);
     setEditingConnectionId(null);
     setCustomFieldPickerOpen((current) => !current);
   };
@@ -598,7 +575,7 @@ export function CardSectionEditor({
             <TextInput
               value={getFieldValue('preferredName')}
               onChangeText={(value) => onFieldChange('preferredName', value)}
-              placeholder="e.g. Dr. Sampath Kambhampati"
+              placeholder="e.g. Dr. Sampath Achalla"
               placeholderTextColor="#64748b"
               className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 text-base font-bold text-textPrimary dark:border-slate-700/80 dark:bg-[#060a14] dark:text-white"
               style={{ height: editBarCollapsed ? 72 : 52 }}
@@ -680,7 +657,7 @@ export function CardSectionEditor({
         <TextInput
           value={getFieldValue('preferredName')}
           onChangeText={(val) => onFieldChange('preferredName', val)}
-          placeholder="e.g. Dr. Sampath Kambhampati"
+          placeholder="e.g. Dr. Sampath Achalla"
           placeholderTextColor="#64748b"
           className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3.5 text-base font-bold text-textPrimary dark:border-slate-700/80 dark:bg-[#060a14] dark:text-white"
         />
@@ -794,7 +771,7 @@ export function CardSectionEditor({
           value={getFieldValue('title')}
           onChangeText={(val) => onFieldChange('title', val)}
           onFocus={onProfessionalFieldFocus}
-          placeholder="e.g. Founder & Chief Executive Officer"
+          placeholder="e.g. FDE"
         />
         <EditorInput
           roomy
@@ -1150,6 +1127,7 @@ export function CardSectionEditor({
             activeTemplateId={card.sectionLayouts[activeSection]}
             backLabel={`Back to ${activeEditTab === 'layout' ? 'Layout' : 'Content'}`}
             customThemes={card.customThemes ?? []}
+            editBarCollapsed={editBarCollapsed}
             onBack={onCloseStyling}
             theme={card.sectionThemes[activeSection]}
             onChange={(theme) => onThemeChange(activeSection, theme)}
@@ -1179,6 +1157,7 @@ export function CardSectionEditor({
                 }
               />
               <LayoutTemplatePicker
+                editBarCollapsed={editBarCollapsed}
                 showHeader={false}
                 section={activeSection}
                 selectedTemplateId={section.templateId}

@@ -1,10 +1,24 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 import { ChevronDown, ChevronUp } from 'lucide-react-native';
-import ColorPicker, { BrightnessSlider, HueSlider, Panel1, Preview } from 'reanimated-color-picker';
+import { LinearGradient } from 'expo-linear-gradient';
+import ColorPicker, { BrightnessSlider, HueSlider, Panel1, Preview, SaturationSlider } from 'reanimated-color-picker';
 import { Text } from '@/components/uiComponents/Text';
 import { EditorPresentationCrossfade } from '@/components/uiComponents/editor/EditorPresentationCrossfade';
 import { normalizeHexColor } from '@/utils/cardThemeColor';
+
+/** Rainbow spectrum fallback behind HueSlider — the library's own hue track
+ * relies solely on a bundled image with no background-color fallback (unlike
+ * Saturation/Brightness), so it can render blank with no visible track. */
+const HUE_SPECTRUM_COLORS = [
+  '#ff0000',
+  '#ffff00',
+  '#00ff00',
+  '#00ffff',
+  '#0000ff',
+  '#ff00ff',
+  '#ff0000',
+] as const;
 
 type ColorPickerDropdownProps = {
   compactTrigger?: boolean;
@@ -93,13 +107,37 @@ export function ColorPickerDropdown({
       {...PICKER_THUMB}
       style={{ width: '100%' }}
     >
-      <View className="h-[132px] flex-row gap-4">
+      <View className="h-[192px] flex-row gap-4">
         <View className="flex-[1.65] justify-center">
-          <View className="mb-5">
+          <View className="mb-4">
             <Text className="mb-2 text-[10px] font-bold uppercase tracking-wide text-textMuted dark:text-dark-textMuted">
               Hue
             </Text>
-            <HueSlider
+            <LinearGradient
+              colors={HUE_SPECTRUM_COLORS}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{
+                width: '100%',
+                height: 18,
+                borderRadius: 999,
+                borderWidth: 1,
+                borderColor: 'rgba(148, 163, 184, 0.35)',
+                overflow: 'hidden',
+              }}
+            >
+              <HueSlider
+                {...PICKER_THUMB}
+                sliderThickness={18}
+                style={{ width: '100%', height: 18, borderRadius: 999 }}
+              />
+            </LinearGradient>
+          </View>
+          <View className="mb-4">
+            <Text className="mb-2 text-[10px] font-bold uppercase tracking-wide text-textMuted dark:text-dark-textMuted">
+              Saturation
+            </Text>
+            <SaturationSlider
               {...PICKER_THUMB}
               sliderThickness={18}
               style={{ width: '100%', height: 18, borderRadius: 999 }}
@@ -175,17 +213,25 @@ export function ColorPickerDropdown({
         }}
       />
 
-      <HueSlider
-        {...PICKER_THUMB}
-        sliderThickness={14}
+      <LinearGradient
+        colors={HUE_SPECTRUM_COLORS}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
         style={{
           width: '100%',
           height: 14,
           borderRadius: 999,
           borderWidth: 1,
           borderColor: 'rgba(148, 163, 184, 0.2)',
+          overflow: 'hidden',
         }}
-      />
+      >
+        <HueSlider
+          {...PICKER_THUMB}
+          sliderThickness={14}
+          style={{ width: '100%', height: 14, borderRadius: 999 }}
+        />
+      </LinearGradient>
 
       <View className="mt-4">{hexInput}</View>
     </ColorPicker>
@@ -195,9 +241,11 @@ export function ColorPickerDropdown({
     <View className={compactTrigger ? 'mb-0' : 'mb-4'}>
       {showTrigger ? (
         <>
-          <Text className="mb-2 text-xs font-bold uppercase tracking-wider text-textMuted dark:text-dark-textMuted">
-            {label}
-          </Text>
+          {!compactTrigger ? (
+            <Text className="mb-2 text-xs font-bold uppercase tracking-wider text-textMuted dark:text-dark-textMuted">
+              {label}
+            </Text>
+          ) : null}
           <Pressable
             accessibilityLabel={`${label}: ${normalizedValue}`}
             accessibilityRole="button"
@@ -236,7 +284,7 @@ export function ColorPickerDropdown({
             <EditorPresentationCrossfade
               compact={compactPicker}
               expanded={expandedPicker}
-              compactHeight={132}
+              compactHeight={192}
               expandedHeight={304}
             />
           ) : expandedPicker}

@@ -7,6 +7,7 @@ import type { CardDetailSection } from '../cardDetailTemplate';
 import type { CardVisualTheme } from '../../types/card.types';
 import { getCardFontFamily, getCardLetterSpacing } from '../cardTheme';
 import { resolveLayoutColorSlots } from '@/utils/cardThemeColor';
+import { BOXED_SHADOW_LG, BOXED_SHADOW_MD, BOXED_SHADOW_SM } from './SectionSharedComponents';
 
 type Props = {
   compact?: boolean;
@@ -43,14 +44,14 @@ export function BioSectionRenderer({
   if (section.templateId === 'minimal') {
     return (
       <View
-        className={`justify-center overflow-hidden px-5 py-4 ${boxed ? 'mb-5 rounded-[28px] border shadow-sm' : ''}`}
-        style={{
+        className={`justify-center overflow-hidden px-5 py-4 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
+        style={[{
           backgroundColor: slots.background,
           borderColor: boxed ? slots.accent : undefined,
           borderWidth: boxed ? 1 : 0,
           height: compact ? '100%' : undefined,
           minHeight: compact ? undefined : 116,
-        }}
+        }, boxed ? BOXED_SHADOW_SM : null]}
       >
         <View style={{ borderLeftColor: slots.accent, borderLeftWidth: 4, paddingLeft: compact ? 12 : 18 }}>
           <Text
@@ -70,8 +71,8 @@ export function BioSectionRenderer({
     return (
       <LinearGradient
         colors={gradient}
-        className={`items-center justify-center overflow-hidden px-6 py-5 ${boxed ? 'mb-5 rounded-[28px] shadow-lg' : ''}`}
-        style={{ height: compact ? '100%' : undefined, minHeight: compact ? undefined : 132 }}
+        className={`items-center justify-center overflow-hidden px-6 py-5 ${boxed ? 'mb-5 rounded-[28px]' : ''}`}
+        style={[{ height: compact ? '100%' : undefined, minHeight: compact ? undefined : 132 }, boxed ? BOXED_SHADOW_LG : null]}
       >
         <View className="mb-3 h-1 w-12 rounded-full" style={{ backgroundColor: slots.gradientText }} />
         <Text
@@ -94,12 +95,12 @@ export function BioSectionRenderer({
     return (
       <LinearGradient
         colors={gradient}
-        className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] shadow-md' : ''}`}
-        style={{
+        className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px]' : ''}`}
+        style={[{
           height: compact ? '100%' : undefined,
           minHeight: compact ? undefined : 148,
           padding: compact ? 12 : 16,
-        }}
+        }, boxed ? BOXED_SHADOW_MD : null]}
       >
         <View
           className="absolute"
@@ -147,8 +148,8 @@ export function BioSectionRenderer({
   if (section.templateId === 'compact') {
     return (
       <View
-        className={`flex-row items-center overflow-hidden px-4 py-3 ${boxed ? 'mb-5 rounded-[24px] border shadow-sm' : ''}`}
-        style={{ backgroundColor: slots.surface, borderColor: slots.highlight }}
+        className={`flex-row items-center overflow-hidden px-4 py-3 ${boxed ? 'mb-5 rounded-[24px] border' : ''}`}
+        style={[{ backgroundColor: slots.surface, borderColor: slots.highlight }, boxed ? BOXED_SHADOW_SM : null]}
       >
         <Quote color={slots.accent} size={14} strokeWidth={2.4} />
         <Text
@@ -166,8 +167,8 @@ export function BioSectionRenderer({
   if (section.templateId === 'editorial') {
     return (
       <View
-        className={`overflow-hidden p-5 ${boxed ? 'mb-5 rounded-[28px] border shadow-sm' : ''}`}
-        style={{ backgroundColor: slots.surface, borderColor: slots.highlight }}
+        className={`overflow-hidden p-5 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
+        style={[{ backgroundColor: slots.surface, borderColor: slots.highlight }, boxed ? BOXED_SHADOW_SM : null]}
       >
         <View className="mb-2 flex-row items-center justify-between border-b pb-2" style={{ borderBottomColor: slots.highlight }}>
           <Text className="text-[10px] font-black uppercase tracking-wider" style={{ color: slots.accent }}>ABOUT</Text>
@@ -188,8 +189,8 @@ export function BioSectionRenderer({
   if (section.templateId === 'spotlight') {
     return (
       <View
-        className={`items-center justify-center overflow-hidden p-5 ${boxed ? 'mb-5 rounded-[28px] border shadow-sm' : ''}`}
-        style={{ backgroundColor: slots.surface, borderColor: slots.highlight }}
+        className={`items-center justify-center overflow-hidden p-5 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
+        style={[{ backgroundColor: slots.surface, borderColor: slots.highlight }, boxed ? BOXED_SHADOW_SM : null]}
       >
         <Quote color={slots.accent} size={22} strokeWidth={2} />
         <Text
@@ -211,7 +212,7 @@ export function BioSectionRenderer({
   // Ribbon Header (banner): top ribbon header with card body
   if (section.templateId === 'banner') {
     return (
-      <View className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border shadow-sm' : ''}`} style={{ backgroundColor: slots.surface, borderColor: slots.highlight }}>
+      <View className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`} style={[{ backgroundColor: slots.surface, borderColor: slots.highlight }, boxed ? BOXED_SHADOW_SM : null]}>
         <View className="px-4 py-2" style={{ backgroundColor: slots.accent }}>
           <Text className="text-xs font-black uppercase tracking-wider text-white">Executive Profile</Text>
         </View>
@@ -231,8 +232,8 @@ export function BioSectionRenderer({
   // Modular Bento (cards): inset floating cardlet
   if (section.templateId === 'cards') {
     return (
-      <View className={`overflow-hidden p-3 ${boxed ? 'mb-5 rounded-[28px] border shadow-sm' : ''}`} style={{ backgroundColor: slots.background }}>
-        <View className="rounded-2xl border p-4 shadow-sm" style={{ backgroundColor: slots.surface, borderColor: slots.highlight }}>
+      <View className={`overflow-hidden p-3 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`} style={[{ backgroundColor: slots.background }, boxed ? BOXED_SHADOW_SM : null]}>
+        <View className="rounded-2xl border p-4" style={[{ backgroundColor: slots.surface, borderColor: slots.highlight }, BOXED_SHADOW_SM]}>
           <View className="mb-2.5 flex-row items-center justify-between">
             <Text className="text-[10px] font-black uppercase tracking-wider" style={{ color: slots.accent }}>SUMMARY</Text>
             <Quote color={slots.accent} size={15} />
@@ -253,8 +254,8 @@ export function BioSectionRenderer({
   if (section.templateId === 'badge') {
     return (
       <View
-        className={`overflow-hidden p-4 ${boxed ? 'mb-5 rounded-[28px] border shadow-md' : ''}`}
-        style={{ backgroundColor: slots.surface, borderColor: slots.accent }}
+        className={`overflow-hidden p-4 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
+        style={[{ backgroundColor: slots.surface, borderColor: slots.accent }, boxed ? BOXED_SHADOW_MD : null]}
       >
         <View className="mb-2 flex-row items-center justify-between border-b pb-2" style={{ borderBottomColor: slots.highlight }}>
           <Text className="text-[10px] font-black uppercase tracking-wider" style={{ color: slots.accent }}>VERIFIED BIOGRAPHY</Text>
@@ -274,7 +275,7 @@ export function BioSectionRenderer({
   // 50/50 Dual Column (split): left emblem column, right text
   if (section.templateId === 'split') {
     return (
-      <View className={`flex-row overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border shadow-sm' : ''}`} style={{ backgroundColor: slots.surface, borderColor: slots.highlight }}>
+      <View className={`flex-row overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`} style={[{ backgroundColor: slots.surface, borderColor: slots.highlight }, boxed ? BOXED_SHADOW_SM : null]}>
         <View className="w-1/4 items-center justify-center p-3 border-r" style={{ borderRightColor: slots.highlight, backgroundColor: slots.background }}>
           <Quote color={slots.accent} size={28} strokeWidth={2} />
         </View>
@@ -295,8 +296,8 @@ export function BioSectionRenderer({
   if (section.templateId === 'neon') {
     return (
       <View
-        className={`overflow-hidden p-4 ${boxed ? 'mb-5 rounded-[28px] border shadow-sm' : ''}`}
-        style={{ backgroundColor: slots.background, borderColor: slots.accent, borderWidth: 2 }}
+        className={`overflow-hidden p-4 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
+        style={[{ backgroundColor: slots.background, borderColor: slots.accent, borderWidth: 2 }, boxed ? BOXED_SHADOW_SM : null]}
       >
         <View className="mb-2 flex-row items-center justify-between">
           <Quote color={slots.accent} size={18} />
@@ -316,13 +317,13 @@ export function BioSectionRenderer({
   // Editorial Story (classic): magazine-style quote gutter beside narrative
   return (
     <View
-      className={`flex-row overflow-hidden px-4 py-5 ${boxed ? 'mb-5 rounded-[28px] border shadow-sm' : ''}`}
-      style={{
+      className={`flex-row overflow-hidden px-4 py-5 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
+      style={[{
         backgroundColor: slots.surface,
         borderColor: boxed ? slots.accent : undefined,
         height: compact ? '100%' : undefined,
         minHeight: compact ? undefined : 124,
-      }}
+      }, boxed ? BOXED_SHADOW_SM : null]}
     >
       <View className="mr-4 items-center">
         <Quote color={slots.accent} size={compact ? 20 : 26} strokeWidth={2.2} />

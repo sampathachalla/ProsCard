@@ -8,12 +8,12 @@ export const DEFAULT_PROFILE: Profile = {
   prefix: 'Dr.',
   firstName: 'Sampath',
   middleName: 'Kumar',
-  lastName: 'Kambhampati',
+  lastName: 'Achalla',
   suffix: 'PhD',
-  preferredName: 'Sampath Kambhampati',
+  preferredName: 'Sampath Achalla',
   accreditations: 'MBA, AWS Certified Architect, PMP',
-  fullName: 'Dr. Sampath Kumar Kambhampati PhD',
-  title: 'Founder & CEO',
+  fullName: 'Dr. Sampath Kumar Achalla PhD',
+  title: 'FDE',
   department: 'Executive Leadership',
   organization: 'MindPros Technologies',
   companyLogoUrl: '',
@@ -36,7 +36,7 @@ export const DEFAULT_PROFILE: Profile = {
   tagline: 'Building next-generation digital networking tools for visionary professionals worldwide.',
   businessAddress: '500 Howard St, Suite 400, San Francisco, CA 94105',
   shortBio:
-    'Founder and product builder focused on creating thoughtful digital experiences that help professionals connect, share their work, and build meaningful relationships across global ecosystems.',
+    'Product builder focused on creating thoughtful digital experiences that help professionals connect, share their work, and build meaningful relationships across global ecosystems.',
 };
 
 export async function getStoredUser(): Promise<StoredUser | null> {

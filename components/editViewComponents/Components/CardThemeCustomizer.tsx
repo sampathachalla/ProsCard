@@ -23,11 +23,10 @@ import {
 } from '@/components/cardsComponents/types/card.types';
 import { getCardFontFamily, MULTI_TIER_PRESETS, type MultiTierPreset } from '@/components/cardsComponents/Templates/cardTheme';
 import { Text } from '@/components/uiComponents/Text';
-import { EditorOptionGrid } from '@/components/uiComponents/editor/EditorOptionGrid';
 import { EditorPresentationCrossfade } from '@/components/uiComponents/editor/EditorPresentationCrossfade';
 import { EditorSectionLabel } from '@/components/uiComponents/editor/EditorSectionLabel';
 import { ThemeCreateEditor } from '@/components/uiComponents/ThemeCreateEditor';
-import { buildMultiTierSectionTheme, getCardThemeColorMode, themeFromSavedSectionTheme } from '@/utils/cardThemeColor';
+import { buildMultiTierSectionTheme, themeFromSavedSectionTheme } from '@/utils/cardThemeColor';
 
 const PRESET_NAMES: Record<CardThemePresetId, string> = {
   ocean: 'Ocean',
@@ -90,13 +89,10 @@ function ThemeMultiColorTile({
         colors={['transparent', 'rgba(0,0,0,0.75)']}
         style={[StyleSheet.absoluteFill, { top: '35%' }]}
       />
-      <View className="absolute bottom-2 left-2.5 right-2.5 flex-row items-center justify-between">
+      <View className="absolute bottom-2 left-2.5 right-2.5">
         <Text numberOfLines={1} className="text-xs font-bold text-white">
           {label}
         </Text>
-        <View className="rounded-md bg-black/40 px-1.5 py-0.5">
-          <Text className="text-[10px] font-bold text-white/80">{tier}C</Text>
-        </View>
       </View>
       {selected ? (
         <View className="absolute right-2 top-2 h-5 w-5 items-center justify-center rounded-full bg-primary">
@@ -235,6 +231,7 @@ export function CardStylingCustomizer({
   activeTemplateId,
   backLabel,
   customThemes,
+  editBarCollapsed = false,
   onBack,
   onChange,
   onSaveCustomTheme,
@@ -243,6 +240,7 @@ export function CardStylingCustomizer({
   activeTemplateId?: CardTemplateId;
   backLabel: string;
   customThemes: SavedSectionTheme[];
+  editBarCollapsed?: boolean;
   onBack: () => void;
   onChange: (theme: CardVisualTheme) => void;
   onSaveCustomTheme: (entry: SavedSectionTheme) => void;
@@ -251,7 +249,9 @@ export function CardStylingCustomizer({
   const { width } = useWindowDimensions();
   const editorPaneWidth = Math.min(720, Math.max(260, width - 48));
   const gridGap = 12;
-  const fontCardHeight = Math.min(144, Math.max(96, editorPaneWidth * 0.28));
+  const fontCardHeight = editBarCollapsed
+    ? Math.min(176, Math.max(128, editorPaneWidth * 0.34))
+    : Math.min(144, Math.max(96, editorPaneWidth * 0.28));
 
   const [customEditorOpen, setCustomEditorOpen] = useState(false);
   const [draftThemeName, setDraftThemeName] = useState('');
@@ -274,36 +274,13 @@ export function CardStylingCustomizer({
     return list;
   }, [customThemes, layoutTier]);
 
-  const categorizedThemeItems = useMemo(() => {
-    const light: ThemeListItem[] = [{ kind: 'create' }];
-    const dark: ThemeListItem[] = [];
-    themeItems.forEach((item) => {
-      if (item.kind === 'create') return;
-      const categorizedTheme = item.kind === 'saved'
-        ? themeFromSavedSectionTheme(item.saved, theme.fontStyle)
-        : buildMultiTierSectionTheme(item.preset.colors, theme.fontStyle);
-      (getCardThemeColorMode(categorizedTheme) === 'dark' ? dark : light).push(item);
-    });
-    return { light, dark };
-  }, [theme.fontStyle, themeItems]);
-
-  const themeGroups = [
-    { key: 'light' as const, title: 'Light themes', items: categorizedThemeItems.light },
-    { key: 'dark' as const, title: 'Dark themes', items: categorizedThemeItems.dark },
-  ];
-  const compactThemeGridHeight = themeGroups.reduce(
-    (height, group) => {
-      const visibleRows = Math.min(2, Math.ceil(group.items.length / 2));
-      const pageCount = Math.ceil(group.items.length / 4);
-      const dotsRowHeight = pageCount > 1 ? 22 : 0;
-      return height + 28 + visibleRows * fontCardHeight + Math.max(0, visibleRows - 1) * gridGap + dotsRowHeight;
-    },
-    gridGap,
-  );
-  const gridHeight = themeGroups.reduce(
-    (height, group) => height + 28 + Math.ceil(group.items.length / 2) * THEME_CARD_HEIGHT + Math.max(0, Math.ceil(group.items.length / 2) - 1) * gridGap,
-    gridGap,
-  );
+  const themePageCount = Math.ceil(themeItems.length / 4);
+  const themeDotsRowHeight = themePageCount > 1 ? 22 : 0;
+  const themeVisibleRows = Math.min(2, Math.ceil(themeItems.length / 2));
+  const compactThemeGridHeight =
+    gridGap + themeVisibleRows * fontCardHeight + Math.max(0, themeVisibleRows - 1) * gridGap + themeDotsRowHeight;
+  const gridHeight =
+    gridGap + themeVisibleRows * THEME_CARD_HEIGHT + Math.max(0, themeVisibleRows - 1) * gridGap + themeDotsRowHeight;
 
   const isItemSelected = (item: ThemeListItem) => {
     if (item.kind === 'create') return customEditorOpen;
@@ -478,42 +455,22 @@ export function CardStylingCustomizer({
             compactHeight={compactThemeGridHeight}
             expandedHeight={gridHeight}
             compact={
-              <View style={{ gap: gridGap }}>
-                {themeGroups.map((group) => (
-                  <View key={group.key}>
-                    <Text className="mb-2 text-xs font-bold uppercase tracking-wider text-textSecondary dark:text-dark-textSecondary">
-                      {group.title}
-                    </Text>
-                    <ThemeGroupCarousel
-                      editorPaneWidth={editorPaneWidth}
-                      gridGap={gridGap}
-                      groupKey={group.key}
-                      items={group.items}
-                      renderItem={(item, cardWidth) => renderThemeItem(item, cardWidth, fontCardHeight)}
-                    />
-                  </View>
-                ))}
-              </View>
+              <ThemeGroupCarousel
+                editorPaneWidth={editorPaneWidth}
+                gridGap={gridGap}
+                groupKey="theme-compact"
+                items={themeItems}
+                renderItem={(item, cardWidth) => renderThemeItem(item, cardWidth, fontCardHeight)}
+              />
             }
             expanded={
-              <View style={{ gap: gridGap }}>
-                {themeGroups.map((group) => (
-                  <View key={group.key}>
-                    <Text className="mb-2 text-xs font-bold uppercase tracking-wider text-textSecondary dark:text-dark-textSecondary">
-                      {group.title}
-                    </Text>
-                    <EditorOptionGrid
-                      items={group.items}
-                      keyExtractor={(item) => item.kind === 'saved' ? item.saved.id : item.kind === 'create' ? 'create' : item.preset.id}
-                      containerWidth={editorPaneWidth}
-                      columns={2}
-                      gap={gridGap}
-                      singleColumnBelowWidth={0}
-                      renderItem={(item, itemWidth) => renderThemeItem(item, itemWidth)}
-                    />
-                  </View>
-                ))}
-              </View>
+              <ThemeGroupCarousel
+                editorPaneWidth={editorPaneWidth}
+                gridGap={gridGap}
+                groupKey="theme-expanded"
+                items={themeItems}
+                renderItem={(item, cardWidth) => renderThemeItem(item, cardWidth)}
+              />
             }
           />
         </>
