@@ -1,5 +1,7 @@
 // components/onboardingComponents/types/onboardingStepper.types.ts
 
+import type { OnboardingFlowItem } from './onboardingFlow.types';
+
 /**
  * Onboarding draft aligned 1:1 with Profile + SocialLinks field names.
  * Card-only fields (gradient / category) stay on the draft for step 5.
@@ -74,6 +76,10 @@ export interface ValidationResult {
 export interface UseOnboardingStepperReturn {
   currentStep: number;
   totalSteps: number;
+  flowIndex: number;
+  currentItem: OnboardingFlowItem;
+  progressLabel: string;
+  canSkip: boolean;
   draft: OnboardingDraft;
   errors: Record<string, string>;
   isSaving: boolean;

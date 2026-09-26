@@ -4,10 +4,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Building2, Quote } from 'lucide-react-native';
 import { Text } from '@/components/uiComponents/Text';
 import type { CardDetailSection } from '../cardDetailTemplate';
-import type { CardTemplateId, CardVisualTheme } from '../../types/card.types';
+import type { CardVisualTheme, ResolvedLayoutSlots } from '../../types/card.types';
 import { getCardFontFamily, getCardLetterSpacing } from '../cardTheme';
 import { fitAccreditationsToViewport, fitTaglineToViewport } from '@/utils/cardTextLayout';
-import { getCardThemeContrastPalette, getGradientContrastPalette } from '@/utils/cardThemeColor';
+import { resolveLayoutColorSlots } from '@/utils/cardThemeColor';
 
 type Props = {
   compact?: boolean;
@@ -20,43 +20,17 @@ type Props = {
 
 type SharedPieceProps = {
   cardTheme: CardVisualTheme;
-  colors: ProfessionalColorRoles;
+  slots: ResolvedLayoutSlots;
   compact: boolean;
 };
-
-type ProfessionalColorRoles = {
-  background: string;
-  company: string;
-  decoration: string;
-  header: string;
-  tagline: string;
-  title: string;
-};
-
-function resolveProfessionalColorRoles(
-  cardTheme: CardVisualTheme,
-  templateId: CardTemplateId,
-): ProfessionalColorRoles {
-  const contrast = templateId === 'bold'
-    ? getGradientContrastPalette(cardTheme.gradient)
-    : getCardThemeContrastPalette(cardTheme);
-  return {
-    background: cardTheme.backgroundColor,
-    company: contrast.secondary,
-    decoration: cardTheme.accentColor,
-    header: contrast.primary,
-    tagline: contrast.primary,
-    title: contrast.primary,
-  };
-}
 
 function ProfessionalName({
   accreditations,
   align = 'left',
   cardTheme,
-  colors,
   compact,
   name,
+  slots,
 }: SharedPieceProps & {
   accreditations?: string;
   align?: 'left' | 'center' | 'right';
@@ -70,7 +44,7 @@ function ProfessionalName({
       numberOfLines={compact ? 2 : 3}
       className={compact ? 'text-base font-black leading-tight' : 'text-2xl font-black leading-tight'}
       style={{
-        color: colors.header,
+        color: slots.textPrimary,
         fontFamily: getCardFontFamily(cardTheme.fontStyle),
         letterSpacing: getCardLetterSpacing(cardTheme.fontStyle),
         textAlign: align,
@@ -84,9 +58,9 @@ function ProfessionalName({
 function ProfessionalRole({
   align = 'left',
   cardTheme,
-  colors,
   company,
   compact,
+  slots,
   title,
 }: SharedPieceProps & {
   align?: 'left' | 'center' | 'right';
@@ -102,7 +76,7 @@ function ProfessionalRole({
         numberOfLines={compact ? 1 : 2}
         className={`font-extrabold ${compact ? 'text-xs' : 'text-base'}`}
         style={{
-          color: colors.title,
+          color: slots.textPrimary,
           fontFamily: getCardFontFamily(cardTheme.fontStyle),
           letterSpacing: getCardLetterSpacing(cardTheme.fontStyle),
           textAlign: align,
@@ -111,14 +85,14 @@ function ProfessionalRole({
         {title}
       </Text>
       <View className="mt-0.5 flex-row items-center">
-        <Building2 color={colors.company} size={compact ? 11 : 14} />
+        <Building2 color={slots.textSecondary} size={compact ? 11 : 14} />
         <Text
           adjustsFontSizeToFit
           minimumFontScale={0.72}
           numberOfLines={1}
           className={`ml-1.5 font-semibold ${compact ? 'text-[11px]' : 'text-sm'}`}
           style={{
-            color: colors.company,
+            color: slots.textSecondary,
             fontFamily: getCardFontFamily(cardTheme.fontStyle),
             letterSpacing: getCardLetterSpacing(cardTheme.fontStyle),
           }}
@@ -132,8 +106,8 @@ function ProfessionalRole({
 
 function ProfessionalTagline({
   cardTheme,
-  colors,
   compact,
+  slots,
   tagline,
 }: SharedPieceProps & { tagline: string }) {
   if (!tagline) return null;
@@ -141,16 +115,16 @@ function ProfessionalTagline({
     <View className="flex-row items-center">
       <View
         className="mr-2 self-stretch rounded-full"
-        style={{ backgroundColor: colors.decoration, width: 3 }}
+        style={{ backgroundColor: slots.accent, width: 3 }}
       />
-      <Quote color={colors.decoration} size={compact ? 14 : 17} strokeWidth={2.4} />
+      <Quote color={slots.accent} size={compact ? 14 : 17} strokeWidth={2.4} />
       <Text
         adjustsFontSizeToFit
         minimumFontScale={0.78}
         numberOfLines={1}
         className={`ml-2 flex-1 font-bold italic ${compact ? 'text-[11px]' : 'text-sm'}`}
         style={{
-          color: colors.tagline,
+          color: slots.textPrimary,
           fontFamily: getCardFontFamily(cardTheme.fontStyle),
           letterSpacing: getCardLetterSpacing(cardTheme.fontStyle),
         }}
@@ -178,18 +152,18 @@ export function ProfessionalSectionRenderer({
   const company = getVal('company') || (showEmpty ? 'Company Name' : 'Company / Organization');
   const fullNameParts = [getVal('prefix'), getVal('firstName'), getVal('middleName'), getVal('lastName'), getVal('suffix')].filter(Boolean);
   const professionalName = fullNameParts.length > 0 ? fullNameParts.join(' ') : showEmpty ? 'Professional Name' : title;
-  const colors = resolveProfessionalColorRoles(cardTheme, section.templateId);
-  const shared = { cardTheme, colors, compact };
+  const slots = resolveLayoutColorSlots({ templateId: section.templateId, theme: cardTheme });
+  const shared = { cardTheme, compact, slots };
 
-  // Résumé layout: a vertical editorial hierarchy with a strong left rule.
+  // Résumé layout (minimal): vertical editorial hierarchy with thick accent left rail
   if (section.templateId === 'minimal') {
     return (
       <View
         className={`justify-between overflow-hidden p-4 ${boxed ? 'mb-5 rounded-[28px] border shadow-sm' : ''}`}
         style={{
-          backgroundColor: colors.background,
-          borderColor: boxed ? colors.decoration : undefined,
-          borderLeftColor: colors.decoration,
+          backgroundColor: slots.background,
+          borderColor: boxed ? slots.accent : undefined,
+          borderLeftColor: slots.accent,
           borderLeftWidth: 5,
           height: compact ? '100%' : undefined,
         }}
@@ -200,14 +174,14 @@ export function ProfessionalSectionRenderer({
             <ProfessionalRole {...shared} title={title} company={company} />
           </View>
         </View>
-        <View className={`border-t ${compact ? 'mt-2 pt-2' : 'mt-4 pt-3'}`} style={{ borderColor: colors.decoration }}>
+        <View className={`border-t ${compact ? 'mt-2 pt-2' : 'mt-4 pt-3'}`} style={{ borderColor: slots.accent }}>
           <ProfessionalTagline {...shared} tagline={tagline} />
         </View>
       </View>
     );
   }
 
-  // Bold layout: a centered networking-card statement.
+  // Bold layout: centered networking-card statement over gradient
   if (section.templateId === 'bold') {
     return (
       <LinearGradient
@@ -230,19 +204,22 @@ export function ProfessionalSectionRenderer({
     );
   }
 
-  // Glass layout: a layered vertical hierarchy avoids narrow text columns.
+  // Glass layout: layered vertical hierarchy on surface card with highlight border
   if (section.templateId === 'glass') {
     return (
       <View
         className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border shadow-md' : ''}`}
-        style={{ backgroundColor: colors.background, borderColor: colors.decoration, height: compact ? '100%' : undefined }}
+        style={{ backgroundColor: slots.background, borderColor: slots.highlight, height: compact ? '100%' : undefined }}
       >
-        <View className={`flex-1 justify-between ${compact ? 'p-3.5' : 'p-5'}`}>
+        <View
+          className={`flex-1 justify-between rounded-2xl border ${compact ? 'p-3.5' : 'p-5'}`}
+          style={{ backgroundColor: slots.surface, borderColor: slots.highlight }}
+        >
           <View>
             <ProfessionalName {...shared} name={professionalName} accreditations={accreditations} />
             <View
               className={compact ? 'my-2 h-px' : 'my-4 h-px'}
-              style={{ backgroundColor: colors.decoration }}
+              style={{ backgroundColor: slots.highlight }}
             />
             <ProfessionalRole {...shared} title={title} company={company} />
           </View>
@@ -256,22 +233,189 @@ export function ProfessionalSectionRenderer({
     );
   }
 
-  // Classic layout: full-width business-card rows with a restrained footer.
+  // Pocket Pass (compact): dense horizontal layout
+  if (section.templateId === 'compact') {
+    return (
+      <View
+        className={`flex-row items-center justify-between overflow-hidden px-4 py-3 ${boxed ? 'mb-5 rounded-[24px] border shadow-sm' : ''}`}
+        style={{ backgroundColor: slots.surface, borderColor: slots.highlight }}
+      >
+        <View className="min-w-0 flex-1">
+          <Text numberOfLines={1} className="font-extrabold text-sm" style={{ color: slots.textPrimary }}>
+            {professionalName}
+          </Text>
+          <Text numberOfLines={1} className="font-semibold text-xs mt-0.5" style={{ color: slots.accent }}>
+            {title} · {company}
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  // Magazine Monograph (editorial): serif hierarchy with hairline rules
+  if (section.templateId === 'editorial') {
+    return (
+      <View
+        className={`overflow-hidden p-5 ${boxed ? 'mb-5 rounded-[28px] border shadow-sm' : ''}`}
+        style={{ backgroundColor: slots.surface, borderColor: slots.highlight }}
+      >
+        <ProfessionalName {...shared} name={professionalName} accreditations={accreditations} />
+        <View className="my-3 h-px w-full" style={{ backgroundColor: slots.accent }} />
+        <ProfessionalRole {...shared} title={title} company={company} />
+        {tagline ? (
+          <View className="mt-3 border-t pt-2" style={{ borderTopColor: slots.highlight }}>
+            <ProfessionalTagline {...shared} tagline={tagline} />
+          </View>
+        ) : null}
+      </View>
+    );
+  }
+
+  // Avatar & Focus (spotlight): centered role with highlight pill
+  if (section.templateId === 'spotlight') {
+    return (
+      <View
+        className={`items-center justify-center overflow-hidden p-5 ${boxed ? 'mb-5 rounded-[28px] border shadow-sm' : ''}`}
+        style={{ backgroundColor: slots.surface, borderColor: slots.highlight }}
+      >
+        <ProfessionalName {...shared} align="center" name={professionalName} accreditations={accreditations} />
+        <View className="my-3 rounded-full px-4 py-1.5" style={{ backgroundColor: `${slots.accent}18`, borderWidth: 1, borderColor: slots.accent }}>
+          <Text className="text-xs font-black" style={{ color: slots.accent }}>{title}</Text>
+        </View>
+        <Text className="text-sm font-bold" style={{ color: slots.textSecondary }}>{company}</Text>
+        {tagline ? (
+          <View className="mt-3 w-full">
+            <ProfessionalTagline {...shared} tagline={tagline} />
+          </View>
+        ) : null}
+      </View>
+    );
+  }
+
+  // Ribbon Header (banner): company ribbon at top, personal title in card body
+  if (section.templateId === 'banner') {
+    return (
+      <View className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border shadow-sm' : ''}`} style={{ backgroundColor: slots.surface, borderColor: slots.highlight }}>
+        <View className="flex-row items-center justify-between px-4 py-2.5" style={{ backgroundColor: slots.accent }}>
+          <Text numberOfLines={1} className="text-xs font-black uppercase tracking-wider text-white flex-1 mr-2">{company}</Text>
+          {accreditations ? <Text className="text-[10px] font-bold text-white/90">{accreditations}</Text> : null}
+        </View>
+        <View className="p-4">
+          <ProfessionalName {...shared} name={professionalName} />
+          <View className="mt-2">
+            <Text className="text-sm font-extrabold" style={{ color: slots.accent }}>{title}</Text>
+          </View>
+          {tagline ? (
+            <View className="mt-3 border-t pt-2" style={{ borderTopColor: slots.highlight }}>
+              <ProfessionalTagline {...shared} tagline={tagline} />
+            </View>
+          ) : null}
+        </View>
+      </View>
+    );
+  }
+
+  // Modular Bento (cards): dual cardlets for role & company
+  if (section.templateId === 'cards') {
+    return (
+      <View className={`overflow-hidden p-3 gap-2 ${boxed ? 'mb-5 rounded-[28px] border shadow-sm' : ''}`} style={{ backgroundColor: slots.background }}>
+        <View className="rounded-2xl border p-3.5" style={{ backgroundColor: slots.surface, borderColor: slots.highlight }}>
+          <ProfessionalName {...shared} name={professionalName} accreditations={accreditations} />
+        </View>
+        <View className="rounded-2xl border p-3.5" style={{ backgroundColor: slots.surface, borderColor: slots.highlight }}>
+          <ProfessionalRole {...shared} title={title} company={company} />
+          {tagline ? (
+            <View className="mt-2.5 border-t pt-2" style={{ borderTopColor: slots.highlight }}>
+              <ProfessionalTagline {...shared} tagline={tagline} />
+            </View>
+          ) : null}
+        </View>
+      </View>
+    );
+  }
+
+  // Conference ID Pass (badge): official credential format
+  if (section.templateId === 'badge') {
+    return (
+      <View
+        className={`overflow-hidden p-4 ${boxed ? 'mb-5 rounded-[28px] border shadow-md' : ''}`}
+        style={{ backgroundColor: slots.surface, borderColor: slots.accent }}
+      >
+        <View className="flex-row items-center justify-between border-b pb-2 mb-3" style={{ borderBottomColor: slots.highlight }}>
+          <Text className="text-[10px] font-black uppercase tracking-wider" style={{ color: slots.accent }}>CREDENTIAL RECORD</Text>
+          <Text className="text-[10px] font-bold" style={{ color: slots.textSecondary }}>{company}</Text>
+        </View>
+        <ProfessionalName {...shared} name={professionalName} accreditations={accreditations} />
+        <View className="mt-3 rounded-xl border p-2.5" style={{ backgroundColor: slots.background, borderColor: slots.highlight }}>
+          <Text className="text-xs font-black uppercase" style={{ color: slots.accent }}>ROLE / TITLE</Text>
+          <Text className="text-sm font-bold mt-0.5" style={{ color: slots.textPrimary }}>{title}</Text>
+        </View>
+        {tagline ? (
+          <View className="mt-3">
+            <ProfessionalTagline {...shared} tagline={tagline} />
+          </View>
+        ) : null}
+      </View>
+    );
+  }
+
+  // 50/50 Dual Column (split): left column for role/company, right for accreditations/tagline
+  if (section.templateId === 'split') {
+    return (
+      <View className={`flex-row overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border shadow-sm' : ''}`} style={{ backgroundColor: slots.surface, borderColor: slots.highlight }}>
+        <View className="w-1/2 p-4 border-r" style={{ borderRightColor: slots.highlight, backgroundColor: slots.background }}>
+          <ProfessionalName {...shared} name={professionalName} />
+          <View className="mt-2">
+            <Text className="text-xs font-extrabold" style={{ color: slots.accent }}>{title}</Text>
+          </View>
+        </View>
+        <View className="w-1/2 p-4 justify-between" style={{ backgroundColor: slots.surface }}>
+          <Text className="text-xs font-bold" style={{ color: slots.textSecondary }}>{company}</Text>
+          {tagline ? (
+            <View className="mt-2">
+              <Text numberOfLines={2} className="text-[11px] italic" style={{ color: slots.textPrimary }}>"{tagline}"</Text>
+            </View>
+          ) : null}
+        </View>
+      </View>
+    );
+  }
+
+  // Framed Outline (neon): high-contrast wireframe
+  if (section.templateId === 'neon') {
+    return (
+      <View
+        className={`overflow-hidden p-4 ${boxed ? 'mb-5 rounded-[28px] border shadow-sm' : ''}`}
+        style={{ backgroundColor: slots.background, borderColor: slots.accent, borderWidth: 2 }}
+      >
+        <ProfessionalName {...shared} name={professionalName} accreditations={accreditations} />
+        <View className="my-3 h-0.5 w-full" style={{ backgroundColor: slots.accent }} />
+        <ProfessionalRole {...shared} title={title} company={company} />
+        {tagline ? (
+          <View className="mt-3 border-t pt-2" style={{ borderTopColor: slots.accent }}>
+            <ProfessionalTagline {...shared} tagline={tagline} />
+          </View>
+        ) : null}
+      </View>
+    );
+  }
+
+  // Classic layout: business card rows on clean surface
   return (
     <View
       className={`justify-between overflow-hidden p-4 ${boxed ? 'mb-5 rounded-[28px] border shadow-sm' : ''}`}
-      style={{ backgroundColor: colors.background, borderColor: boxed ? colors.decoration : undefined, height: compact ? '100%' : undefined }}
+      style={{ backgroundColor: slots.surface, borderColor: boxed ? slots.accent : undefined, height: compact ? '100%' : undefined }}
     >
       <View>
         <ProfessionalName {...shared} name={professionalName} accreditations={accreditations} />
         <View
           className={compact ? 'my-2 h-0.5 w-12 rounded-full' : 'my-3 h-0.5 w-16 rounded-full'}
-          style={{ backgroundColor: colors.decoration }}
+          style={{ backgroundColor: slots.accent }}
         />
         <ProfessionalRole {...shared} title={title} company={company} />
       </View>
       {tagline ? (
-        <View className={`border-t ${compact ? 'mt-2 pt-2' : 'mt-5 pt-3'}`} style={{ borderColor: colors.decoration }}>
+        <View className={`border-t ${compact ? 'mt-2 pt-2' : 'mt-5 pt-3'}`} style={{ borderColor: slots.accent }}>
           <ProfessionalTagline {...shared} tagline={tagline} />
         </View>
       ) : null}

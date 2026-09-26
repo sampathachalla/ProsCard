@@ -111,6 +111,52 @@ export function IdentityImage({
   return <Image source={{ uri: field.value }} contentFit={fit} style={style} />;
 }
 
+export function UniversalLogoBadge({
+  compact = false,
+  field,
+  style,
+}: {
+  backdropColor?: string;
+  borderColor?: string;
+  compact?: boolean;
+  field?: CardDetailField;
+  style?: object;
+}) {
+  if (!field?.value) return null;
+  const logoWidth = compact ? 80 : 128;
+  const logoHeight = compact ? 30 : 48;
+
+  return (
+    <View
+      style={[
+        {
+          alignItems: 'center',
+          backgroundColor: 'rgba(15, 23, 42, 0.82)',
+          borderColor: 'rgba(255, 255, 255, 0.14)',
+          borderRadius: compact ? 12 : 16,
+          borderWidth: 1,
+          height: logoHeight + (compact ? 8 : 12),
+          justifyContent: 'center',
+          paddingHorizontal: compact ? 8 : 12,
+          paddingVertical: compact ? 4 : 6,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.18,
+          shadowRadius: 4,
+          width: logoWidth + (compact ? 14 : 22),
+        },
+        style,
+      ]}
+    >
+      <Image
+        source={{ uri: field.value }}
+        contentFit="contain"
+        style={{ width: logoWidth, height: logoHeight }}
+      />
+    </View>
+  );
+}
+
 export function AccreditationPills({
   accreditations,
   cardTheme,

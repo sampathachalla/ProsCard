@@ -1,7 +1,6 @@
 import { Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import mindProsLogo from '@/assets/mindpros-logo.png';
 import { Colors } from '@/constants/Colors';
 import { useThemeContext } from '@/context/ThemeContext';
 import { AppWordmark } from '@/components/uiComponents/AppWordmark';
@@ -35,7 +34,6 @@ export function HomeHeader({
       <BrandLogo
         accessibilityLabel="MindPROS company logo"
         size="sm"
-        source={mindProsLogo}
         variant="wordmark"
       />
 
@@ -49,10 +47,8 @@ export function HomeHeader({
       >
         <Avatar
           name={userName}
-          size={44}
-          backgroundColor={palette.tint}
-          bordered
-          borderColor={theme === 'dark' ? '#334155' : '#e2e8f0'}
+          size={40}
+          style={{ borderColor: palette.border, borderWidth: 1 }}
         />
       </Pressable>
     </View>

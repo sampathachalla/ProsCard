@@ -1,4 +1,9 @@
-import type { CardFontStyle, CardVisualTheme } from '@/components/cardsComponents/types/card.types';
+import type {
+  CardFontStyle,
+  CardTemplateId,
+  CardVisualTheme,
+  ResolvedLayoutSlots,
+} from '@/components/cardsComponents/types/card.types';
 
 type SavedSectionThemeMeta = {
   customThemeId?: string;
@@ -168,6 +173,125 @@ export function getGradientContrastPalette(
   return getCardThemeContrastPalette({ gradient });
 }
 
+export function isColorLight(hex: string): boolean {
+  return relativeLuminance(hex) >= 0.45;
+}
+
+/**
+ * Resolves color slots for any section layout template given a theme (2, 3, or 4 colors).
+ * Auto-derives missing slots gracefully and computes contrast-safe text and logo backdrops.
+ */
+export function resolveLayoutColorSlots({
+  templateId,
+  theme,
+}: {
+  templateId: CardTemplateId;
+  theme: CardVisualTheme;
+}): ResolvedLayoutSlots {
+  const palette = theme.paletteColors && theme.paletteColors.length >= 2
+    ? theme.paletteColors
+    : [theme.backgroundColor, theme.surfaceColor, theme.accentColor, theme.gradient[1]];
+
+  const tier = (theme.paletteTier || (palette.length as 2 | 3 | 4)) || 3;
+
+  let baseColor: string;
+  let surfaceColor: string;
+  let accentColor: string;
+  let highlightColor: string;
+
+  if (tier === 2) {
+    baseColor = palette[0];
+    accentColor = palette[1];
+    const isBaseLight = isColorLight(baseColor);
+    surfaceColor = isBaseLight
+      ? mixHexColors(baseColor, '#ffffff', 0.85)
+      : mixHexColors(baseColor, '#0f172a', 0.75);
+    highlightColor = mixHexColors(accentColor, isBaseLight ? '#ffffff' : '#020617', 0.35);
+  } else if (tier === 3) {
+    baseColor = palette[0];
+    surfaceColor = palette[1];
+    accentColor = palette[2];
+    highlightColor = mixHexColors(accentColor, isColorLight(surfaceColor) ? '#ffffff' : '#020617', 0.4);
+  } else {
+    // 4 colors
+    baseColor = palette[0];
+    surfaceColor = palette[1];
+    accentColor = palette[2];
+    highlightColor = palette[3] || mixHexColors(accentColor, '#ffffff', 0.3);
+  }
+
+  // Layout-specific overrides (e.g. Bold hero layout uses gradient)
+  const isBold = templateId === 'bold';
+  const effectiveBgLuminance = isBold
+    ? (relativeLuminance(theme.gradient[0]) + relativeLuminance(theme.gradient[1])) / 2
+    : relativeLuminance(baseColor);
+  const isDark = effectiveBgLuminance < 0.45;
+
+  const textPrimary = isDark ? '#f8fafc' : '#0f172a';
+  const textSecondary = isDark ? '#cbd5e1' : '#334155';
+  const textMuted = isDark ? '#94a3b8' : '#64748b';
+
+  // Logo backdrop ensures dark or light logos are never swallowed by the background
+  const isSurfaceLight = isColorLight(surfaceColor);
+  const logoBackdrop = isSurfaceLight ? 'rgba(15, 23, 42, 0.88)' : 'rgba(255, 255, 255, 0.94)';
+  const logoBorder = isSurfaceLight ? 'rgba(255, 255, 255, 0.18)' : 'rgba(15, 23, 42, 0.12)';
+  const borderColor = isDark ? mixHexColors(accentColor, '#ffffff', 0.15) : mixHexColors(accentColor, '#020617', 0.12);
+
+  return {
+    accent: accentColor,
+    background: isBold ? theme.gradient[0] : baseColor,
+    borderColor,
+    highlight: highlightColor,
+    isDark,
+    logoBackdrop,
+    logoBorder,
+    surface: surfaceColor,
+    textMuted,
+    textPrimary,
+    textSecondary,
+  };
+}
+
+export function buildMultiTierSectionTheme(
+  colors: string[],
+  fontStyle: CardFontStyle = 'modern',
+  saved?: Pick<SavedSectionThemeMeta, 'customThemeId' | 'customThemeName'>,
+): CardVisualTheme {
+  const count = colors.length;
+  const cleanColors = colors.map((c) => normalizeHexColor(c) ?? '#2563eb');
+  const tier = (count === 2 ? 2 : count >= 4 ? 4 : 3) as 2 | 3 | 4;
+
+  let base = cleanColors[0] ?? '#eff6ff';
+  let surface = cleanColors[1] ?? '#ffffff';
+  let accent = cleanColors[2] ?? cleanColors[1] ?? '#0284c7';
+  let gradientEnd = cleanColors[tier - 1] ?? accent;
+
+  if (tier === 2) {
+    base = cleanColors[0];
+    accent = cleanColors[1];
+    const isBaseLight = isColorLight(base);
+    surface = isBaseLight ? mixHexColors(base, '#ffffff', 0.85) : mixHexColors(base, '#0f172a', 0.75);
+    gradientEnd = accent;
+  }
+
+  const isDark = relativeLuminance(base) < 0.45;
+
+  return {
+    accentColor: accent,
+    backgroundColor: base,
+    customThemeId: saved?.customThemeId,
+    customThemeName: saved?.customThemeName,
+    fontStyle,
+    gradient: [cleanColors[0], gradientEnd],
+    id: 'custom',
+    mutedTextColor: isDark ? '#94a3b8' : '#64748b',
+    paletteColors: cleanColors,
+    paletteTier: tier,
+    surfaceColor: surface,
+    textColor: isDark ? '#f8fafc' : '#0f172a',
+  };
+}
+
 export function buildCustomSectionTheme(
   gradient: [string, string],
   fontStyle: CardFontStyle = 'modern',
@@ -178,24 +302,35 @@ export function buildCustomSectionTheme(
   const avgLuminance = (relativeLuminance(start) + relativeLuminance(end)) / 2;
   const dark = avgLuminance < 0.42;
 
+  const base = mixHexColors(start, dark ? '#020617' : '#ffffff', dark ? 0.55 : 0.82);
+  const surface = dark ? mixHexColors(start, '#0f172a', 0.65) : '#ffffff';
+
   return {
     id: 'custom',
     gradient: [start, end],
-    backgroundColor: mixHexColors(start, dark ? '#020617' : '#ffffff', dark ? 0.55 : 0.82),
-    surfaceColor: dark ? mixHexColors(start, '#0f172a', 0.65) : '#ffffff',
+    backgroundColor: base,
+    surfaceColor: surface,
     textColor: dark ? '#f8fafc' : '#0f172a',
     mutedTextColor: dark ? mixHexColors(end, '#94a3b8', 0.35) : mixHexColors(end, '#64748b', 0.45),
     accentColor: end,
     fontStyle,
+    paletteTier: 3,
+    paletteColors: [base, surface, end],
     customThemeId: saved?.customThemeId,
     customThemeName: saved?.customThemeName,
   };
 }
 
 export function themeFromSavedSectionTheme(
-  saved: { id: string; name: string; gradient: [string, string] },
+  saved: { id: string; name: string; gradient: [string, string]; paletteTier?: 2 | 3 | 4; paletteColors?: string[] },
   fontStyle: CardFontStyle,
 ): CardVisualTheme {
+  if (saved.paletteColors && saved.paletteColors.length >= 2) {
+    return buildMultiTierSectionTheme(saved.paletteColors, fontStyle, {
+      customThemeId: saved.id,
+      customThemeName: saved.name,
+    });
+  }
   return buildCustomSectionTheme(saved.gradient, fontStyle, {
     customThemeId: saved.id,
     customThemeName: saved.name,

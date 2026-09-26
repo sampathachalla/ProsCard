@@ -61,7 +61,10 @@ export default function HomepageScreen() {
 
   return (
     <View className="flex-1 bg-background dark:bg-dark-background">
-      <View className="px-5 pb-3 pt-2">
+      <View
+        className="px-5 pb-3"
+        style={{ paddingTop: Math.max(insets.top, 12) }}
+      >
         <HomeHeader userName={userName} />
       </View>
 

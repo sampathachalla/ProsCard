@@ -11,6 +11,14 @@ const TEMPLATES: { id: CardTemplateId; label: string }[] = [
   { id: 'minimal', label: 'Minimal' },
   { id: 'bold', label: 'Bold Gradient' },
   { id: 'glass', label: 'Glass' },
+  { id: 'compact', label: 'Compact' },
+  { id: 'editorial', label: 'Editorial' },
+  { id: 'spotlight', label: 'Spotlight' },
+  { id: 'banner', label: 'Banner' },
+  { id: 'cards', label: 'Cards' },
+  { id: 'badge', label: 'Badge' },
+  { id: 'split', label: 'Split' },
+  { id: 'neon', label: 'Neon' },
 ];
 
 const SECTION_TEMPLATE_NAMES: Record<CardSectionId, Record<CardTemplateId, string>> = {
@@ -19,28 +27,160 @@ const SECTION_TEMPLATE_NAMES: Record<CardSectionId, Record<CardTemplateId, strin
     minimal: 'Side Profile',
     bold: 'Hero Banner',
     glass: 'Centered Glass',
+    compact: 'Inline Header',
+    editorial: 'Monograph',
+    spotlight: 'Halo Spotlight',
+    banner: 'Ribbon Pass',
+    cards: 'Floating Card',
+    badge: 'ID Pass',
+    split: 'Dual Column',
+    neon: 'Cyber Outline',
   },
   professional: {
     classic: 'Corporate Card',
     minimal: 'Executive Line',
     bold: 'Hero Credential',
     glass: 'Frosted Portfolio',
+    compact: 'Compact Pill',
+    editorial: 'Headline Stat',
+    spotlight: 'Company Hero',
+    banner: 'Stripe Card',
+    cards: 'Modular Grid',
+    badge: 'Officer Badge',
+    split: 'Role Split',
+    neon: 'Cyber Wire',
   },
   bio: {
     classic: 'Editorial Story',
     minimal: 'Executive Statement',
     bold: 'Callout Banner',
     glass: 'Frosted Parchment',
+    compact: 'Quote Pill',
+    editorial: 'Pull Quote',
+    spotlight: 'Featured Memo',
+    banner: 'Ribbon Quote',
+    cards: 'Story Card',
+    badge: 'Mission Badge',
+    split: 'Dual Column Story',
+    neon: 'Cyber Terminal',
   },
   connections: {
     classic: 'Action Tiles',
     minimal: 'Quick Grid',
     bold: 'Gradient Cards',
     glass: 'Frosted Dock',
+    compact: 'Chip Flow',
+    editorial: 'Numbered List',
+    spotlight: 'Hero Spotlight',
+    banner: 'Ribbon Cards',
+    cards: 'Floating Tiles',
+    badge: 'Icon Dock',
+    split: 'Split Matrix',
+    neon: 'Cyber Grid',
   },
 };
 
 function LayoutThumbnail({ section, template, theme }: { section: CardSectionId; template: CardTemplateId; theme: CardVisualTheme }) {
+  if (template === 'compact') {
+    return (
+      <View className="relative mb-2 h-12 flex-row items-center justify-between overflow-hidden rounded-xl px-2" style={{ backgroundColor: theme.surfaceColor, borderColor: theme.accentColor, borderWidth: 1 }}>
+        <View className="flex-row items-center gap-1.5">
+          <View className="h-5 w-5 rounded-full" style={{ backgroundColor: theme.accentColor }} />
+          <View className="h-1.5 w-12 rounded" style={{ backgroundColor: theme.textColor }} />
+        </View>
+        <View className="h-3 w-8 rounded-md" style={{ backgroundColor: theme.backgroundColor }} />
+      </View>
+    );
+  }
+
+  if (template === 'editorial') {
+    return (
+      <View className="relative mb-2 h-12 overflow-hidden rounded-xl border" style={{ backgroundColor: theme.surfaceColor, borderColor: theme.mutedTextColor }}>
+        <View className="h-3.5 w-full" style={{ backgroundColor: theme.accentColor }} />
+        <View className="flex-row items-center justify-between p-1.5">
+          <View className="h-4 w-4 rounded-sm border" style={{ backgroundColor: theme.backgroundColor, borderColor: theme.accentColor }} />
+          <View className="h-1.5 w-14 rounded" style={{ backgroundColor: theme.textColor }} />
+        </View>
+      </View>
+    );
+  }
+
+  if (template === 'spotlight') {
+    return (
+      <View className="relative mb-2 h-12 items-center justify-center overflow-hidden rounded-xl border" style={{ backgroundColor: theme.surfaceColor, borderColor: theme.accentColor }}>
+        <View className="h-6 w-6 items-center justify-center rounded-full border" style={{ backgroundColor: `${theme.accentColor}25`, borderColor: theme.accentColor }}>
+          <View className="h-3.5 w-3.5 rounded-full" style={{ backgroundColor: theme.accentColor }} />
+        </View>
+        <View className="mt-1 h-1 w-10 rounded" style={{ backgroundColor: theme.textColor }} />
+      </View>
+    );
+  }
+
+  if (template === 'banner') {
+    return (
+      <View className="relative mb-2 h-12 overflow-hidden rounded-xl border" style={{ backgroundColor: theme.surfaceColor, borderColor: theme.mutedTextColor }}>
+        <View className="flex-row items-center justify-between px-2 py-1" style={{ backgroundColor: theme.accentColor }}>
+          <View className="h-1 w-8 rounded bg-white/70" />
+          <View className="h-2 w-2 rounded-full bg-white/80" />
+        </View>
+        <View className="flex-row items-center gap-1.5 p-1.5">
+          <View className="h-4 w-4 rounded-md" style={{ backgroundColor: theme.backgroundColor }} />
+          <View className="h-1.5 w-12 rounded" style={{ backgroundColor: theme.textColor }} />
+        </View>
+      </View>
+    );
+  }
+
+  if (template === 'cards') {
+    return (
+      <View className="relative mb-2 h-12 overflow-hidden rounded-xl p-1" style={{ backgroundColor: theme.backgroundColor }}>
+        <View className="h-full w-full rounded-lg border p-1 shadow-sm" style={{ backgroundColor: theme.surfaceColor, borderColor: theme.accentColor }}>
+          <View className="flex-row items-center justify-between">
+            <View className="h-3.5 w-3.5 rounded-md" style={{ backgroundColor: theme.accentColor }} />
+            <View className="h-1.5 w-8 rounded" style={{ backgroundColor: theme.textColor }} />
+          </View>
+          <View className="mt-1 h-1 w-full rounded" style={{ backgroundColor: theme.mutedTextColor }} />
+        </View>
+      </View>
+    );
+  }
+
+  if (template === 'badge') {
+    return (
+      <View className="relative mb-2 h-12 items-center justify-center overflow-hidden rounded-xl border" style={{ backgroundColor: theme.surfaceColor, borderColor: theme.accentColor }}>
+        <View className="absolute top-1 h-1 w-6 rounded-full" style={{ backgroundColor: theme.accentColor }} />
+        <View className="mt-1 h-5 w-5 rounded-md border" style={{ backgroundColor: theme.backgroundColor, borderColor: theme.accentColor }} />
+        <View className="mt-0.5 h-1 w-8 rounded" style={{ backgroundColor: theme.textColor }} />
+      </View>
+    );
+  }
+
+  if (template === 'split') {
+    return (
+      <View className="relative mb-2 h-12 flex-row overflow-hidden rounded-xl border" style={{ backgroundColor: theme.surfaceColor, borderColor: theme.mutedTextColor }}>
+        <View className="w-[45%] items-center justify-center border-r p-1" style={{ backgroundColor: theme.backgroundColor, borderRightColor: theme.mutedTextColor }}>
+          <View className="h-4 w-4 rounded-full" style={{ backgroundColor: theme.accentColor }} />
+        </View>
+        <View className="flex-1 justify-center p-1.5">
+          <View className="h-1.5 w-full rounded" style={{ backgroundColor: theme.textColor }} />
+          <View className="mt-1 h-1 w-3/4 rounded" style={{ backgroundColor: theme.mutedTextColor }} />
+        </View>
+      </View>
+    );
+  }
+
+  if (template === 'neon') {
+    return (
+      <View className="relative mb-2 h-12 overflow-hidden rounded-xl p-1.5" style={{ backgroundColor: '#0F172A', borderColor: theme.accentColor, borderWidth: 1.5 }}>
+        <View className="flex-row items-center justify-between">
+          <View className="h-2 w-2 rounded-full" style={{ backgroundColor: theme.accentColor }} />
+          <View className="h-1.5 w-10 rounded" style={{ backgroundColor: '#FFFFFF' }} />
+        </View>
+        <View className="mt-1.5 h-1 w-full rounded" style={{ backgroundColor: `${theme.accentColor}80` }} />
+      </View>
+    );
+  }
+
   if (section === 'identity') {
     if (template === 'minimal') {
       return (

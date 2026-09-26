@@ -1,13 +1,19 @@
 import { Image, View, type ImageSourcePropType } from 'react-native';
+import mindProsLogoLight from '@/assets/mindpros-logo-light.png';
+import mindProsLogoDark from '@/assets/mindpros-logo-dark.png';
+import { useThemeContext } from '@/context/ThemeContext';
 import { Text } from './Text';
 
-type BrandLogoSize = 'sm' | 'md' | 'header' | 'lg';
+type BrandLogoSize = 'sm' | 'md' | 'header' | 'lg' | 'xl';
 type BrandLogoVariant = 'wordmark' | 'badge';
 
 type BrandLogoProps = {
   size?: BrandLogoSize;
   variant?: BrandLogoVariant;
+  /** Override both themes. Prefer omitting this so light/dark assets auto-switch. */
   source?: ImageSourcePropType;
+  sourceLight?: ImageSourcePropType;
+  sourceDark?: ImageSourcePropType;
   accessibilityLabel?: string;
   className?: string;
 };
@@ -17,6 +23,7 @@ const textSizeClasses: Record<BrandLogoSize, string> = {
   md: 'text-xl',
   header: 'text-3xl',
   lg: 'text-4xl',
+  xl: 'text-5xl',
 };
 
 const badgeDimensions: Record<BrandLogoSize, { width: number; height: number; borderRadius: number }> = {
@@ -24,18 +31,30 @@ const badgeDimensions: Record<BrandLogoSize, { width: number; height: number; bo
   md: { width: 136, height: 54, borderRadius: 17 },
   header: { width: 152, height: 60, borderRadius: 18 },
   lg: { width: 168, height: 68, borderRadius: 21 },
+  xl: { width: 240, height: 96, borderRadius: 24 },
 };
+
+/** Theme-aware MindPros mark: light asset on light UI, dark asset on dark UI. */
+export function getMindProsLogoSource(theme: 'light' | 'dark'): ImageSourcePropType {
+  return theme === 'dark' ? mindProsLogoDark : mindProsLogoLight;
+}
 
 export function BrandLogo({
   size = 'md',
   variant = 'wordmark',
   source,
-  accessibilityLabel = 'ProsCard logo',
+  sourceLight = mindProsLogoLight,
+  sourceDark = mindProsLogoDark,
+  accessibilityLabel = 'MindPROS logo',
   className = '',
 }: BrandLogoProps) {
+  const { theme } = useThemeContext();
   const textSize = textSizeClasses[size];
   const isBadge = variant === 'badge';
   const dimensions = badgeDimensions[size];
+
+  const resolvedSource =
+    source ?? (theme === 'dark' ? sourceDark : sourceLight);
 
   return (
     <View
@@ -47,8 +66,12 @@ export function BrandLogo({
       } ${className}`}
       style={isBadge ? dimensions : undefined}
     >
-      {source ? (
-        <Image source={source} resizeMode="contain" style={isBadge ? { width: '88%', height: '78%' } : dimensions} />
+      {resolvedSource ? (
+        <Image
+          source={resolvedSource}
+          resizeMode="contain"
+          style={isBadge ? { width: '88%', height: '78%' } : dimensions}
+        />
       ) : (
         <Text
           className={`${textSize} font-black tracking-tight ${

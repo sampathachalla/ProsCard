@@ -5,26 +5,22 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { ChevronLeft } from 'lucide-react-native';
 
+import { Button } from '@/components/uiComponents/Button';
 import { useOnboardingStepper } from '@/components/onboardingComponents/Hooks/useOnboardingStepper';
-import { StepperIndicator } from '@/components/onboardingComponents/Components/StepperIndicator';
-import { StepperNavigation } from '@/components/onboardingComponents/Components/StepperNavigation';
-import { StepWelcome } from '@/components/onboardingComponents/Components/StepWelcome';
-import { StepPersonal } from '@/components/onboardingComponents/Components/StepPersonal';
-import { StepProfessional } from '@/components/onboardingComponents/Components/StepProfessional';
-import { StepSocial } from '@/components/onboardingComponents/Components/StepSocial';
-import { StepCardCustomization } from '@/components/onboardingComponents/Components/StepCardCustomization';
+import { OnboardingFlowRenderer } from '@/components/onboardingComponents/Components/OnboardingFlowRenderer';
+import { OnboardingFlowFooter } from '@/components/onboardingComponents/Components/OnboardingFlowFooter';
 
 export function OnboardingScreen() {
   const {
-    currentStep,
-    totalSteps,
+    currentItem,
+    progressLabel,
     draft,
     updateDraft,
     errors,
     isSaving,
     canGoBack,
+    canSkip,
     isLastStep,
-    goToStep,
     nextStep,
     prevStep,
     skipStep,
@@ -37,100 +33,82 @@ export function OnboardingScreen() {
     prevStep();
   };
 
-  const handleTopSkip = () => {
-    if (isSaving) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    skipStep();
+  const handleContinue = () => {
+    nextStep();
   };
+
+  const showTopBar = currentItem.kind !== 'welcome';
 
   return (
     <SafeAreaView
       className="flex-1 bg-background dark:bg-dark-background"
       edges={['top', 'left', 'right']}
     >
-      {/* Top Header Action Bar with Back & Skip */}
-      <View className="flex-row items-center justify-between px-6 pt-2 pb-1 bg-background dark:bg-dark-background">
-        {canGoBack ? (
-          <Pressable
-            onPress={handleTopBack}
-            disabled={isSaving}
-            accessibilityRole="button"
-            accessibilityLabel="Go back to previous step"
-            className="flex-row items-center py-1 -ml-1 active:opacity-70"
-          >
-            <ChevronLeft size={20} className="text-textPrimary dark:text-dark-textPrimary mr-0.5" />
-            <Text className="text-sm font-semibold text-textPrimary dark:text-dark-textPrimary">
-              Back
-            </Text>
-          </Pressable>
-        ) : (
-          <View className="h-6" />
-        )}
+      {showTopBar ? (
+        <View className="flex-row items-center justify-between bg-background px-6 pb-1 pt-2 dark:bg-dark-background">
+          {canGoBack ? (
+            <Pressable
+              onPress={handleTopBack}
+              disabled={isSaving}
+              accessibilityRole="button"
+              accessibilityLabel="Go back to previous step"
+              className="-ml-1 flex-row items-center py-1 active:opacity-70"
+            >
+              <ChevronLeft
+                size={20}
+                className="mr-0.5 text-textPrimary dark:text-dark-textPrimary"
+              />
+              <Text className="text-sm font-semibold text-textPrimary dark:text-dark-textPrimary">
+                Back
+              </Text>
+            </Pressable>
+          ) : (
+            <View className="h-6" />
+          )}
 
-        {(currentStep === 1 || currentStep === 4) && !isSaving ? (
-          <Pressable
-            onPress={handleTopSkip}
-            accessibilityRole="button"
-            accessibilityLabel="Skip step"
-            className="py-1 active:opacity-70"
-          >
-            <Text className="text-xs font-semibold text-textMuted dark:text-dark-textMuted">
-              Skip
-            </Text>
-          </Pressable>
-        ) : (
-          <View className="h-6" />
-        )}
-      </View>
+          <Text className="text-xs font-medium text-textMuted dark:text-dark-textMuted">
+            {progressLabel}
+          </Text>
 
-      {/* Top Stepper Indicator */}
-      <StepperIndicator
-        currentStep={currentStep}
-        totalSteps={totalSteps}
-        onStepPress={(step) => goToStep(step)}
-      />
+          {canSkip ? (
+            <Button
+              label="Skip"
+              variant="ghost"
+              size="sm"
+              onPress={skipStep}
+              disabled={isSaving}
+              className="min-h-0 px-2 py-1"
+            />
+          ) : (
+            <View className="h-6 w-10" />
+          )}
+        </View>
+      ) : null}
 
-      {/* Step Body Container */}
       <View className="flex-1">
-        {currentStep === 1 && <StepWelcome onGetStarted={nextStep} />}
-        {currentStep === 2 && (
-          <StepPersonal draft={draft} updateDraft={updateDraft} errors={errors} />
-        )}
-        {currentStep === 3 && (
-          <StepProfessional draft={draft} updateDraft={updateDraft} errors={errors} />
-        )}
-        {currentStep === 4 && (
-          <StepSocial draft={draft} updateDraft={updateDraft} errors={errors} />
-        )}
-        {currentStep === 5 && (
-          <StepCardCustomization
-            draft={draft}
-            updateDraft={updateDraft}
-            onFinish={finalizeOnboarding}
-            isSaving={isSaving}
-          />
-        )}
+        <OnboardingFlowRenderer
+          currentItem={currentItem}
+          draft={draft}
+          errors={errors}
+          isSaving={isSaving}
+          updateDraft={updateDraft}
+          onWelcomeNext={nextStep}
+          onWelcomeSkip={skipStep}
+          onFinish={finalizeOnboarding}
+        />
       </View>
 
-      {/* Bottom Stepper Navigation Controls */}
-      <StepperNavigation
-        currentStep={currentStep}
-        totalSteps={totalSteps}
-        onNext={isLastStep ? finalizeOnboarding : nextStep}
-        onBack={prevStep}
-        onSkip={currentStep === 1 || currentStep === 4 ? skipStep : undefined}
-        nextLabel={
-          isLastStep
-            ? 'Create my card'
-            : currentStep === 1
-            ? 'Continue'
-            : 'Continue'
-        }
+      <OnboardingFlowFooter
+        currentItem={currentItem}
+        canSkip={canSkip}
         isSaving={isSaving}
+        isLastStep={isLastStep}
+        onContinue={handleContinue}
+        onSkip={skipStep}
+        onFinalize={finalizeOnboarding}
       />
     </SafeAreaView>
   );
 }
 
 export default OnboardingScreen;
-

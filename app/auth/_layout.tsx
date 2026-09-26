@@ -1,6 +1,18 @@
 // app/auth/_layout.tsx
-import { Slot } from 'expo-router';
+import { Stack } from 'expo-router';
 
 export default function AuthLayout() {
-  return <Slot />;
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        animation: 'fade',
+        contentStyle: { backgroundColor: 'transparent' },
+      }}
+    >
+      <Stack.Screen name="welcome" />
+      <Stack.Screen name="login" />
+      <Stack.Screen name="signup" />
+    </Stack>
+  );
 }

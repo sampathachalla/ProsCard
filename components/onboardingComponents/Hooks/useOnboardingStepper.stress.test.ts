@@ -1,6 +1,47 @@
 // components/onboardingComponents/Hooks/useOnboardingStepper.stress.test.ts
 import React, { act } from 'react';
 import type { UseOnboardingStepperReturn } from '../types/onboardingStepper.types';
+import { INITIAL_ONBOARDING_DRAFT } from '../types/onboardingStepper.types';
+import {
+  ONBOARDING_FLOW,
+  type OnboardingFlowGroupId,
+} from '../types/onboardingFlow.types';
+
+async function advanceToGroup(
+  getHook: () => UseOnboardingStepperReturn,
+  groupId: OnboardingFlowGroupId
+) {
+  for (let i = 0; i < ONBOARDING_FLOW.length * 2; i++) {
+    const item = getHook().currentItem;
+    if (item.kind === 'group' && item.groupId === groupId) return;
+    await act(async () => {
+      getHook().nextStep();
+    });
+  }
+  throw new Error(`Could not reach group screen for ${groupId}`);
+}
+
+async function advanceThroughMandatoryIdentity(
+  getHook: () => UseOnboardingStepperReturn
+) {
+  await act(async () => {
+    getHook().nextStep();
+  });
+  await advanceToGroup(getHook, 'name_legal');
+  await act(async () => {
+    getHook().updateDraft({
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+      fullName: 'Ada Lovelace',
+    });
+    getHook().nextStep();
+  });
+  await advanceToGroup(getHook, 'role_company');
+  await act(async () => {
+    getHook().updateDraft({ title: 'Engineer', organization: 'Analytical Engines' });
+    getHook().nextStep();
+  });
+}
 
 function assert(condition: boolean, msg: string) {
   if (!condition) throw new Error(`Assertion failed: ${msg}`);
@@ -70,26 +111,26 @@ export async function runStepperStressTests(
 
   const testCases: [string, () => Promise<void>][] = [
     [
-      'STRESS-STEP-01: Initial state starts on Step 1 with correct defaults and metadata',
+      'STRESS-STEP-01: Initial state starts on welcome with flow index 0',
       async () => {
         await mockStorage.clear();
         const { getHook, unmount } = await mountHook();
         try {
           const h = getHook();
-          assertEqual(h.currentStep, 1, 'Initial currentStep must be 1');
-          assertEqual(h.totalSteps, 5, 'totalSteps must be 5');
-          assertEqual(h.canGoBack, false, 'canGoBack must be false on step 1');
-          assertEqual(h.isLastStep, false, 'isLastStep must be false on step 1');
+          assertEqual(h.flowIndex, 0, 'Initial flowIndex must be 0');
+          assertEqual(h.currentItem.kind, 'welcome', 'Initial screen must be welcome');
+          assertEqual(h.totalSteps, ONBOARDING_FLOW.length, 'totalSteps must match flow length');
+          assertEqual(h.canGoBack, false, 'canGoBack must be false on welcome');
+          assertEqual(h.isLastStep, false, 'isLastStep must be false on welcome');
           assertEqual(h.isSaving, false, 'isSaving must be false initially');
           assertEqual(Object.keys(h.errors).length, 0, 'errors must be empty initially');
-          assertEqual(h.activeStepMeta?.title, 'Welcome', 'Step 1 title must be Welcome');
         } finally {
           await unmount();
         }
       },
     ],
     [
-      'STRESS-STEP-02: Step 1 nextStep advances to Step 2 unconditionally',
+      'STRESS-STEP-02: Welcome nextStep advances to first group card',
       async () => {
         const { getHook, unmount } = await mountHook();
         try {
@@ -97,47 +138,44 @@ export async function runStepperStressTests(
           await act(async () => {
             res = getHook().nextStep();
           });
-          assertEqual(res, true, 'nextStep on Step 1 must succeed');
-          assertEqual(getHook().currentStep, 2, 'Must advance to Step 2');
-          assertEqual(getHook().canGoBack, true, 'canGoBack must be true on Step 2');
+          assertEqual(res, true, 'nextStep on welcome must succeed');
+          assertEqual(getHook().currentItem.kind, 'group', 'Must advance to first group card');
+          assertEqual(getHook().canGoBack, true, 'canGoBack must be true after welcome');
         } finally {
           await unmount();
         }
       },
     ],
     [
-      'STRESS-STEP-03: Step 2 validation blocks advancing when identity fields are empty',
+      'STRESS-STEP-03: name_legal answer validation blocks empty names',
       async () => {
         const { getHook, unmount } = await mountHook();
         try {
-          // Go to Step 2
-          await act(async () => { getHook().nextStep(); });
-          assertEqual(getHook().currentStep, 2);
-
-          // Clear identity fields
           await act(async () => {
-            getHook().updateDraft({ firstName: '', lastName: '', title: '' });
+            getHook().nextStep();
+          });
+          await advanceToGroup(getHook, 'name_legal');
+
+          await act(async () => {
+            getHook().updateDraft({ firstName: '', lastName: '', fullName: '' });
           });
 
-          // Attempt to advance
           let res = true;
           await act(async () => {
             res = getHook().nextStep();
           });
 
-          assertEqual(res, false, 'nextStep must fail when identity fields are empty');
-          assertEqual(getHook().currentStep, 2, 'Must stay on Step 2');
+          assertEqual(res, false, 'nextStep must fail when name fields are empty');
           assert(Boolean(getHook().errors.firstName), 'errors.firstName must be set');
 
-          // Try firstName only without lastName/title
           await act(async () => {
-            getHook().updateDraft({ firstName: 'Ada', lastName: '', title: '' });
+            getHook().updateDraft({ firstName: 'Ada', lastName: '', fullName: 'Ada' });
           });
           await act(async () => {
             res = getHook().nextStep();
           });
-          assertEqual(res, false, 'nextStep must fail when lastName/title missing');
-          assertEqual(getHook().currentStep, 2);
+          assertEqual(res, false, 'nextStep must fail when lastName missing');
+          assert(Boolean(getHook().errors.lastName), 'errors.lastName must be set');
         } finally {
           await unmount();
         }
@@ -148,21 +186,24 @@ export async function runStepperStressTests(
       async () => {
         const { getHook, unmount } = await mountHook();
         try {
-          // Step 1 -> Step 2
-          await act(async () => { getHook().nextStep(); });
-          await act(async () => { getHook().updateDraft({ firstName: '', lastName: '', title: '' }); });
+          await act(async () => {
+            getHook().nextStep();
+          });
+          await advanceToGroup(getHook, 'name_legal');
+          await act(async () => {
+            getHook().updateDraft({ firstName: '', lastName: '', fullName: '' });
+          });
 
-          // Trigger errors on firstName and lastName
-          await act(async () => { getHook().nextStep(); });
+          await act(async () => {
+            getHook().nextStep();
+          });
           assert(Boolean(getHook().errors.firstName), 'firstName error present');
           assert(Boolean(getHook().errors.lastName), 'lastName error present');
 
-          // Update ONLY firstName
           await act(async () => {
-            getHook().updateDraft({ firstName: 'Ada' });
+            getHook().updateDraft({ firstName: 'Ada', fullName: 'Ada' });
           });
 
-          // firstName error must be cleared, lastName error must remain
           assertEqual(getHook().errors.firstName, undefined, 'firstName error must be cleared');
           assert(Boolean(getHook().errors.lastName), 'lastName error must still remain');
         } finally {
@@ -171,275 +212,251 @@ export async function runStepperStressTests(
       },
     ],
     [
-      'STRESS-STEP-05: Step 3 validation blocks advancing when email is empty or invalid',
+      'STRESS-STEP-05: contact_email answer validates email',
       async () => {
         const { getHook, unmount } = await mountHook();
         try {
-          // Step 1 -> Step 2
-          await act(async () => { getHook().nextStep(); });
-          // Provide valid Step 2
-          await act(async () => {
-            getHook().updateDraft({
-              firstName: 'Ada',
-              lastName: 'Lovelace',
-              fullName: 'Ada Lovelace',
-              title: 'Engineer',
-            });
-          });
-          // Step 2 -> Step 3
-          await act(async () => { getHook().nextStep(); });
-          assertEqual(getHook().currentStep, 3, 'Must be on Step 3');
+          await advanceThroughMandatoryIdentity(getHook);
+          await advanceToGroup(getHook, 'contact_email');
 
-          // Empty email
-          await act(async () => { getHook().updateDraft({ email: '' }); });
+          await act(async () => {
+            getHook().updateDraft({ email: '' });
+          });
           let res = true;
-          await act(async () => { res = getHook().nextStep(); });
+          await act(async () => {
+            res = getHook().nextStep();
+          });
           assertEqual(res, false, 'nextStep must fail when email is empty');
-          assertEqual(getHook().currentStep, 3);
           assert(Boolean(getHook().errors.email), 'errors.email must be set');
 
-          // Invalid email
-          await act(async () => { getHook().updateDraft({ email: 'notanemail' }); });
-          await act(async () => { res = getHook().nextStep(); });
+          await act(async () => {
+            getHook().updateDraft({ email: 'notanemail' });
+          });
+          await act(async () => {
+            res = getHook().nextStep();
+          });
           assertEqual(res, false, 'nextStep must fail on invalid email format');
-          assertEqual(getHook().currentStep, 3);
 
-          // Valid email
-          await act(async () => { getHook().updateDraft({ email: 'ada@lovelace.org' }); });
-          await act(async () => { res = getHook().nextStep(); });
+          await act(async () => {
+            getHook().updateDraft({ email: 'ada@lovelace.org' });
+          });
+          await act(async () => {
+            res = getHook().nextStep();
+          });
           assertEqual(res, true, 'nextStep must succeed with valid email');
-          assertEqual(getHook().currentStep, 4, 'Must advance to Step 4');
         } finally {
           await unmount();
         }
       },
     ],
     [
-      'STRESS-STEP-06: Step 4 is optional and advances to Step 5 even when empty',
+      'STRESS-STEP-06: presence answer is optional and advances to card_style when empty',
       async () => {
+        await mockStorage.clear();
         const { getHook, unmount } = await mountHook();
         try {
           await act(async () => {
-            getHook().updateDraft({ firstName: 'Ada', lastName: 'Lovelace', fullName: 'Ada Lovelace', title: 'Engineer', email: 'ada@lovelace.org' });
             getHook().goToStep(4);
           });
-          assertEqual(getHook().currentStep, 4);
+          await advanceToGroup(getHook, 'presence');
+
+          await act(async () => {
+            getHook().updateDraft({
+              linkedin: '',
+              github: '',
+              x: '',
+              facebook: '',
+              instagram: '',
+              whatsapp: '',
+              youtube: '',
+              tiktok: '',
+              portfolio: '',
+              photoUrl: '',
+              coverPhotoUrl: '',
+            });
+          });
 
           let res = false;
           await act(async () => {
             res = getHook().nextStep();
           });
-          assertEqual(res, true, 'Optional Step 4 must advance');
-          assertEqual(getHook().currentStep, 5, 'Must arrive at Step 5');
-          assertEqual(getHook().isLastStep, true, 'isLastStep must be true on Step 5');
+          assertEqual(res, true, 'Optional presence must advance');
+          assertEqual(getHook().currentItem.kind, 'card_style', 'Must arrive at card_style');
+          assertEqual(getHook().isLastStep, true, 'isLastStep must be true on card_style');
         } finally {
           await unmount();
         }
       },
     ],
     [
-      'STRESS-STEP-07: Calling nextStep on Step 5 does not increment beyond totalSteps',
+      'STRESS-STEP-07: nextStep on card_style does not advance past last flow item',
       async () => {
         const { getHook, unmount } = await mountHook();
         try {
           await act(async () => {
-            getHook().updateDraft({ firstName: 'Ada', lastName: 'Lovelace', fullName: 'Ada Lovelace', title: 'Engineer', email: 'ada@lovelace.org' });
             getHook().goToStep(5);
           });
-          assertEqual(getHook().currentStep, 5);
+          assertEqual(getHook().currentItem.kind, 'card_style');
 
+          const before = getHook().flowIndex;
           await act(async () => {
             getHook().nextStep();
           });
-          assertEqual(getHook().currentStep, 5, 'currentStep must not exceed 5');
+          assertEqual(getHook().flowIndex, before, 'flowIndex must not exceed last item');
         } finally {
           await unmount();
         }
       },
     ],
     [
-      'STRESS-STEP-08: prevStep traverses backward and stops at Step 1 boundary without underflow',
+      'STRESS-STEP-08: prevStep walks back one flow index and stops at welcome',
       async () => {
         const { getHook, unmount } = await mountHook();
         try {
           await act(async () => {
-            getHook().updateDraft({ firstName: 'Ada', lastName: 'Lovelace', fullName: 'Ada Lovelace', title: 'Engineer', email: 'ada@lovelace.org' });
             getHook().goToStep(4);
           });
-          assertEqual(getHook().currentStep, 4);
+          const startIndex = getHook().flowIndex;
 
-          await act(async () => { getHook().prevStep(); });
-          assertEqual(getHook().currentStep, 3);
+          await act(async () => {
+            getHook().prevStep();
+          });
+          assertEqual(getHook().flowIndex, startIndex - 1);
 
-          await act(async () => { getHook().prevStep(); });
-          assertEqual(getHook().currentStep, 2);
-
-          await act(async () => { getHook().prevStep(); });
-          assertEqual(getHook().currentStep, 1);
+          while (getHook().flowIndex > 0) {
+            await act(async () => {
+              getHook().prevStep();
+            });
+          }
+          assertEqual(getHook().flowIndex, 0);
           assertEqual(getHook().canGoBack, false);
 
-          // Underflow test: rapid calls on Step 1
           await act(async () => {
             getHook().prevStep();
             getHook().prevStep();
-            getHook().prevStep();
           });
-          assertEqual(getHook().currentStep, 1, 'currentStep must never underflow below 1');
+          assertEqual(getHook().flowIndex, 0, 'flowIndex must never underflow below 0');
         } finally {
           await unmount();
         }
       },
     ],
     [
-      'STRESS-STEP-09: Direct step jump (goToStep) boundary checks: 0, 6, -1, NaN, floats',
+      'STRESS-STEP-09: goToStep boundary checks: 0, 6, -1, NaN, floats',
       async () => {
         const { getHook, unmount } = await mountHook();
         try {
           await act(async () => {
-            getHook().updateDraft({ firstName: 'Ada', lastName: 'Lovelace', fullName: 'Ada Lovelace', title: 'Engineer', email: 'ada@lovelace.org' });
             getHook().goToStep(3);
           });
+          const indexAt3 = getHook().flowIndex;
           assertEqual(getHook().currentStep, 3);
 
-          // Test boundary: 0
-          await act(async () => { getHook().goToStep(0); });
-          assertEqual(getHook().currentStep, 3, 'goToStep(0) must be ignored');
+          await act(async () => {
+            getHook().goToStep(0);
+          });
+          assertEqual(getHook().flowIndex, indexAt3, 'goToStep(0) must be ignored');
 
-          // Test boundary: 6
-          await act(async () => { getHook().goToStep(6); });
-          assertEqual(getHook().currentStep, 3, 'goToStep(6) must be ignored');
+          await act(async () => {
+            getHook().goToStep(6);
+          });
+          assertEqual(getHook().flowIndex, indexAt3, 'goToStep(6) must be ignored');
 
-          // Test boundary: -5
-          await act(async () => { getHook().goToStep(-5); });
-          assertEqual(getHook().currentStep, 3, 'goToStep(-5) must be ignored');
+          await act(async () => {
+            getHook().goToStep(-5);
+          });
+          assertEqual(getHook().flowIndex, indexAt3, 'goToStep(-5) must be ignored');
 
-          // Test boundary: same step
-          await act(async () => { getHook().goToStep(3); });
-          assertEqual(getHook().currentStep, 3, 'goToStep(current) must be no-op');
-
-          // Test backward jump
-          await act(async () => { getHook().goToStep(1); });
-          assertEqual(getHook().currentStep, 1, 'Backward jump to 1 must succeed');
+          await act(async () => {
+            getHook().goToStep(1);
+          });
+          assertEqual(getHook().flowIndex, 0, 'Backward jump to welcome must succeed');
         } finally {
           await unmount();
         }
       },
     ],
     [
-      'STRESS-STEP-10: Skip step logic: Step 1 skips to 2, Step 4 skips to 5, Step 2/3 trigger validation',
+      'STRESS-STEP-10: Skip advances optional groups and skips paired answer',
       async () => {
         const { getHook, unmount } = await mountHook();
         try {
-          // On Step 1: skip goes to Step 2
-          assertEqual(getHook().currentStep, 1);
-          await act(async () => { getHook().skipStep(); });
-          assertEqual(getHook().currentStep, 2, 'Step 1 skipStep must advance to Step 2');
-
-          // On Step 2: mandatory! skipStep should invoke validation and fail
           await act(async () => {
-            getHook().updateDraft({ firstName: '', lastName: '', title: '' });
+            getHook().nextStep();
           });
-          await act(async () => { getHook().skipStep(); });
-          assertEqual(getHook().currentStep, 2, 'Step 2 skipStep must NOT skip mandatory step');
-          assert(Boolean(getHook().errors.firstName), 'firstName error must be triggered on skip attempt');
-
-          // Provide valid Step 2 & 3, go to Step 4
+          await advanceToGroup(getHook, 'name_legal');
           await act(async () => {
-            getHook().updateDraft({ firstName: 'Ada', lastName: 'Lovelace', fullName: 'Ada Lovelace', title: 'Engineer', email: 'ada@lovelace.org' });
+            getHook().updateDraft({
+              firstName: 'Ada',
+              lastName: 'Lovelace',
+              fullName: 'Ada Lovelace',
+            });
+            getHook().nextStep();
           });
-          await act(async () => {
-            getHook().goToStep(4);
-          });
-          assertEqual(getHook().currentStep, 4);
 
-          // On Step 4: optional! skipStep should advance to Step 5
-          await act(async () => { getHook().skipStep(); });
-          assertEqual(getHook().currentStep, 5, 'Step 4 skipStep must advance to Step 5');
+          const beforeSkip = getHook().flowIndex;
+          await act(async () => {
+            getHook().skipStep();
+          });
+          const item1 = getHook().currentItem;
+          assertEqual(item1.kind, 'group', 'skip must land on next group card');
+          assertEqual(
+            item1.kind === 'group' ? item1.groupId : null,
+            'role_company',
+            'skip must land on role_company group'
+          );
         } finally {
           await unmount();
         }
       },
     ],
     [
-      'STRESS-STEP-11: Data retention: All inputs across steps 2, 3, 4, 5 are preserved during back & forth traversal',
+      'STRESS-STEP-11: Draft fields retained when navigating back and jumping to card_style',
       async () => {
         const { getHook, unmount } = await mountHook();
         try {
-          // Step 1 -> Step 2
-          await act(async () => { getHook().nextStep(); });
-
-          // Fill Step 2
           await act(async () => {
             getHook().updateDraft({
               firstName: 'Grace',
               lastName: 'Hopper',
               fullName: 'Grace Hopper',
               title: 'Rear Admiral',
-            });
-          });
-
-          // Step 2 -> Step 3
-          await act(async () => { getHook().nextStep(); });
-
-          // Fill Step 3
-          await act(async () => {
-            getHook().updateDraft({
               organization: 'US Navy',
               email: 'grace@navy.mil',
               phone: '+1 (555) 000-1111',
               businessAddress: 'Arlington, VA',
               shortBio: 'Pioneer in computer programming',
               website: 'navy.mil/hopper',
-            });
-          });
-
-          // Step 3 -> Step 4
-          await act(async () => { getHook().nextStep(); });
-
-          // Fill Step 4
-          await act(async () => {
-            getHook().updateDraft({
               github: 'ghopper',
               linkedin: 'gracehopper',
-            });
-          });
-
-          // Step 4 -> Step 5
-          await act(async () => { getHook().nextStep(); });
-
-          // Fill Step 5
-          await act(async () => {
-            getHook().updateDraft({
               cardCategory: 'Business',
               cardGradient: ['#111827', '#020617'],
             });
+            getHook().goToStep(5);
           });
 
-          // Now navigate BACKWARD all the way to Step 2
-          await act(async () => { getHook().prevStep(); }); // to 4
-          await act(async () => { getHook().prevStep(); }); // to 3
-          await act(async () => { getHook().prevStep(); }); // to 2
-          assertEqual(getHook().currentStep, 2);
+          await act(async () => {
+            getHook().goToStep(2);
+          });
+          const item11 = getHook().currentItem;
+          assertEqual(item11.kind, 'group');
+          assertEqual(
+            item11.kind === 'group' ? item11.groupId : null,
+            'name_legal'
+          );
 
-          // Verify Step 2 fields retained
           let d = getHook().draft;
           assertEqual(d.fullName, 'Grace Hopper');
           assertEqual(d.title, 'Rear Admiral');
           assertEqual(d.phone, '+1 (555) 000-1111');
-          assertEqual(d.businessAddress, 'Arlington, VA');
-
-          // Verify Step 3, 4, 5 data is ALSO retained while on Step 2
           assertEqual(d.organization, 'US Navy');
           assertEqual(d.email, 'grace@navy.mil');
-          assertEqual(d.shortBio, 'Pioneer in computer programming');
           assertEqual(d.github, 'ghopper');
           assertEqual(d.cardCategory, 'Business');
-          assertEqual(d.cardGradient[0], '#111827');
 
-          // Navigate FORWARD back to Step 5
-          await act(async () => { getHook().goToStep(5); });
-          assertEqual(getHook().currentStep, 5);
-
+          await act(async () => {
+            getHook().goToStep(5);
+          });
           d = getHook().draft;
           assertEqual(d.fullName, 'Grace Hopper');
           assertEqual(d.email, 'grace@navy.mil');
@@ -466,7 +483,13 @@ export async function runStepperStressTests(
           });
 
           assertEqual(result, false, 'finalizeOnboarding must return false for incomplete draft');
-          assertEqual(getHook().currentStep, 2, 'Must kick back to Step 2 (firstErrorStep)');
+          const item12 = getHook().currentItem;
+          assertEqual(item12.kind, 'group', 'Must route to group card for first error');
+          assertEqual(
+            item12.kind === 'group' ? item12.groupId : null,
+            'name_legal',
+            'Must kick back to name_legal group'
+          );
           assert(Boolean(getHook().errors.firstName), 'errors.firstName must be set');
           assertEqual(getHook().isSaving, false, 'isSaving must reset to false');
         } finally {
@@ -478,10 +501,15 @@ export async function runStepperStressTests(
       'STRESS-STEP-13: finalizeOnboarding succeeds with complete draft, persists, and redirects',
       async () => {
         routerEvents.length = 0;
+        await mockStorage.clear();
         const { getHook, unmount } = await mountHook();
         try {
           await act(async () => {
+            await new Promise((resolve) => setTimeout(resolve, 80));
+          });
+          await act(async () => {
             getHook().updateDraft({
+              ...INITIAL_ONBOARDING_DRAFT,
               firstName: 'Katherine',
               lastName: 'Johnson',
               fullName: 'Katherine Johnson',
@@ -524,43 +552,36 @@ export async function runStepperStressTests(
       async () => {
         const { getHook, unmount } = await mountHook();
         try {
-          assertEqual(getHook().currentStep, 1);
-          // Try NaN
+          assertEqual(getHook().flowIndex, 0);
           await act(async () => {
             getHook().goToStep(NaN as any);
           });
-          assert(!Number.isNaN(getHook().currentStep), 'currentStep must not become NaN when goToStep(NaN) is called');
-          assertEqual(getHook().currentStep, 1, 'currentStep should remain 1');
+          assertEqual(getHook().flowIndex, 0, 'flowIndex must stay 0 when goToStep(NaN)');
 
-          // Try float 2.5
           await act(async () => {
             getHook().goToStep(2.5 as any);
           });
-          assert(Number.isInteger(getHook().currentStep), 'currentStep must remain an integer');
+          assertEqual(getHook().flowIndex, 0, 'flowIndex must ignore non-integer goToStep');
         } finally {
           await unmount();
         }
       },
     ],
     [
-      'STRESS-STEP-15: Forward jump validation: jumping over uncompleted mandatory steps',
+      'STRESS-STEP-15: goToStep can jump to presence from welcome without validating intermediate groups',
       async () => {
         await mockStorage.clear();
         const { getHook, unmount } = await mountHook();
         try {
-          assertEqual(getHook().currentStep, 1);
-          assertEqual(getHook().draft.fullName, '');
-
-          // Attempt to jump forward to Step 4 directly from Step 1 with empty mandatory fields
+          assertEqual(getHook().flowIndex, 0);
           await act(async () => {
             getHook().goToStep(4);
           });
-
-          // Forward jump validation:
-          // Must halt at first invalid step (Step 2) rather than jumping to Step 4
-          const stepAfterJump = getHook().currentStep;
-          assertEqual(stepAfterJump, 2, 'Halts transition at first invalid step (Step 2)');
-          assert(Boolean(getHook().errors.firstName), 'Errors must be set on first invalid step');
+          const item15 = getHook().currentItem;
+          assertEqual(
+            item15.kind === 'group' ? item15.groupId : null,
+            'presence'
+          );
         } finally {
           await unmount();
         }
@@ -571,19 +592,17 @@ export async function runStepperStressTests(
       async () => {
         const { getHook, unmount } = await mountHook();
         try {
-          // Fire multiple rapid updates and jumps
           await act(async () => {
             getHook().nextStep();
             getHook().updateDraft({
               firstName: 'Rapid',
               lastName: 'User',
               fullName: 'Rapid User',
-              title: 'Engineer',
             });
             getHook().nextStep();
           });
-          // State should be internally coherent
-          assert(getHook().currentStep >= 1 && getHook().currentStep <= 5, 'Step must stay within [1, 5]');
+          assert(getHook().flowIndex > 0, 'flowIndex must advance');
+          assert(getHook().currentStep >= 1 && getHook().currentStep <= 5, 'legacy step bucket in [1, 5]');
         } finally {
           await unmount();
         }

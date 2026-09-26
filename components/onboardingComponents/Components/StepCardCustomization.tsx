@@ -24,7 +24,7 @@ import {
   type LucideIcon,
 } from 'lucide-react-native';
 
-import mindProsLogo from '@/assets/mindpros-logo.png';
+import mindProsLogoDark from '@/assets/mindpros-logo-dark.png';
 import { FlippableCard } from '@/components/gestures/FlippableCard';
 import {
   StandardWalletCard,
@@ -206,7 +206,7 @@ export function StepCardCustomization({
                 category={safeCategory}
                 company={safeCompany}
                 gradient={safeGradient}
-                logoSource={mindProsLogo}
+                logoSource={mindProsLogoDark}
                 name={safeName}
                 title={safeTitle}
                 width={cardWidth}

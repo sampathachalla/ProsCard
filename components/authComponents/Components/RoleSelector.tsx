@@ -1,10 +1,14 @@
-// components/authComponents/Components/RoleSelector.tsx
-import { View, Text, TouchableOpacity } from 'react-native';
-import { Colors } from '@/constants/Colors';
+import { Pressable, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { Text } from '@/components/uiComponents/Text';
 import type { UserRole } from '../types/auth.types';
 
-const ROLES: UserRole[] = ['Trainer', 'Member'];
+const ROLES: { value: UserRole; label: string }[] = [
+  { value: 'Member', label: 'Personal' },
+  { value: 'Trainer', label: 'Work' },
+];
 
+/** Compact Canva/Instagram segmented control — not card-heavy. */
 export function RoleSelector({
   value,
   onChange,
@@ -13,31 +17,35 @@ export function RoleSelector({
   onChange: (role: UserRole) => void;
 }) {
   return (
-    <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
-      {ROLES.map((role) => (
-        <TouchableOpacity
-          key={role}
-          onPress={() => onChange(role)}
-          style={{
-            flex: 1,
-            paddingVertical: 12,
-            borderRadius: 10,
-            borderWidth: 1.5,
-            borderColor: value === role ? Colors.light.tint : Colors.light.border,
-            backgroundColor: value === role ? Colors.light.tint : Colors.light.background,
-          }}
-        >
-          <Text
-            style={{
-              textAlign: 'center',
-              color: value === role ? Colors.palette.primaryWhite : Colors.light.text,
-              fontWeight: '600',
+    <View className="mb-4 flex-row rounded-xl bg-black/[0.04] p-1 dark:bg-white/10">
+      {ROLES.map((role) => {
+        const selected = value === role.value;
+        return (
+          <Pressable
+            key={role.value}
+            onPress={() => {
+              Haptics.selectionAsync().catch(() => {});
+              onChange(role.value);
             }}
+            accessibilityRole="button"
+            accessibilityState={{ selected }}
+            accessibilityLabel={role.label}
+            className={`flex-1 items-center rounded-lg py-2.5 active:opacity-80 ${
+              selected ? 'bg-white shadow-sm dark:bg-slate-800' : ''
+            }`}
           >
-            {role}
-          </Text>
-        </TouchableOpacity>
-      ))}
+            <Text
+              className={`text-[13px] font-semibold ${
+                selected
+                  ? 'text-textPrimary dark:text-dark-textPrimary'
+                  : 'text-[#8e8e8e] dark:text-slate-400'
+              }`}
+            >
+              {role.label}
+            </Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }

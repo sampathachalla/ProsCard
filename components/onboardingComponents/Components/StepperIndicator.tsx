@@ -1,7 +1,9 @@
 import React from 'react';
-import { View, Text, Pressable } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Check } from 'lucide-react-native';
+import { Colors } from '@/constants/Colors';
+import { useThemeContext } from '@/context/ThemeContext';
 import { ONBOARDING_STEPS_META, type StepMetadata } from '../types/onboardingStepper.types';
 
 export interface StepperIndicatorProps {
@@ -15,9 +17,20 @@ export function StepperIndicator({
   totalSteps,
   onStepPress,
 }: StepperIndicatorProps) {
+  const { theme } = useThemeContext();
+  const isDark = theme === 'dark';
+  const tint = isDark ? Colors.dark.tint : Colors.light.tint;
+  const muted = isDark ? Colors.dark.mutedText : Colors.light.mutedText;
+  const text = isDark ? Colors.dark.text : Colors.light.text;
+  const track = isDark ? '#1e293b' : '#e2e8f0';
+  const nodeIdle = isDark ? '#1e293b' : '#f1f5f9';
+
   const steps: StepMetadata[] = ONBOARDING_STEPS_META.slice(0, totalSteps);
   const activeMeta = steps[currentStep - 1] || steps[0];
-  const progressPercent = Math.min(100, Math.max(0, Math.round((currentStep / totalSteps) * 100)));
+  const progressPercent = Math.min(
+    100,
+    Math.max(0, Math.round((currentStep / Math.max(totalSteps, 1)) * 100))
+  );
 
   const handleStepPress = (stepNum: number) => {
     if (!onStepPress) return;
@@ -26,111 +39,152 @@ export function StepperIndicator({
   };
 
   return (
-    <View className="px-6 pt-2 pb-4 bg-background dark:bg-dark-background border-b border-slate-100 dark:border-slate-800/80">
-      {/* Step counter and progress percent */}
-      <View className="flex-row items-center justify-between mb-2">
+    <View
+      className="border-b border-slate-100 bg-background px-6 pb-4 pt-2 dark:border-slate-800/80 dark:bg-dark-background"
+    >
+      <View className="mb-2 flex-row items-center justify-between">
         <Text className="text-xs font-bold uppercase tracking-wider text-primary dark:text-dark-primary">
           Step {currentStep} of {totalSteps}
         </Text>
         <Text className="text-xs font-semibold text-textMuted dark:text-dark-textMuted">
-          {progressPercent}% Complete
+          {progressPercent}%
         </Text>
       </View>
 
-      {/* Continuous progress bar */}
-      <View className="h-1.5 w-full rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden mb-4">
+      <View
+        className="mb-4 h-1.5 w-full overflow-hidden rounded-full"
+        style={{ backgroundColor: track }}
+      >
         <View
-          className="h-full bg-primary dark:bg-dark-primary rounded-full"
-          style={{ width: `${progressPercent}%` }}
+          style={{
+            height: '100%',
+            width: `${progressPercent}%`,
+            borderRadius: 999,
+            backgroundColor: tint,
+          }}
         />
       </View>
 
-      {/* Numbered step nodes with connecting lines */}
-      <View className="flex-row items-center justify-between px-1">
+      <View style={styles.nodesRow}>
         {steps.map((step, idx) => {
           const stepNum = idx + 1;
           const isCompleted = stepNum < currentStep;
           const isActive = stepNum === currentStep;
-          const isUpcoming = stepNum > currentStep;
           const isTappable = Boolean(onStepPress);
 
           return (
-            <React.Fragment key={step.index || stepNum}>
-              {/* Step node */}
+            <React.Fragment key={`step-${step.index ?? stepNum}`}>
               <Pressable
-                onPress={() => isTappable && handleStepPress(stepNum)}
+                onPress={() => {
+                  if (isTappable) handleStepPress(stepNum);
+                }}
                 disabled={!isTappable}
                 accessibilityRole="button"
-                accessibilityLabel={`Step ${stepNum}: ${step.title}${isActive ? ' (Current)' : isCompleted ? ' (Completed)' : ''}`}
-                className="items-center justify-center"
+                accessibilityLabel={`Step ${stepNum}: ${step.title}${
+                  isActive ? ' (Current)' : isCompleted ? ' (Completed)' : ''
+                }`}
+                style={styles.nodePressable}
               >
                 <View
-                  className={`w-8 h-8 rounded-full items-center justify-center transition-all ${
+                  style={[
+                    styles.node,
                     isCompleted
-                      ? 'bg-primary dark:bg-dark-primary shadow-sm shadow-blue-500/20'
+                      ? { backgroundColor: tint }
                       : isActive
-                      ? 'bg-primary/15 dark:bg-dark-primary/20 border-2 border-primary dark:border-dark-primary'
-                      : 'bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700'
-                  }`}
+                      ? {
+                          backgroundColor: isDark ? 'rgba(56,189,248,0.15)' : 'rgba(37,99,235,0.12)',
+                          borderWidth: 2,
+                          borderColor: tint,
+                        }
+                      : {
+                          backgroundColor: nodeIdle,
+                          borderWidth: 1,
+                          borderColor: track,
+                        },
+                  ]}
                 >
                   {isCompleted ? (
-                    <Check size={16} strokeWidth={2.6} color="#FFFFFF" />
+                    <Check size={14} strokeWidth={2.8} color="#FFFFFF" />
                   ) : (
                     <Text
-                      className={`text-xs font-bold ${
-                        isActive
-                          ? 'text-primary dark:text-dark-primary'
-                          : isUpcoming
-                          ? 'text-textMuted dark:text-dark-textMuted'
-                          : 'text-textPrimary dark:text-dark-textPrimary'
-                      }`}
+                      style={{
+                        fontSize: 11,
+                        fontWeight: '700',
+                        color: isActive ? tint : muted,
+                      }}
                     >
                       {stepNum}
                     </Text>
                   )}
                 </View>
-
-                {/* Step short label */}
                 <Text
                   numberOfLines={1}
-                  className={`text-[10px] mt-1 font-medium ${
-                    isActive
-                      ? 'font-bold text-primary dark:text-dark-primary'
-                      : isCompleted
-                      ? 'text-textPrimary dark:text-dark-textPrimary'
-                      : 'text-textMuted dark:text-dark-textMuted'
-                  }`}
+                  style={{
+                    marginTop: 4,
+                    maxWidth: 56,
+                    fontSize: 9,
+                    fontWeight: isActive ? '700' : '500',
+                    color: isActive ? tint : isCompleted ? text : muted,
+                    textAlign: 'center',
+                  }}
                 >
                   {step.title}
                 </Text>
               </Pressable>
 
-              {/* Connector line between nodes */}
-              {idx < steps.length - 1 && (
+              {idx < steps.length - 1 ? (
                 <View
-                  className={`flex-1 h-[2px] mx-1.5 -mt-3.5 rounded-full ${
-                    stepNum < currentStep
-                      ? 'bg-primary dark:bg-dark-primary'
-                      : 'bg-slate-200 dark:bg-slate-800'
-                  }`}
+                  style={[
+                    styles.connector,
+                    {
+                      backgroundColor: stepNum < currentStep ? tint : track,
+                    },
+                  ]}
                 />
-              )}
+              ) : null}
             </React.Fragment>
           );
         })}
       </View>
 
-      {/* Active step title and subtitle */}
-      {activeMeta && (
+      {activeMeta ? (
         <View className="mt-4 pt-1">
-          <Text className="text-xl font-extrabold text-textPrimary dark:text-dark-textPrimary tracking-tight">
+          <Text className="text-xl font-extrabold tracking-tight text-textPrimary dark:text-dark-textPrimary">
             {activeMeta.title}
           </Text>
-          <Text className="text-xs text-textMuted dark:text-dark-textMuted mt-0.5 leading-4">
+          <Text className="mt-0.5 text-xs leading-4 text-textMuted dark:text-dark-textMuted">
             {activeMeta.subtitle}
           </Text>
         </View>
-      )}
+      ) : null}
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  nodesRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    paddingHorizontal: 2,
+  },
+  nodePressable: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 40,
+  },
+  node: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  connector: {
+    flex: 1,
+    height: 2,
+    marginHorizontal: 4,
+    marginTop: 13,
+    borderRadius: 1,
+  },
+});

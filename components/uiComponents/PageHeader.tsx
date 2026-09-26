@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft } from 'lucide-react-native';
 import { IconButton } from './IconButton';
 import { Text } from './Text';
@@ -23,6 +24,7 @@ export function PageHeader({
   className = '',
 }: PageHeaderProps) {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const handleBack = () => {
     if (onBackPress) {
@@ -38,7 +40,10 @@ export function PageHeader({
   };
 
   return (
-    <View className={`flex-row items-center px-5 pb-3 pt-3 ${className}`}>
+    <View
+      className={`flex-row items-center px-5 pb-3 ${className}`}
+      style={{ paddingTop: Math.max(insets.top, 12) }}
+    >
       {showBackButton ? (
         <IconButton
           accessibilityLabel="Go back"

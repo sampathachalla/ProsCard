@@ -8,14 +8,15 @@ import {
   type CardThemePresetId,
   type CardVisualTheme,
   type SavedSectionTheme,
+  type ThemePaletteTier,
 } from '@/components/cardsComponents/types/card.types';
-import { getCardFontFamily } from '@/components/cardsComponents/Templates/cardTheme';
+import { getCardFontFamily, MULTI_TIER_PRESETS, type MultiTierPreset } from '@/components/cardsComponents/Templates/cardTheme';
 import { Text } from '@/components/uiComponents/Text';
 import { EditorOptionGrid } from '@/components/uiComponents/editor/EditorOptionGrid';
 import { EditorPresentationCrossfade } from '@/components/uiComponents/editor/EditorPresentationCrossfade';
 import { EditorSectionLabel } from '@/components/uiComponents/editor/EditorSectionLabel';
 import { ThemeCreateEditor } from '@/components/uiComponents/ThemeCreateEditor';
-import { getCardThemeColorMode, themeFromSavedSectionTheme } from '@/utils/cardThemeColor';
+import { buildMultiTierSectionTheme, getCardThemeColorMode, themeFromSavedSectionTheme } from '@/utils/cardThemeColor';
 
 const PRESET_NAMES: Record<CardThemePresetId, string> = {
   ocean: 'Ocean',
@@ -36,27 +37,29 @@ const FONT_NAMES: Record<CardFontStyle, string> = {
 const PRESET_IDS: CardThemePresetId[] = ['ocean', 'midnight', 'violet', 'sand', 'sunset', 'aurora'];
 const FONT_IDS = Object.keys(FONT_NAMES) as CardFontStyle[];
 
-const THEME_CARD_HEIGHT = 92;
+const THEME_CARD_HEIGHT = 96;
 
 type ThemeListItem =
   | { kind: 'saved'; saved: SavedSectionTheme }
   | { kind: 'create' }
-  | { kind: 'preset'; id: CardThemePresetId };
+  | { kind: 'tier-preset'; preset: MultiTierPreset };
 
-function ThemeGradientTile({
-  label,
-  gradient,
-  selected,
-  width,
+function ThemeMultiColorTile({
+  colors,
   height = THEME_CARD_HEIGHT,
+  label,
   onPress,
+  selected,
+  tier,
+  width,
 }: {
-  label: string;
-  gradient: [string, string];
-  selected: boolean;
-  width: number;
+  colors: string[];
   height?: number;
+  label: string;
   onPress: () => void;
+  selected: boolean;
+  tier: number;
+  width: number;
 }) {
   return (
     <Pressable
@@ -67,24 +70,26 @@ function ThemeGradientTile({
       style={{ width, height }}
       className={`overflow-hidden rounded-2xl ${selected ? 'border-2 border-primary' : 'border border-slate-600/40'}`}
     >
+      <View className="flex-1 flex-row">
+        {colors.map((color, idx) => (
+          <View key={idx} className="flex-1 h-full" style={{ backgroundColor: color }} />
+        ))}
+      </View>
       <LinearGradient
-        colors={[gradient[0], gradient[1]]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
-      <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.65)']}
+        colors={['transparent', 'rgba(0,0,0,0.75)']}
         style={[StyleSheet.absoluteFill, { top: '35%' }]}
       />
-      <View className="flex-1 justify-end p-3">
-        <Text numberOfLines={1} className="text-sm font-bold text-white">
+      <View className="absolute bottom-2 left-2.5 right-2.5 flex-row items-center justify-between">
+        <Text numberOfLines={1} className="text-xs font-bold text-white">
           {label}
         </Text>
+        <View className="rounded-md bg-black/40 px-1.5 py-0.5">
+          <Text className="text-[10px] font-bold text-white/80">{tier}C</Text>
+        </View>
       </View>
       {selected ? (
-        <View className="absolute right-2 top-2 h-6 w-6 items-center justify-center rounded-full bg-primary">
-          <Check color="#ffffff" size={14} strokeWidth={3} />
+        <View className="absolute right-2 top-2 h-5 w-5 items-center justify-center rounded-full bg-primary">
+          <Check color="#ffffff" size={12} strokeWidth={3} />
         </View>
       ) : null}
     </Pressable>
@@ -148,15 +153,23 @@ export function CardStylingCustomizer({
   const [customEditorOpen, setCustomEditorOpen] = useState(false);
   const [draftThemeName, setDraftThemeName] = useState('');
   const [activeStylingPanel, setActiveStylingPanel] = useState<'theme' | 'font'>('theme');
+  const [selectedTier, setSelectedTier] = useState<'all' | 2 | 3 | 4>('all');
 
-  const themeItems = useMemo<ThemeListItem[]>(
-    () => [
-      { kind: 'create' as const },
-      ...customThemes.map((saved) => ({ kind: 'saved' as const, saved })),
-      ...PRESET_IDS.map((id) => ({ kind: 'preset' as const, id })),
-    ],
-    [customThemes],
-  );
+  const themeItems = useMemo<ThemeListItem[]>(() => {
+    const list: ThemeListItem[] = [{ kind: 'create' as const }];
+    customThemes.forEach((saved) => {
+      const tier = saved.paletteTier || 2;
+      if (selectedTier === 'all' || tier === selectedTier) {
+        list.push({ kind: 'saved' as const, saved });
+      }
+    });
+    MULTI_TIER_PRESETS.forEach((preset) => {
+      if (selectedTier === 'all' || preset.tier === selectedTier) {
+        list.push({ kind: 'tier-preset' as const, preset });
+      }
+    });
+    return list;
+  }, [customThemes, selectedTier]);
 
   const categorizedThemeItems = useMemo(() => {
     const light: ThemeListItem[] = [{ kind: 'create' }];
@@ -165,7 +178,7 @@ export function CardStylingCustomizer({
       if (item.kind === 'create') return;
       const categorizedTheme = item.kind === 'saved'
         ? themeFromSavedSectionTheme(item.saved, theme.fontStyle)
-        : CARD_THEME_PRESETS[item.id];
+        : buildMultiTierSectionTheme(item.preset.colors, theme.fontStyle);
       (getCardThemeColorMode(categorizedTheme) === 'dark' ? dark : light).push(item);
     });
     return { light, dark };
@@ -190,7 +203,11 @@ export function CardStylingCustomizer({
   const isItemSelected = (item: ThemeListItem) => {
     if (item.kind === 'create') return customEditorOpen;
     if (item.kind === 'saved') return theme.customThemeId === item.saved.id && !customEditorOpen;
-    return theme.id === item.id && !theme.customThemeId && !customEditorOpen;
+    if (item.kind === 'tier-preset') {
+      const currentColors = theme.paletteColors || [theme.backgroundColor, theme.surfaceColor, theme.accentColor];
+      return item.preset.colors.every((c, i) => currentColors[i] === c) && !customEditorOpen;
+    }
+    return false;
   };
 
   const openCustomEditor = () => {
@@ -210,12 +227,9 @@ export function CardStylingCustomizer({
       onChange(themeFromSavedSectionTheme(item.saved, theme.fontStyle));
       return;
     }
-    const preset = CARD_THEME_PRESETS[item.id];
-    onChange({
-      ...preset,
-      gradient: [preset.gradient[0], preset.gradient[1]],
-      fontStyle: theme.fontStyle,
-    });
+    if (item.kind === 'tier-preset') {
+      onChange(buildMultiTierSectionTheme(item.preset.colors, theme.fontStyle));
+    }
   };
 
   const renderThemeItem = (
@@ -234,10 +248,12 @@ export function CardStylingCustomizer({
       );
     }
     if (item.kind === 'saved') {
+      const colors = item.saved.paletteColors || item.saved.gradient;
       return (
-        <ThemeGradientTile
+        <ThemeMultiColorTile
+          colors={colors}
+          tier={item.saved.paletteTier || colors.length}
           label={item.saved.name}
-          gradient={item.saved.gradient}
           selected={isItemSelected(item)}
           width={cardWidth}
           height={cardHeight}
@@ -245,11 +261,11 @@ export function CardStylingCustomizer({
         />
       );
     }
-    const preset = CARD_THEME_PRESETS[item.id];
     return (
-      <ThemeGradientTile
-        label={PRESET_NAMES[item.id]}
-        gradient={[preset.gradient[0], preset.gradient[1]]}
+      <ThemeMultiColorTile
+        colors={item.preset.colors}
+        tier={item.preset.tier}
+        label={item.preset.name}
         selected={isItemSelected(item)}
         width={cardWidth}
         height={cardHeight}
@@ -262,6 +278,7 @@ export function CardStylingCustomizer({
     const trimmed = draftThemeName.trim();
     if (!trimmed) return;
 
+    const colors = theme.paletteColors || [theme.backgroundColor, theme.surfaceColor, theme.accentColor];
     const existingByName = customThemes.find(
       (item) => item.name.toLowerCase() === trimmed.toLowerCase(),
     );
@@ -269,11 +286,15 @@ export function CardStylingCustomizer({
       ? {
           ...existingByName,
           gradient: [theme.gradient[0], theme.gradient[1]],
+          paletteColors: colors,
+          paletteTier: (colors.length as 2 | 3 | 4) || 3,
         }
       : {
           id: `theme-${Date.now()}`,
           name: trimmed,
           gradient: [theme.gradient[0], theme.gradient[1]],
+          paletteColors: colors,
+          paletteTier: (colors.length as 2 | 3 | 4) || 3,
         };
 
     onSaveCustomTheme(entry);
@@ -348,8 +369,27 @@ export function CardStylingCustomizer({
         <>
           <EditorSectionLabel
             title="Section styling"
-            subtitle="Themes are grouped by brightness so every layout uses readable contrast."
+            subtitle="Themes are grouped by tier & brightness so every layout uses readable contrast."
           />
+          <View className="mb-3 flex-row gap-1.5 rounded-xl border border-slate-200 bg-card p-1 dark:border-slate-700 dark:bg-dark-card">
+            {(['all', 2, 3, 4] as const).map((tier) => {
+              const active = selectedTier === tier;
+              const label = tier === 'all' ? 'All' : `${tier} Colors`;
+              return (
+                <Pressable
+                  key={tier}
+                  onPress={() => setSelectedTier(tier)}
+                  className={`flex-1 items-center justify-center rounded-lg py-1.5 ${
+                    active ? 'bg-primary' : 'active:opacity-70'
+                  }`}
+                >
+                  <Text className={`text-xs font-bold ${active ? 'text-white' : 'text-textSecondary dark:text-dark-textSecondary'}`}>
+                    {label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
           <EditorPresentationCrossfade
             compactHeight={compactThemeGridHeight}
             expandedHeight={gridHeight}
@@ -374,7 +414,7 @@ export function CardStylingCustomizer({
                           style={{ gap: gridGap, width: editorPaneWidth }}
                         >
                           {group.items.slice(pageIndex * 4, pageIndex * 4 + 4).map((item) => {
-                            const key = item.kind === 'saved' ? item.saved.id : item.kind === 'create' ? 'create' : item.id;
+                            const key = item.kind === 'saved' ? item.saved.id : item.kind === 'create' ? 'create' : item.preset.id;
                             return (
                               <View key={key} style={{ width: (editorPaneWidth - gridGap) / 2 }}>
                                 {renderThemeItem(item, (editorPaneWidth - gridGap) / 2, fontCardHeight)}
@@ -397,7 +437,7 @@ export function CardStylingCustomizer({
                     </Text>
                     <EditorOptionGrid
                       items={group.items}
-                      keyExtractor={(item) => item.kind === 'saved' ? item.saved.id : item.kind === 'create' ? 'create' : item.id}
+                      keyExtractor={(item) => item.kind === 'saved' ? item.saved.id : item.kind === 'create' ? 'create' : item.preset.id}
                       containerWidth={editorPaneWidth}
                       columns={2}
                       gap={gridGap}

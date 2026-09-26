@@ -10,7 +10,6 @@ import { useProfile } from '../../components/profileComponents/Hooks/useProfile'
 import { useProfileSnapshot } from '../../components/profileComponents/Hooks/useProfileSnapshot';
 import { useNotificationPreference } from '../../components/profileComponents/Hooks/useNotificationPreference';
 import { ProfileDetails } from '../../components/profileComponents/Components/ProfileDetails';
-import { SocialLinksRow } from '../../components/profileComponents/Components/SocialLinksRow';
 import { PageHeader } from '@/components/uiComponents/PageHeader';
 import { useFloatingTools } from '@/components/toolsButton';
 import { QuickToolsSection } from '../../components/profileComponents/Components/QuickToolsSection';
@@ -79,7 +78,6 @@ export default function ProfileScreen() {
       <SettingsRow icon={User} label="Account" onPress={() => router.push('/(tabs)/accountPage')} />
 
       <ProfileDetails profile={profile} />
-      <SocialLinksRow social={profile.social} />
 
       <Text className="text-textMuted dark:text-dark-textMuted text-xs font-semibold uppercase mb-2 mt-4 ml-1">
         Account

@@ -51,17 +51,6 @@ export function ProfileDetails({ profile }: { profile: Profile }) {
           </Text>
         </View>
       ) : null}
-
-      {Object.entries(profile.social).filter(([, value]) => Boolean(value)).length > 0 ? (
-        <View className="bg-card dark:bg-dark-card rounded-2xl px-4 py-4 mb-3">
-          <Text className="text-textMuted dark:text-dark-textMuted text-xs font-semibold uppercase mb-2">Links</Text>
-          {Object.entries(profile.social).filter(([, value]) => Boolean(value)).map(([label, value]) => (
-            <TouchableOpacity key={label} className="py-2" onPress={() => Linking.openURL(value as string)}>
-              <Text className="font-semibold capitalize text-primary dark:text-dark-primary">{label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      ) : null}
     </View>
   );
 }

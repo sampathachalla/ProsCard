@@ -1,13 +1,13 @@
 import { Asset } from 'expo-asset';
 
-import mindProsLogo from '@/assets/mindpros-logo.png';
+import mindProsLogoDark from '@/assets/mindpros-logo-dark.png';
 import type { BusinessCard, CardSectionId, CardTemplateId, DynamicCardField } from '../types/card.types';
 import type { Profile } from '@/components/profileComponents/types/profile.types';
 
 export const DUMMY_CARD_MEDIA = {
   coverPhoto: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1400&q=80',
   profilePhoto: 'https://i.pravatar.cc/600?img=12',
-  logo: Asset.fromModule(mindProsLogo as number).uri,
+  logo: Asset.fromModule(mindProsLogoDark as number).uri,
 } as const;
 
 export const DUMMY_CARD_PROFESSIONAL = {

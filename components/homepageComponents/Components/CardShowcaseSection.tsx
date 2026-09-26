@@ -72,10 +72,10 @@ export function CardShowcaseSection({
       </Animated.View>
 
       <View
-        pointerEvents="none"
         style={{
           bottom: bottomInset,
           left: 0,
+          pointerEvents: 'none',
           position: 'absolute',
           right: 0,
         }}

@@ -84,16 +84,14 @@ export function FloatingEditBarButton({
   return (
     <View
       onLayout={handleLayout}
-      pointerEvents="box-none"
-      style={[StyleSheet.absoluteFill, { elevation: 100, zIndex: 100 }]}
+      style={[StyleSheet.absoluteFill, { elevation: 100, pointerEvents: 'box-none', zIndex: 100 }]}
     >
       <GestureDetector gesture={dragGesture}>
         <Animated.View
           entering={FadeIn.duration(520)}
           className="absolute left-0 top-0"
-          pointerEvents={visible ? 'auto' : 'none'}
           style={[
-            { elevation: 101, height: BUTTON_SIZE, width: BUTTON_SIZE, zIndex: 101 },
+            { elevation: 101, height: BUTTON_SIZE, pointerEvents: visible ? 'auto' : 'none', width: BUTTON_SIZE, zIndex: 101 },
             animatedStyle,
           ]}
         >

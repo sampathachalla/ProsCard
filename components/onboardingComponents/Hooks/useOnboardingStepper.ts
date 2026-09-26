@@ -22,9 +22,14 @@ import {
   ONBOARDING_STEPS_META,
 } from '../types/onboardingStepper.types';
 import {
-  validateStep,
-  validateAllSteps,
-} from '../Utils/validateOnboarding';
+  ONBOARDING_FLOW,
+  flowIndexForField,
+  indexAfterSkip,
+  isFlowItemSkippable,
+  type OnboardingFlowItem,
+} from '../types/onboardingFlow.types';
+import { validateAllSteps } from '../Utils/validateOnboarding';
+import { validateFlowGroup } from '../Utils/validateOnboardingFlowGroup';
 import {
   mapDraftToProfile,
   mapDraftToBusinessCard,
@@ -34,19 +39,38 @@ import {
 export function useOnboardingStepper(): UseOnboardingStepperReturn {
   const router = useRouter();
 
-  const [currentStep, setCurrentStep] = useState<number>(1);
+  const [flowIndex, setFlowIndex] = useState(0);
   const [draft, setDraft] = useState<OnboardingDraft>(INITIAL_ONBOARDING_DRAFT);
   const draftRef = useRef<OnboardingDraft>(INITIAL_ONBOARDING_DRAFT);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
-  const totalSteps = ONBOARDING_STEPS_META.length; // 5
+  const totalSteps = ONBOARDING_FLOW.length;
+  const currentItem: OnboardingFlowItem = ONBOARDING_FLOW[flowIndex] ?? ONBOARDING_FLOW[0];
 
-  // Initial user/profile hydration
+  // Legacy coarse step for tests / compat (welcome = 1, everything else = 2–5 bucket)
+  const currentStep = useMemo(() => {
+    if (currentItem.kind === 'welcome') return 1;
+    if (currentItem.kind === 'card_style') return 5;
+    const groupId = currentItem.kind === 'group' ? currentItem.groupId : null;
+    if (!groupId) return 2;
+    if (groupId === 'name_legal' || groupId === 'name_formal' || groupId === 'role_company' || groupId === 'credentials') {
+      return 2;
+    }
+    if (groupId === 'contact_email' || groupId === 'contact_phone' || groupId === 'work_extra') {
+      return 3;
+    }
+    if (groupId === 'presence') return 4;
+    return 5;
+  }, [currentItem]);
+
+  const hasHydratedFromStorageRef = useRef(false);
+
   useEffect(() => {
     let isMounted = true;
     Promise.all([getStoredUser(), getProfile()]).then(([user, existingProfile]) => {
-      if (!isMounted) return;
+      if (!isMounted || hasHydratedFromStorageRef.current) return;
+      hasHydratedFromStorageRef.current = true;
       setDraft((prev) => {
         const profileDraft = mapProfileToDraft(existingProfile);
         const next = {
@@ -64,7 +88,6 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
     };
   }, []);
 
-  // Update draft and clear field error on input
   const updateDraft = useCallback((fields: Partial<OnboardingDraft>) => {
     draftRef.current = { ...draftRef.current, ...fields };
     setDraft((prev) => ({ ...prev, ...fields }));
@@ -95,109 +118,124 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
     return ONBOARDING_STEPS_META[currentStep - 1] || ONBOARDING_STEPS_META[0];
   }, [currentStep]);
 
-  const canGoBack = currentStep > 1 && !isSaving;
-  const isLastStep = currentStep === totalSteps;
+  const canGoBack = flowIndex > 0 && !isSaving;
+  const isLastStep = currentItem.kind === 'card_style';
+  const canSkip = isFlowItemSkippable(currentItem) && !isSaving;
 
-  // Next Step with validation
+  const progressLabel = useMemo(
+    () => `${flowIndex + 1} of ${ONBOARDING_FLOW.length}`,
+    [flowIndex]
+  );
+
   const nextStep = useCallback((): boolean => {
     if (isSaving) return false;
 
-    const stepErrors = validateStep(currentStep, draftRef.current);
-    if (Object.keys(stepErrors).length > 0) {
-      setErrors(stepErrors);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
-      return false;
-    }
+    const item = ONBOARDING_FLOW[flowIndex];
 
-    setErrors({});
-    if (currentStep < totalSteps) {
-      setCurrentStep((prev) => prev + 1);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    }
-    return true;
-  }, [currentStep, isSaving, totalSteps]);
-
-  // Previous Step
-  const prevStep = useCallback(() => {
-    if (currentStep > 1 && !isSaving) {
+    if (item.kind === 'welcome') {
       setErrors({});
-      setCurrentStep((prev) => prev - 1);
+      if (flowIndex < ONBOARDING_FLOW.length - 1) {
+        setFlowIndex((prev) => prev + 1);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      }
+      return true;
+    }
+
+    if (item.kind === 'group') {
+      const groupErrors = validateFlowGroup(item.groupId, draftRef.current);
+      if (Object.keys(groupErrors).length > 0) {
+        setErrors(groupErrors);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+        return false;
+      }
+      setErrors({});
+      if (flowIndex < ONBOARDING_FLOW.length - 1) {
+        setFlowIndex((prev) => prev + 1);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      }
+      return true;
+    }
+
+    return true;
+  }, [flowIndex, isSaving]);
+
+  const prevStep = useCallback(() => {
+    if (flowIndex > 0 && !isSaving) {
+      setErrors({});
+      setFlowIndex((prev) => prev - 1);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     }
-  }, [currentStep, isSaving]);
+  }, [flowIndex, isSaving]);
 
-  // Direct Jump via Step Indicator
   const goToStep = useCallback(
     (targetStep: number) => {
-      if (
-        isSaving ||
-        typeof targetStep !== 'number' ||
-        !Number.isInteger(targetStep) ||
-        isNaN(targetStep) ||
-        targetStep < 1 ||
-        targetStep > totalSteps ||
-        targetStep === currentStep
-      ) {
-        return;
+      if (isSaving) return;
+      if (!Number.isFinite(targetStep) || !Number.isInteger(targetStep)) return;
+      if (targetStep < 1 || targetStep > 5) return;
+
+      let matchIndex = -1;
+      if (targetStep === 1) {
+        matchIndex = 0;
+      } else if (targetStep === 2) {
+        matchIndex = ONBOARDING_FLOW.findIndex(
+          (flowItem) => flowItem.kind === 'group' && flowItem.groupId === 'name_legal'
+        );
+      } else if (targetStep === 3) {
+        matchIndex = ONBOARDING_FLOW.findIndex(
+          (flowItem) => flowItem.kind === 'group' && flowItem.groupId === 'contact_email'
+        );
+      } else if (targetStep === 4) {
+        matchIndex = ONBOARDING_FLOW.findIndex(
+          (flowItem) => flowItem.kind === 'group' && flowItem.groupId === 'presence'
+        );
+      } else if (targetStep === 5) {
+        matchIndex = ONBOARDING_FLOW.findIndex((flowItem) => flowItem.kind === 'card_style');
       }
 
-      if (targetStep < currentStep) {
-        // Jumping back is always allowed
+      if (matchIndex >= 0) {
         setErrors({});
-        setCurrentStep(targetStep);
-        Haptics.selectionAsync().catch(() => {});
-      } else {
-        // Validate each step from currentStep up to targetStep - 1
-        for (let s = currentStep; s < targetStep; s++) {
-          const stepErrors = validateStep(s, draftRef.current);
-          if (Object.keys(stepErrors).length > 0) {
-            setErrors(stepErrors);
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
-            setCurrentStep(s);
-            return;
-          }
-        }
-        setErrors({});
-        setCurrentStep(targetStep);
-        Haptics.selectionAsync().catch(() => {});
+        setFlowIndex(matchIndex);
       }
     },
-    [currentStep, isSaving, totalSteps]
+    [isSaving]
   );
 
-  // Skip Step logic
   const skipStep = useCallback(() => {
     if (isSaving) return;
 
-    if (currentStep === 1) {
-      // Skip welcome overview straight to Step 2
+    const item = ONBOARDING_FLOW[flowIndex];
+    if (item.kind === 'welcome') {
       setErrors({});
-      setCurrentStep(2);
+      setFlowIndex(1);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
       return;
     }
 
-    if (currentStep === 4) {
-      // Step 4 (Socials) is optional -> advance directly to Step 5
-      setErrors({});
-      setCurrentStep(5);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-      return;
-    }
+    if (!isFlowItemSkippable(item)) return;
 
-    // On mandatory steps (Step 2 and Step 3), invoke nextStep() to display required errors
-    nextStep();
-  }, [currentStep, isSaving, nextStep]);
+    setErrors({});
+    setFlowIndex(indexAfterSkip(flowIndex));
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+  }, [flowIndex, isSaving]);
 
-  // Finalize Onboarding: Persist Profile + Primary Card + Completion Flag
   const finalizeOnboarding = useCallback(async (): Promise<boolean> => {
     if (isSaving) return false;
 
     const currentDraft = draftRef.current;
-    const { isValid, errors: allErrors, firstErrorStep } = validateAllSteps(currentDraft);
+    const cardErrors = validateFlowGroup('card_style', currentDraft);
+    if (Object.keys(cardErrors).length > 0) {
+      setErrors(cardErrors);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+      return false;
+    }
+
+    const { isValid, errors: allErrors } = validateAllSteps(currentDraft);
     if (!isValid) {
       setErrors(allErrors);
-      if (firstErrorStep) setCurrentStep(firstErrorStep);
+      const firstKey = Object.keys(allErrors)[0];
+      if (firstKey) {
+        setFlowIndex(flowIndexForField(firstKey));
+      }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
       Alert.alert('Incomplete Profile', 'Please fill in the required fields before completing setup.');
       return false;
@@ -205,13 +243,9 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
 
     setIsSaving(true);
     try {
-      // 1. Prepare Profile entity via mapper
       const profileToSave = mapDraftToProfile(currentDraft);
-
-      // 2. Prepare Primary Business Card via mapper
       const primaryCard = mapDraftToBusinessCard(currentDraft);
 
-      // 3. Concurrent Persistence
       await Promise.all([
         saveProfile(profileToSave),
         savePrimaryCard(primaryCard),
@@ -224,7 +258,8 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
     } catch (err: unknown) {
       console.error('Error finalizing onboarding:', err);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
-      const errorMessage = err instanceof Error ? err.message : 'Could not save your profile. Please try again.';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Could not save your profile. Please try again.';
       Alert.alert('Save Failed', errorMessage);
       return false;
     } finally {
@@ -235,6 +270,10 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
   return {
     currentStep,
     totalSteps,
+    flowIndex,
+    currentItem,
+    progressLabel,
+    canSkip,
     draft,
     errors,
     isSaving,

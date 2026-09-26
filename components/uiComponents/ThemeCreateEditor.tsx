@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeftRight } from 'lucide-react-native';
 import type { CardFontStyle, CardVisualTheme } from '@/components/cardsComponents/types/card.types';
-import { buildCustomSectionTheme } from '@/utils/cardThemeColor';
+import { buildMultiTierSectionTheme } from '@/utils/cardThemeColor';
 import { Text } from '@/components/uiComponents/Text';
 import { ColorPickerDropdown } from '@/components/uiComponents/ColorPickerDropdown';
 import { EditorPresentationCrossfade } from '@/components/uiComponents/editor/EditorPresentationCrossfade';
@@ -16,7 +16,12 @@ type ThemeCreateEditorProps = {
   saveDisabled?: boolean;
 };
 
-type ColorStopKey = 'start' | 'end';
+const COLOR_SLOT_LABELS: string[] = [
+  'Base / Bg',
+  'Surface / Accent',
+  'Accent / Link',
+  'Highlight / Border',
+];
 
 export function ThemeCreateEditor({
   gradient,
@@ -25,163 +30,99 @@ export function ThemeCreateEditor({
   onSave,
   saveDisabled = false,
 }: ThemeCreateEditorProps) {
-  const [openStop, setOpenStop] = useState<ColorStopKey | null>(null);
+  const [tier, setTier] = useState<2 | 3 | 4>(3);
+  const [colors, setColors] = useState<string[]>([
+    gradient[0],
+    '#ffffff',
+    gradient[1],
+    '#38bdf8',
+  ]);
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
 
-  const applyGradient = useCallback(
-    (next: [string, string]) => {
-      onPreviewChange(buildCustomSectionTheme(next, fontStyle));
+  const applyColors = useCallback(
+    (nextColors: string[], nextTier: 2 | 3 | 4) => {
+      const activeColors = nextColors.slice(0, nextTier);
+      onPreviewChange(buildMultiTierSectionTheme(activeColors, fontStyle));
     },
     [fontStyle, onPreviewChange],
   );
 
-  const setStart = (hex: string) => applyGradient([hex, gradient[1]]);
-  const setEnd = (hex: string) => applyGradient([gradient[0], hex]);
-  const swapStops = () => applyGradient([gradient[1], gradient[0]]);
+  const handleColorChange = (index: number, hex: string) => {
+    const updated = [...colors];
+    updated[index] = hex;
+    setColors(updated);
+    applyColors(updated, tier);
+  };
+
+  const handleTierChange = (nextTier: 2 | 3 | 4) => {
+    setTier(nextTier);
+    applyColors(colors, nextTier);
+  };
+
+  const activeColors = colors.slice(0, tier);
 
   return (
     <View>
-      <Text className="mb-3 text-sm font-bold text-textPrimary dark:text-dark-textPrimary">Create style</Text>
-
-      <EditorPresentationCrossfade
-        compactHeight={104}
-        expandedHeight={88}
-        compact={
-          <View className="flex-row gap-2">
-            <View className="flex-1">
-              <ColorPickerDropdown
-                compactTrigger
-                label="Start color"
-                value={gradient[0]}
-                open={openStop === 'start'}
-                showPanel={false}
-                onOpenChange={(next) => setOpenStop(next ? 'start' : null)}
-                onChange={setStart}
-              />
-            </View>
-            <View className="flex-1">
-              <ColorPickerDropdown
-                compactTrigger
-                label="End color"
-                value={gradient[1]}
-                open={openStop === 'end'}
-                showPanel={false}
-                onOpenChange={(next) => setOpenStop(next ? 'end' : null)}
-                onChange={setEnd}
-              />
-            </View>
-            <View className="flex-1">
-              <Text className="mb-2 text-center text-xs font-bold uppercase tracking-wider text-textMuted dark:text-dark-textMuted">
-                Final style
+      <View className="mb-3 flex-row items-center justify-between">
+        <Text className="text-sm font-bold text-textPrimary dark:text-dark-textPrimary">Custom Theme Tier</Text>
+        <View className="flex-row gap-1 rounded-lg border border-slate-200 bg-card p-0.5 dark:border-slate-700 dark:bg-dark-card">
+          {([2, 3, 4] as const).map((t) => (
+            <Pressable
+              key={t}
+              onPress={() => handleTierChange(t)}
+              className={`rounded-md px-2.5 py-1 ${tier === t ? 'bg-primary' : 'active:opacity-70'}`}
+            >
+              <Text className={`text-xs font-bold ${tier === t ? 'text-white' : 'text-textSecondary dark:text-dark-textSecondary'}`}>
+                {t} Colors
               </Text>
-              <View className="h-[72px] items-center justify-center overflow-hidden rounded-xl border border-slate-600/40">
-                <LinearGradient
-                  colors={[gradient[0], gradient[1]]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={StyleSheet.absoluteFill}
-                />
-              </View>
-            </View>
-          </View>
-        }
-        expanded={
-          <View className="flex-row gap-3">
-            <View className="flex-1">
-              <ColorPickerDropdown
-                label="Start color"
-                value={gradient[0]}
-                open={openStop === 'start'}
-                showPanel={false}
-                onOpenChange={(next) => setOpenStop(next ? 'start' : null)}
-                onChange={setStart}
-              />
-            </View>
-            <View className="flex-1">
-              <ColorPickerDropdown
-                label="End color"
-                value={gradient[1]}
-                open={openStop === 'end'}
-                showPanel={false}
-                onOpenChange={(next) => setOpenStop(next ? 'end' : null)}
-                onChange={setEnd}
-              />
-            </View>
-          </View>
-        }
-      />
+            </Pressable>
+          ))}
+        </View>
+      </View>
 
-      {openStop ? (
+      <View className="mb-3 flex-row gap-2">
+        {activeColors.map((color, index) => (
+          <View key={index} className="flex-1">
+            <ColorPickerDropdown
+              compactTrigger
+              label={COLOR_SLOT_LABELS[index] || `Color ${index + 1}`}
+              value={color}
+              open={openIndex === index}
+              showPanel={false}
+              onOpenChange={(next) => setOpenIndex(next ? index : null)}
+              onChange={(hex) => handleColorChange(index, hex)}
+            />
+          </View>
+        ))}
+      </View>
+
+      {openIndex !== null && openIndex < tier ? (
         <ColorPickerDropdown
-          label={openStop === 'start' ? 'Start color' : 'End color'}
-          value={openStop === 'start' ? gradient[0] : gradient[1]}
+          label={COLOR_SLOT_LABELS[openIndex] || `Color ${openIndex + 1}`}
+          value={colors[openIndex]}
           open
           responsiveToEditorSheet
           showTrigger={false}
-          onOpenChange={() => setOpenStop(null)}
-          onChange={openStop === 'start' ? setStart : setEnd}
+          onOpenChange={() => setOpenIndex(null)}
+          onChange={(hex) => handleColorChange(openIndex, hex)}
         />
       ) : null}
 
-      <EditorPresentationCrossfade
-        compact={<View />}
-        expanded={
-          <View className="overflow-hidden rounded-2xl border border-slate-600/40" style={{ height: 56 }}>
-            <LinearGradient
-              colors={[gradient[0], gradient[1]]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={StyleSheet.absoluteFill}
-            />
-          </View>
-        }
-        compactHeight={0}
-        expandedHeight={68}
-      />
+      <View className="mb-3 h-14 overflow-hidden rounded-2xl border border-slate-600/40">
+        <View className="h-full flex-row">
+          {activeColors.map((color, idx) => (
+            <View key={idx} className="flex-1 h-full" style={{ backgroundColor: color }} />
+          ))}
+        </View>
+      </View>
 
-      <EditorPresentationCrossfade
-        compactHeight={48}
-        expandedHeight={108}
-        compact={
-          <View className="flex-row gap-3">
-            <Pressable
-              onPress={swapStops}
-              className="h-12 flex-1 flex-row items-center justify-center rounded-xl border border-slate-200 px-2 dark:border-slate-700"
-            >
-              <ArrowLeftRight color="#64748b" size={16} />
-              <Text className="ml-2 text-sm font-semibold text-textPrimary dark:text-dark-textPrimary">
-                Swap colors
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={onSave}
-              disabled={saveDisabled}
-              className={`h-12 flex-1 items-center justify-center rounded-xl px-2 ${saveDisabled ? 'bg-slate-400' : 'bg-primary'}`}
-            >
-              <Text numberOfLines={1} className="text-sm font-bold text-white">Save style</Text>
-            </Pressable>
-          </View>
-        }
-        expanded={
-          <View>
-            <Pressable
-              onPress={swapStops}
-              className="mb-3 h-12 flex-row items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700"
-            >
-              <ArrowLeftRight color="#64748b" size={16} />
-              <Text className="ml-2 text-sm font-semibold text-textPrimary dark:text-dark-textPrimary">
-                Swap colors
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={onSave}
-              disabled={saveDisabled}
-              className={`h-12 items-center justify-center rounded-xl ${saveDisabled ? 'bg-slate-400' : 'bg-primary'}`}
-            >
-              <Text className="text-sm font-bold text-white">Save to my styles</Text>
-            </Pressable>
-          </View>
-        }
-      />
+      <Pressable
+        onPress={onSave}
+        disabled={saveDisabled}
+        className={`h-12 items-center justify-center rounded-xl ${saveDisabled ? 'bg-slate-400' : 'bg-primary'}`}
+      >
+        <Text className="text-sm font-bold text-white">Save to my styles</Text>
+      </Pressable>
     </View>
   );
 }

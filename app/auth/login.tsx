@@ -1,150 +1,107 @@
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Link } from 'expo-router';
-import { Globe } from 'lucide-react-native';
-import { Colors } from '@/constants/Colors';
-import { TypewriterText } from '../../components/authComponents/Components/TypewriterText';
-import { useLogin } from '../../components/authComponents/Hooks/useLogin';
+import { Pressable, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { BrandLogo } from '@/components/uiComponents/BrandLogo';
+import { ProsCardTitle } from '@/components/uiComponents/ProsCardTitle';
+import { Button } from '@/components/uiComponents/Button';
+import { Text } from '@/components/uiComponents/Text';
+import { AuthScreenShell } from '@/components/authComponents/Components/AuthScreenShell';
+import { AuthSoftInput } from '@/components/authComponents/Components/AuthSoftInput';
+import { AuthFooterSwitch } from '@/components/authComponents/Components/AuthFooterSwitch';
+import { useLogin } from '@/components/authComponents/Hooks/useLogin';
 
 export default function LoginScreen() {
-  const { email, setEmail, password, setPassword, handleLogin } = useLogin();
+  const router = useRouter();
+  const {
+    email,
+    setEmail,
+    password,
+    setPassword,
+    errors,
+    isSubmitting,
+    handleLogin,
+  } = useLogin();
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: Colors.light.background }}>
-      <KeyboardAvoidingView
-        className="flex-1"
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
-          keyboardShouldPersistTaps="handled"
+    <AuthScreenShell
+      footer={
+        <AuthFooterSwitch
+          prompt="Don't have an account?"
+          actionLabel="Sign up"
+          onPress={() => router.push('/auth/signup')}
+        />
+      }
+    >
+      <Animated.View entering={FadeIn.duration(400)} className="mb-8 items-center">
+        <BrandLogo
+          accessibilityLabel="MindPROS company logo"
+          size="header"
+          variant="wordmark"
+        />
+        <View className="mt-4">
+          <ProsCardTitle size="md" />
+        </View>
+      </Animated.View>
+
+      <Animated.View entering={FadeInDown.delay(80).duration(400)} className="w-full">
+        <AuthSoftInput
+          value={email}
+          onChangeText={setEmail}
+          placeholder="Phone number, username or email"
+          error={errors.email}
+          keyboardType="email-address"
+          accessibilityLabel="Email or username"
+        />
+
+        <AuthSoftInput
+          value={password}
+          onChangeText={setPassword}
+          placeholder="Password"
+          error={errors.password}
+          secureTextEntry
+          accessibilityLabel="Password"
+        />
+
+        <Button
+          label={isSubmitting ? 'Logging in…' : 'Log in'}
+          variant="primary"
+          size="lg"
+          loading={isSubmitting}
+          disabled={isSubmitting}
+          onPress={handleLogin}
+          className="mt-2 w-full rounded-xl"
+        />
+
+        <Pressable
+          onPress={() => {}}
+          accessibilityRole="button"
+          accessibilityLabel="Forgot password"
+          className="mt-4 items-center py-1 active:opacity-70"
         >
-          <View className="flex-1 justify-center items-center px-6 py-12">
-            {/* Branding */}
-            <Text style={{ fontSize: 40, fontWeight: '800', color: Colors.light.tint, marginBottom: 4 }}>
-              ProsCard
-            </Text>
+          <Text className="text-[13px] font-medium text-sky-600 dark:text-sky-400">
+            Forgot password?
+          </Text>
+        </Pressable>
 
-            {/* Typewriter Slogan */}
-            <View style={{ height: 24, marginBottom: 20 }}>
-              <TypewriterText
-                text="Your card, your way"
-                speed={120}
-                style={{
-                  fontSize: 14,
-                  color: Colors.light.mutedText,
-                }}
-              />
-            </View>
+        <View className="my-7 flex-row items-center">
+          <View className="h-px flex-1 bg-black/10 dark:bg-white/10" />
+          <Text className="mx-4 text-xs font-semibold uppercase tracking-wide text-[#8e8e8e]">
+            Or
+          </Text>
+          <View className="h-px flex-1 bg-black/10 dark:bg-white/10" />
+        </View>
 
-            {/* Login Form */}
-            <View style={{ width: '100%', padding: 24, borderRadius: 20 }}>
-              <TextInput
-                placeholder="Email or username"
-                style={{
-                  borderBottomWidth: 1,
-                  borderColor: Colors.light.border,
-                  marginBottom: 20,
-                  paddingVertical: 10,
-                  fontSize: 14,
-                  color: Colors.light.text,
-                }}
-                placeholderTextColor={Colors.light.mutedText}
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-              />
-              <TextInput
-                placeholder="Password"
-                style={{
-                  borderBottomWidth: 1,
-                  borderColor: Colors.light.border,
-                  marginBottom: 8,
-                  paddingVertical: 10,
-                  fontSize: 14,
-                  color: Colors.light.text,
-                }}
-                placeholderTextColor={Colors.light.mutedText}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-              />
-
-              {/* 🔐 Forgot Password Link */}
-              <View style={{ alignItems: 'flex-end', marginBottom: 20 }}>
-                <TouchableOpacity onPress={() => { /* TODO: Link to forgot password screen */ }}>
-                  <Text style={{ fontSize: 13, color: Colors.light.tint, fontWeight: '500' }}>
-                    Forgot Password?
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              <TouchableOpacity
-                style={{
-                  backgroundColor: Colors.light.tint,
-                  padding: 14,
-                  borderRadius: 14,
-                }}
-                onPress={handleLogin}
-              >
-                <Text
-                  style={{
-                    color: Colors.palette.primaryWhite,
-                    textAlign: 'center',
-                    fontWeight: '700',
-                    fontSize: 16,
-                  }}
-                >
-                  Log In
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Divider */}
-            <Text style={{ color: Colors.light.mutedText, marginVertical: 24 }}>or continue with</Text>
-
-            {/* Google Button */}
-            <TouchableOpacity
-              style={{
-                backgroundColor: Colors.light.surface,
-                paddingVertical: 12,
-                paddingHorizontal: 24,
-                borderRadius: 50,
-                borderColor: Colors.light.border,
-                borderWidth: 1,
-                marginBottom: 24,
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 12,
-              }}
-              onPress={() => {
-                // TODO: Handle Google login
-              }}
-            >
-              <Globe color={Colors.light.tint} size={20} strokeWidth={2.2} />
-              <Text style={{ fontSize: 16, fontWeight: '600', color: Colors.light.secondary }}>
-                Sign in with Google
-              </Text>
-            </TouchableOpacity>
-
-            {/* Footer */}
-            <Text style={{ fontSize: 14, color: Colors.light.text }}>
-              Don’t have an account?{' '}
-              <Link href="/auth/signup" style={{ color: Colors.light.accent, fontWeight: '600' }}>
-                Sign up
-              </Link>
-            </Text>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+        <Pressable
+          onPress={handleLogin}
+          accessibilityRole="button"
+          accessibilityLabel="Continue with Google"
+          className="items-center py-2 active:opacity-70"
+        >
+          <Text className="text-[14px] font-semibold text-sky-700 dark:text-sky-400">
+            Continue with Google
+          </Text>
+        </Pressable>
+      </Animated.View>
+    </AuthScreenShell>
   );
 }

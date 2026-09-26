@@ -277,13 +277,12 @@ export function FloatingToolsButton({ actions }: FloatingToolsButtonProps) {
     <View
       className="absolute inset-0"
       onLayout={handleLayout}
-      pointerEvents="box-none"
-      style={{ zIndex: 50 }}
+      style={{ pointerEvents: 'box-none', zIndex: 50 }}
     >
       {bounds.width > 0 && bounds.height > 0 ? (
         <>
           {menuOpen && visibleActions.length > 0 ? (
-            <View className="absolute inset-0" pointerEvents="box-none">
+            <View className="absolute inset-0" style={{ pointerEvents: 'box-none' }}>
               {visibleActions.map((action, index) => {
                 const Icon = action.icon;
                 const highlighted = selectedIndex === index;

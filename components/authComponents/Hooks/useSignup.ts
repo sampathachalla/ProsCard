@@ -1,43 +1,64 @@
 // components/authComponents/Hooks/useSignup.ts
 import { useCallback, useState } from 'react';
-import { Alert } from 'react-native';
-import { useFocusEffect } from 'expo-router';
-import type { UserRole } from '../types/auth.types';
-import { validateSignup } from '../Utils/validateSignup';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { login } from '../Services/authService';
+import type { AuthFieldErrors } from '../Utils/validateAuth';
 
 export function useSignup() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [userType, setUserType] = useState<UserRole>('Member');
+  const [errors, setErrors] = useState<AuthFieldErrors>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
       setEmail('');
       setPassword('');
       setConfirmPassword('');
-      setUserType('Member');
+      setErrors({});
     }, [])
   );
 
-  const handleSignup = () => {
-    const error = validateSignup({ email, password, confirmPassword, userType });
-    if (error) {
-      Alert.alert('Check your details', error);
-      return;
+  const clearFieldError = (field: string) => {
+    setErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
+
+  const handleSignup = async () => {
+    // TEMP: bypass auth validation — go straight to onboarding.
+    setIsSubmitting(true);
+    try {
+      await login(email.trim() || 'guest');
+      router.replace('/(tabs)/onboardingPage');
+    } finally {
+      setIsSubmitting(false);
     }
-    Alert.alert('Account created', 'Sign up flow coming soon.');
   };
 
   return {
     email,
-    setEmail,
+    setEmail: (value: string) => {
+      setEmail(value);
+      clearFieldError('email');
+    },
     password,
-    setPassword,
+    setPassword: (value: string) => {
+      setPassword(value);
+      clearFieldError('password');
+    },
     confirmPassword,
-    setConfirmPassword,
-    userType,
-    setUserType,
+    setConfirmPassword: (value: string) => {
+      setConfirmPassword(value);
+      clearFieldError('confirmPassword');
+    },
+    errors,
+    isSubmitting,
     handleSignup,
   };
 }

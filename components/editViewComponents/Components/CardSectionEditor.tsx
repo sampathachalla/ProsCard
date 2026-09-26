@@ -387,7 +387,6 @@ function DraggableConnectionRow({
         <Animated.View style={[{ position: 'relative' }, animatedStyle]}>
           {children}
           <Animated.View
-            pointerEvents="none"
             style={[
               {
                 position: 'absolute',
@@ -399,6 +398,7 @@ function DraggableConnectionRow({
                 borderRadius: 12,
                 borderStyle: 'dashed',
                 backgroundColor: 'rgba(59, 130, 246, 0.06)',
+                pointerEvents: 'none',
               },
               placeholderStyle,
             ]}

@@ -90,7 +90,6 @@ export function ActiveSectionHighlight() {
 
   return (
     <View
-      pointerEvents="none"
       className="absolute inset-0 rounded-lg"
       onLayout={(event) => {
         const { height, width } = event.nativeEvent.layout;
@@ -100,6 +99,7 @@ export function ActiveSectionHighlight() {
         borderColor: 'rgba(37, 99, 235, 0.72)',
         borderWidth: 2,
         elevation: 5,
+        pointerEvents: 'none',
         shadowColor: Colors.palette.brandCyan,
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 0.28,

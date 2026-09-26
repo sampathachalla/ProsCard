@@ -52,9 +52,9 @@ export function StandardWalletCard({
         style,
       ]}
     >
-      <View pointerEvents="none" style={styles.orbitOuter} />
-      <View pointerEvents="none" style={styles.orbitInner} />
-      <View pointerEvents="none" style={styles.orbitDot} />
+      <View style={styles.orbitOuter} />
+      <View style={styles.orbitInner} />
+      <View style={styles.orbitDot} />
 
       <View style={styles.topRow}>
         <BrandLogo
@@ -113,8 +113,8 @@ export function StandardWalletCardBack({
         selected ? styles.selectedCard : null,
       ]}
     >
-      <View pointerEvents="none" style={styles.orbitOuter} />
-      <View pointerEvents="none" style={styles.orbitInner} />
+      <View style={styles.orbitOuter} />
+      <View style={styles.orbitInner} />
 
       <View style={styles.backHeader}>
         <Text style={styles.backCategory}>{category}</Text>
@@ -212,6 +212,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#c4b5fd',
     borderRadius: 7,
     height: 14,
+    pointerEvents: 'none',
     position: 'absolute',
     right: 30,
     top: 82,
@@ -222,6 +223,7 @@ const styles = StyleSheet.create({
     borderRadius: 70,
     borderWidth: 1,
     height: 140,
+    pointerEvents: 'none',
     position: 'absolute',
     right: -28,
     top: -20,
@@ -232,6 +234,7 @@ const styles = StyleSheet.create({
     borderRadius: 105,
     borderWidth: 1,
     height: 210,
+    pointerEvents: 'none',
     position: 'absolute',
     right: -58,
     top: -55,

@@ -1,5 +1,6 @@
 // components/onboardingComponents/Components/onboardingComponents.test.ts
 import { ONBOARDING_STEPS_META, INITIAL_ONBOARDING_DRAFT, type OnboardingDraft } from '../types/onboardingStepper.types';
+import { ONBOARDING_FLOW } from '../types/onboardingFlow.types';
 import { ONBOARDING_SLIDES } from '../Services/onboardingService';
 
 function assertEqual<T>(actual: T, expected: T, msg?: string) {
@@ -13,6 +14,18 @@ export function runOnboardingComponentsTests(): { passed: number; failed: number
   let failed = 0;
 
   const testCases: [string, () => void][] = [
+    [
+      'test_onboarding_flow_has_welcome_question_answer_pairs',
+      () => {
+        assertEqual(ONBOARDING_FLOW[0].kind, 'welcome');
+        const groups = ONBOARDING_FLOW.filter((item) => item.kind === 'group');
+        if (groups.length === 0) {
+          throw new Error('Flow must include group screens');
+        }
+        assertEqual(ONBOARDING_FLOW[ONBOARDING_FLOW.length - 1].kind, 'card_style');
+      },
+    ],
+
     // 1. StepperIndicator Logic
     [
       'test_stepperIndicator_calculates_progress_percent_accurately',

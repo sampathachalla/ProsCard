@@ -1,14 +1,30 @@
 // components/cardsComponents/types/card.types.ts
 export type CardSectionId = 'identity' | 'professional' | 'bio' | 'connections';
-export type CardTemplateId = 'classic' | 'minimal' | 'bold' | 'glass';
+export type CardTemplateId =
+  | 'classic'
+  | 'minimal'
+  | 'bold'
+  | 'glass'
+  | 'compact'
+  | 'editorial'
+  | 'spotlight'
+  | 'banner'
+  | 'cards'
+  | 'badge'
+  | 'split'
+  | 'neon';
 export type DynamicCardFieldType = 'text' | 'email' | 'phone' | 'url';
 export type CardFontStyle = 'modern' | 'classic' | 'rounded' | 'mono';
 export type CardThemeId = 'ocean' | 'midnight' | 'violet' | 'sand' | 'sunset' | 'aurora' | 'custom';
+
+export type ThemePaletteTier = 2 | 3 | 4;
 
 export type SavedSectionTheme = {
   id: string;
   name: string;
   gradient: [string, string];
+  paletteTier?: ThemePaletteTier;
+  paletteColors?: string[];
 };
 
 export type CardVisualTheme = {
@@ -20,9 +36,27 @@ export type CardVisualTheme = {
   accentColor: string;
   gradient: [string, string];
   fontStyle: CardFontStyle;
+  /** Multi-tier palette tier (2, 3, or 4 color theme) */
+  paletteTier?: ThemePaletteTier;
+  /** Explicit array of 2, 3, or 4 colors forming the theme palette */
+  paletteColors?: string[];
   /** Set when this section uses a saved custom theme from the card library. */
   customThemeId?: string;
   customThemeName?: string;
+};
+
+export type ResolvedLayoutSlots = {
+  background: string;
+  surface: string;
+  accent: string;
+  highlight: string;
+  textPrimary: string;
+  textSecondary: string;
+  textMuted: string;
+  logoBackdrop: string;
+  logoBorder: string;
+  borderColor: string;
+  isDark: boolean;
 };
 
 export type CardThemePresetId = Exclude<CardThemeId, 'custom'>;

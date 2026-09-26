@@ -1,19 +1,17 @@
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Link } from 'expo-router';
-import { Colors } from '@/constants/Colors';
-import { RoleSelector } from '../../components/authComponents/Components/RoleSelector';
-import { useSignup } from '../../components/authComponents/Hooks/useSignup';
+import { useRouter } from 'expo-router';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { View } from 'react-native';
+import { BrandLogo } from '@/components/uiComponents/BrandLogo';
+import { ProsCardTitle } from '@/components/uiComponents/ProsCardTitle';
+import { Button } from '@/components/uiComponents/Button';
+import { Text } from '@/components/uiComponents/Text';
+import { AuthScreenShell } from '@/components/authComponents/Components/AuthScreenShell';
+import { AuthSoftInput } from '@/components/authComponents/Components/AuthSoftInput';
+import { AuthFooterSwitch } from '@/components/authComponents/Components/AuthFooterSwitch';
+import { useSignup } from '@/components/authComponents/Hooks/useSignup';
 
 export default function SignupScreen() {
+  const router = useRouter();
   const {
     email,
     setEmail,
@@ -21,119 +19,81 @@ export default function SignupScreen() {
     setPassword,
     confirmPassword,
     setConfirmPassword,
-    userType,
-    setUserType,
+    errors,
+    isSubmitting,
     handleSignup,
   } = useSignup();
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: Colors.light.background }}>
-      <KeyboardAvoidingView
-        className="flex-1"
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View className="flex-1 justify-center items-center px-6 py-12">
-            {/* Heading */}
-            <Text style={{ fontSize: 36, fontWeight: '800', color: Colors.light.tint, marginBottom: 4 }}>
-              Create Account
-            </Text>
-            <Text style={{ fontSize: 14, color: Colors.light.mutedText, marginBottom: 24 }}>
-              Join the ProsCard community today
-            </Text>
+    <AuthScreenShell
+      contentBottom={16}
+      footer={
+        <AuthFooterSwitch
+          prompt="Have an account?"
+          actionLabel="Log in"
+          onPress={() => router.push('/auth/login')}
+        />
+      }
+    >
+      <Animated.View entering={FadeIn.duration(400)} className="mb-6 items-center">
+        <BrandLogo
+          accessibilityLabel="MindPROS company logo"
+          size="header"
+          variant="wordmark"
+        />
+        <View className="mt-4">
+          <ProsCardTitle size="md" />
+        </View>
+        <Text className="mt-4 text-center text-[22px] font-bold text-[#1c1c1c] dark:text-white">
+          Sign up to create your card
+        </Text>
+        <Text className="mt-1.5 text-center text-[14px] text-[#737373] dark:text-slate-400">
+          Free to start. Edit anytime.
+        </Text>
+      </Animated.View>
 
-            {/* Signup Form */}
-            <View style={{ width: '100%', padding: 24, borderRadius: 20 }}>
-              {/* User Type Selection */}
-              <Text style={{ fontSize: 14, fontWeight: '600', marginBottom: 12, color: Colors.light.text }}>
-                I am a
-              </Text>
-              <RoleSelector value={userType} onChange={setUserType} />
+      <Animated.View entering={FadeInDown.delay(80).duration(400)} className="w-full">
+        <AuthSoftInput
+          value={email}
+          onChangeText={setEmail}
+          placeholder="Email"
+          error={errors.email}
+          keyboardType="email-address"
+          accessibilityLabel="Email"
+        />
 
-              {/* Email */}
-              <TextInput
-                placeholder="Email"
-                style={{
-                  borderBottomWidth: 1,
-                  borderColor: Colors.light.border,
-                  marginBottom: 20,
-                  paddingVertical: 10,
-                  fontSize: 14,
-                  color: Colors.light.text,
-                }}
-                placeholderTextColor={Colors.light.mutedText}
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-              />
-              {/* Password */}
-              <TextInput
-                placeholder="Password"
-                style={{
-                  borderBottomWidth: 1,
-                  borderColor: Colors.light.border,
-                  marginBottom: 20,
-                  paddingVertical: 10,
-                  fontSize: 14,
-                  color: Colors.light.text,
-                }}
-                placeholderTextColor={Colors.light.mutedText}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-              />
-              {/* Confirm Password */}
-              <TextInput
-                placeholder="Confirm Password"
-                style={{
-                  borderBottomWidth: 1,
-                  borderColor: Colors.light.border,
-                  marginBottom: 28,
-                  paddingVertical: 10,
-                  fontSize: 14,
-                  color: Colors.light.text,
-                }}
-                placeholderTextColor={Colors.light.mutedText}
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry
-              />
+        <AuthSoftInput
+          value={password}
+          onChangeText={setPassword}
+          placeholder="Password"
+          error={errors.password}
+          secureTextEntry
+          accessibilityLabel="Password"
+        />
 
-              {/* Submit Button */}
-              <TouchableOpacity
-                style={{
-                  backgroundColor: Colors.light.tint,
-                  padding: 14,
-                  borderRadius: 14,
-                }}
-                onPress={handleSignup}
-              >
-                <Text
-                  style={{
-                    color: Colors.palette.primaryWhite,
-                    textAlign: 'center',
-                    fontWeight: '700',
-                    fontSize: 16,
-                  }}
-                >
-                  Sign Up
-                </Text>
-              </TouchableOpacity>
-            </View>
+        <AuthSoftInput
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          placeholder="Confirm password"
+          error={errors.confirmPassword}
+          secureTextEntry
+          accessibilityLabel="Confirm password"
+        />
 
-            {/* Footer */}
-            <Text style={{ fontSize: 14, color: Colors.light.text, marginTop: 24 }}>
-              Already have an account?{' '}
-              <Link href="/auth/login" style={{ color: Colors.light.tint, fontWeight: '600' }}>
-                Log in
-              </Link>
-            </Text>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+        <Button
+          label={isSubmitting ? 'Signing up…' : 'Sign up'}
+          variant="primary"
+          size="lg"
+          loading={isSubmitting}
+          disabled={isSubmitting}
+          onPress={handleSignup}
+          className="mt-2 w-full rounded-xl"
+        />
+
+        <Text className="mt-4 text-center text-[12px] leading-4 text-[#8e8e8e] dark:text-slate-500">
+          By signing up, you agree to ProsCard’s Terms and Privacy Policy.
+        </Text>
+      </Animated.View>
+    </AuthScreenShell>
   );
 }

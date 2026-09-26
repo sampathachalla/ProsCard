@@ -155,15 +155,20 @@ async function runAll() {
 
   // A. Baseline worker tests
   const { runValidateOnboardingTests } = await import('./components/onboardingComponents/Utils/validateOnboarding.test');
+  const { runValidateOnboardingFlowGroupTests } = await import(
+    './components/onboardingComponents/Utils/validateOnboardingFlowGroup.test'
+  );
   const { runOnboardingMappersTests } = await import('./components/onboardingComponents/Utils/onboardingMappers.test');
   const { runCardsServiceTests } = await import('./components/cardsComponents/Services/cardsService.test');
 
   console.log('--- Executing Baseline Worker Tests ---');
   const baselineValidation = runValidateOnboardingTests();
+  const baselineFlowGroups = runValidateOnboardingFlowGroupTests();
   const baselineMappers = runOnboardingMappersTests();
   const baselineCards = await runCardsServiceTests();
 
   console.log(`Baseline Validation: ${baselineValidation.passed} passed, ${baselineValidation.failed} failed`);
+  console.log(`Baseline Flow Groups: ${baselineFlowGroups.passed} passed, ${baselineFlowGroups.failed} failed`);
   console.log(`Baseline Mappers:    ${baselineMappers.passed} passed, ${baselineMappers.failed} failed`);
   console.log(`Baseline Cards:      ${baselineCards.passed} passed, ${baselineCards.failed} failed\n`);
 

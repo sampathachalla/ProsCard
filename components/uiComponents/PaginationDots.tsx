@@ -1,4 +1,4 @@
-import { View, Pressable } from 'react-native';
+import { View } from 'react-native';
 import Animated, {
   interpolate,
   interpolateColor,
@@ -11,7 +11,6 @@ type PaginationDotsProps = {
   progress: SharedValue<number>;
   activeColor: string;
   inactiveColor: string;
-  onDotPress?: (index: number) => void;
 };
 
 function PaginationDot({
@@ -19,10 +18,8 @@ function PaginationDot({
   progress,
   activeColor,
   inactiveColor,
-  onPress,
 }: Omit<PaginationDotsProps, 'count'> & {
   index: number;
-  onPress?: (index: number) => void;
 }) {
   const animatedStyle = useAnimatedStyle(() => {
     const distance = Math.abs(progress.value - index);
@@ -38,11 +35,7 @@ function PaginationDot({
     };
   });
 
-  return (
-    <Pressable onPress={() => onPress?.(index)} hitSlop={8}>
-      <Animated.View className="h-2 rounded-full" style={animatedStyle} />
-    </Pressable>
-  );
+  return <Animated.View className="h-2 rounded-full" style={animatedStyle} />;
 }
 
 export function PaginationDots({
@@ -50,13 +43,13 @@ export function PaginationDots({
   progress,
   activeColor,
   inactiveColor,
-  onDotPress,
 }: PaginationDotsProps) {
   if (count <= 1) return null;
 
   return (
     <View
       accessibilityLabel={`Card carousel with ${count} pages`}
+      pointerEvents="none"
       className="flex-row items-center justify-center gap-1.5 py-1"
     >
       {Array.from({ length: count }, (_, index) => (
@@ -66,10 +59,8 @@ export function PaginationDots({
           progress={progress}
           activeColor={activeColor}
           inactiveColor={inactiveColor}
-          onPress={onDotPress}
         />
       ))}
     </View>
   );
 }
-

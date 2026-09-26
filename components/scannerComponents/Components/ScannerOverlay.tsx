@@ -44,7 +44,7 @@ export function ScannerOverlay({ isActive, isProcessing = false }: ScannerOverla
   };
 
   return (
-    <View style={styles.overlay} pointerEvents="none">
+    <View style={styles.overlay}>
       <View style={[styles.frame, isProcessing && styles.processingFrame]}>
         <View style={[styles.corner, styles.topLeft]} />
         <View style={[styles.corner, styles.topRight]} />
@@ -60,7 +60,7 @@ export function ScannerOverlay({ isActive, isProcessing = false }: ScannerOverla
 }
 
 const styles = StyleSheet.create({
-  overlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(2, 6, 23, 0.16)' },
+  overlay: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(2, 6, 23, 0.16)', pointerEvents: 'none' },
   frame: { width: '84%', aspectRatio: 1.58, borderRadius: 20, overflow: 'hidden', backgroundColor: 'transparent' },
   processingFrame: { backgroundColor: 'rgba(37, 99, 235, 0.08)' },
   corner: { position: 'absolute', width: 32, height: 32, borderColor: '#FFFFFF' },
