@@ -7,10 +7,14 @@ import Animated, {
 } from 'react-native-reanimated';
 import type { BusinessCard } from '@/components/cardsComponents/types/card.types';
 import type { Profile } from '@/components/profileComponents/types/profile.types';
-import { CardSectionFace } from '@/components/cardsComponents/Components/CardSectionFace';
-import { FlippableCard } from '@/components/gestures';
+import {
+  WalletCardRenderEngine,
+  getWalletCardDimensions,
+  resolveWalletCardWidth,
+} from '@/components/cardsComponents/Wallet';
 import { Text } from '@/components/uiComponents/Text';
 
+/** Wallet view — section 1 + 2 via `WalletCardRenderEngine` (no flip). */
 type StackedCardViewProps = {
   activeIndex: number;
   bottomInset: number;
@@ -23,11 +27,12 @@ type StackedCardViewProps = {
 };
 
 const FOCUSED_CARD_TOP = 8;
-const COLLAPSED_CARD_STEP = 48;
-const COLLAPSED_STACK_VISIBLE_HEIGHT = 48;
+const COLLAPSED_CARD_STEP = 36;
+const COLLAPSED_STACK_VISIBLE_HEIGHT = 40;
 
 type WalletStackItemProps = {
   card: BusinessCard;
+  cardHeight: number;
   cardWidth: number;
   index: number;
   onPress: (index: number) => void;
@@ -42,6 +47,7 @@ type WalletStackItemProps = {
 
 function WalletStackItem({
   card,
+  cardHeight,
   cardWidth,
   index,
   onPress,
@@ -90,26 +96,22 @@ function WalletStackItem({
         animatedStyle,
       ]}
     >
-      <FlippableCard
-        accessibilityLabel={`${card.category} card for ${card.name}`}
-        back={
-          <CardSectionFace card={card} height={cardWidth / 1.586} profile={profile} sectionId="professional" width={cardWidth} />
-        }
-        flipEnabled={selected}
-        front={
-          <CardSectionFace card={card} height={cardWidth / 1.586} profile={profile} sectionId="identity" width={cardWidth} />
-        }
-        height={cardWidth / 1.586}
+      <WalletCardRenderEngine
+        card={card}
+        profile={profile}
+        width={cardWidth}
+        height={cardHeight}
         onDoubleTap={() => onDoubleTap(index)}
         onSwipeDown={() => onSwipeDown(index)}
-        onSingleTapWhenDisabled={() => onPress(index)}
-        width={cardWidth}
+        onSingleTap={() => onPress(index)}
       />
     </Animated.View>
   );
 }
 
-export function StackedCardView({
+/** Stacked homepage layout — each card is a wallet pass (sections 1 + 2). */
+export function WalletStackView({
+  activeIndex,
   bottomInset,
   cards,
   height,
@@ -121,11 +123,12 @@ export function StackedCardView({
   const { width: windowWidth } = useWindowDimensions();
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const containerHeight = height;
-  const cardWidth = Math.min(
-    360,
-    Math.max(240, Math.min(windowWidth - 40, (containerHeight - 96) * 1.586)),
-  );
-  const cardHeight = cardWidth / 1.586;
+  const passVerticalBudget = Math.max(0, containerHeight - bottomInset - FOCUSED_CARD_TOP - 8);
+  const cardWidth = resolveWalletCardWidth({
+    windowWidth,
+    availableHeight: passVerticalBudget,
+  });
+  const cardHeight = getWalletCardDimensions(cardWidth).height;
   const defaultStackStep =
     cards.length > 1
       ? Math.max(
@@ -199,11 +202,14 @@ export function StackedCardView({
         const isExpanded = expandedIndex !== null;
         const selected = index === expandedIndex;
         const collapsedIndex = collapsedCardOrder.indexOf(index);
+        const stackRank =
+          (index - activeIndex + cards.length) % cards.length;
         const targetY = isExpanded
           ? selected
             ? FOCUSED_CARD_TOP
             : collapsedStackTop + collapsedIndex * COLLAPSED_CARD_STEP
-          : FOCUSED_CARD_TOP + index * defaultStackStep;
+          : FOCUSED_CARD_TOP +
+            (cards.length - 1 - stackRank) * defaultStackStep;
         const targetScale = isExpanded && !selected
           ? 0.94 + collapsedIndex * 0.015
           : 1;
@@ -211,12 +217,13 @@ export function StackedCardView({
           ? selected
             ? cards.length + 1
             : collapsedIndex + 1
-          : index + 1;
+          : cards.length - stackRank;
 
         return (
           <WalletStackItem
             key={card.id}
             card={card}
+            cardHeight={cardHeight}
             cardWidth={cardWidth}
             index={index}
             onDoubleTap={openCard}
@@ -233,3 +240,6 @@ export function StackedCardView({
     </View>
   );
 }
+
+/** @deprecated Use `WalletStackView` — stack mode is wallet-only. */
+export const StackedCardView = WalletStackView;

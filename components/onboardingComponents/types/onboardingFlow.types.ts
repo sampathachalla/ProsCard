@@ -61,7 +61,8 @@ export type OnboardingFlowItem =
       groupId: 'card_style';
       title: string;
       subtitle?: string;
-    };
+    }
+  | { kind: 'complete' };
 
 export const ONBOARDING_FLOW: OnboardingFlowItem[] = [
   { kind: 'welcome' },
@@ -218,14 +219,6 @@ export const ONBOARDING_FLOW: OnboardingFlowItem[] = [
   },
   {
     kind: 'group',
-    groupId: 'social_links',
-    title: 'Add social profiles?',
-    funTag: 'LinkedIn, YouTube, and more — all optional.',
-    skippable: true,
-    fields: [{ key: 'linkedin', widget: 'social_block', label: 'Social profiles' }],
-  },
-  {
-    kind: 'group',
     groupId: 'short_bio',
     title: 'Add a short bio?',
     skippable: true,
@@ -240,6 +233,15 @@ export const ONBOARDING_FLOW: OnboardingFlowItem[] = [
       },
     ],
   },
+  {
+    kind: 'group',
+    groupId: 'social_links',
+    title: 'Add social profiles?',
+    funTag: 'Add links people can tap on your card',
+    skippable: true,
+    fields: [{ key: 'linkedin', widget: 'social_block', label: 'Social profiles' }],
+  },
+  { kind: 'complete' },
 ];
 
 /** Keep flow index in range when flow length changes (e.g. hot reload). */
@@ -297,7 +299,8 @@ export function flowIndexForField(fieldKey: string): number {
 export function indexAfterSkip(currentIndex: number): number {
   const safeIndex = clampFlowIndex(currentIndex);
   for (let i = safeIndex + 1; i < ONBOARDING_FLOW.length; i++) {
-    if (ONBOARDING_FLOW[i].kind === 'group') return i;
+    const next = ONBOARDING_FLOW[i];
+    if (next.kind === 'group' || next.kind === 'complete') return i;
   }
   return clampFlowIndex(ONBOARDING_FLOW.length - 1);
 }
@@ -311,6 +314,6 @@ export function isFlowItemSkippable(item: OnboardingFlowItem): boolean {
 
 export function countProgressSteps(): number {
   return ONBOARDING_FLOW.filter(
-    (item) => item.kind !== 'welcome' && item.kind !== 'card_style'
+    (item) => item.kind !== 'welcome' && item.kind !== 'card_style' && item.kind !== 'complete'
   ).length;
 }

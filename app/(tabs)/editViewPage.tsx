@@ -122,6 +122,13 @@ export default function EditViewPage() {
       setSectionPickerOpen(false);
       return;
     }
+    // Prefer popping the existing stack entry (e.g. the card detail screen
+    // this was pushed from) over replace(), which would stack a duplicate
+    // entry on top of it and require an extra back-press to clear.
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
     if (cardId) {
       router.replace({ pathname: '/cards/[cardId]', params: { cardId } });
       return;

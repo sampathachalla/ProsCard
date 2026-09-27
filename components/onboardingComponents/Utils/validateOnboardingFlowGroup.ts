@@ -4,7 +4,6 @@ import {
   validateCustomizationStep,
   validatePersonalStep,
   validateProfessionalStep,
-  validateSocialStep,
 } from './validateOnboarding';
 
 function pickErrors(all: ValidationErrors, keys: string[]): ValidationErrors {
@@ -74,7 +73,8 @@ export function validateFlowGroup(
     case 'presence':
       return pickErrors(validatePersonalStep(draft), ['tagline']);
     case 'social_links':
-      return validateSocialStep(draft);
+      // Optional step: allow Continue to completion; social URLs are checked on finalize.
+      return {};
     case 'card_style':
       return validateCustomizationStep(draft);
     default:

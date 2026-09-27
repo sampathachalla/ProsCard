@@ -17,6 +17,7 @@ type Props = {
   section: CardDetailSection;
   seamless?: boolean;
   showEmpty?: boolean;
+  walletPass?: boolean;
 };
 
 type SharedPieceProps = {
@@ -110,8 +111,29 @@ function ProfessionalTagline({
   compact,
   slots,
   tagline,
-}: SharedPieceProps & { tagline: string }) {
+  centered = false,
+}: SharedPieceProps & { tagline: string; centered?: boolean }) {
   if (!tagline) return null;
+  if (centered) {
+    return (
+      <View className="items-center">
+        <Quote color={slots.accent} size={compact ? 14 : 17} strokeWidth={2.4} />
+        <Text
+          adjustsFontSizeToFit
+          minimumFontScale={0.78}
+          numberOfLines={compact ? 3 : 4}
+          className={`mt-1.5 text-center font-bold italic ${compact ? 'text-[11px] leading-4' : 'text-sm'}`}
+          style={{
+            color: slots.textPrimary,
+            fontFamily: getCardFontFamily(cardTheme.fontStyle),
+            letterSpacing: getCardLetterSpacing(cardTheme.fontStyle),
+          }}
+        >
+          {tagline}
+        </Text>
+      </View>
+    );
+  }
   return (
     <View className="flex-row items-center">
       <View
@@ -143,11 +165,14 @@ export function ProfessionalSectionRenderer({
   section,
   seamless = false,
   showEmpty = false,
+  walletPass = false,
 }: Props) {
   const { width: viewportWidth } = useWindowDimensions();
   const boxed = compact && !seamless;
   const getVal = (id: string) => section.fields.find((item) => item.id === id)?.value?.trim() || '';
   const tagline = fitTaglineToViewport(getVal('tagline'), viewportWidth);
+  /** Wallet pass = section 2 core fields only (no tagline / bio-style quote). */
+  const showTagline = !walletPass && Boolean(tagline);
   const accreditations = fitAccreditationsToViewport(getVal('accreditations'), viewportWidth);
   const title = getVal('title') || (showEmpty ? 'Job Title' : 'Professional Title');
   const company = getVal('company') || (showEmpty ? 'Company Name' : 'Company / Organization');
@@ -155,6 +180,68 @@ export function ProfessionalSectionRenderer({
   const professionalName = fullNameParts.length > 0 ? fullNameParts.join(' ') : showEmpty ? 'Professional Name' : title;
   const slots = resolveLayoutColorSlots({ templateId: section.templateId, theme: cardTheme });
   const shared = { cardTheme, compact, slots };
+  const homePreview = compact && seamless;
+  const homeFillStyle = homePreview
+    ? ({ flex: 1, width: '100%', height: '100%' } as const)
+    : compact
+      ? ({ width: '100%', height: '100%' } as const)
+      : undefined;
+  const homeCenterStyle = homePreview
+    ? ({ justifyContent: 'center', alignItems: 'center' } as const)
+    : undefined;
+
+  // Homepage stacked card: one centered block (avoids empty band under content)
+  if (homePreview && (section.templateId === 'classic' || section.templateId === 'minimal')) {
+    const previewSlots = {
+      ...slots,
+      textPrimary: slots.gradientText ?? slots.textPrimary,
+      textSecondary: slots.isDark ? '#e2e8f0' : '#475569',
+    };
+    return (
+      <LinearGradient
+        colors={gradient}
+        style={[
+          homeFillStyle,
+          homeCenterStyle,
+          {
+            paddingHorizontal: walletPass ? 10 : 14,
+            paddingVertical: walletPass ? 6 : 10,
+          },
+        ]}
+      >
+        <View className="w-full items-center">
+          <ProfessionalName
+            {...shared}
+            slots={previewSlots}
+            align="center"
+            name={professionalName}
+            accreditations={accreditations}
+          />
+          <View
+            className={`${walletPass ? 'my-1' : 'my-2'} h-0.5 w-10 rounded-full`}
+            style={{ backgroundColor: previewSlots.accent }}
+          />
+          <ProfessionalRole
+            {...shared}
+            slots={previewSlots}
+            align="center"
+            title={title}
+            company={company}
+          />
+          {showTagline ? (
+            <View className="mt-3 w-full max-w-[92%] border-t pt-2.5" style={{ borderColor: `${previewSlots.accent}55` }}>
+              <ProfessionalTagline
+                {...shared}
+                slots={previewSlots}
+                tagline={tagline}
+                centered
+              />
+            </View>
+          ) : null}
+        </View>
+      </LinearGradient>
+    );
+  }
 
   // Résumé layout (minimal): vertical editorial hierarchy with thick accent left rail
   if (section.templateId === 'minimal') {
@@ -188,17 +275,27 @@ export function ProfessionalSectionRenderer({
     return (
       <LinearGradient
         colors={gradient}
-        className={`items-center justify-center overflow-hidden p-4 ${boxed ? 'mb-5 rounded-[28px]' : ''}`}
-        style={[{ height: compact ? '100%' : undefined }, boxed ? BOXED_SHADOW_LG : null]}
+        className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px]' : ''}`}
+        style={[
+          homeFillStyle,
+          homeCenterStyle,
+          { paddingHorizontal: 16, paddingVertical: homePreview ? 10 : 16 },
+          boxed ? BOXED_SHADOW_LG : null,
+        ]}
       >
         <View className="w-full items-center">
           <ProfessionalName {...shared} slots={boldSlots} align="center" name={professionalName} accreditations={accreditations} />
           <View className={compact ? 'mt-2' : 'mt-4'}>
             <ProfessionalRole {...shared} slots={boldSlots} align="center" title={title} company={company} />
           </View>
-          {tagline ? (
-            <View className={`w-full ${compact ? 'mt-2' : 'mt-4'}`}>
-              <ProfessionalTagline {...shared} slots={boldSlots} tagline={tagline} />
+          {showTagline ? (
+            <View className={`w-full max-w-[92%] ${compact ? 'mt-2' : 'mt-4'}`}>
+              <ProfessionalTagline
+                {...shared}
+                slots={boldSlots}
+                tagline={tagline}
+                centered={homePreview}
+              />
             </View>
           ) : null}
         </View>
@@ -225,7 +322,7 @@ export function ProfessionalSectionRenderer({
             />
             <ProfessionalRole {...shared} title={title} company={company} />
           </View>
-          {tagline ? (
+          {showTagline ? (
             <View className={compact ? 'mt-2' : 'mt-4'}>
               <ProfessionalTagline {...shared} tagline={tagline} />
             </View>
@@ -264,7 +361,7 @@ export function ProfessionalSectionRenderer({
         <ProfessionalName {...shared} name={professionalName} accreditations={accreditations} />
         <View className="my-3 h-px w-full" style={{ backgroundColor: slots.accent }} />
         <ProfessionalRole {...shared} title={title} company={company} />
-        {tagline ? (
+        {showTagline ? (
           <View className="mt-3 border-t pt-2" style={{ borderTopColor: slots.highlight }}>
             <ProfessionalTagline {...shared} tagline={tagline} />
           </View>
@@ -285,7 +382,7 @@ export function ProfessionalSectionRenderer({
           <Text className="text-xs font-black" style={{ color: slots.accent }}>{title}</Text>
         </View>
         <Text className="text-sm font-bold" style={{ color: slots.textSecondary }}>{company}</Text>
-        {tagline ? (
+        {showTagline ? (
           <View className="mt-3 w-full">
             <ProfessionalTagline {...shared} tagline={tagline} />
           </View>
@@ -307,7 +404,7 @@ export function ProfessionalSectionRenderer({
           <View className="mt-2">
             <Text className="text-sm font-extrabold" style={{ color: slots.accent }}>{title}</Text>
           </View>
-          {tagline ? (
+          {showTagline ? (
             <View className="mt-3 border-t pt-2" style={{ borderTopColor: slots.highlight }}>
               <ProfessionalTagline {...shared} tagline={tagline} />
             </View>
@@ -326,7 +423,7 @@ export function ProfessionalSectionRenderer({
         </View>
         <View className="rounded-2xl border p-3.5" style={{ backgroundColor: slots.surface, borderColor: slots.highlight }}>
           <ProfessionalRole {...shared} title={title} company={company} />
-          {tagline ? (
+          {showTagline ? (
             <View className="mt-2.5 border-t pt-2" style={{ borderTopColor: slots.highlight }}>
               <ProfessionalTagline {...shared} tagline={tagline} />
             </View>
@@ -352,7 +449,7 @@ export function ProfessionalSectionRenderer({
           <Text className="text-xs font-black uppercase" style={{ color: slots.accent }}>ROLE / TITLE</Text>
           <Text className="text-sm font-bold mt-0.5" style={{ color: slots.textPrimary }}>{title}</Text>
         </View>
-        {tagline ? (
+        {showTagline ? (
           <View className="mt-3">
             <ProfessionalTagline {...shared} tagline={tagline} />
           </View>
@@ -373,7 +470,7 @@ export function ProfessionalSectionRenderer({
         </View>
         <View className="w-1/2 p-4 justify-between" style={{ backgroundColor: slots.surface }}>
           <Text className="text-xs font-bold" style={{ color: slots.textSecondary }}>{company}</Text>
-          {tagline ? (
+          {showTagline ? (
             <View className="mt-2">
               <Text numberOfLines={2} className="text-[11px] italic" style={{ color: slots.textPrimary }}>"{tagline}"</Text>
             </View>
@@ -393,7 +490,7 @@ export function ProfessionalSectionRenderer({
         <ProfessionalName {...shared} name={professionalName} accreditations={accreditations} />
         <View className="my-3 h-0.5 w-full" style={{ backgroundColor: slots.accent }} />
         <ProfessionalRole {...shared} title={title} company={company} />
-        {tagline ? (
+        {showTagline ? (
           <View className="mt-3 border-t pt-2" style={{ borderTopColor: slots.accent }}>
             <ProfessionalTagline {...shared} tagline={tagline} />
           </View>
@@ -416,7 +513,7 @@ export function ProfessionalSectionRenderer({
         />
         <ProfessionalRole {...shared} title={title} company={company} />
       </View>
-      {tagline ? (
+      {showTagline ? (
         <View className={`border-t ${compact ? 'mt-2 pt-2' : 'mt-5 pt-3'}`} style={{ borderColor: slots.accent }}>
           <ProfessionalTagline {...shared} tagline={tagline} />
         </View>

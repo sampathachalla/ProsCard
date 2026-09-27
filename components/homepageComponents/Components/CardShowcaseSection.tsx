@@ -5,7 +5,7 @@ import type { Profile } from '@/components/profileComponents/types/profile.types
 import { BusinessCardCarousel } from './BusinessCardCarousel';
 import type { CardViewMode } from './CardSectionHeader';
 import { CarouselFooter } from './CarouselFooter';
-import { StackedCardView } from './StackedCardView';
+import { WalletStackView } from './StackedCardView';
 
 type CardShowcaseSectionProps = {
   activeIndex: number;
@@ -46,6 +46,7 @@ export function CardShowcaseSection({
         exiting={FadeOut.duration(120)}
         style={{ height: contentHeight }}
       >
+        {/* Carousel: `BusinessCard`. Stack: wallet pass (section 1 identity layout via `WalletDesignEngine`). */}
         {viewMode === 'carousel' ? (
           <BusinessCardCarousel
             activeIndex={activeIndex}
@@ -58,7 +59,7 @@ export function CardShowcaseSection({
             profile={profile}
           />
         ) : (
-          <StackedCardView
+          <WalletStackView
             activeIndex={activeIndex}
             bottomInset={bottomInset + FOOTER_HEIGHT}
             cards={cards}

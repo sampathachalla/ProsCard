@@ -8,24 +8,20 @@ export interface OnboardingFlowFooterProps {
   currentItem: OnboardingFlowItem;
   canSkip: boolean;
   isSaving: boolean;
-  isLastStep: boolean;
   onContinue: () => void;
   onSkip: () => void;
-  onFinalize: () => void;
 }
 
 export function OnboardingFlowFooter({
   currentItem,
   canSkip,
   isSaving,
-  isLastStep,
   onContinue,
   onSkip,
-  onFinalize,
 }: OnboardingFlowFooterProps) {
   const insets = useSafeAreaInsets();
 
-  if (currentItem.kind === 'welcome') {
+  if (currentItem.kind === 'welcome' || currentItem.kind === 'complete') {
     return null;
   }
 
@@ -41,10 +37,9 @@ export function OnboardingFlowFooter({
     onSkip();
   };
 
-  const primaryLabel = isLastStep ? 'Finish setup' : 'Continue';
+  const primaryLabel = 'Continue';
 
-  const onPrimary =
-    currentItem.kind === 'group' && isLastStep ? onFinalize : handleContinue;
+  const onPrimary = handleContinue;
 
   return (
     <View

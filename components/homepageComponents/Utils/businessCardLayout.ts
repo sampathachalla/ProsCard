@@ -1,5 +1,6 @@
 const MIN_CARD_HEIGHT = 340;
 const MAX_CARD_HEIGHT = 620;
+const HOME_CARD_ASPECT_RATIO = 1.68;
 const MULTI_CARD_SIDE_SPACE = 64;
 const SINGLE_CARD_SIDE_SPACE = 40;
 
@@ -13,12 +14,12 @@ export function getBusinessCardWidth(
 
   if (!availableHeight) return widthBasedOnViewport;
 
-  const widthBasedOnHeight = Math.max(180, (availableHeight - 16) / 1.68);
+  const widthBasedOnHeight = Math.max(180, (availableHeight - 16) / HOME_CARD_ASPECT_RATIO);
   return Math.min(widthBasedOnViewport, widthBasedOnHeight);
 }
 
 export function getBusinessCardHeight(width: number, availableHeight?: number) {
-  const widthBasedHeight = width * 1.68;
+  const widthBasedHeight = width * HOME_CARD_ASPECT_RATIO;
 
   if (!availableHeight) {
     return Math.min(MAX_CARD_HEIGHT, Math.max(MIN_CARD_HEIGHT, widthBasedHeight));

@@ -18,7 +18,6 @@ export function OnboardingScreen() {
     isSaving,
     canGoBack,
     canSkip,
-    isLastStep,
     nextStep,
     prevStep,
     skipStep,
@@ -35,14 +34,14 @@ export function OnboardingScreen() {
     nextStep();
   };
 
-  const showTopBar = currentItem.kind !== 'welcome';
-
   const isWelcome = currentItem.kind === 'welcome';
+  const isComplete = currentItem.kind === 'complete';
+  const showTopBar = !isWelcome && !isComplete;
 
   return (
     <SafeAreaView
       className="flex-1 bg-background dark:bg-dark-background"
-      edges={isWelcome ? ['top'] : ['top', 'left', 'right']}
+      edges={isWelcome || isComplete ? ['top'] : ['top', 'left', 'right']}
     >
       {showTopBar ? (
         <View className="bg-background px-6 pb-1 pt-2 dark:bg-dark-background">
@@ -87,10 +86,8 @@ export function OnboardingScreen() {
         currentItem={currentItem}
         canSkip={canSkip}
         isSaving={isSaving}
-        isLastStep={isLastStep}
         onContinue={handleContinue}
         onSkip={skipStep}
-        onFinalize={finalizeOnboarding}
       />
     </SafeAreaView>
   );

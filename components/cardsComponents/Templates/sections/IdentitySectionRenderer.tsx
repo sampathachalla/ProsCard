@@ -22,6 +22,7 @@ type Props = {
   section: CardDetailSection;
   seamless?: boolean;
   showEmpty?: boolean;
+  walletPass?: boolean;
 };
 
 function IdentityName({
@@ -73,6 +74,7 @@ export function IdentitySectionRenderer({
   section,
   seamless = false,
   showEmpty = false,
+  walletPass = false,
 }: Props) {
   const boxed = compact && !seamless;
   const field = (id: string) => section.fields.find((item) => item.id === id);
@@ -81,12 +83,16 @@ export function IdentitySectionRenderer({
   const logo = field('logo');
   const name = field('preferredName')?.value || (showEmpty ? 'Preferred Name' : 'No Name Added');
   const slots = resolveLayoutColorSlots({ templateId: section.templateId, theme: cardTheme });
-  const profileSize = compact ? 52 : 96;
+  const profileSize = walletPass ? 40 : compact ? 52 : 96;
+  const homePreview = compact && seamless;
+  const coverBandRatio = walletPass ? '36%' : compact ? '48%' : undefined;
   const shellStyle = {
     backgroundColor: slots.background,
     borderColor: boxed ? slots.accent : undefined,
+    flex: homePreview ? 1 : undefined,
     height: compact ? ('100%' as const) : undefined,
     minHeight: compact ? undefined : 260,
+    width: homePreview ? ('100%' as const) : undefined,
   };
   const imageColors = {
     iconColor: slots.textSecondary,
@@ -539,12 +545,17 @@ export function IdentitySectionRenderer({
   // 12. Editorial cover (classic): cover first, then clean identity row with overlapping avatar
   return (
     <View className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`} style={[shellStyle, boxed ? BOXED_SHADOW_SM : null]}>
-      <View className="relative" style={{ height: compact ? '48%' : 150 }}>
+      <View
+        className="relative"
+        style={{
+          height: coverBandRatio ?? (compact ? '48%' : 150),
+        }}
+      >
         <IdentityImage field={cover} {...imageColors} style={{ width: '100%', height: '100%' }} />
-        <View className="absolute left-3 top-3">
+        <View className={`absolute ${walletPass ? 'left-2 top-2' : 'left-3 top-3'}`}>
           <UniversalLogoBadge
             cardTheme={cardTheme}
-            compact={compact}
+            compact={compact || walletPass}
             field={logo}
             placement="on-cover"
             slots={slots}
@@ -552,21 +563,29 @@ export function IdentitySectionRenderer({
           />
         </View>
       </View>
-      <View className="flex-1 flex-row items-center px-3.5" style={{ backgroundColor: slots.surface }}>
+      <View
+        className={`flex-1 flex-row items-center ${walletPass ? 'px-2.5 py-0.5' : 'px-3.5'}`}
+        style={{ backgroundColor: slots.surface }}
+      >
         <IdentityImage
           field={profile}
           {...imageColors}
           style={{
             width: profileSize,
             height: profileSize,
-            marginTop: compact ? -18 : -36,
+            marginTop: walletPass ? -14 : compact ? -18 : -36,
             borderRadius: profileSize / 2,
-            borderWidth: compact ? 2.5 : 3.5,
+            borderWidth: walletPass ? 2 : compact ? 2.5 : 3.5,
             borderColor: slots.accent,
           }}
         />
-        <View className="ml-3 min-w-0 flex-1">
-          <IdentityName cardTheme={cardTheme} color={slots.surfaceTextPrimary} compact={compact} name={name} />
+        <View className="ml-2.5 min-w-0 flex-1">
+          <IdentityName
+            cardTheme={cardTheme}
+            color={slots.surfaceTextPrimary}
+            compact={compact || walletPass}
+            name={name}
+          />
         </View>
       </View>
     </View>

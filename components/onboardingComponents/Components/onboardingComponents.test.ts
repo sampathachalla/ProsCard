@@ -22,9 +22,12 @@ export function runOnboardingComponentsTests(): { passed: number; failed: number
         if (groups.length === 0) {
           throw new Error('Flow must include group screens');
         }
-        assertEqual(ONBOARDING_FLOW[ONBOARDING_FLOW.length - 1].kind, 'group');
-        const lastGroup = ONBOARDING_FLOW[ONBOARDING_FLOW.length - 1];
-        assertEqual(lastGroup.kind === 'group' ? lastGroup.groupId : null, 'short_bio');
+        assertEqual(ONBOARDING_FLOW[ONBOARDING_FLOW.length - 1].kind, 'complete');
+        const socialIndex = ONBOARDING_FLOW.findIndex(
+          (item) => item.kind === 'group' && item.groupId === 'social_links'
+        );
+        const completeIndex = ONBOARDING_FLOW.length - 1;
+        assertEqual(completeIndex, socialIndex + 1, 'completion follows social profiles');
       },
     ],
 

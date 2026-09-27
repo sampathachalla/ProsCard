@@ -167,6 +167,11 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
       return true;
     }
 
+    if (item.kind === 'complete') {
+      setErrors({});
+      return true;
+    }
+
     if (item.kind === 'group') {
       const groupErrors = validateFlowGroup(item.groupId, draftRef.current);
       if (Object.keys(groupErrors).length > 0) {
@@ -216,9 +221,7 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
           (flowItem) => flowItem.kind === 'group' && flowItem.groupId === 'presence'
         );
       } else if (targetStep === 5) {
-        matchIndex = ONBOARDING_FLOW.findIndex(
-          (flowItem) => flowItem.kind === 'group' && flowItem.groupId === 'short_bio'
-        );
+        matchIndex = ONBOARDING_FLOW.findIndex((flowItem) => flowItem.kind === 'complete');
       }
 
       if (matchIndex >= 0) {

@@ -2,6 +2,7 @@ import type { OnboardingFlowItem } from '../types/onboardingFlow.types';
 import type { OnboardingDraft } from '../types/onboardingStepper.types';
 import { StepWelcome } from './StepWelcome';
 import { StepCardCustomization } from './StepCardCustomization';
+import { StepOnboardingComplete } from './StepOnboardingComplete';
 import { OnboardingAnswerSlide } from './OnboardingAnswerSlide';
 
 export interface OnboardingFlowRendererProps {
@@ -56,6 +57,10 @@ export function OnboardingFlowRenderer({
           onFinish={onFinish}
           isSaving={isSaving}
         />
+      );
+    case 'complete':
+      return (
+        <StepOnboardingComplete onGoHome={onFinish} isSaving={isSaving} />
       );
     default:
       return null;

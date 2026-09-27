@@ -25,8 +25,11 @@ type Props = {
   showEmpty?: boolean;
 };
 
+/** Directory-style presentation: a small channel label ("Email", "LinkedIn")
+ * paired with the actual stored value — not a templated sentence. */
 type ConnectionPresentation = {
-  primary: string;
+  label: string;
+  value: string;
 };
 
 const SOCIAL_NAMES: Record<string, string> = {
@@ -49,19 +52,26 @@ function isPhone(field: CardDetailField) {
   return field.type === 'phone' || id.includes('phone') || id.includes('mobile');
 }
 
+function getConnectionLabel(field: CardDetailField): string {
+  const id = field.id.toLowerCase();
+  const socialName = Object.entries(SOCIAL_NAMES).find(([key]) => id.includes(key))?.[1];
+  if (socialName) return socialName;
+  if (isEmail(field)) return 'Email';
+  if (isPhone(field)) return 'Phone';
+  if (id.includes('address') || id.includes('location')) return 'Address';
+  if (id.includes('portfolio')) return 'Portfolio';
+  if (id.includes('website') || field.type === 'url') return 'Website';
+  return field.title || 'Link';
+}
+
 function getConnectionPresentation(
   field: CardDetailField,
   showEmpty: boolean,
 ): ConnectionPresentation {
-  const id = field.id.toLowerCase();
-  const displayValue = formatDisplayValue(field) || (showEmpty ? 'Not added' : '');
-  const socialName = Object.entries(SOCIAL_NAMES).find(([key]) => id.includes(key))?.[1];
-
-  if (socialName) {
-    return { primary: `Connect with me on ${socialName}` };
-  }
-
-  return { primary: displayValue };
+  return {
+    label: getConnectionLabel(field),
+    value: formatDisplayValue(field) || (showEmpty ? 'Not added' : ''),
+  };
 }
 
 type FontAwesome6Name = React.ComponentProps<typeof FontAwesome6>['name'];
@@ -119,17 +129,25 @@ export function ConnectionsSectionRenderer({
   const renderCopy = (
     presentation: ConnectionPresentation,
     color: string,
+    mutedColor: string,
     align: 'left' | 'center' = 'left',
   ) => (
     <View className="min-w-0 flex-1">
       <Text
+        numberOfLines={1}
+        className={compact ? 'text-[8px] font-bold uppercase tracking-wider' : 'text-[10px] font-bold uppercase tracking-wider'}
+        style={{ color: mutedColor, fontFamily, letterSpacing, textAlign: align }}
+      >
+        {presentation.label}
+      </Text>
+      <Text
         adjustsFontSizeToFit
         minimumFontScale={0.72}
-        numberOfLines={compact ? 1 : 2}
+        numberOfLines={1}
         className={compact ? 'text-[11px] font-bold' : 'text-sm font-bold'}
         style={{ color, fontFamily, letterSpacing, textAlign: align }}
       >
-        {presentation.primary}
+        {presentation.value}
       </Text>
     </View>
   );
@@ -163,7 +181,7 @@ export function ConnectionsSectionRenderer({
             >
               <ConnectionIcon color={slots.accent} field={field} size={compact ? 17 : 22} />
               <View className="mt-2 w-full">
-                {renderCopy(presentation, slots.textPrimary, 'center')}
+                {renderCopy(presentation, slots.textPrimary, slots.textSecondary, 'center')}
               </View>
             </Pressable>
           );
@@ -174,6 +192,7 @@ export function ConnectionsSectionRenderer({
 
   // Gradient Cards (bold): action rows over theme gradient
   if (section.templateId === 'bold') {
+    const mutedOnGradient = slots.isDark ? 'rgba(255,255,255,0.6)' : 'rgba(15,23,42,0.6)';
     return (
       <LinearGradient
         colors={gradient}
@@ -198,7 +217,7 @@ export function ConnectionsSectionRenderer({
                 <View className="mr-3 h-9 w-9 items-center justify-center" style={{ backgroundColor: slots.surface, borderRadius: 8 }}>
                   <ConnectionIcon color={slots.accent} field={field} size={18} />
                 </View>
-                {renderCopy(presentation, slots.gradientText)}
+                {renderCopy(presentation, slots.gradientText, mutedOnGradient)}
               </Pressable>
             );
           })}
@@ -238,7 +257,7 @@ export function ConnectionsSectionRenderer({
                 <View className="mb-2 h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: slots.background }}>
                   <ConnectionIcon color={slots.accent} field={field} size={19} />
                 </View>
-                {renderCopy(presentation, slots.textPrimary, 'center')}
+                {renderCopy(presentation, slots.textPrimary, slots.textSecondary, 'center')}
               </View>
             </Pressable>
           );
@@ -247,7 +266,7 @@ export function ConnectionsSectionRenderer({
     );
   }
 
-  // Compact Chip Flow (compact)
+  // Compact Chip Flow (compact): dense tag-style overview
   if (section.templateId === 'compact') {
     return (
       <View
@@ -278,7 +297,7 @@ export function ConnectionsSectionRenderer({
                   className="text-xs font-semibold"
                   style={{ color: slots.textPrimary, fontFamily, letterSpacing }}
                 >
-                  {presentation.primary}
+                  {presentation.value}
                 </Text>
               </View>
             </Pressable>
@@ -288,7 +307,7 @@ export function ConnectionsSectionRenderer({
     );
   }
 
-  // Magazine Directory (editorial)
+  // Magazine Directory (editorial): numbered directory rows
   if (section.templateId === 'editorial') {
     return (
       <View
@@ -321,7 +340,7 @@ export function ConnectionsSectionRenderer({
               <View className="mr-3 h-7 w-7 items-center justify-center rounded-md" style={{ backgroundColor: `${slots.accent}18` }}>
                 <ConnectionIcon color={slots.accent} field={field} size={14} />
               </View>
-              {renderCopy(presentation, slots.textPrimary)}
+              {renderCopy(presentation, slots.textPrimary, slots.textSecondary)}
               <FontAwesome6 name="arrow-up-right-from-square" size={12} color={slots.textSecondary} style={{ marginLeft: 8 }} />
             </Pressable>
           );
@@ -330,7 +349,7 @@ export function ConnectionsSectionRenderer({
     );
   }
 
-  // Hero Spotlight (spotlight)
+  // Hero Spotlight (spotlight): featured primary channel plus supporting grid
   if (section.templateId === 'spotlight') {
     const [heroField, ...otherFields] = fields;
     const heroPresentation = heroField ? getConnectionPresentation(heroField, showEmpty) : null;
@@ -344,7 +363,7 @@ export function ConnectionsSectionRenderer({
           height: compact ? '100%' : undefined,
         }, boxed ? BOXED_SHADOW_MD : null]}
       >
-        {heroField && (
+        {heroField && heroPresentation && (
           <Pressable
             disabled={!resolveActionUrl(heroField)}
             onPress={() => handlePress(heroField)}
@@ -356,9 +375,11 @@ export function ConnectionsSectionRenderer({
                 <ConnectionIcon color="#FFFFFF" field={heroField} size={18} />
               </View>
               <View className="flex-1 min-w-0">
-                <Text className="text-[10px] font-bold uppercase tracking-wider text-white/80">Primary Channel</Text>
+                <Text className="text-[10px] font-bold uppercase tracking-wider text-white/80">
+                  {heroPresentation.label}
+                </Text>
                 <Text numberOfLines={1} className="text-sm font-bold text-white" style={{ fontFamily }}>
-                  {heroPresentation?.primary}
+                  {heroPresentation.value}
                 </Text>
               </View>
             </View>
@@ -385,7 +406,7 @@ export function ConnectionsSectionRenderer({
                   <ConnectionIcon color={slots.accent} field={field} size={15} />
                   <View className="ml-2 flex-1 min-w-0">
                     <Text numberOfLines={1} className="text-xs font-semibold" style={{ color: slots.textPrimary, fontFamily }}>
-                      {presentation.primary}
+                      {presentation.value}
                     </Text>
                   </View>
                 </Pressable>
@@ -397,7 +418,7 @@ export function ConnectionsSectionRenderer({
     );
   }
 
-  // Ribbon Cards (banner)
+  // Ribbon Cards (banner): accent-striped directory rows
   if (section.templateId === 'banner') {
     return (
       <View
@@ -422,7 +443,7 @@ export function ConnectionsSectionRenderer({
               <View className="flex-1 flex-row items-center px-3.5 py-3">
                 <ConnectionIcon color={slots.accent} field={field} size={17} />
                 <View className="ml-3 flex-1 min-w-0">
-                  {renderCopy(presentation, slots.textPrimary)}
+                  {renderCopy(presentation, slots.textPrimary, slots.textSecondary)}
                 </View>
                 <FontAwesome6 name="arrow-right" size={13} color={slots.textSecondary} />
               </View>
@@ -433,7 +454,7 @@ export function ConnectionsSectionRenderer({
     );
   }
 
-  // Floating Tiles (cards)
+  // Floating Tiles (cards): inset bento tiles
   if (section.templateId === 'cards') {
     return (
       <View
@@ -464,7 +485,7 @@ export function ConnectionsSectionRenderer({
               <View className="mb-2 h-9 w-9 items-center justify-center rounded-xl" style={{ backgroundColor: `${slots.accent}18` }}>
                 <ConnectionIcon color={slots.accent} field={field} size={17} />
               </View>
-              {renderCopy(presentation, slots.textPrimary)}
+              {renderCopy(presentation, slots.textPrimary, slots.textSecondary)}
             </Pressable>
           );
         })}
@@ -472,7 +493,7 @@ export function ConnectionsSectionRenderer({
     );
   }
 
-  // Icon Dock (badge)
+  // Icon Dock (badge): labeled app-icon style dock
   if (section.templateId === 'badge') {
     return (
       <View
@@ -483,22 +504,36 @@ export function ConnectionsSectionRenderer({
           height: compact ? '100%' : undefined,
         }, boxed ? BOXED_SHADOW_SM : null]}
       >
-        <View className="flex-row flex-wrap items-center justify-center gap-3">
+        <View className="flex-row flex-wrap items-start justify-center gap-3">
           {fields.map((field) => {
+            const presentation = getConnectionPresentation(field, showEmpty);
             return (
               <Pressable
                 key={field.id}
                 disabled={!resolveActionUrl(field)}
                 onPress={() => handlePress(field)}
-                className="items-center justify-center rounded-full border active:opacity-70"
-                style={{
-                  backgroundColor: slots.background,
-                  borderColor: slots.accent,
-                  width: compact ? 46 : 56,
-                  height: compact ? 46 : 56,
-                }}
+                className="items-center active:opacity-70"
+                style={{ width: compact ? 56 : 68 }}
               >
-                <ConnectionIcon color={slots.accent} field={field} size={compact ? 18 : 22} />
+                <View
+                  className="items-center justify-center border"
+                  style={{
+                    backgroundColor: slots.background,
+                    borderColor: slots.accent,
+                    borderRadius: compact ? 14 : 18,
+                    width: compact ? 46 : 56,
+                    height: compact ? 46 : 56,
+                  }}
+                >
+                  <ConnectionIcon color={slots.accent} field={field} size={compact ? 18 : 22} />
+                </View>
+                <Text
+                  numberOfLines={1}
+                  className={compact ? 'mt-1 text-[8px] font-bold' : 'mt-1.5 text-[10px] font-bold'}
+                  style={{ color: slots.textSecondary, fontFamily, letterSpacing }}
+                >
+                  {presentation.label}
+                </Text>
               </Pressable>
             );
           })}
@@ -507,7 +542,7 @@ export function ConnectionsSectionRenderer({
     );
   }
 
-  // Split Matrix (split)
+  // Split Matrix (split): balanced directory grid
   if (section.templateId === 'split') {
     return (
       <View
@@ -536,7 +571,7 @@ export function ConnectionsSectionRenderer({
               >
                 <ConnectionIcon color={slots.accent} field={field} size={16} />
                 <View className="ml-2.5 flex-1 min-w-0">
-                  {renderCopy(presentation, slots.textPrimary)}
+                  {renderCopy(presentation, slots.textPrimary, slots.textSecondary)}
                 </View>
               </Pressable>
             );
@@ -546,7 +581,7 @@ export function ConnectionsSectionRenderer({
     );
   }
 
-  // Neon Cyber Grid (neon)
+  // Cyber Grid (neon): high-contrast tech readout rows
   if (section.templateId === 'neon') {
     return (
       <View
@@ -579,8 +614,15 @@ export function ConnectionsSectionRenderer({
                 <ConnectionIcon color={slots.accent} field={field} size={15} />
               </View>
               <View className="flex-1 min-w-0">
+                <Text
+                  numberOfLines={1}
+                  className="text-[9px] font-bold uppercase tracking-wider"
+                  style={{ color: slots.accent, fontFamily, letterSpacing }}
+                >
+                  {presentation.label}
+                </Text>
                 <Text numberOfLines={1} className="text-xs font-bold text-white" style={{ fontFamily }}>
-                  {presentation.primary}
+                  {presentation.value}
                 </Text>
               </View>
               <View className="h-2 w-2 rounded-full" style={{ backgroundColor: slots.accent }} />
@@ -591,7 +633,7 @@ export function ConnectionsSectionRenderer({
     );
   }
 
-  // Action Tiles (classic): clean directory rows
+  // Action Tiles (classic): clean corporate directory rows
   return (
     <View
       className={`overflow-hidden px-4 py-2 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
@@ -617,7 +659,7 @@ export function ConnectionsSectionRenderer({
             >
               <ConnectionIcon color={slots.background} field={field} size={compact ? 18 : 23} />
             </View>
-            {renderCopy(presentation, slots.textPrimary)}
+            {renderCopy(presentation, slots.textPrimary, slots.textSecondary)}
           </Pressable>
         );
       })}

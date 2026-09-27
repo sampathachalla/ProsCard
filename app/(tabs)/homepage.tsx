@@ -22,7 +22,7 @@ export default function HomepageScreen() {
   const [actionBarHeight, setActionBarHeight] = useState(0);
   const [activeCardIndex, setActiveCardIndex] = useState(0);
   const [showcaseHeight, setShowcaseHeight] = useState(0);
-  const [viewMode, setViewMode] = useState<CardViewMode>('carousel');
+  const [viewMode, setViewMode] = useState<CardViewMode>('stack');
   const [qrCardId, setQrCardId] = useState<string | null>(null);
   const { profile } = useProfileSnapshot();
   const insets = useSafeAreaInsets();

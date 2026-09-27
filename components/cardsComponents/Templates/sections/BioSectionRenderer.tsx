@@ -153,8 +153,8 @@ export function BioSectionRenderer({
       >
         <Quote color={slots.accent} size={14} strokeWidth={2.4} />
         <Text
-          numberOfLines={2}
-          className="ml-2.5 flex-1 text-xs font-semibold leading-relaxed"
+          {...sharedTextProps}
+          className={`ml-2.5 flex-1 font-semibold leading-relaxed ${compact ? 'text-xs' : 'text-sm'}`}
           style={{ color: slots.textPrimary, fontFamily, letterSpacing }}
         >
           {bioText}

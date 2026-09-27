@@ -4,8 +4,40 @@ import type { BusinessCard, CardSectionId } from '../types/card.types';
 import { createCardDetailTemplate } from '../Templates/cardDetailTemplate';
 import { SectionTemplateRenderer } from '../Templates/SectionTemplateRenderer';
 
-export function CardSectionFace({ card, height, profile, sectionId, seamless = false, width }: { card: BusinessCard; height: number; profile: Profile; sectionId: CardSectionId; seamless?: boolean; width: number }) {
+export function CardSectionFace({
+  card,
+  height,
+  profile,
+  sectionId,
+  seamless = false,
+  walletPass = false,
+  width,
+}: {
+  card: BusinessCard;
+  height: number;
+  profile: Profile;
+  sectionId: CardSectionId;
+  seamless?: boolean;
+  walletPass?: boolean;
+  width: number;
+}) {
   const section = createCardDetailTemplate(card, profile).find((item) => item.id === sectionId)!;
   const theme = card.sectionThemes[sectionId];
-  return <View className={`overflow-hidden ${seamless ? '' : 'rounded-[24px]'}`} style={{ width, height, backgroundColor: theme.backgroundColor }}><SectionTemplateRenderer compact cardTheme={theme} gradient={theme.gradient} section={section} seamless={seamless} /></View>;
+  return (
+    <View
+      className={`overflow-hidden ${seamless ? '' : 'rounded-[24px]'}`}
+      style={{ width, height, backgroundColor: theme.backgroundColor }}
+    >
+      <View style={{ flex: 1, width: '100%', height: '100%' }}>
+        <SectionTemplateRenderer
+          compact
+          cardTheme={theme}
+          gradient={theme.gradient}
+          section={section}
+          seamless={seamless}
+          walletPass={walletPass}
+        />
+      </View>
+    </View>
+  );
 }

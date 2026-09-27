@@ -139,11 +139,7 @@ function CardEditorFieldGroup({
 }) {
   return (
     <View
-      className={`${
-        dense
-          ? 'mb-2 border-b border-slate-200 pb-3 dark:border-slate-800'
-          : 'mb-4 rounded-[24px] border border-slate-200 bg-card p-4 dark:border-slate-800 dark:bg-[#0b1120]'
-      }`}
+      className="mb-3.5 rounded-2xl border border-slate-200/90 bg-card p-4 shadow-sm dark:border-slate-800/90 dark:bg-[#0c1424]"
     >
       <Pressable
         accessibilityLabel={`${expanded ? 'Collapse' : 'Expand'} ${title}`}
@@ -151,15 +147,15 @@ function CardEditorFieldGroup({
         accessibilityState={collapsible ? { expanded } : undefined}
         disabled={!collapsible}
         onPress={onToggle}
-        className={`flex-row items-center ${expanded ? (dense ? 'mb-2' : 'mb-3') : ''}`}
+        className={`flex-row items-center ${expanded ? 'mb-3' : ''}`}
       >
         {Icon ? (
-          <View className="mr-2 h-7 w-7 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-950/60">
-            <Icon color="#3b82f6" size={15} />
+          <View className="mr-2.5 h-6 w-6 items-center justify-center rounded-lg bg-blue-500/10 dark:bg-blue-500/20">
+            <Icon color="#3b82f6" size={14} />
           </View>
         ) : null}
         <View className="flex-1">
-          <Text className="text-xs font-bold uppercase tracking-wider text-textMuted dark:text-slate-400">
+          <Text className="text-[11px] font-bold uppercase tracking-wider text-textMuted dark:text-slate-400">
             {title}
           </Text>
           {description ? (
@@ -168,11 +164,11 @@ function CardEditorFieldGroup({
         </View>
         {headerAccessory}
         {collapsible ? (
-          <View className="ml-2 h-7 w-7 items-center justify-center rounded-md border border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
+          <View className="ml-2 h-6 w-6 items-center justify-center rounded-md border border-slate-300/80 bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
             {expanded ? (
-              <Minus color="#64748b" size={16} strokeWidth={2.4} />
+              <Minus color="#64748b" size={14} strokeWidth={2.4} />
             ) : (
-              <Plus color="#64748b" size={16} strokeWidth={2.4} />
+              <Plus color="#64748b" size={14} strokeWidth={2.4} />
             )}
           </View>
         ) : null}
@@ -183,9 +179,12 @@ function CardEditorFieldGroup({
 }
 
 function EditorInput({
+  borderless = false,
   hideLabel = false,
   label,
+  large = false,
   maxLength,
+  minHeight,
   multiline,
   onChangeText,
   onFocus,
@@ -193,9 +192,12 @@ function EditorInput({
   roomy = false,
   value,
 }: {
+  borderless?: boolean;
   label: string;
   hideLabel?: boolean;
+  large?: boolean;
   maxLength?: number;
+  minHeight?: number;
   multiline?: boolean;
   onChangeText: (value: string) => void;
   onFocus?: () => void;
@@ -204,10 +206,10 @@ function EditorInput({
   value: string;
 }) {
   return (
-    <View className={roomy ? 'mb-2' : 'mb-3'}>
+    <View className="mb-3">
       {!hideLabel ? (
-        <View className="mb-1.5 flex-row items-center justify-between px-1">
-          <Text className="text-xs font-bold uppercase tracking-wide text-textMuted dark:text-slate-400">
+        <View className="mb-1.5 flex-row items-center justify-between px-0.5">
+          <Text className="text-[11px] font-bold uppercase tracking-wider text-textMuted dark:text-slate-400">
             {label}
           </Text>
           {maxLength ? (
@@ -225,13 +227,15 @@ function EditorInput({
         placeholderTextColor="#64748b"
         multiline={multiline}
         onFocus={onFocus}
-        className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3.5 text-sm font-semibold text-textPrimary dark:border-slate-700/80 dark:bg-[#060a14] dark:text-white"
+        className={`font-semibold text-textPrimary dark:text-white ${
+          borderless
+            ? 'px-0.5 py-1'
+            : 'rounded-xl border border-slate-200/90 bg-slate-50/90 px-3.5 py-3 dark:border-slate-700/70 dark:bg-[#070d1a]'
+        } ${large ? 'text-lg' : 'text-sm'}`}
         style={
           multiline
-            ? { minHeight: 96, textAlignVertical: 'top' }
-            : roomy
-              ? { borderRadius: 8, minHeight: 58 }
-              : undefined
+            ? { minHeight: minHeight ?? 76, textAlignVertical: 'top' }
+            : { minHeight: 46 }
         }
       />
     </View>
@@ -693,20 +697,93 @@ export function CardSectionEditor({
   );
 
   // 2. PROFESSIONAL CONTENT ZONE
+  const compactProfessionalContent = (
+    <View className="rounded-2xl border border-slate-200/90 bg-card p-4 shadow-sm dark:border-slate-800/90 dark:bg-[#0c1424]">
+      {/* Header */}
+      <View className="mb-3 flex-row items-center">
+        <View className="mr-2.5 h-6 w-6 items-center justify-center rounded-lg bg-blue-500/10 dark:bg-blue-500/20">
+          <Briefcase color="#3b82f6" size={14} />
+        </View>
+        <Text className="text-[11px] font-bold uppercase tracking-wider text-textMuted dark:text-slate-400">
+          Professional Overview
+        </Text>
+      </View>
+
+      {/* Row 1: Name */}
+      <View className="flex-row gap-2.5">
+        <View className="flex-[0.8]">
+          <EditorInput
+            label="Prefix"
+            value={getFieldValue('prefix')}
+            onChangeText={(val) => onFieldChange('prefix', val)}
+            onFocus={onProfessionalFieldFocus}
+            placeholder="Dr., Prof."
+          />
+        </View>
+        <View className="flex-[1.5]">
+          <EditorInput
+            label="First Name"
+            value={getFieldValue('firstName')}
+            onChangeText={(val) => onFieldChange('firstName', val)}
+            onFocus={onProfessionalFieldFocus}
+            placeholder="First name"
+          />
+        </View>
+        <View className="flex-[1.5]">
+          <EditorInput
+            label="Last Name"
+            value={getFieldValue('lastName')}
+            onChangeText={(val) => onFieldChange('lastName', val)}
+            onFocus={onProfessionalFieldFocus}
+            placeholder="Last name"
+          />
+        </View>
+      </View>
+
+      {/* Row 2: Role & Organization */}
+      <View className="flex-row gap-2.5">
+        <View className="flex-1">
+          <EditorInput
+            label="Job Title"
+            value={getFieldValue('title')}
+            onChangeText={(val) => onFieldChange('title', val)}
+            onFocus={onProfessionalFieldFocus}
+            placeholder="Founder & CEO"
+          />
+        </View>
+        <View className="flex-1">
+          <EditorInput
+            label="Company"
+            value={getFieldValue('company')}
+            onChangeText={(val) => onFieldChange('company', val)}
+            onFocus={onProfessionalFieldFocus}
+            placeholder="ProsCard"
+          />
+        </View>
+      </View>
+
+      {/* Row 3: Tagline */}
+      <EditorInput
+        label="Tagline"
+        maxLength={taglineCharacterLimit}
+        value={taglineValue}
+        onChangeText={(val) => onFieldChange('tagline', val)}
+        onFocus={onProfessionalFieldFocus}
+        placeholder="Building next-generation digital networking tools"
+      />
+    </View>
+  );
+
   const professionalContent = (
     <View>
+      {/* 1. Name & Honorifics */}
       <CardEditorFieldGroup
-        collapsible
-        dense
-        expanded={Boolean(expandedProfessionalGroups.name)}
         title="Professional Name"
         icon={UserRound}
-        onToggle={() => toggleProfessionalGroup('name')}
       >
-        <View className="flex-row gap-2">
-          <View className="flex-[0.6]">
+        <View className="flex-row gap-2.5">
+          <View className="flex-[0.8]">
             <EditorInput
-              roomy
               label="Prefix"
               value={getFieldValue('prefix')}
               onChangeText={(val) => onFieldChange('prefix', val)}
@@ -714,9 +791,8 @@ export function CardSectionEditor({
               placeholder="Dr., Prof."
             />
           </View>
-          <View className="flex-[1.4]">
+          <View className="flex-[2]">
             <EditorInput
-              roomy
               label="First Name"
               value={getFieldValue('firstName')}
               onChangeText={(val) => onFieldChange('firstName', val)}
@@ -725,10 +801,10 @@ export function CardSectionEditor({
             />
           </View>
         </View>
-        <View className="flex-row gap-2">
-          <View className="flex-[0.85]">
+
+        <View className="flex-row gap-2.5">
+          <View className="flex-[1]">
             <EditorInput
-              roomy
               label="Middle Name"
               value={getFieldValue('middleName')}
               onChangeText={(val) => onFieldChange('middleName', val)}
@@ -736,9 +812,8 @@ export function CardSectionEditor({
               placeholder="Middle name"
             />
           </View>
-          <View className="flex-[1.15]">
+          <View className="flex-[1.5]">
             <EditorInput
-              roomy
               label="Last Name"
               value={getFieldValue('lastName')}
               onChangeText={(val) => onFieldChange('lastName', val)}
@@ -747,79 +822,54 @@ export function CardSectionEditor({
             />
           </View>
         </View>
+
         <EditorInput
-          roomy
-          label="Suffix"
+          label="Suffix / Post-nominal"
           value={getFieldValue('suffix')}
           onChangeText={(val) => onFieldChange('suffix', val)}
           onFocus={onProfessionalFieldFocus}
-          placeholder="Jr., Sr., III"
+          placeholder="e.g. PhD, Jr., III, MD"
         />
       </CardEditorFieldGroup>
 
+      {/* 2. Role & Organization */}
       <CardEditorFieldGroup
-        collapsible
-        dense
-        expanded={Boolean(expandedProfessionalGroups.career)}
         title="Job Title & Company"
         icon={Briefcase}
-        onToggle={() => toggleProfessionalGroup('career')}
       >
         <EditorInput
-          roomy
           label="Job Title"
           value={getFieldValue('title')}
           onChangeText={(val) => onFieldChange('title', val)}
           onFocus={onProfessionalFieldFocus}
-          placeholder="e.g. FDE"
+          placeholder="e.g. Founder & CEO"
         />
         <EditorInput
-          roomy
           label="Company Name"
           value={getFieldValue('company')}
           onChangeText={(val) => onFieldChange('company', val)}
           onFocus={onProfessionalFieldFocus}
-          placeholder="e.g. MindPros Technologies"
+          placeholder="e.g. ProsCard"
         />
       </CardEditorFieldGroup>
 
+      {/* 3. Credentials & Headline */}
       <CardEditorFieldGroup
-        collapsible
-        dense
-        expanded={Boolean(expandedProfessionalGroups.accreditations)}
-        title="Accreditations & Certifications"
+        title="Credentials & Headline"
         icon={Award}
-        onToggle={() => toggleProfessionalGroup('accreditations')}
       >
         <EditorInput
-          roomy
-          label="Accreditations"
+          label="Accreditations & Certifications"
           maxLength={accreditationCharacterLimit}
           value={accreditationValue}
           onChangeText={(val) => onFieldChange('accreditations', val)}
           onFocus={onProfessionalFieldFocus}
-          placeholder="e.g. MS, BE, PhD, MBA"
+          placeholder="e.g. MBA, AWS Certified Architect, PMP"
         />
-      </CardEditorFieldGroup>
-
-      <CardEditorFieldGroup
-        collapsible
-        dense
-        expanded={Boolean(expandedProfessionalGroups.tagline)}
-        title="Tagline & Headline"
-        headerAccessory={
-          <Text className="ml-2 text-xs font-semibold text-textMuted dark:text-slate-400">
-            {Math.min(taglineValue.length, taglineCharacterLimit)}/{taglineCharacterLimit}
-          </Text>
-        }
-        icon={Quote}
-        onToggle={() => toggleProfessionalGroup('tagline')}
-      >
         <EditorInput
-          roomy
-          hideLabel
-          label="Tagline"
+          label="Tagline & Headline"
           maxLength={taglineCharacterLimit}
+          multiline
           value={taglineValue}
           onChangeText={(val) => onFieldChange('tagline', val)}
           onFocus={onProfessionalFieldFocus}
@@ -837,10 +887,19 @@ export function CardSectionEditor({
       <CardEditorFieldGroup
         title="Professional Biography"
         icon={AlignLeft}
+        headerAccessory={
+          <Text className="text-[11px] font-semibold text-textMuted dark:text-slate-400">
+            {Math.min(bioVal.length, 240)}/240
+          </Text>
+        }
       >
         <EditorInput
+          borderless
           hideLabel
           label="Biography Narrative"
+          large
+          maxLength={240}
+          minHeight={editBarCollapsed ? 240 : 180}
           multiline
           value={bioVal}
           onChangeText={(val) => onFieldChange('bio', val)}
@@ -1114,7 +1173,14 @@ export function CardSectionEditor({
           />
         )
       : activeSection === 'professional'
-      ? professionalContent
+      ? (
+          <EditorPresentationCrossfade
+            compact={compactProfessionalContent}
+            expanded={professionalContent}
+            compactHeight={editBarCollapsed ? 370 : 300}
+            expandedHeight={780}
+          />
+        )
       : activeSection === 'bio'
       ? bioContent
       : connectionsContent;

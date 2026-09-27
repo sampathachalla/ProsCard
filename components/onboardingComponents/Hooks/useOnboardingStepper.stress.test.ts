@@ -331,7 +331,7 @@ export async function runStepperStressTests(
           });
           const item07 = getHook().currentItem;
           assertEqual(item07.kind, 'group');
-          assertEqual(item07.kind === 'group' ? item07.groupId : null, 'short_bio');
+          assertEqual(item07.kind, 'complete');
 
           const before = getHook().flowIndex;
           await act(async () => {
@@ -435,24 +435,24 @@ export async function runStepperStressTests(
           await act(async () => {
             getHook().skipStep();
           });
-          const item0 = getHook().currentItem;
-          assertEqual(getHook().isLastStep, true, 'short_bio must be the last onboarding step');
+          const afterBioSkip = getHook().currentItem;
           assertEqual(
-            item0.kind === 'group' ? item0.groupId : null,
-            'short_bio',
-            'advanceToGroup must reach short_bio'
+            afterBioSkip.kind === 'group' ? afterBioSkip.groupId : null,
+            'social_links',
+            'skip short_bio must advance to social_links'
           );
 
           await act(async () => {
             getHook().skipStep();
           });
-          const item1 = getHook().currentItem;
-          assertEqual(item1.kind, 'group', 'skip must stay on last group');
-          assertEqual(
-            item1.kind === 'group' ? item1.groupId : null,
-            'short_bio',
-            'skip on last step must remain on short_bio'
-          );
+          const item0 = getHook().currentItem;
+          assertEqual(getHook().isLastStep, true, 'complete must be the last onboarding step');
+          assertEqual(item0.kind, 'complete', 'skip social must advance to completion');
+
+          await act(async () => {
+            getHook().skipStep();
+          });
+          assertEqual(getHook().currentItem.kind, 'complete', 'skip on completion must stay put');
         } finally {
           await unmount();
         }
