@@ -3,7 +3,7 @@ import Animated, { FadeIn, FadeOut, useSharedValue } from 'react-native-reanimat
 import type { BusinessCard } from '@/components/cardsComponents/types/card.types';
 import type { Profile } from '@/components/profileComponents/types/profile.types';
 import { BusinessCardCarousel } from './BusinessCardCarousel';
-import type { CardViewMode } from './CardSectionHeader';
+import type { CardViewMode } from '../types/cardViewMode';
 import { CarouselFooter } from './CarouselFooter';
 import { WalletStackView } from './StackedCardView';
 

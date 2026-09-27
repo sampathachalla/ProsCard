@@ -1,16 +1,11 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { View, type LayoutChangeEvent } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type BottomSheet from '@gorhom/bottom-sheet';
 import { useCards } from '@/components/cardsComponents/Hooks/useCards';
 import { CardShowcaseSection } from '@/components/homepageComponents/Components/CardShowcaseSection';
-import { CategoryBottomSheet } from '@/components/homepageComponents/Components/CategoryBottomSheet';
-import {
-  CardSectionHeader,
-  type CardViewMode,
-} from '@/components/homepageComponents/Components/CardSectionHeader';
+import { useCardViewPreference } from '@/components/homepageComponents/Hooks/useCardViewPreference';
 import { HomeActions } from '@/components/homepageComponents/Components/HomeActions';
 import { HomeHeader } from '@/components/homepageComponents/Components/HomeHeader';
 import { useThemeContext } from '@/context/ThemeContext';
@@ -22,21 +17,15 @@ export default function HomepageScreen() {
   const [actionBarHeight, setActionBarHeight] = useState(0);
   const [activeCardIndex, setActiveCardIndex] = useState(0);
   const [showcaseHeight, setShowcaseHeight] = useState(0);
-  const [viewMode, setViewMode] = useState<CardViewMode>('stack');
+  const { hydrated: viewModeHydrated, viewMode } = useCardViewPreference();
   const [qrCardId, setQrCardId] = useState<string | null>(null);
   const { profile } = useProfileSnapshot();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { theme } = useThemeContext();
 
-  const categorySheetRef = useRef<BottomSheet>(null);
-
   const currentCard = cards[activeCardIndex] ?? cards[0];
   const userName = currentCard?.name ?? 'ProsCard User';
-
-  const handleOpenCategorySheet = () => {
-    categorySheetRef.current?.expand();
-  };
 
   const handleShowcaseLayout = (event: LayoutChangeEvent) => {
     const nextHeight = Math.round(event.nativeEvent.layout.height);
@@ -68,24 +57,11 @@ export default function HomepageScreen() {
         <HomeHeader userName={userName} />
       </View>
 
-      <View className="px-5 pb-2">
-        <CardSectionHeader
-          category={currentCard?.category ?? 'Card'}
-          onCategoryPress={handleOpenCategorySheet}
-          onViewModeToggle={() => {
-            setViewMode((currentMode) =>
-              currentMode === 'carousel' ? 'stack' : 'carousel',
-            );
-          }}
-          viewMode={viewMode}
-        />
-      </View>
-
       <View
         className="flex-1 overflow-hidden"
         onLayout={handleShowcaseLayout}
       >
-        {showcaseHeight > 0 ? (
+        {showcaseHeight > 0 && viewModeHydrated ? (
           <CardShowcaseSection
             activeIndex={activeCardIndex}
             bottomInset={actionBarHeight}
@@ -124,13 +100,6 @@ export default function HomepageScreen() {
         <HomeActions />
       </BlurView>
 
-      {/* Interactive Bottom Sheets */}
-      <CategoryBottomSheet
-        ref={categorySheetRef}
-        cards={cards}
-        selectedIndex={activeCardIndex}
-        onSelectCard={setActiveCardIndex}
-      />
       <QRCodeModal
         visible={Boolean(qrCardId)}
         cardName={cards.find((card) => card.id === qrCardId)?.name ?? 'ProsCard'}

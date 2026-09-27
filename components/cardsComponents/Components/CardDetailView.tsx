@@ -7,15 +7,36 @@ import { createCardDetailTemplate } from '../Templates/cardDetailTemplate';
 import { getCardFontFamily, getCardLetterSpacing } from '../Templates/cardTheme';
 import { ActiveSectionHighlight } from '@/components/editViewComponents/Components/ActiveSectionHighlight';
 
-export function CardDetailView({ activeSection, card, onEditSection, onSectionLayout, profile }: { activeSection?: CardSectionId; card: BusinessCard; onEditSection?: (section: CardSectionId) => void; onSectionLayout?: (section: CardSectionId, y: number) => void; profile: Profile }) {
+export function CardDetailView({
+  activeSection,
+  card,
+  fullBleed = false,
+  onEditSection,
+  onSectionLayout,
+  profile,
+}: {
+  activeSection?: CardSectionId;
+  card: BusinessCard;
+  fullBleed?: boolean;
+  onEditSection?: (section: CardSectionId) => void;
+  onSectionLayout?: (section: CardSectionId, y: number) => void;
+  profile: Profile;
+}) {
   const sections = createCardDetailTemplate(card, profile);
 
   const firstTheme = card.sectionThemes[sections[0]?.id];
 
   return (
     <View
-      className="mb-5 overflow-hidden rounded-[28px] border shadow-sm"
-      style={{ borderColor: firstTheme?.accentColor, backgroundColor: firstTheme?.surfaceColor }}
+      className={
+        fullBleed
+          ? 'overflow-hidden'
+          : 'mb-5 overflow-hidden rounded-[28px] border shadow-sm'
+      }
+      style={{
+        backgroundColor: firstTheme?.surfaceColor,
+        ...(fullBleed ? {} : { borderColor: firstTheme?.accentColor }),
+      }}
     >
       {sections.map((section) => {
         const theme = card.sectionThemes[section.id];

@@ -109,20 +109,53 @@ function ProfessionalRole({
 function ProfessionalTagline({
   cardTheme,
   compact,
+  contrastOnGradient = false,
   slots,
   tagline,
   centered = false,
-}: SharedPieceProps & { tagline: string; centered?: boolean }) {
+}: SharedPieceProps & { tagline: string; centered?: boolean; contrastOnGradient?: boolean }) {
   if (!tagline) return null;
+  const quoteSize = compact ? 20 : 24;
+  const textSizeClass = compact ? 'text-base leading-6' : 'text-lg leading-7';
+  const lineLimit = compact ? 4 : 5;
+
   if (centered) {
     return (
       <View className="items-center">
-        <Quote color={slots.accent} size={compact ? 14 : 17} strokeWidth={2.4} />
+        <Quote color={slots.accent} size={quoteSize} strokeWidth={2.4} />
         <Text
-          adjustsFontSizeToFit
-          minimumFontScale={0.78}
-          numberOfLines={compact ? 3 : 4}
-          className={`mt-1.5 text-center font-bold italic ${compact ? 'text-[11px] leading-4' : 'text-sm'}`}
+          numberOfLines={lineLimit}
+          className={`mt-2.5 text-center font-bold italic ${textSizeClass}`}
+          style={{
+            color: slots.textPrimary,
+            fontFamily: getCardFontFamily(cardTheme.fontStyle),
+            letterSpacing: getCardLetterSpacing(cardTheme.fontStyle),
+            ...(contrastOnGradient
+              ? {
+                  textShadowColor: 'rgba(0, 0, 0, 0.35)',
+                  textShadowOffset: { width: 0, height: 1 },
+                  textShadowRadius: 3,
+                }
+              : {}),
+          }}
+        >
+          {tagline}
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View className="flex-row items-start">
+      <View
+        className="mr-2.5 self-stretch rounded-full"
+        style={{ backgroundColor: slots.accent, width: 3 }}
+      />
+      <View className="flex-1">
+        <Quote color={slots.accent} size={quoteSize} strokeWidth={2.4} />
+        <Text
+          numberOfLines={lineLimit}
+          className={`mt-2 font-bold italic ${textSizeClass}`}
           style={{
             color: slots.textPrimary,
             fontFamily: getCardFontFamily(cardTheme.fontStyle),
@@ -132,28 +165,6 @@ function ProfessionalTagline({
           {tagline}
         </Text>
       </View>
-    );
-  }
-  return (
-    <View className="flex-row items-center">
-      <View
-        className="mr-2 self-stretch rounded-full"
-        style={{ backgroundColor: slots.accent, width: 3 }}
-      />
-      <Quote color={slots.accent} size={compact ? 14 : 17} strokeWidth={2.4} />
-      <Text
-        adjustsFontSizeToFit
-        minimumFontScale={0.78}
-        numberOfLines={1}
-        className={`ml-2 flex-1 font-bold italic ${compact ? 'text-[11px]' : 'text-sm'}`}
-        style={{
-          color: slots.textPrimary,
-          fontFamily: getCardFontFamily(cardTheme.fontStyle),
-          letterSpacing: getCardLetterSpacing(cardTheme.fontStyle),
-        }}
-      >
-        {tagline}
-      </Text>
     </View>
   );
 }
@@ -229,10 +240,11 @@ export function ProfessionalSectionRenderer({
             company={company}
           />
           {showTagline ? (
-            <View className="mt-3 w-full max-w-[92%] border-t pt-2.5" style={{ borderColor: `${previewSlots.accent}55` }}>
+            <View className="mt-3 w-full max-w-[92%] border-t pt-3" style={{ borderColor: `${previewSlots.accent}55` }}>
               <ProfessionalTagline
                 {...shared}
-                slots={previewSlots}
+                contrastOnGradient
+                slots={{ ...previewSlots, textPrimary: '#f8fafc' }}
                 tagline={tagline}
                 centered
               />
@@ -262,16 +274,23 @@ export function ProfessionalSectionRenderer({
             <ProfessionalRole {...shared} title={title} company={company} />
           </View>
         </View>
-        <View className={`border-t ${compact ? 'mt-2 pt-2' : 'mt-4 pt-3'}`} style={{ borderColor: slots.accent }}>
-          <ProfessionalTagline {...shared} tagline={tagline} />
-        </View>
+        {showTagline ? (
+          <View className={`border-t ${compact ? 'mt-2 pt-3' : 'mt-4 pt-4'}`} style={{ borderColor: slots.accent }}>
+            <ProfessionalTagline {...shared} tagline={tagline} />
+          </View>
+        ) : null}
       </View>
     );
   }
 
-  // Bold layout: centered networking-card statement over gradient
+  // Bold layout (Hero Credential): centered statement over gradient
   if (section.templateId === 'bold') {
     const boldSlots = { ...slots, textPrimary: slots.gradientText, textSecondary: slots.isDark ? '#e2e8f0' : '#334155' };
+    const boldTaglineSlots = {
+      ...boldSlots,
+      accent: boldSlots.accent,
+      textPrimary: '#f8fafc',
+    };
     return (
       <LinearGradient
         colors={gradient}
@@ -289,12 +308,16 @@ export function ProfessionalSectionRenderer({
             <ProfessionalRole {...shared} slots={boldSlots} align="center" title={title} company={company} />
           </View>
           {showTagline ? (
-            <View className={`w-full max-w-[92%] ${compact ? 'mt-2' : 'mt-4'}`}>
+            <View
+              className={`w-full max-w-[94%] ${compact ? 'mt-3 border-t pt-3' : 'mt-5 border-t pt-4'}`}
+              style={{ borderColor: `${boldSlots.accent}88` }}
+            >
               <ProfessionalTagline
                 {...shared}
-                slots={boldSlots}
+                contrastOnGradient
+                slots={boldTaglineSlots}
                 tagline={tagline}
-                centered={homePreview}
+                centered
               />
             </View>
           ) : null}
@@ -323,7 +346,10 @@ export function ProfessionalSectionRenderer({
             <ProfessionalRole {...shared} title={title} company={company} />
           </View>
           {showTagline ? (
-            <View className={compact ? 'mt-2' : 'mt-4'}>
+            <View
+              className={`border-t ${compact ? 'mt-3 pt-3' : 'mt-4 pt-4'}`}
+              style={{ borderColor: slots.highlight }}
+            >
               <ProfessionalTagline {...shared} tagline={tagline} />
             </View>
           ) : null}
@@ -362,7 +388,7 @@ export function ProfessionalSectionRenderer({
         <View className="my-3 h-px w-full" style={{ backgroundColor: slots.accent }} />
         <ProfessionalRole {...shared} title={title} company={company} />
         {showTagline ? (
-          <View className="mt-3 border-t pt-2" style={{ borderTopColor: slots.highlight }}>
+          <View className={`mt-4 border-t ${compact ? 'pt-3' : 'pt-4'}`} style={{ borderTopColor: slots.highlight }}>
             <ProfessionalTagline {...shared} tagline={tagline} />
           </View>
         ) : null}
@@ -383,8 +409,11 @@ export function ProfessionalSectionRenderer({
         </View>
         <Text className="text-sm font-bold" style={{ color: slots.textSecondary }}>{company}</Text>
         {showTagline ? (
-          <View className="mt-3 w-full">
-            <ProfessionalTagline {...shared} tagline={tagline} />
+          <View
+            className={`mt-4 w-full max-w-[94%] border-t ${compact ? 'pt-3' : 'pt-4'}`}
+            style={{ borderColor: `${slots.accent}55` }}
+          >
+            <ProfessionalTagline {...shared} centered tagline={tagline} />
           </View>
         ) : null}
       </View>
@@ -405,7 +434,10 @@ export function ProfessionalSectionRenderer({
             <Text className="text-sm font-extrabold" style={{ color: slots.accent }}>{title}</Text>
           </View>
           {showTagline ? (
-            <View className="mt-3 border-t pt-2" style={{ borderTopColor: slots.highlight }}>
+            <View
+              className={`mt-4 border-t ${compact ? 'pt-3' : 'pt-4'}`}
+              style={{ borderTopColor: slots.highlight }}
+            >
               <ProfessionalTagline {...shared} tagline={tagline} />
             </View>
           ) : null}
@@ -424,7 +456,7 @@ export function ProfessionalSectionRenderer({
         <View className="rounded-2xl border p-3.5" style={{ backgroundColor: slots.surface, borderColor: slots.highlight }}>
           <ProfessionalRole {...shared} title={title} company={company} />
           {showTagline ? (
-            <View className="mt-2.5 border-t pt-2" style={{ borderTopColor: slots.highlight }}>
+            <View className={`mt-3 border-t ${compact ? 'pt-3' : 'pt-4'}`} style={{ borderTopColor: slots.highlight }}>
               <ProfessionalTagline {...shared} tagline={tagline} />
             </View>
           ) : null}
@@ -450,7 +482,7 @@ export function ProfessionalSectionRenderer({
           <Text className="text-sm font-bold mt-0.5" style={{ color: slots.textPrimary }}>{title}</Text>
         </View>
         {showTagline ? (
-          <View className="mt-3">
+          <View className={`mt-4 border-t ${compact ? 'pt-3' : 'pt-4'}`} style={{ borderTopColor: slots.highlight }}>
             <ProfessionalTagline {...shared} tagline={tagline} />
           </View>
         ) : null}
@@ -471,8 +503,8 @@ export function ProfessionalSectionRenderer({
         <View className="w-1/2 p-4 justify-between" style={{ backgroundColor: slots.surface }}>
           <Text className="text-xs font-bold" style={{ color: slots.textSecondary }}>{company}</Text>
           {showTagline ? (
-            <View className="mt-2">
-              <Text numberOfLines={2} className="text-[11px] italic" style={{ color: slots.textPrimary }}>"{tagline}"</Text>
+            <View className="mt-3">
+              <ProfessionalTagline {...shared} tagline={tagline} centered />
             </View>
           ) : null}
         </View>
@@ -491,7 +523,7 @@ export function ProfessionalSectionRenderer({
         <View className="my-3 h-0.5 w-full" style={{ backgroundColor: slots.accent }} />
         <ProfessionalRole {...shared} title={title} company={company} />
         {showTagline ? (
-          <View className="mt-3 border-t pt-2" style={{ borderTopColor: slots.accent }}>
+          <View className={`mt-4 border-t ${compact ? 'pt-3' : 'pt-4'}`} style={{ borderTopColor: slots.accent }}>
             <ProfessionalTagline {...shared} tagline={tagline} />
           </View>
         ) : null}
@@ -514,7 +546,7 @@ export function ProfessionalSectionRenderer({
         <ProfessionalRole {...shared} title={title} company={company} />
       </View>
       {showTagline ? (
-        <View className={`border-t ${compact ? 'mt-2 pt-2' : 'mt-5 pt-3'}`} style={{ borderColor: slots.accent }}>
+        <View className={`border-t ${compact ? 'mt-3 pt-3' : 'mt-5 pt-4'}`} style={{ borderColor: slots.accent }}>
           <ProfessionalTagline {...shared} tagline={tagline} />
         </View>
       ) : null}

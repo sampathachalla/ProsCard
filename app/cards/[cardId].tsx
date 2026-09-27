@@ -6,7 +6,6 @@ import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context'
 import { CardDetailView } from '@/components/cardsComponents/Components/CardDetailView';
 import { getCardById } from '@/components/cardsComponents/Services/cardsService';
 import { CardTapGesture } from '@/components/gestures';
-import { PageHeader } from '@/components/uiComponents/PageHeader';
 import { Text } from '@/components/uiComponents/Text';
 import { QRCodeModal } from '@/components/uiComponents/QRCodeModal';
 import { useProfileSnapshot } from '@/components/profileComponents/Hooks/useProfileSnapshot';
@@ -61,15 +60,13 @@ export default function CardDetailPage() {
   if (!card) {
     return (
       <SafeAreaView className="flex-1 bg-background dark:bg-dark-background" edges={['top', 'bottom', 'left', 'right']}>
-        <PageHeader title="Card Details" onBackPress={goToHomepage} />
-        <CardTapGesture
-          containerClassName="flex-1"
-          onDoubleTap={goToHomepage}
-        >
+        <CardTapGesture containerClassName="flex-1" onDoubleTap={goToHomepage}>
           <View className="flex-1 items-center justify-center px-8">
-            <Text variant="heading" className="text-center">Card not found</Text>
+            <Text variant="heading" className="text-center">
+              Card not found
+            </Text>
             <Text variant="muted" className="mt-2 text-center">
-              This card is no longer available. Tap back to return home.
+              This card is no longer available. Double-tap to return home.
             </Text>
           </View>
         </CardTapGesture>
@@ -117,20 +114,14 @@ export default function CardDetailPage() {
       onSwipeDown={() => setShowQr(true)}
       simultaneousWithNative
     >
-      <PageHeader
-        title={card.name}
-        subtitle={card.title}
-        onBackPress={goToHomepage}
-      />
       <ScrollView
         contentContainerStyle={{
           paddingBottom: Math.max(insets.bottom, 24) + 32,
-          paddingTop: 8,
-          paddingHorizontal: 16,
+          paddingTop: Math.max(insets.top, 12),
         }}
         showsVerticalScrollIndicator={false}
       >
-        <CardDetailView card={card} profile={profile} />
+        <CardDetailView card={card} fullBleed profile={profile} />
       </ScrollView>
       <FloatingToolsButton actions={toolActions} />
       <QRCodeModal visible={showQr} cardName={card.name} url={getCardUrl()} onClose={() => setShowQr(false)} />
