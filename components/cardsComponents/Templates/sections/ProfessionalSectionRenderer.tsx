@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Building2, Quote } from 'lucide-react-native';
+import { Building2 } from 'lucide-react-native';
 import { Text } from '@/components/uiComponents/Text';
 import type { CardDetailSection } from '../cardDetailTemplate';
 import type { CardVisualTheme, ResolvedLayoutSlots } from '../../types/card.types';
@@ -9,6 +9,10 @@ import { getCardFontFamily, getCardLetterSpacing } from '../cardTheme';
 import { fitAccreditationsToViewport, fitTaglineToViewport } from '@/utils/cardTextLayout';
 import { resolveLayoutColorSlots } from '@/utils/cardThemeColor';
 import { BOXED_SHADOW_LG, BOXED_SHADOW_MD, BOXED_SHADOW_SM } from './SectionSharedComponents';
+
+/** Shared minimum height across all 12 layouts so switching between them
+ * (with or without an optional tagline) never visibly jumps in size. */
+const PROFESSIONAL_MIN_HEIGHT = 160;
 
 type Props = {
   compact?: boolean;
@@ -115,56 +119,30 @@ function ProfessionalTagline({
   centered = false,
 }: SharedPieceProps & { tagline: string; centered?: boolean; contrastOnGradient?: boolean }) {
   if (!tagline) return null;
-  const quoteSize = compact ? 20 : 24;
   const textSizeClass = compact ? 'text-base leading-6' : 'text-lg leading-7';
   const lineLimit = compact ? 4 : 5;
 
-  if (centered) {
-    return (
-      <View className="items-center">
-        <Quote color={slots.accent} size={quoteSize} strokeWidth={2.4} />
-        <Text
-          numberOfLines={lineLimit}
-          className={`mt-2.5 text-center font-bold italic ${textSizeClass}`}
-          style={{
-            color: slots.textPrimary,
-            fontFamily: getCardFontFamily(cardTheme.fontStyle),
-            letterSpacing: getCardLetterSpacing(cardTheme.fontStyle),
-            ...(contrastOnGradient
-              ? {
-                  textShadowColor: 'rgba(0, 0, 0, 0.35)',
-                  textShadowOffset: { width: 0, height: 1 },
-                  textShadowRadius: 3,
-                }
-              : {}),
-          }}
-        >
-          {tagline}
-        </Text>
-      </View>
-    );
-  }
-
   return (
-    <View className="flex-row items-start">
-      <View
-        className="mr-2.5 self-stretch rounded-full"
-        style={{ backgroundColor: slots.accent, width: 3 }}
-      />
-      <View className="flex-1">
-        <Quote color={slots.accent} size={quoteSize} strokeWidth={2.4} />
-        <Text
-          numberOfLines={lineLimit}
-          className={`mt-2 font-bold italic ${textSizeClass}`}
-          style={{
-            color: slots.textPrimary,
-            fontFamily: getCardFontFamily(cardTheme.fontStyle),
-            letterSpacing: getCardLetterSpacing(cardTheme.fontStyle),
-          }}
-        >
-          {tagline}
-        </Text>
-      </View>
+    <View className={centered ? 'w-full items-center' : 'w-full'}>
+      <Text
+        numberOfLines={lineLimit}
+        className={`font-bold italic ${textSizeClass} ${centered ? 'text-center' : ''}`}
+        style={{
+          color: slots.textPrimary,
+          fontFamily: getCardFontFamily(cardTheme.fontStyle),
+          letterSpacing: getCardLetterSpacing(cardTheme.fontStyle),
+          textAlign: centered ? 'center' : 'left',
+          ...(contrastOnGradient
+            ? {
+                textShadowColor: 'rgba(0, 0, 0, 0.35)',
+                textShadowOffset: { width: 0, height: 1 },
+                textShadowRadius: 3,
+              }
+            : {}),
+        }}
+      >
+        {tagline}
+      </Text>
     </View>
   );
 }
@@ -266,6 +244,7 @@ export function ProfessionalSectionRenderer({
           borderLeftColor: slots.accent,
           borderLeftWidth: 5,
           height: compact ? '100%' : undefined,
+          minHeight: compact ? undefined : PROFESSIONAL_MIN_HEIGHT,
         }, boxed ? BOXED_SHADOW_SM : null]}
       >
         <View>
@@ -298,7 +277,11 @@ export function ProfessionalSectionRenderer({
         style={[
           homeFillStyle,
           homeCenterStyle,
-          { paddingHorizontal: 16, paddingVertical: homePreview ? 10 : 16 },
+          {
+            paddingHorizontal: 16,
+            paddingVertical: homePreview ? 10 : 16,
+            minHeight: compact ? undefined : PROFESSIONAL_MIN_HEIGHT,
+          },
           boxed ? BOXED_SHADOW_LG : null,
         ]}
       >
@@ -331,7 +314,7 @@ export function ProfessionalSectionRenderer({
     return (
       <View
         className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
-        style={[{ backgroundColor: slots.background, borderColor: slots.highlight, height: compact ? '100%' : undefined }, boxed ? BOXED_SHADOW_MD : null]}
+        style={[{ backgroundColor: slots.background, borderColor: slots.highlight, height: compact ? '100%' : undefined, minHeight: compact ? undefined : PROFESSIONAL_MIN_HEIGHT }, boxed ? BOXED_SHADOW_MD : null]}
       >
         <View
           className={`flex-1 justify-between rounded-2xl border ${compact ? 'p-3.5' : 'p-5'}`}
@@ -363,13 +346,13 @@ export function ProfessionalSectionRenderer({
     return (
       <View
         className={`flex-row items-center justify-between overflow-hidden px-4 py-3 ${boxed ? 'mb-5 rounded-[24px] border' : ''}`}
-        style={[{ backgroundColor: slots.surface, borderColor: slots.highlight }, boxed ? BOXED_SHADOW_SM : null]}
+        style={[{ backgroundColor: slots.surface, borderColor: slots.highlight, height: compact ? '100%' : undefined, minHeight: compact ? undefined : PROFESSIONAL_MIN_HEIGHT }, boxed ? BOXED_SHADOW_SM : null]}
       >
         <View className="min-w-0 flex-1">
-          <Text numberOfLines={1} className="font-extrabold text-sm" style={{ color: slots.textPrimary }}>
+          <Text numberOfLines={1} className="font-extrabold text-lg" style={{ color: slots.textPrimary }}>
             {professionalName}
           </Text>
-          <Text numberOfLines={1} className="font-semibold text-xs mt-0.5" style={{ color: slots.accent }}>
+          <Text numberOfLines={1} className="font-semibold text-sm mt-0.5" style={{ color: slots.accent }}>
             {title} · {company}
           </Text>
         </View>
@@ -382,7 +365,7 @@ export function ProfessionalSectionRenderer({
     return (
       <View
         className={`overflow-hidden p-5 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
-        style={[{ backgroundColor: slots.surface, borderColor: slots.highlight }, boxed ? BOXED_SHADOW_SM : null]}
+        style={[{ backgroundColor: slots.surface, borderColor: slots.highlight, height: compact ? '100%' : undefined, minHeight: compact ? undefined : PROFESSIONAL_MIN_HEIGHT }, boxed ? BOXED_SHADOW_SM : null]}
       >
         <ProfessionalName {...shared} name={professionalName} accreditations={accreditations} />
         <View className="my-3 h-px w-full" style={{ backgroundColor: slots.accent }} />
@@ -401,7 +384,7 @@ export function ProfessionalSectionRenderer({
     return (
       <View
         className={`items-center justify-center overflow-hidden p-5 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
-        style={[{ backgroundColor: slots.surface, borderColor: slots.highlight }, boxed ? BOXED_SHADOW_SM : null]}
+        style={[{ backgroundColor: slots.surface, borderColor: slots.highlight, height: compact ? '100%' : undefined, minHeight: compact ? undefined : PROFESSIONAL_MIN_HEIGHT }, boxed ? BOXED_SHADOW_SM : null]}
       >
         <ProfessionalName {...shared} align="center" name={professionalName} accreditations={accreditations} />
         <View className="my-3 rounded-full px-4 py-1.5" style={{ backgroundColor: `${slots.accent}18`, borderWidth: 1, borderColor: slots.accent }}>
@@ -423,12 +406,12 @@ export function ProfessionalSectionRenderer({
   // Ribbon Header (banner): company ribbon at top, personal title in card body
   if (section.templateId === 'banner') {
     return (
-      <View className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`} style={[{ backgroundColor: slots.surface, borderColor: slots.highlight }, boxed ? BOXED_SHADOW_SM : null]}>
+      <View className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`} style={[{ backgroundColor: slots.surface, borderColor: slots.highlight, height: compact ? '100%' : undefined, minHeight: compact ? undefined : PROFESSIONAL_MIN_HEIGHT }, boxed ? BOXED_SHADOW_SM : null]}>
         <View className="flex-row items-center justify-between px-4 py-2.5" style={{ backgroundColor: slots.accent }}>
           <Text numberOfLines={1} className="text-xs font-black uppercase tracking-wider text-white flex-1 mr-2">{company}</Text>
           {accreditations ? <Text className="text-[10px] font-bold text-white/90">{accreditations}</Text> : null}
         </View>
-        <View className="p-4">
+        <View className="flex-1 p-4">
           <ProfessionalName {...shared} name={professionalName} />
           <View className="mt-2">
             <Text className="text-sm font-extrabold" style={{ color: slots.accent }}>{title}</Text>
@@ -449,7 +432,7 @@ export function ProfessionalSectionRenderer({
   // Modular Bento (cards): dual cardlets for role & company
   if (section.templateId === 'cards') {
     return (
-      <View className={`overflow-hidden p-3 gap-2 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`} style={[{ backgroundColor: slots.background }, boxed ? BOXED_SHADOW_SM : null]}>
+      <View className={`overflow-hidden p-3 gap-2 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`} style={[{ backgroundColor: slots.background, height: compact ? '100%' : undefined, minHeight: compact ? undefined : PROFESSIONAL_MIN_HEIGHT }, boxed ? BOXED_SHADOW_SM : null]}>
         <View className="rounded-2xl border p-3.5" style={{ backgroundColor: slots.surface, borderColor: slots.highlight }}>
           <ProfessionalName {...shared} name={professionalName} accreditations={accreditations} />
         </View>
@@ -470,11 +453,11 @@ export function ProfessionalSectionRenderer({
     return (
       <View
         className={`overflow-hidden p-4 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
-        style={[{ backgroundColor: slots.surface, borderColor: slots.accent }, boxed ? BOXED_SHADOW_MD : null]}
+        style={[{ backgroundColor: slots.surface, borderColor: slots.accent, height: compact ? '100%' : undefined, minHeight: compact ? undefined : PROFESSIONAL_MIN_HEIGHT }, boxed ? BOXED_SHADOW_MD : null]}
       >
         <View className="flex-row items-center justify-between border-b pb-2 mb-3" style={{ borderBottomColor: slots.highlight }}>
           <Text className="text-[10px] font-black uppercase tracking-wider" style={{ color: slots.accent }}>CREDENTIAL RECORD</Text>
-          <Text className="text-[10px] font-bold" style={{ color: slots.textSecondary }}>{company}</Text>
+          <Text className="text-xs font-bold" style={{ color: slots.textSecondary }}>{company}</Text>
         </View>
         <ProfessionalName {...shared} name={professionalName} accreditations={accreditations} />
         <View className="mt-3 rounded-xl border p-2.5" style={{ backgroundColor: slots.background, borderColor: slots.highlight }}>
@@ -493,15 +476,15 @@ export function ProfessionalSectionRenderer({
   // 50/50 Dual Column (split): left column for role/company, right for accreditations/tagline
   if (section.templateId === 'split') {
     return (
-      <View className={`flex-row overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`} style={[{ backgroundColor: slots.surface, borderColor: slots.highlight }, boxed ? BOXED_SHADOW_SM : null]}>
+      <View className={`flex-row overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`} style={[{ backgroundColor: slots.surface, borderColor: slots.highlight, height: compact ? '100%' : undefined, minHeight: compact ? undefined : PROFESSIONAL_MIN_HEIGHT }, boxed ? BOXED_SHADOW_SM : null]}>
         <View className="w-1/2 p-4 border-r" style={{ borderRightColor: slots.highlight, backgroundColor: slots.background }}>
           <ProfessionalName {...shared} name={professionalName} />
           <View className="mt-2">
-            <Text className="text-xs font-extrabold" style={{ color: slots.accent }}>{title}</Text>
+            <Text className="text-sm font-extrabold" style={{ color: slots.accent }}>{title}</Text>
           </View>
         </View>
         <View className="w-1/2 p-4 justify-between" style={{ backgroundColor: slots.surface }}>
-          <Text className="text-xs font-bold" style={{ color: slots.textSecondary }}>{company}</Text>
+          <Text className="text-sm font-bold" style={{ color: slots.textSecondary }}>{company}</Text>
           {showTagline ? (
             <View className="mt-3">
               <ProfessionalTagline {...shared} tagline={tagline} centered />
@@ -517,7 +500,7 @@ export function ProfessionalSectionRenderer({
     return (
       <View
         className={`overflow-hidden p-4 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
-        style={[{ backgroundColor: slots.background, borderColor: slots.accent, borderWidth: 2 }, boxed ? BOXED_SHADOW_SM : null]}
+        style={[{ backgroundColor: slots.background, borderColor: slots.accent, borderWidth: 2, height: compact ? '100%' : undefined, minHeight: compact ? undefined : PROFESSIONAL_MIN_HEIGHT }, boxed ? BOXED_SHADOW_SM : null]}
       >
         <ProfessionalName {...shared} name={professionalName} accreditations={accreditations} />
         <View className="my-3 h-0.5 w-full" style={{ backgroundColor: slots.accent }} />
@@ -535,7 +518,7 @@ export function ProfessionalSectionRenderer({
   return (
     <View
       className={`justify-between overflow-hidden p-4 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
-      style={[{ backgroundColor: slots.surface, borderColor: boxed ? slots.accent : undefined, height: compact ? '100%' : undefined }, boxed ? BOXED_SHADOW_SM : null]}
+      style={[{ backgroundColor: slots.surface, borderColor: boxed ? slots.accent : undefined, height: compact ? '100%' : undefined, minHeight: compact ? undefined : PROFESSIONAL_MIN_HEIGHT }, boxed ? BOXED_SHADOW_SM : null]}
     >
       <View>
         <ProfessionalName {...shared} name={professionalName} accreditations={accreditations} />

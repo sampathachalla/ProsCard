@@ -16,6 +16,11 @@ import {
 } from './SectionSharedComponents';
 import { resolveLayoutColorSlots } from '@/utils/cardThemeColor';
 
+/** Floor only — unlike Identity/Professional/Bio, Connections legitimately
+ * varies in height with the number of channels a user has added. This just
+ * keeps a layout from looking near-collapsed when only 1-2 are present. */
+const CONNECTIONS_MIN_HEIGHT = 110;
+
 type Props = {
   compact?: boolean;
   cardTheme: CardVisualTheme;
@@ -161,6 +166,7 @@ export function ConnectionsSectionRenderer({
           backgroundColor: slots.background,
           borderColor: boxed ? slots.accent : undefined,
           height: compact ? '100%' : undefined,
+          minHeight: compact ? undefined : CONNECTIONS_MIN_HEIGHT,
         }, boxed ? BOXED_SHADOW_SM : null]}
       >
         {fields.map((field) => {
@@ -197,7 +203,7 @@ export function ConnectionsSectionRenderer({
       <LinearGradient
         colors={gradient}
         className={`overflow-hidden p-4 ${boxed ? 'mb-5 rounded-[28px]' : ''}`}
-        style={[{ height: compact ? '100%' : undefined }, boxed ? BOXED_SHADOW_LG : null]}
+        style={[{ height: compact ? '100%' : undefined, minHeight: compact ? undefined : CONNECTIONS_MIN_HEIGHT }, boxed ? BOXED_SHADOW_LG : null]}
       >
         <View className="gap-2">
           {fields.map((field) => {
@@ -235,6 +241,7 @@ export function ConnectionsSectionRenderer({
           backgroundColor: slots.background,
           borderColor: boxed ? slots.highlight : undefined,
           height: compact ? '100%' : undefined,
+          minHeight: compact ? undefined : CONNECTIONS_MIN_HEIGHT,
         }, boxed ? BOXED_SHADOW_MD : null]}
       >
         {fields.map((field) => {
@@ -275,6 +282,7 @@ export function ConnectionsSectionRenderer({
           backgroundColor: slots.surface,
           borderColor: boxed ? slots.highlight : undefined,
           height: compact ? '100%' : undefined,
+          minHeight: compact ? undefined : CONNECTIONS_MIN_HEIGHT,
         }, boxed ? BOXED_SHADOW_SM : null]}
       >
         {fields.map((field) => {
@@ -316,6 +324,7 @@ export function ConnectionsSectionRenderer({
           backgroundColor: slots.surface,
           borderColor: boxed ? slots.highlight : undefined,
           height: compact ? '100%' : undefined,
+          minHeight: compact ? undefined : CONNECTIONS_MIN_HEIGHT,
         }, boxed ? BOXED_SHADOW_SM : null]}
       >
         {fields.map((field, idx) => {
@@ -361,6 +370,7 @@ export function ConnectionsSectionRenderer({
           backgroundColor: slots.surface,
           borderColor: boxed ? slots.highlight : undefined,
           height: compact ? '100%' : undefined,
+          minHeight: compact ? undefined : CONNECTIONS_MIN_HEIGHT,
         }, boxed ? BOXED_SHADOW_MD : null]}
       >
         {heroField && heroPresentation && (
@@ -427,6 +437,7 @@ export function ConnectionsSectionRenderer({
           backgroundColor: slots.background,
           borderColor: boxed ? slots.highlight : undefined,
           height: compact ? '100%' : undefined,
+          minHeight: compact ? undefined : CONNECTIONS_MIN_HEIGHT,
         }, boxed ? BOXED_SHADOW_SM : null]}
       >
         {fields.map((field) => {
@@ -463,6 +474,7 @@ export function ConnectionsSectionRenderer({
           backgroundColor: slots.background,
           borderColor: boxed ? slots.highlight : undefined,
           height: compact ? '100%' : undefined,
+          minHeight: compact ? undefined : CONNECTIONS_MIN_HEIGHT,
         }, boxed ? BOXED_SHADOW_SM : null]}
       >
         {fields.map((field) => {
@@ -502,6 +514,7 @@ export function ConnectionsSectionRenderer({
           backgroundColor: slots.surface,
           borderColor: boxed ? slots.accent : undefined,
           height: compact ? '100%' : undefined,
+          minHeight: compact ? undefined : CONNECTIONS_MIN_HEIGHT,
         }, boxed ? BOXED_SHADOW_SM : null]}
       >
         <View className="flex-row flex-wrap items-start justify-center gap-3">
@@ -551,6 +564,7 @@ export function ConnectionsSectionRenderer({
           backgroundColor: slots.surface,
           borderColor: boxed ? slots.highlight : undefined,
           height: compact ? '100%' : undefined,
+          minHeight: compact ? undefined : CONNECTIONS_MIN_HEIGHT,
         }, boxed ? BOXED_SHADOW_SM : null]}
       >
         <View className="flex-row flex-wrap gap-2">
@@ -591,6 +605,7 @@ export function ConnectionsSectionRenderer({
           borderColor: slots.accent,
           borderWidth: 1.5,
           height: compact ? '100%' : undefined,
+          minHeight: compact ? undefined : CONNECTIONS_MIN_HEIGHT,
         }, boxed ? BOXED_SHADOW_SM : null]}
       >
         {fields.map((field) => {
@@ -613,18 +628,7 @@ export function ConnectionsSectionRenderer({
               >
                 <ConnectionIcon color={slots.accent} field={field} size={15} />
               </View>
-              <View className="flex-1 min-w-0">
-                <Text
-                  numberOfLines={1}
-                  className="text-[9px] font-bold uppercase tracking-wider"
-                  style={{ color: slots.accent, fontFamily, letterSpacing }}
-                >
-                  {presentation.label}
-                </Text>
-                <Text numberOfLines={1} className="text-xs font-bold text-white" style={{ fontFamily }}>
-                  {presentation.value}
-                </Text>
-              </View>
+              {renderCopy(presentation, '#FFFFFF', slots.accent)}
               <View className="h-2 w-2 rounded-full" style={{ backgroundColor: slots.accent }} />
             </Pressable>
           );
@@ -641,6 +645,7 @@ export function ConnectionsSectionRenderer({
         backgroundColor: slots.surface,
         borderColor: boxed ? slots.accent : undefined,
         height: compact ? '100%' : undefined,
+        minHeight: compact ? undefined : CONNECTIONS_MIN_HEIGHT,
       }, boxed ? BOXED_SHADOW_SM : null]}
     >
       {fields.map((field, index) => {
