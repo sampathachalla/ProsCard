@@ -11,14 +11,19 @@ async function loadProfile(): Promise<Profile> {
 
 export function useProfileSnapshot() {
   const [profile, setProfile] = useState<Profile>(DEFAULT_PROFILE);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    loadProfile().then(setProfile);
+    loadProfile()
+      .then(setProfile)
+      .catch((reason) => setError(reason instanceof Error ? reason : new Error('Could not load profile.')))
+      .finally(() => setLoading(false));
     const unsubscribe = subscribeProfile((updated) => {
       setProfile(updated);
     });
     return unsubscribe;
   }, []);
 
-  return { profile };
+  return { profile, loading, error, refresh: loadProfile };
 }

@@ -165,4 +165,6 @@ export type BusinessCard = {
   cardTheme: CardVisualTheme;
   /** User-created gradient themes for this card (shown first in the theme picker). */
   customThemes?: SavedSectionTheme[];
+  createdAt?: string;
+  updatedAt?: string;
 };

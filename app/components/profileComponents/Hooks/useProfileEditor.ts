@@ -15,16 +15,19 @@ export function useProfileEditor() {
     let cancelled = false;
 
     (async () => {
-      const [storedProfile, user] = await Promise.all([getProfile(), getStoredUser()]);
-      const seeded =
-        !storedProfile.fullName && user?.username
+      try {
+        const [storedProfile, user] = await Promise.all([getProfile(), getStoredUser()]);
+        const seeded = !storedProfile.fullName && user?.username
           ? { ...storedProfile, fullName: user.username }
           : storedProfile;
-
-      if (!cancelled) {
-        setProfile(seeded);
-        setDraft(seeded);
-        setLoading(false);
+        if (!cancelled) {
+          setProfile(seeded);
+          setDraft(seeded);
+        }
+      } catch (error) {
+        if (!cancelled) Alert.alert('Load Failed', error instanceof Error ? error.message : 'Could not load your profile.');
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     })();
 

@@ -3,6 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '@/constants/Colors';
 import { buildCustomSectionTheme } from '@/utils/cardThemeColor';
 import { CARD_THEME_PRESETS, createDefaultCardSectionThemes, DEFAULT_CARD_SECTION_LAYOUTS, DEFAULT_CARD_THEME, type BusinessCard, type CardVisualTheme } from '../types/card.types';
+import { apiRequest } from '@/services/api/client';
+import { AUTH_TEST_MODE } from '@/components/authComponents/Config/authMode';
 
 const PRIMARY_CARD_KEY = 'primaryCard';
 const USER_CARDS_KEY = 'userCards';
@@ -54,7 +56,7 @@ export function normalizeCard(card: BusinessCard | (Omit<BusinessCard, 'sectionL
   };
 }
 
-export const CARDS: BusinessCard[] = [
+export const CARDS: BusinessCard[] = AUTH_TEST_MODE ? [
   {
     id: '1',
     category: 'Professional',
@@ -175,7 +177,7 @@ export const CARDS: BusinessCard[] = [
       bio: 'Investing in seed-stage founders across AI infrastructure, B2B SaaS, and consumer tech. Always excited to meet passionate builders.',
     },
   },
-];
+] : [];
 
 type CardsListener = (cards: BusinessCard[]) => void;
 const listeners = new Set<CardsListener>();
@@ -208,6 +210,14 @@ export function getCardById(cardId: string): BusinessCard | undefined {
 
 export async function hydrateCards(): Promise<BusinessCard[]> {
   try {
+    if (!AUTH_TEST_MODE) {
+      const remoteCards = await apiRequest<BusinessCard[]>('/cards');
+      const normalizedCards = remoteCards.map(normalizeCard);
+      CARDS.splice(0, CARDS.length, ...normalizedCards);
+      await AsyncStorage.setItem(USER_CARDS_KEY, JSON.stringify(normalizedCards));
+      notifyCardListeners();
+      return CARDS;
+    }
     const rawUserCards = await AsyncStorage.getItem(USER_CARDS_KEY);
     if (rawUserCards) {
       const parsed = JSON.parse(rawUserCards) as BusinessCard[];
@@ -262,7 +272,16 @@ export async function savePrimaryCard(profileData: Partial<BusinessCard>): Promi
     email: profileData.email !== undefined ? profileData.email : currentPrimary.email,
   };
 
-  CARDS[0] = updatedCard;
+  if (!AUTH_TEST_MODE) {
+    const existing = CARDS[0];
+    const saved = existing && isServerCardId(existing.id)
+      ? await updateRemoteCard(existing.id, updatedCard)
+      : await createRemoteCard(updatedCard);
+    if (existing && isServerCardId(existing.id)) CARDS[0] = saved;
+    else CARDS.splice(0, CARDS.length, saved);
+  } else {
+    CARDS[0] = updatedCard;
+  }
 
   // 1. Immediately notify active in-memory listeners
   notifyCardListeners();
@@ -275,11 +294,17 @@ export async function savePrimaryCard(profileData: Partial<BusinessCard>): Promi
     console.error('Failed to persist primary card:', error);
   }
 
-  return updatedCard;
+  return CARDS[0];
 }
 
 export async function saveCard(updated: BusinessCard): Promise<BusinessCard> {
-  const normalized = normalizeCard(updated);
+  let normalized = normalizeCard(updated);
+  const existingIndex = CARDS.findIndex((card) => card.id === normalized.id);
+  if (!AUTH_TEST_MODE) {
+    normalized = existingIndex >= 0
+      ? await updateRemoteCard(normalized.id, normalized)
+      : await createRemoteCard(normalized);
+  }
   const index = CARDS.findIndex((card) => card.id === normalized.id);
   if (index >= 0) CARDS[index] = normalized;
   else CARDS.push(normalized);
@@ -289,4 +314,35 @@ export async function saveCard(updated: BusinessCard): Promise<BusinessCard> {
     await AsyncStorage.setItem(PRIMARY_CARD_KEY, JSON.stringify(normalized));
   }
   return normalized;
+}
+
+function cardPayload(card: BusinessCard): Omit<BusinessCard, 'id' | 'createdAt' | 'updatedAt'> {
+  const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...payload } = card;
+  return payload;
+}
+
+async function createRemoteCard(card: BusinessCard): Promise<BusinessCard> {
+  return normalizeCard(await apiRequest<BusinessCard>('/cards', {
+    method: 'POST', body: cardPayload(card),
+  }));
+}
+
+async function updateRemoteCard(id: string, card: BusinessCard): Promise<BusinessCard> {
+  return normalizeCard(await apiRequest<BusinessCard>(`/cards/${encodeURIComponent(id)}`, {
+    method: 'PUT', body: cardPayload(card),
+  }));
+}
+
+function isServerCardId(id: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+}
+
+export async function deleteCard(cardId: string): Promise<void> {
+  if (!AUTH_TEST_MODE) {
+    await apiRequest(`/cards/${encodeURIComponent(cardId)}`, { method: 'DELETE' });
+  }
+  const index = CARDS.findIndex((card) => card.id === cardId);
+  if (index >= 0) CARDS.splice(index, 1);
+  await AsyncStorage.setItem(USER_CARDS_KEY, JSON.stringify(CARDS));
+  notifyCardListeners();
 }

@@ -12,13 +12,10 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Check, ChevronLeft, Palette, Plus, Type as TypeIcon } from 'lucide-react-native';
 import {
-  CARD_THEME_PRESETS,
   type CardFontStyle,
   type CardTemplateId,
-  type CardThemePresetId,
   type CardVisualTheme,
   type SavedSectionTheme,
-  type ThemePaletteTier,
   getTemplatePaletteTier,
 } from '@/components/cardsComponents/types/card.types';
 import { getCardFontFamily, MULTI_TIER_PRESETS, type MultiTierPreset } from '@/components/cardsComponents/Templates/cardTheme';
@@ -28,15 +25,6 @@ import { EditorSectionLabel } from '@/components/uiComponents/editor/EditorSecti
 import { ThemeCreateEditor } from '@/components/uiComponents/ThemeCreateEditor';
 import { buildMultiTierSectionTheme, themeFromSavedSectionTheme } from '@/utils/cardThemeColor';
 
-const PRESET_NAMES: Record<CardThemePresetId, string> = {
-  ocean: 'Ocean',
-  midnight: 'Midnight',
-  violet: 'Violet',
-  sand: 'Sand',
-  sunset: 'Sunset',
-  aurora: 'Aurora',
-};
-
 const FONT_NAMES: Record<CardFontStyle, string> = {
   modern: 'Modern',
   classic: 'Classic',
@@ -44,7 +32,6 @@ const FONT_NAMES: Record<CardFontStyle, string> = {
   mono: 'Mono',
 };
 
-const PRESET_IDS: CardThemePresetId[] = ['ocean', 'midnight', 'violet', 'sand', 'sunset', 'aurora'];
 const FONT_IDS = Object.keys(FONT_NAMES) as CardFontStyle[];
 
 const THEME_CARD_HEIGHT = 96;

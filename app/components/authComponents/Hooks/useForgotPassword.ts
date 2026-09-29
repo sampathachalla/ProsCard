@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Alert } from 'react-native';
 import { requestPasswordReset } from '../Services/authService';
 import { validateForgotPasswordEmail, type AuthFieldErrors } from '../Utils/validateAuth';
@@ -8,12 +8,6 @@ export function useForgotPassword() {
   const [errors, setErrors] = useState<AuthFieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sentTo, setSentTo] = useState<string | null>(null);
-
-  useEffect(() => {
-    setEmail('');
-    setErrors({});
-    setSentTo(null);
-  }, []);
 
   const updateEmail = (value: string) => {
     setEmail(value);

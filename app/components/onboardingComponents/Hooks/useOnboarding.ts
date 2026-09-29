@@ -59,7 +59,7 @@ export function useOnboarding() {
     setIsSaving(true);
     try {
       await saveProfile(draft);
-      await setHasCompletedOnboarding();
+      await setHasCompletedOnboarding(draft);
       router.replace('/(tabs)/homepage');
     } finally {
       setIsSaving(false);

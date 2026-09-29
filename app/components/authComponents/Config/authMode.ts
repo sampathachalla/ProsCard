@@ -7,7 +7,7 @@
  * For backend integration, set this to false. No form or hook changes are
  * required; the auth service will use the production API adapter instead.
  */
-export const AUTH_TEST_MODE = true;
+export const AUTH_TEST_MODE = process.env.EXPO_PUBLIC_AUTH_TEST_MODE === 'true';
 
 export const AUTH_API_BASE_URL = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, '') ?? '';
 

@@ -1,5 +1,5 @@
 // components/authComponents/Hooks/useLogin.ts
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { login } from '../Services/authService';
@@ -13,13 +13,6 @@ export function useLogin() {
   const [errors, setErrors] = useState<AuthFieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
-
-  useEffect(() => {
-    const fields = getLoginInitialFields();
-    setEmail(fields.email);
-    setPassword(fields.password);
-    setErrors({});
-  }, []);
 
   const updateEmail = (value: string) => {
     setEmail(value);

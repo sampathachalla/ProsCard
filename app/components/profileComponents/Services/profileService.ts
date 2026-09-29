@@ -1,6 +1,9 @@
 // components/profileComponents/Services/profileService.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Profile, StoredUser } from '../types/profile.types';
+import { apiRequest, ApiError } from '@/services/api/client';
+import { AUTH_TEST_MODE } from '@/components/authComponents/Config/authMode';
+import { logout } from '@/components/authComponents/Services/authService';
 
 const PROFILE_STORAGE_KEY = 'userProfile';
 
@@ -47,13 +50,27 @@ export async function getStoredUser(): Promise<StoredUser | null> {
 }
 
 export async function logoutUser(): Promise<void> {
-  await AsyncStorage.removeItem('userInfo');
+  await logout();
 }
 
 export async function getProfile(): Promise<Profile> {
+  if (!AUTH_TEST_MODE) {
+    try {
+      const remote = await apiRequest<Profile>('/profiles/me');
+      const normalized = normalizeProfile(remote);
+      await AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(normalized));
+      return normalized;
+    } catch (error) {
+      if (!(error instanceof ApiError && error.status === 404)) throw error;
+      return DEFAULT_PROFILE;
+    }
+  }
   const raw = await AsyncStorage.getItem(PROFILE_STORAGE_KEY);
   if (!raw) return DEFAULT_PROFILE;
-  const parsed = JSON.parse(raw) as Partial<Profile>;
+  return normalizeProfile(JSON.parse(raw) as Partial<Profile>);
+}
+
+function normalizeProfile(parsed: Partial<Profile>): Profile {
   const legacyNameParts = (parsed.fullName ?? '').trim().split(/\s+/).filter(Boolean);
   return {
     ...DEFAULT_PROFILE,
@@ -77,9 +94,12 @@ export function subscribeProfile(listener: ProfileListener): () => void {
   };
 }
 
-export function saveProfile(profile: Profile): Promise<Profile> {
-  return AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile)).then(() => {
-    listeners.forEach((listener) => listener(profile));
-    return profile;
-  });
+export async function saveProfile(profile: Profile): Promise<Profile> {
+  const { userId: _userId, updatedAt: _updatedAt, ...payload } = profile;
+  const saved = AUTH_TEST_MODE
+    ? normalizeProfile(profile)
+    : normalizeProfile(await apiRequest<Profile>('/profiles/me', { method: 'PUT', body: payload }));
+  await AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(saved));
+  listeners.forEach((listener) => listener(saved));
+  return saved;
 }

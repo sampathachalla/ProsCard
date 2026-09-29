@@ -193,8 +193,11 @@ export function SocialLinksFieldsBlock({
 
   useEffect(() => {
     if (!firstSocialErrorKey) return;
-    setSelectedKey(firstSocialErrorKey);
-    setFormOpen(true);
+    const timeout = setTimeout(() => {
+      setSelectedKey(firstSocialErrorKey);
+      setFormOpen(true);
+    }, 0);
+    return () => clearTimeout(timeout);
   }, [firstSocialErrorKey]);
 
   return (

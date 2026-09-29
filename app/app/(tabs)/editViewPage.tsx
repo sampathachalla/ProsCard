@@ -83,10 +83,6 @@ export default function EditViewPage() {
     });
   };
 
-  const openSectionPicker = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    setSectionPickerOpen(true);
-  };
   const chooseSection = (section: CardSectionId) => {
     Haptics.selectionAsync().catch(() => {});
     setSectionPickerOpen(false);

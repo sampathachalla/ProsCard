@@ -8,6 +8,8 @@ import { ThemeProvider, useThemeContext } from '../context/ThemeContext';
 
 // Load Tailwind styles only on web (for NativeWind)
 if (typeof window !== 'undefined') {
+  // Runtime-gated because importing the web stylesheet on native breaks bundling.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   require('../global.css');
 }
 

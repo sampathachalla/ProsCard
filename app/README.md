@@ -2,6 +2,18 @@
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
+## Backend integration
+
+Copy `.env.example` to a local `.env` and set `EXPO_PUBLIC_API_URL` to the API host. Use
+your computer's LAN address when running on a physical device. The value may be either
+the server root (`http://192.168.1.10:8050`) or the versioned API root
+(`http://192.168.1.10:8050/api/v1`).
+
+Authentication test mode is opt-in with `EXPO_PUBLIC_AUTH_TEST_MODE=true`. Normally,
+the backend is authoritative for sessions, profiles, onboarding drafts, cards, and OCI
+media. AsyncStorage stores the current session and local caches; it is not the source
+of truth.
+
 ## Get started
 
 1. Install dependencies

@@ -183,7 +183,7 @@ export function BioSectionRenderer({
           className={`leading-relaxed italic ${compact ? 'text-xs' : 'text-sm'}`}
           style={{ color: slots.textPrimary, fontFamily, letterSpacing }}
         >
-          "{bioText}"
+          &ldquo;{bioText}&rdquo;
         </Text>
       </View>
     );

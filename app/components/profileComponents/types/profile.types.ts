@@ -2,6 +2,7 @@
 export type StoredUser = {
   id: string;
   username: string;
+  token?: string;
 };
 
 export type SocialLinks = {
@@ -38,7 +39,9 @@ export type Profile = {
   tagline: string;
   businessAddress: string;
   shortBio: string;
+  userId?: string;
+  updatedAt?: string;
 };
 
-export type ProfileFieldKey = keyof Omit<Profile, 'social'>;
+export type ProfileFieldKey = keyof Omit<Profile, 'social' | 'userId' | 'updatedAt'>;
 export type SocialFieldKey = keyof SocialLinks;

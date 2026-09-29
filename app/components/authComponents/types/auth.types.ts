@@ -3,6 +3,8 @@ export type StoredUser = {
   id: string;
   username: string;
   token?: string;
+  refreshToken?: string;
+  emailConfirmationRequired?: boolean;
 };
 
 export type LoginCredentials = {

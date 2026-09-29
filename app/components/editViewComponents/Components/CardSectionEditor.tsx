@@ -31,7 +31,6 @@ import {
   Minus,
   Pencil,
   Plus,
-  Quote,
   Search,
   Trash2,
   Upload,
@@ -278,11 +277,15 @@ function DraggableConnectionRow({
       dragging.value = true;
       dragStartIndex.value = index;
       lastDestination.value = index;
+      // Reanimated shared values are intentionally mutable inside UI-thread worklets.
+      // eslint-disable-next-line react-hooks/immutability
       activeDragIndex.value = index;
+      // eslint-disable-next-line react-hooks/immutability
       dragOffsetY.value = 0;
       runOnJS(triggerDragStartHaptic)();
     })
     .onUpdate((event) => {
+      // eslint-disable-next-line react-hooks/immutability
       dragOffsetY.value = event.translationY;
       // Use a deliberate 75% boundary: responsive to the finger without
       // repeatedly swapping around the midpoint.
@@ -312,7 +315,9 @@ function DraggableConnectionRow({
         runOnJS(onMove)(dragStartIndex.value, destination);
       }
       translationY.value = 0;
+      // eslint-disable-next-line react-hooks/immutability
       dragOffsetY.value = 0;
+      // eslint-disable-next-line react-hooks/immutability
       activeDragIndex.value = -1;
       dragging.value = false;
     });
@@ -436,7 +441,6 @@ export function CardSectionEditor({
   const taglineCharacterLimit = getResponsiveTaglineLimit(width);
   const accreditationCharacterLimit = getResponsiveAccreditationLimit(width);
   const [selectedIdentityImage, setSelectedIdentityImage] = useState<IdentityImageField | null>(null);
-  const [expandedProfessionalGroups, setExpandedProfessionalGroups] = useState<Record<string, boolean>>({});
   const [editingConnectionId, setEditingConnectionId] = useState<string | null>(null);
   const [customFieldPickerOpen, setCustomFieldPickerOpen] = useState(false);
   const [customFieldSearch, setCustomFieldSearch] = useState('');
@@ -448,22 +452,6 @@ export function CardSectionEditor({
   const activeConnectionDragIndex = useSharedValue(-1);
   const connectionDragOffsetY = useSharedValue(0);
 
-  useEffect(() => {
-    if (activeSection === 'professional' && activeEditTab === 'content') {
-      setExpandedProfessionalGroups(
-        fullOpen
-          ? { career: true, tagline: true, accreditations: true, name: true }
-          : {},
-      );
-    }
-  }, [activeEditTab, activeSection, fullOpen]);
-
-  const toggleProfessionalGroup = (group: string) => {
-    setExpandedProfessionalGroups((current) => ({
-      ...current,
-      [group]: !current[group],
-    }));
-  };
   const resolvedValues = Object.fromEntries(section.fields.map((field) => [field.id, field.value]));
 
   const getFieldValue = (fieldId: CardSectionFieldId) =>
@@ -486,7 +474,9 @@ export function CardSectionEditor({
           } as DynamicCardField)
       );
   const connectionFieldsRef = useRef(connectionFields);
-  connectionFieldsRef.current = connectionFields;
+  useEffect(() => {
+    connectionFieldsRef.current = connectionFields;
+  }, [connectionFields]);
 
   const changeConnection = (index: number, patch: Partial<DynamicCardField>) =>
     onConnectionsChange(

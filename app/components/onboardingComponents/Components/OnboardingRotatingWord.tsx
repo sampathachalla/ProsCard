@@ -19,6 +19,7 @@ export function OnboardingRotatingWord({ words, className = 'mt-3' }: Onboarding
 
   const activeWord = safeWords[wordIndex] ?? '';
   const displayed = activeWord.slice(0, visibleLength);
+  const wordsKey = safeWords.join('\u0000');
 
   useEffect(() => {
     if (safeWords.length === 0) return;
@@ -43,20 +44,21 @@ export function OnboardingRotatingWord({ words, className = 'mt-3' }: Onboarding
       return () => clearTimeout(id);
     }
 
-    setIsDeleting(false);
-    setWordIndex((prev) => (prev + 1) % safeWords.length);
+    const id = setTimeout(() => {
+      setIsDeleting(false);
+      setWordIndex((prev) => (prev + 1) % safeWords.length);
+    }, 0);
+    return () => clearTimeout(id);
   }, [activeWord, isDeleting, safeWords.length, visibleLength]);
 
   useEffect(() => {
-    setWordIndex(0);
-    setVisibleLength(0);
-    setIsDeleting(false);
-  }, [safeWords.join('\u0000')]);
-
-  useEffect(() => {
-    setVisibleLength(0);
-    setIsDeleting(false);
-  }, [wordIndex]);
+    const id = setTimeout(() => {
+      setWordIndex(0);
+      setVisibleLength(0);
+      setIsDeleting(false);
+    }, 0);
+    return () => clearTimeout(id);
+  }, [wordsKey]);
 
   if (safeWords.length === 0) return null;
 

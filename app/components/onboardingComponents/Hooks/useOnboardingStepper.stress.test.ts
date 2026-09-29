@@ -25,33 +25,6 @@ async function advanceToGroup(
   throw new Error(`Could not reach group screen for ${groupId}`);
 }
 
-async function advanceThroughMandatoryIdentity(
-  getHook: () => UseOnboardingStepperReturn
-) {
-  await act(async () => {
-    getHook().nextStep();
-  });
-  await advanceToGroup(getHook, 'contact_email');
-  await act(async () => {
-    getHook().updateDraft({ email: 'ada@example.com' });
-    getHook().nextStep();
-  });
-  await advanceToGroup(getHook, 'name_legal');
-  await act(async () => {
-    getHook().updateDraft({
-      firstName: 'Ada',
-      lastName: 'Lovelace',
-      fullName: 'Ada Lovelace',
-    });
-    getHook().nextStep();
-  });
-  await advanceToGroup(getHook, 'role_company');
-  await act(async () => {
-    getHook().updateDraft({ title: 'Engineer', organization: 'Analytical Engines' });
-    getHook().nextStep();
-  });
-}
-
 function assert(condition: boolean, msg: string) {
   if (!condition) throw new Error(`Assertion failed: ${msg}`);
 }

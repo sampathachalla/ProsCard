@@ -1,5 +1,5 @@
 // components/authComponents/Hooks/useSignup.ts
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { signup } from '../Services/authService';
@@ -14,14 +14,6 @@ export function useSignup() {
   const [confirmPassword, setConfirmPassword] = useState(initialFields.confirmPassword);
   const [errors, setErrors] = useState<AuthFieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    const fields = getSignupInitialFields();
-    setEmail(fields.email);
-    setPassword(fields.password);
-    setConfirmPassword(fields.confirmPassword);
-    setErrors({});
-  }, []);
 
   const clearFieldError = (field: string) => {
     setErrors((prev) => {
@@ -41,7 +33,12 @@ export function useSignup() {
 
     setIsSubmitting(true);
     try {
-      await signup({ email: email.trim(), password, confirmPassword });
+      const user = await signup({ email: email.trim(), password, confirmPassword });
+      if (user.emailConfirmationRequired) {
+        Alert.alert('Check your email', 'Confirm your email address, then sign in to continue.');
+        router.replace('/auth/login');
+        return;
+      }
       router.replace('/(tabs)/onboardingPage');
     } catch (err) {
       Alert.alert('Signup Failed', err instanceof Error ? err.message : 'Could not create your account. Please try again.');

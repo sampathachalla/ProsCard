@@ -14,7 +14,6 @@ import {
   type CardVisualTheme,
   getTemplatePaletteTier,
 } from '@/components/cardsComponents/types/card.types';
-import { Text } from '@/components/uiComponents/Text';
 import { EditorOptionGrid } from '@/components/uiComponents/editor/EditorOptionGrid';
 import { EditorSectionLabel } from '@/components/uiComponents/editor/EditorSectionLabel';
 import { EditorSelectableCard } from '@/components/uiComponents/editor/EditorSelectableCard';
@@ -429,11 +428,13 @@ export function LayoutTemplatePicker({
   // Sync scroll position with selected template page
   useEffect(() => {
     const selectedIdx = TEMPLATES.findIndex((t) => t.id === selectedTemplateId);
-    if (selectedIdx >= 0) {
+    const frame = requestAnimationFrame(() => {
+      if (selectedIdx < 0) return;
       const pageIdx = Math.floor(selectedIdx / 4);
       setCurrentPage(pageIdx);
       scrollRef.current?.scrollTo({ x: pageIdx * editorPaneWidth, animated: false });
-    }
+    });
+    return () => cancelAnimationFrame(frame);
   }, [selectedTemplateId, editorPaneWidth]);
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {

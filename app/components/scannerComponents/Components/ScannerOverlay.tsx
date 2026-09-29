@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { Colors } from '@/constants/Colors';
 
@@ -8,7 +8,7 @@ type ScannerOverlayProps = {
 };
 
 export function ScannerOverlay({ isActive, isProcessing = false }: ScannerOverlayProps) {
-  const scanProgress = useRef(new Animated.Value(0)).current;
+  const [scanProgress] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     if (!isActive && !isProcessing) {

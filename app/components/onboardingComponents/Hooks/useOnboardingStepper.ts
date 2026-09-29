@@ -9,7 +9,7 @@ import {
   getStoredUser,
   saveProfile,
 } from '@/services/profileService';
-import { setHasCompletedOnboarding } from '@/services/onboardingService';
+import { getOnboardingState, saveOnboardingDraft, setHasCompletedOnboarding } from '@/services/onboardingService';
 import { savePrimaryCard } from '@/services/cardsService';
 
 import type {
@@ -49,14 +49,10 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
 
   const totalSteps = ONBOARDING_FLOW.length;
   const safeFlowIndex = clampFlowIndex(flowIndex);
-  const currentItem: OnboardingFlowItem =
-    flowItemAtIndex(safeFlowIndex) ?? ONBOARDING_FLOW[0] ?? { kind: 'welcome' };
-
-  useEffect(() => {
-    if (flowIndex !== safeFlowIndex) {
-      setFlowIndex(safeFlowIndex);
-    }
-  }, [flowIndex, safeFlowIndex]);
+  const currentItem: OnboardingFlowItem = useMemo(
+    () => flowItemAtIndex(safeFlowIndex) ?? ONBOARDING_FLOW[0] ?? { kind: 'welcome' },
+    [safeFlowIndex],
+  );
 
   // Legacy coarse step for tests / compat (welcome = 1, everything else = 2–5 bucket)
   const currentStep = useMemo(() => {
@@ -89,7 +85,7 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
 
   useEffect(() => {
     let isMounted = true;
-    Promise.all([getStoredUser(), getProfile()]).then(([user, existingProfile]) => {
+    Promise.all([getStoredUser(), getProfile(), getOnboardingState().catch(() => null)]).then(([user, existingProfile, onboarding]) => {
       if (!isMounted || hasHydratedFromStorageRef.current) return;
       hasHydratedFromStorageRef.current = true;
       setDraft((prev) => {
@@ -97,6 +93,7 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
         const next = {
           ...prev,
           ...profileDraft,
+          ...(onboarding?.draft ?? {}),
           fullName: profileDraft.fullName || user?.username || '',
           firstName: profileDraft.firstName || user?.username || prev.firstName,
         };
@@ -108,6 +105,16 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!hasHydratedFromStorageRef.current || isSaving) return;
+    const timeout = setTimeout(() => {
+      saveOnboardingDraft(draft).catch((error) => {
+        console.warn('Could not synchronize onboarding draft:', error);
+      });
+    }, 500);
+    return () => clearTimeout(timeout);
+  }, [draft, isSaving]);
 
   const updateDraft = useCallback((fields: Partial<OnboardingDraft>) => {
     draftRef.current = { ...draftRef.current, ...fields };
@@ -280,7 +287,7 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
       await Promise.all([
         saveProfile(profileToSave),
         savePrimaryCard(primaryCard),
-        setHasCompletedOnboarding(),
+        setHasCompletedOnboarding(currentDraft),
       ]);
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});

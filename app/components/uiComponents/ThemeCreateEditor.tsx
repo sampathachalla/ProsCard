@@ -1,12 +1,9 @@
 import { useCallback, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeftRight } from 'lucide-react-native';
+import { Pressable, View } from 'react-native';
 import type { CardFontStyle, CardVisualTheme } from '@/components/cardsComponents/types/card.types';
 import { buildMultiTierSectionTheme } from '@/utils/cardThemeColor';
 import { Text } from '@/components/uiComponents/Text';
 import { ColorPickerDropdown } from '@/components/uiComponents/ColorPickerDropdown';
-import { EditorPresentationCrossfade } from '@/components/uiComponents/editor/EditorPresentationCrossfade';
 
 type ThemeCreateEditorProps = {
   gradient: [string, string];
