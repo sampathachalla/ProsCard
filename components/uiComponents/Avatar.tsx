@@ -40,7 +40,7 @@ export function Avatar({
   const statusSize = Math.max(10, Math.round(size * 0.26));
 
   return (
-    <View style={[{ width: size, height: size, position: 'relative' }, style]}>
+    <View style={[{ width: size, height: size, borderRadius: size / 2, position: 'relative' }, style]}>
       {imageUri ? (
         <Image
           accessibilityLabel={`${name} profile image`}
