@@ -1,0 +1,53 @@
+{
+  "name": "proscard-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run test:local && npm run test:integration",
+    "test:local": "vitest run tests/local",
+    "test:integration": "vitest run tests/integration",
+    "test:watch": "vitest",
+    "test:live:auth": "tsx tests/live/auth.live.test.ts",
+    "test:live:profile": "tsx tests/live/profile.live.test.ts",
+    "test:live:onboarding": "tsx tests/live/onboarding.live.test.ts",
+    "test:live:cards": "tsx tests/live/cards.live.test.ts",
+    "test:live:security": "tsx tests/live/security.live.test.ts",
+    "test:live:media:profile": "tsx tests/live/media.live.test.ts profilePhoto",
+    "test:live:media:cover": "tsx tests/live/media.live.test.ts coverPhoto",
+    "test:live:media:logo": "tsx tests/live/media.live.test.ts companyLogo",
+    "test:live:media:replacement": "tsx tests/live/media-replacement.live.test.ts",
+    "test:live:media:cleanup": "tsx tests/live/media-cleanup.live.test.ts",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "db:logs": "docker compose logs -f postgres",
+    "db:migrate": "tsx scripts/migrate.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.117.2",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.4",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.7.0",
+    "helmet": "^8.3.0",
+    "oci-sdk": "^2.142.0",
+    "pg": "^8.23.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@rolldown/binding-darwin-arm64": "^1.2.11",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.3",
+    "@types/pg": "^8.23.1",
+    "@types/supertest": "^7.2.1",
+    "supertest": "^7.3.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.2"
+  }
+}

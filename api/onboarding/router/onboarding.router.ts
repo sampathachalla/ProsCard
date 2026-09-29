@@ -1,0 +1,2 @@
+import{Router,type RequestHandler}from'express';import{asyncHandler}from'../../src/async-handler.js';import type{OnboardingController}from'../controller/onboarding.controller.js';
+export function createOnboardingRouter(auth:RequestHandler,c:OnboardingController){const r=Router();r.use(auth);r.get('/',asyncHandler(c.get));r.put('/draft',asyncHandler(c.save));r.post('/complete',asyncHandler(c.complete));return r;}

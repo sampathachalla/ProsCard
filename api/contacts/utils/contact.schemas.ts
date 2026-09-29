@@ -1,0 +1,3 @@
+import{z}from'zod';
+export const contactSchema=z.object({name:z.string().trim().min(1).max(200),title:z.string().trim().max(200).default(''),company:z.string().trim().max(200).default(''),phone:z.string().trim().max(100).default(''),email:z.union([z.literal(''),z.string().email()]).default(''),initials:z.string().trim().max(10).default(''),color:z.string().trim().max(50).default('#2563eb'),sourceCardId:z.string().uuid().nullable().optional()});
+export const contactPatchSchema=contactSchema.partial().refine(v=>Object.keys(v).length>0);

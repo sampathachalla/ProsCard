@@ -1,0 +1,36 @@
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import { rateLimit } from 'express-rate-limit';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Queryable } from './types.js';
+import { errorHandler, HttpError } from './errors.js';
+import { createAuthenticator } from './authenticate.js';
+import { requestLogger } from './request-logger.js';
+import { openApiDocument } from './openapi.js';
+import { asyncHandler } from './async-handler.js';
+import type { ObjectStorageGateway } from '../media/services/oci-storage.service.js';
+import { AuthRepository } from '../auth/repository/auth.repository.js'; import { AuthService } from '../auth/services/auth.service.js'; import { AuthController } from '../auth/controller/auth.controller.js'; import { createAuthRouter } from '../auth/router/auth.router.js';
+import { ProfileRepository } from '../profiles/repository/profile.repository.js'; import { ProfileService } from '../profiles/services/profile.service.js'; import { ProfileController } from '../profiles/controller/profile.controller.js'; import { createProfileRouter } from '../profiles/router/profile.router.js';
+import { CardRepository } from '../cards/repository/card.repository.js'; import { CardService } from '../cards/services/card.service.js'; import { CardController } from '../cards/controller/card.controller.js'; import { createCardRouter } from '../cards/router/card.router.js';
+import { ContactRepository } from '../contacts/repository/contact.repository.js'; import { ContactService } from '../contacts/services/contact.service.js'; import { ContactController } from '../contacts/controller/contact.controller.js'; import { createContactRouter } from '../contacts/router/contact.router.js';
+import { OnboardingRepository } from '../onboarding/repository/onboarding.repository.js'; import { OnboardingService } from '../onboarding/services/onboarding.service.js'; import { OnboardingController } from '../onboarding/controller/onboarding.controller.js'; import { createOnboardingRouter } from '../onboarding/router/onboarding.router.js';
+import { SharingRepository } from '../sharing/repository/sharing.repository.js'; import { SharingService } from '../sharing/services/sharing.service.js'; import { SharingController } from '../sharing/controller/sharing.controller.js'; import { createSharingRouter } from '../sharing/router/sharing.router.js';
+import { MediaRepository } from '../media/repository/media.repository.js'; import { MediaService } from '../media/services/media.service.js'; import { MediaController } from '../media/controller/media.controller.js'; import { createMediaRouter } from '../media/router/media.router.js';
+
+export type AppDependencies={db:Queryable;supabase:SupabaseClient;storage:ObjectStorageGateway;corsOrigins?:string[];authRateLimitMax?:number;passwordResetRedirectUrl?:string};
+export function createApp(deps:AppDependencies){
+  const app=express();app.disable('x-powered-by');app.use(helmet());app.use(requestLogger);app.use(cors({origin(origin,callback){if(!origin||!deps.corsOrigins?.length||deps.corsOrigins.includes(origin))return callback(null,true);callback(new HttpError(403,'Origin is not allowed.'))}}));app.use(express.json({limit:'1mb'}));
+  const auth=createAuthenticator(deps.supabase);
+  app.get('/health',(_q,r)=>r.json({status:'ok'}));
+  app.get('/ready',asyncHandler(async(_q,r)=>{await deps.db.query('SELECT 1');r.json({status:'ready',database:'ok'})}));
+  app.get('/api-docs.json',(_q,r)=>r.json(openApiDocument));
+  app.use('/api/v1/auth',rateLimit({windowMs:60_000,limit:deps.authRateLimitMax??20,standardHeaders:'draft-8',legacyHeaders:false,message:{message:'Too many authentication requests. Try again shortly.'}}),createAuthRouter(new AuthController(new AuthService(new AuthRepository(deps.supabase,deps.passwordResetRedirectUrl))),auth));
+  app.use('/api/v1/profiles',createProfileRouter(auth,new ProfileController(new ProfileService(new ProfileRepository(deps.db)))));
+  app.use('/api/v1/cards',createCardRouter(auth,new CardController(new CardService(new CardRepository(deps.db)))));
+  app.use('/api/v1/contacts',createContactRouter(auth,new ContactController(new ContactService(new ContactRepository(deps.db)))));
+  app.use('/api/v1/onboarding',createOnboardingRouter(auth,new OnboardingController(new OnboardingService(new OnboardingRepository(deps.db)))));
+  app.use('/api/v1/sharing',createSharingRouter(auth,new SharingController(new SharingService(new SharingRepository(deps.db)))));
+  app.use('/api/v1/media',createMediaRouter(auth,new MediaController(new MediaService(new MediaRepository(deps.db),deps.storage))));
+  app.use((_q,r)=>r.status(404).json({message:'Route not found.'}));app.use(errorHandler);return app;
+}

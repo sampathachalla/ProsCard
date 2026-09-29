@@ -1,0 +1,59 @@
+{
+  "expo": {
+    "name": "ProsCard",
+    "slug": "ProsCard",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "proscard",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.mindpros.proscard",
+      "buildNumber": "1"
+    },
+    "android": {
+      "package": "com.mindpros.proscard",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "server"
+    },
+    "plugins": [
+      [
+        "expo-router",
+        {
+          "origin": false
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "ProsCard uses the camera to scan QR codes on business cards."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "ProsCard needs access to your photo library to upload profile, cover, and logo images."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
