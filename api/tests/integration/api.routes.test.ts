@@ -7,6 +7,7 @@ import { createPool } from '../../src/database.js';
 import type { ObjectStorageGateway } from '../../media/services/oci-storage.service.js';
 
 const userId='11111111-1111-4111-8111-111111111111';
+const deletedAuthUsers:string[]=[];
 const fakeUser={id:userId,email:'test@proscard.dev',app_metadata:{},user_metadata:{},aud:'authenticated',created_at:new Date().toISOString()};
 const fakeSession={access_token:'test-token',refresh_token:'refresh-token',expires_in:3600,token_type:'bearer',user:fakeUser};
 const supabase={auth:{
@@ -15,7 +16,7 @@ const supabase={auth:{
   signInWithPassword:async()=>({data:{user:fakeUser,session:fakeSession},error:null}),
   resetPasswordForEmail:async()=>({data:{},error:null}),
   refreshSession:async()=>({data:{user:fakeUser,session:fakeSession},error:null}),
-  admin:{signOut:async()=>({data:{},error:null}),updateUserById:async()=>({data:{user:fakeUser},error:null})},
+  admin:{signOut:async()=>({data:{},error:null}),updateUserById:async()=>({data:{user:fakeUser},error:null}),deleteUser:async()=>{deletedAuthUsers.push(userId);return{data:{user:fakeUser},error:null}}},
 }} as unknown as SupabaseClient;
 
 const deletedObjects:string[]=[];
@@ -37,7 +38,8 @@ const card={category:'Professional',name:'Ada Lovelace',title:'Engineer',company
 
 beforeAll(async()=>{
   for(let attempt=0;attempt<20;attempt++){try{await pool.query('SELECT 1');break}catch(error){if(attempt===19)throw error;await new Promise(r=>setTimeout(r,250));}}
-  await pool.query('DELETE FROM media; DELETE FROM shares; DELETE FROM contacts; DELETE FROM cards; DELETE FROM onboarding; DELETE FROM profiles;');
+  // Only touch the fake test user's rows: this suite runs against the local development database.
+  for(const table of ['media','shares','contacts','cards','onboarding','profiles'])await pool.query(`DELETE FROM ${table} WHERE user_id=$1`,[userId]);
 });
 afterAll(async()=>{await pool.end()});
 
@@ -53,6 +55,7 @@ describe('ProsCard API routes',()=>{
     expect((await request(app).post('/api/v1/auth/refresh').send({refreshToken:'refresh-token'})).body.token).toBe('test-token');
     expect((await request(app).post('/api/v1/auth/logout').set(auth)).status).toBe(200);
     expect((await request(app).post('/api/v1/auth/reset-password').set(auth).send({password:'new-password-123'})).status).toBe(200);
+    const me=await request(app).get('/api/v1/auth/me').set(auth);expect(me.status).toBe(200);expect(me.body.user.id).toBe(userId);
   });
   it('creates and reads the current profile',async()=>{
     expect((await request(app).get('/api/v1/profiles/me').set(auth)).status).toBe(404);
@@ -109,7 +112,25 @@ describe('ProsCard API routes',()=>{
   });
   it('deletes cards and validates malformed input',async()=>{
     expect((await request(app).post('/api/v1/cards').set(auth).send({name:''})).status).toBe(400);
+    const upload=await request(app).post('/api/v1/media/upload-url').set(auth).send({kind:'companyLogo',scope:'card',cardId,fileName:'card-logo.png',contentType:'image/png'});expect(upload.status).toBe(201);expect(upload.body.scope).toBe('card');
+    const attached=await request(app).post(`/api/v1/media/${upload.body.mediaId}/confirm`).set(auth);expect(attached.status).toBe(200);expect(attached.body.cardField).toBe('logo');
+    expect((await request(app).get(`/api/v1/cards/${cardId}`).set(auth)).body.sectionOverrides.logo).toBe(`/api/v1/media/${upload.body.mediaId}/content`);
     expect((await request(app).delete(`/api/v1/cards/${cardId}`).set(auth)).status).toBe(204);
     expect((await request(app).get(`/api/v1/cards/${cardId}`).set(auth)).status).toBe(404);
+  });
+  it('deletes the account with its data, stored media and Supabase identity',async()=>{
+    await request(app).put('/api/v1/profiles/me').set(auth).send({firstName:'Ada'});
+    const created=await request(app).post('/api/v1/cards').set(auth).send(card);expect(created.status).toBe(201);
+    await request(app).post(`/api/v1/sharing/cards/${created.body.id}`).set(auth).send({});
+    await request(app).post('/api/v1/contacts').set(auth).send({name:'Grace Hopper'});
+    const upload=await request(app).post('/api/v1/media/upload-url').set(auth).send({kind:'profilePhoto',fileName:'me.png',contentType:'image/png',sizeBytes:10});
+    const objectName=upload.body.objectName as string;
+    expect((await request(app).delete('/api/v1/account').set(auth)).status).toBe(204);
+    for(const table of ['media','shares','contacts','cards','onboarding','profiles']){
+      expect((await pool.query(`SELECT 1 FROM ${table} WHERE user_id=$1`,[userId])).rowCount).toBe(0);
+    }
+    expect(deletedObjects).toContain(objectName);
+    expect(deletedAuthUsers).toContain(userId);
+    expect((await request(app).delete('/api/v1/account')).status).toBe(401);
   });
 });

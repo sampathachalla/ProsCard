@@ -10,7 +10,7 @@ import { useProfileEditor } from '@/components/profileComponents/Hooks/useProfil
 export default function AccountScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { draft, isSaving, updateField, updateSocial, submit } = useProfileEditor();
+  const { draft, isSaving, offline, updateField, updateSocial, submit } = useProfileEditor();
 
   const goToProfile = () => {
     router.replace('/(tabs)/profilePage');
@@ -23,7 +23,7 @@ export default function AccountScreen() {
 
   return (
     <View className="flex-1 bg-background dark:bg-dark-background">
-      <PageHeader title="Profile" subtitle="Update your details below" onBackPress={goToProfile} />
+      <PageHeader title="Profile" subtitle={offline ? 'Offline · reconnect to save changes' : 'Update your details below'} onBackPress={goToProfile} />
       <ScrollView
         className="flex-1"
         contentContainerStyle={{
@@ -53,7 +53,7 @@ export default function AccountScreen() {
             accessibilityLabel="Save changes"
             className="flex-1 rounded-2xl py-4 items-center bg-primary dark:bg-dark-primary"
             onPress={handleSave}
-            disabled={isSaving}
+            disabled={isSaving || offline}
           >
             {isSaving ? (
               <ActivityIndicator color="#FFFFFF" />

@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import { saveScannedContact } from '../Services/scannerService';
+import type { SharedCard } from '@/components/sharingComponents/Services/sharingService';
 
 export function useScanner() {
   const [permission, requestPermission] = useCameraPermissions();
@@ -20,8 +21,8 @@ export function useScanner() {
 
   const resumeScanning = () => setIsActive(true);
 
-  const saveContact = async (data: string) => {
-    await saveScannedContact(data);
+  const saveContact = async (card: SharedCard) => {
+    await saveScannedContact(card);
     setIsActive(true);
   };
 

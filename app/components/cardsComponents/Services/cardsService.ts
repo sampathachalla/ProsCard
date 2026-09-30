@@ -5,9 +5,20 @@ import { buildCustomSectionTheme } from '@/utils/cardThemeColor';
 import { CARD_THEME_PRESETS, createDefaultCardSectionThemes, DEFAULT_CARD_SECTION_LAYOUTS, DEFAULT_CARD_THEME, type BusinessCard, type CardVisualTheme } from '../types/card.types';
 import { apiRequest } from '@/services/api/client';
 import { AUTH_TEST_MODE } from '@/components/authComponents/Config/authMode';
+import { commitPendingMedia, isPendingMediaUrl, mediaIdFromContentUrl } from '@/components/profileComponents/Services/pendingMedia';
+import { deleteMedia } from '@/components/profileComponents/Services/mediaService';
+import { getSession } from '@/services/api/session';
+import { queryClient, queryKeys } from '@/services/api/queryClient';
+import type { Profile } from '@/components/profileComponents/types/profile.types';
 
 const PRIMARY_CARD_KEY = 'primaryCard';
 const USER_CARDS_KEY = 'userCards';
+let lastCardsSyncFailed = false;
+export const cardsAreOffline = () => lastCardsSyncFailed;
+async function scopedCardKey(key: string) {
+  const session = await getSession();
+  return session?.user.id ? `${key}:${session.user.id}` : key;
+}
 
 function themeForGradient(gradient: [string, string]): CardVisualTheme {
   const preset = Object.values(CARD_THEME_PRESETS).find(
@@ -203,39 +214,98 @@ export function notifyCardListeners(): void {
 export function getCards(): BusinessCard[] {
   return CARDS;
 }
+export function clearCardState(): void {
+  CARDS.splice(0, CARDS.length);
+  lastCardsSyncFailed = false;
+  notifyCardListeners();
+}
+
+/** A new card in the standard ProsCard design (default theme and layouts), filled from the profile. */
+export function buildDefaultCard(profile: Partial<Profile>): BusinessCard {
+  const gradient: [string, string] = [DEFAULT_CARD_THEME.gradient[0], DEFAULT_CARD_THEME.gradient[1]];
+  const fullName = [profile.firstName, profile.lastName].filter(Boolean).join(' ').trim();
+  return normalizeCard({
+    id: `new-${Date.now()}`,
+    category: 'Professional',
+    name: profile.preferredName?.trim() || fullName || profile.fullName?.trim() || 'My ProsCard',
+    title: profile.title?.trim() ?? '',
+    company: profile.organization?.trim() ?? '',
+    phone: profile.phone?.trim() ?? '',
+    email: profile.email?.trim() ?? '',
+    gradient,
+    ...defaultSectionData(gradient),
+  });
+}
+
+/** Creates and registers a default-design card on the backend. */
+export function createDefaultCard(profile: Partial<Profile>): Promise<BusinessCard> {
+  return saveCard(buildDefaultCard(profile));
+}
+
+let ensureDefaultCardPromise: Promise<BusinessCard | null> | null = null;
+
+/** Gives a signed-in user with no cards their first default card; concurrent calls share one request. */
+export function ensureDefaultCard(profile: Partial<Profile>): Promise<BusinessCard | null> {
+  if (CARDS.length > 0) return Promise.resolve(null);
+  ensureDefaultCardPromise ??= createDefaultCard(profile).finally(() => {
+    ensureDefaultCardPromise = null;
+  });
+  return ensureDefaultCardPromise;
+}
 
 export function getCardById(cardId: string): BusinessCard | undefined {
   return CARDS.find((card) => card.id === cardId);
 }
 
+export async function fetchCardById(cardId: string): Promise<BusinessCard> {
+  if (AUTH_TEST_MODE) {
+    const card = getCardById(cardId);
+    if (!card) throw new Error('Card not found.');
+    return card;
+  }
+  const card = normalizeCard(await apiRequest<BusinessCard>(`/cards/${encodeURIComponent(cardId)}`));
+  const index = CARDS.findIndex((item) => item.id === card.id);
+  if (index >= 0) CARDS[index] = card; else CARDS.push(card);
+  notifyCardListeners();
+  return card;
+}
+
 export async function hydrateCards(): Promise<BusinessCard[]> {
+  const userCardsKey = await scopedCardKey(USER_CARDS_KEY);
+  const primaryCardKey = await scopedCardKey(PRIMARY_CARD_KEY);
   try {
     if (!AUTH_TEST_MODE) {
-      const remoteCards = await apiRequest<BusinessCard[]>('/cards');
-      const normalizedCards = remoteCards.map(normalizeCard);
-      CARDS.splice(0, CARDS.length, ...normalizedCards);
-      await AsyncStorage.setItem(USER_CARDS_KEY, JSON.stringify(normalizedCards));
-      notifyCardListeners();
-      return CARDS;
+      try {
+        const remoteCards = await apiRequest<BusinessCard[]>('/cards');
+        lastCardsSyncFailed = false;
+        const normalizedCards = remoteCards.map(normalizeCard);
+        CARDS.splice(0, CARDS.length, ...normalizedCards);
+        await AsyncStorage.setItem(userCardsKey, JSON.stringify(normalizedCards));
+        notifyCardListeners();
+        return CARDS;
+      } catch (error) {
+        lastCardsSyncFailed = true;
+        console.warn('Using cached cards because synchronization failed:', error);
+      }
     }
-    const rawUserCards = await AsyncStorage.getItem(USER_CARDS_KEY);
+    const rawUserCards = await AsyncStorage.getItem(userCardsKey);
     if (rawUserCards) {
       const parsed = JSON.parse(rawUserCards) as BusinessCard[];
       if (Array.isArray(parsed) && parsed.length > 0) {
         const normalizedCards = parsed.map(normalizeCard);
         CARDS.splice(0, CARDS.length, ...normalizedCards);
-        await AsyncStorage.setItem(USER_CARDS_KEY, JSON.stringify(normalizedCards));
+        await AsyncStorage.setItem(userCardsKey, JSON.stringify(normalizedCards));
         notifyCardListeners();
         return CARDS;
       }
     }
 
-    const rawPrimary = await AsyncStorage.getItem(PRIMARY_CARD_KEY);
+    const rawPrimary = await AsyncStorage.getItem(primaryCardKey);
     if (rawPrimary) {
       const parsedPrimary = JSON.parse(rawPrimary) as BusinessCard;
       if (parsedPrimary && typeof parsedPrimary === 'object') {
         CARDS[0] = normalizeCard({ ...CARDS[0], ...parsedPrimary });
-        await AsyncStorage.setItem(PRIMARY_CARD_KEY, JSON.stringify(CARDS[0]));
+        await AsyncStorage.setItem(primaryCardKey, JSON.stringify(CARDS[0]));
         notifyCardListeners();
         return CARDS;
       }
@@ -288,8 +358,8 @@ export async function savePrimaryCard(profileData: Partial<BusinessCard>): Promi
 
   // 2. Persist to AsyncStorage asynchronously
   try {
-    await AsyncStorage.setItem(PRIMARY_CARD_KEY, JSON.stringify(updatedCard));
-    await AsyncStorage.setItem(USER_CARDS_KEY, JSON.stringify(CARDS));
+    await AsyncStorage.setItem(await scopedCardKey(PRIMARY_CARD_KEY), JSON.stringify(updatedCard));
+    await AsyncStorage.setItem(await scopedCardKey(USER_CARDS_KEY), JSON.stringify(CARDS));
   } catch (error) {
     console.error('Failed to persist primary card:', error);
   }
@@ -301,19 +371,46 @@ export async function saveCard(updated: BusinessCard): Promise<BusinessCard> {
   let normalized = normalizeCard(updated);
   const existingIndex = CARDS.findIndex((card) => card.id === normalized.id);
   if (!AUTH_TEST_MODE) {
-    normalized = existingIndex >= 0
-      ? await updateRemoteCard(normalized.id, normalized)
-      : await createRemoteCard(normalized);
+    if (existingIndex >= 0 && isServerCardId(normalized.id)) {
+      normalized = await prepareCardMedia(normalized, CARDS[existingIndex]);
+      normalized = await updateRemoteCard(normalized.id, normalized);
+    } else {
+      const withoutLocalMedia = {
+        ...normalized,
+        sectionOverrides: Object.fromEntries(Object.entries(normalized.sectionOverrides).map(([key, value]) => [key, isPendingMediaUrl(value) ? '' : value])),
+      };
+      const created = await createRemoteCard(withoutLocalMedia);
+      normalized = await prepareCardMedia({ ...normalized, id: created.id }, created);
+      normalized = await updateRemoteCard(created.id, normalized);
+    }
   }
   const index = CARDS.findIndex((card) => card.id === normalized.id);
   if (index >= 0) CARDS[index] = normalized;
   else CARDS.push(normalized);
   notifyCardListeners();
-  await AsyncStorage.setItem(USER_CARDS_KEY, JSON.stringify(CARDS));
+  await AsyncStorage.setItem(await scopedCardKey(USER_CARDS_KEY), JSON.stringify(CARDS));
   if (normalized.id === CARDS[0]?.id) {
-    await AsyncStorage.setItem(PRIMARY_CARD_KEY, JSON.stringify(normalized));
+    await AsyncStorage.setItem(await scopedCardKey(PRIMARY_CARD_KEY), JSON.stringify(normalized));
   }
   return normalized;
+}
+
+async function prepareCardMedia(card: BusinessCard, previous: BusinessCard): Promise<BusinessCard> {
+  const nextOverrides = { ...card.sectionOverrides };
+  const fields = [
+    ['profilePhoto', 'profilePhoto'], ['coverPhoto', 'coverPhoto'], ['logo', 'companyLogo'],
+  ] as const;
+  for (const [field, kind] of fields) {
+    const next = nextOverrides[field] ?? '';
+    const old = previous.sectionOverrides[field] ?? '';
+    if (isPendingMediaUrl(next)) {
+      nextOverrides[field] = await commitPendingMedia(next, kind, 'card', card.id);
+    } else if (!next && old) {
+      const mediaId = mediaIdFromContentUrl(old);
+      if (mediaId) await deleteMedia(mediaId);
+    }
+  }
+  return normalizeCard({ ...card, sectionOverrides: nextOverrides });
 }
 
 function cardPayload(card: BusinessCard): Omit<BusinessCard, 'id' | 'createdAt' | 'updatedAt'> {
@@ -343,6 +440,7 @@ export async function deleteCard(cardId: string): Promise<void> {
   }
   const index = CARDS.findIndex((card) => card.id === cardId);
   if (index >= 0) CARDS.splice(index, 1);
-  await AsyncStorage.setItem(USER_CARDS_KEY, JSON.stringify(CARDS));
+  await AsyncStorage.setItem(await scopedCardKey(USER_CARDS_KEY), JSON.stringify(CARDS));
   notifyCardListeners();
+  queryClient.removeQueries({ queryKey: queryKeys.card(cardId) });
 }

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import type { StoredUser } from '../types/profile.types';
 import { getStoredUser, logoutUser } from '../Services/profileService';
+import { deleteAccount as deleteAccountRequest } from '@/components/authComponents/Services/authService';
 
 export function useProfile() {
   const router = useRouter();
@@ -17,5 +18,10 @@ export function useProfile() {
     router.replace('/auth/login');
   };
 
-  return { user, logout };
+  const deleteAccount = async () => {
+    await deleteAccountRequest();
+    router.replace('/auth/welcome');
+  };
+
+  return { user, logout, deleteAccount };
 }

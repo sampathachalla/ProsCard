@@ -5,6 +5,8 @@ import { Platform, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { ThemeProvider, useThemeContext } from '../context/ThemeContext';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '@/services/api/queryClient';
 
 // Load Tailwind styles only on web (for NativeWind)
 if (typeof window !== 'undefined') {
@@ -46,9 +48,11 @@ export default function Layout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <ThemeProvider>
-          <ThemedLayoutWrapper />
-        </ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider>
+            <ThemedLayoutWrapper />
+          </ThemeProvider>
+        </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

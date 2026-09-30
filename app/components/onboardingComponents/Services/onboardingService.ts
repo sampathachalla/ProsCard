@@ -5,8 +5,14 @@ import type { OnboardingDraft } from '../types/onboardingStepper.types';
 import { apiRequest } from '@/services/api/client';
 import type { OnboardingState } from '@/services/api/types';
 import { AUTH_TEST_MODE } from '@/components/authComponents/Config/authMode';
+import { isPendingMediaUrl } from '@/components/profileComponents/Services/pendingMedia';
+import { getSession } from '@/services/api/session';
 
 const ONBOARDING_STORAGE_KEY = 'hasCompletedOnboarding';
+async function onboardingStorageKey() {
+  const session = await getSession();
+  return session?.user.id ? `${ONBOARDING_STORAGE_KEY}:${session.user.id}` : ONBOARDING_STORAGE_KEY;
+}
 
 export const ONBOARDING_SLIDES: OnboardingSlide[] = [
   {
@@ -31,9 +37,15 @@ export const ONBOARDING_SLIDES: OnboardingSlide[] = [
 
 export async function getHasCompletedOnboarding(): Promise<boolean> {
   if (!AUTH_TEST_MODE) {
-    return (await getOnboardingState()).completed;
+    try {
+      const completed = (await getOnboardingState()).completed;
+      await AsyncStorage.setItem(await onboardingStorageKey(), String(completed));
+      return completed;
+    } catch {
+      return (await AsyncStorage.getItem(await onboardingStorageKey())) === 'true';
+    }
   }
-  const raw = await AsyncStorage.getItem(ONBOARDING_STORAGE_KEY);
+  const raw = await AsyncStorage.getItem(await onboardingStorageKey());
   return raw === 'true';
 }
 
@@ -48,12 +60,18 @@ export async function saveOnboardingDraft(draft: OnboardingDraft): Promise<Onboa
   if (AUTH_TEST_MODE) {
     return { draft, completed: false, completedAt: null };
   }
-  return apiRequest('/onboarding/draft', { method: 'PUT', body: draft });
+  const serializable = {
+    ...draft,
+    photoUrl: isPendingMediaUrl(draft.photoUrl) ? '' : draft.photoUrl,
+    coverPhotoUrl: isPendingMediaUrl(draft.coverPhotoUrl) ? '' : draft.coverPhotoUrl,
+    companyLogoUrl: isPendingMediaUrl(draft.companyLogoUrl) ? '' : draft.companyLogoUrl,
+  };
+  return apiRequest('/onboarding/draft', { method: 'PUT', body: serializable });
 }
 
 export async function setHasCompletedOnboarding(draft: object = {}): Promise<void> {
   if (!AUTH_TEST_MODE) {
     await apiRequest('/onboarding/complete', { method: 'POST', body: draft });
   }
-  await AsyncStorage.setItem(ONBOARDING_STORAGE_KEY, 'true');
+  await AsyncStorage.setItem(await onboardingStorageKey(), 'true');
 }

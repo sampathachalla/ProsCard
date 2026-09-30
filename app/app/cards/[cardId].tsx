@@ -5,9 +5,13 @@ import type { GenerateMetadataFunction } from 'expo-router/server';
 import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import { CardDetailView } from '@/components/cardsComponents/Components/CardDetailView';
 import { getCardById } from '@/components/cardsComponents/Services/cardsService';
+import { useCard } from '@/components/cardsComponents/Hooks/useCard';
 import { CardTapGesture } from '@/components/gestures';
 import { Text } from '@/components/uiComponents/Text';
 import { QRCodeModal } from '@/components/uiComponents/QRCodeModal';
+import { useShareUrl } from '@/components/sharingComponents/Hooks/useShareUrl';
+import { getShareUrl } from '@/components/sharingComponents/Services/sharingService';
+import { queryClient, queryKeys } from '@/services/api/queryClient';
 import { useProfileSnapshot } from '@/components/profileComponents/Hooks/useProfileSnapshot';
 import {
   FLOATING_TOOL_DEFINITIONS,
@@ -43,20 +47,18 @@ export default function CardDetailPage() {
   const { cardId } = useLocalSearchParams<{ cardId: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const card = getCardById(cardId);
+  const cardQuery = useCard(cardId);
+  const card = cardQuery.data;
   const { profile } = useProfileSnapshot();
   const [showQr, setShowQr] = useState(false);
 
-  const getCardUrl = () => {
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      return `${window.location.origin}/cards/${cardId}`;
-    }
-    const publicOrigin = process.env.EXPO_PUBLIC_WEB_URL ?? 'https://proscard.app';
-    return `${publicOrigin.replace(/\/$/, '')}/cards/${cardId}`;
-  };
+  const share = useShareUrl(showQr ? cardId : null);
 
   const goToHomepage = () => router.replace('/(tabs)/homepage');
 
+  if (!card && cardQuery.isLoading) {
+    return <SafeAreaView className="flex-1 items-center justify-center bg-background dark:bg-dark-background"><Text>Loading card…</Text></SafeAreaView>;
+  }
   if (!card) {
     return (
       <SafeAreaView className="flex-1 bg-background dark:bg-dark-background" edges={['top', 'bottom', 'left', 'right']}>
@@ -66,7 +68,7 @@ export default function CardDetailPage() {
               Card not found
             </Text>
             <Text variant="muted" className="mt-2 text-center">
-              This card is no longer available. Double-tap to return home.
+              {cardQuery.error instanceof Error ? cardQuery.error.message : 'This card is no longer available.'} Double-tap to return home.
             </Text>
           </View>
         </CardTapGesture>
@@ -77,7 +79,13 @@ export default function CardDetailPage() {
   const toolActions: FloatingToolAction[] = FLOATING_TOOL_DEFINITIONS.map((tool) => ({
     ...tool,
     onSelect: async () => {
-      const url = getCardUrl();
+      const url = tool.id === 'copy' || tool.id === 'open'
+        ? await queryClient.fetchQuery({ queryKey: queryKeys.share(card.id), queryFn: () => getShareUrl(card.id), staleTime: Infinity }).catch((reason) => {
+            Alert.alert('Share link unavailable', reason instanceof Error ? reason.message : 'Try again.');
+            return '';
+          })
+        : '';
+      if ((tool.id === 'copy' || tool.id === 'open') && !url) return;
 
       switch (tool.id) {
         case 'copy':
@@ -124,7 +132,7 @@ export default function CardDetailPage() {
         <CardDetailView card={card} fullBleed profile={profile} />
       </ScrollView>
       <FloatingToolsButton actions={toolActions} />
-      <QRCodeModal visible={showQr} cardName={card.name} url={getCardUrl()} onClose={() => setShowQr(false)} />
+      <QRCodeModal visible={showQr} cardName={card.name} url={share.url} error={share.error instanceof Error ? share.error.message : undefined} onClose={() => setShowQr(false)} />
     </CardTapGesture>
   );
 }

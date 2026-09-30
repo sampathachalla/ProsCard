@@ -171,15 +171,17 @@ export function renderOnboardingField(
 
   if (spec.widget === 'image_logo') {
     return (
-      <ImageUploadField
-        key={spec.key}
-        label={spec.label}
-        description="Optional logo on your card."
-        value={String(draft[spec.key] ?? '')}
-        onChange={(uri) => updateDraft({ [spec.key]: uri } as Partial<OnboardingDraft>)}
-        onRemove={() => updateDraft({ [spec.key]: '' } as Partial<OnboardingDraft>)}
-        variant="logo"
-      />
+      <View key={spec.key} className="w-full">
+        <ImageUploadField
+          label={spec.label}
+          description="Optional logo on your card."
+          value={String(draft[spec.key] ?? '')}
+          onChange={(uri) => updateDraft({ [spec.key]: uri } as Partial<OnboardingDraft>)}
+          onRemove={() => updateDraft({ [spec.key]: '' } as Partial<OnboardingDraft>)}
+          variant="logo"
+        />
+        {errors[spec.key] ? <Text className="mt-2 text-sm text-rose-400">{errors[spec.key]}</Text> : null}
+      </View>
     );
   }
 

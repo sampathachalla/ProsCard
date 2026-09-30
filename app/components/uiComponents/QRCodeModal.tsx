@@ -1,4 +1,4 @@
-import { Modal, View } from 'react-native';
+import { ActivityIndicator, Modal, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
@@ -6,7 +6,7 @@ import * as Haptics from 'expo-haptics';
 import { QRCodeView } from './QRCodeView';
 import { Text } from './Text';
 
-export function QRCodeModal({ cardName, onClose, url, visible }: { cardName: string; onClose: () => void; url: string; visible: boolean }) {
+export function QRCodeModal({ cardName, error, onClose, url, visible }: { cardName: string; error?: string; onClose: () => void; url: string; visible: boolean }) {
   const translateY = useSharedValue(0);
   const style = useAnimatedStyle(() => ({ transform: [{ translateY: translateY.get() }] }));
   const dismissWithHaptic = () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); onClose(); };
@@ -47,9 +47,15 @@ export function QRCodeModal({ cardName, onClose, url, visible }: { cardName: str
                 <View className="items-center p-6">
                   <Text className="mb-5 text-center text-xl font-black text-white">{cardName}</Text>
                   <View className="rounded-[24px] bg-white p-4">
-                    <QRCodeView value={url} size={220} backgroundColor="#ffffff" foregroundColor="#0f172a" />
+                    {url ? (
+                      <QRCodeView value={url} size={220} backgroundColor="#ffffff" foregroundColor="#0f172a" />
+                    ) : (
+                      <View className="items-center justify-center" style={{ width: 220, height: 220 }}>
+                        {error ? <Text className="text-center text-slate-900">{error}</Text> : <ActivityIndicator color="#0f172a" />}
+                      </View>
+                    )}
                   </View>
-                  <Text className="mt-4 font-semibold text-white/80">Scan to connect</Text>
+                  <Text className="mt-4 font-semibold text-white/80">{url ? 'Scan to connect' : error ? 'Share link unavailable' : 'Preparing share link…'}</Text>
                 </View>
               </BlurView>
             </Animated.View>

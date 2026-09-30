@@ -51,6 +51,8 @@ CREATE TABLE IF NOT EXISTS media (
   user_id UUID NOT NULL,
   object_name TEXT NOT NULL UNIQUE,
   kind TEXT NOT NULL CHECK (kind IN ('profilePhoto', 'coverPhoto', 'companyLogo')),
+  attachment_scope TEXT NOT NULL DEFAULT 'profile' CHECK (attachment_scope IN ('profile', 'card')),
+  card_id UUID REFERENCES cards(id) ON DELETE SET NULL,
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'ready', 'cleanup_failed')),
   content_type TEXT NOT NULL,
   original_name TEXT NOT NULL,
@@ -58,3 +60,4 @@ CREATE TABLE IF NOT EXISTS media (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS media_user_id_idx ON media(user_id);
+CREATE INDEX IF NOT EXISTS media_card_id_idx ON media(card_id);

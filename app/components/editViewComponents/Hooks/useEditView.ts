@@ -162,6 +162,8 @@ export function useEditView(cardId?: string, startInEditMode = false) {
       const saved = await saveCard(draft);
       setCard(saved);
       setIsEditing(false);
+    } catch (error) {
+      Alert.alert('Save failed', error instanceof Error ? error.message : 'Could not save this card.');
     } finally {
       setIsSaving(false);
     }
@@ -206,6 +208,9 @@ export function useEditView(cardId?: string, startInEditMode = false) {
       const saved = await saveCard(candidate);
       setCard(saved);
       return true;
+    } catch (error) {
+      Alert.alert('Save failed', error instanceof Error ? error.message : 'Could not save this card.');
+      return false;
     } finally {
       setIsSaving(false);
     }

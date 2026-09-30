@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, TextInput, View } from 'react-native';
-import { Image } from 'expo-image';
+import { ActivityIndicator, Pressable, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { ImagePlus, Link2, Pencil, Trash2, Upload, X } from 'lucide-react-native';
+import { ImagePlus, Pencil, Trash2, Upload } from 'lucide-react-native';
 import { Text } from './Text';
 import { pickImageFromLibrary } from './usePickImage';
+import { MediaImage } from './MediaImage';
 
 export type ImageUploadVariant = 'banner' | 'avatar' | 'logo';
 
@@ -55,8 +55,6 @@ export function ImageUploadField({
   presentation = 'default',
 }: ImageUploadFieldProps) {
   const [isPicking, setIsPicking] = useState(false);
-  const [urlModalOpen, setUrlModalOpen] = useState(false);
-  const [urlInput, setUrlInput] = useState('');
   const config = VARIANT_CONFIG[variant];
   const hasImage = Boolean(value?.trim());
 
@@ -79,14 +77,6 @@ export function ImageUploadField({
     onChange('');
   };
 
-  const handleApplyUrl = () => {
-    if (urlInput.trim()) {
-      onChange(urlInput.trim());
-      setUrlInput('');
-      setUrlModalOpen(false);
-    }
-  };
-
   if (presentation === 'compact' && variant === 'avatar') {
     return (
       <View className="mb-5 items-center">
@@ -107,8 +97,8 @@ export function ImageUploadField({
             {isPicking ? (
               <ActivityIndicator size="small" color="#38bdf8" />
             ) : hasImage ? (
-              <Image
-                source={{ uri: value }}
+              <MediaImage
+                sourceUrl={value ?? ''}
                 contentFit="cover"
                 style={{ width: '100%', height: '100%' }}
                 accessibilityLabel={`${label || 'Profile photo'} preview`}
@@ -151,8 +141,8 @@ export function ImageUploadField({
         {isPicking ? (
           <ActivityIndicator size="small" color="#38bdf8" />
         ) : hasImage ? (
-          <Image
-            source={{ uri: value }}
+          <MediaImage
+            sourceUrl={value ?? ''}
             contentFit={config.contentFit}
             style={{ width: '100%', height: '100%' }}
             accessibilityLabel={`${label} preview`}
@@ -189,19 +179,6 @@ export function ImageUploadField({
           )}
         </Pressable>
 
-        <Pressable
-          accessibilityLabel={`Paste URL for ${label}`}
-          accessibilityRole="button"
-          disabled={disabled || isPicking}
-          onPress={() => {
-            setUrlInput(value || '');
-            setUrlModalOpen(true);
-          }}
-          className="h-11 w-11 items-center justify-center rounded-2xl border border-slate-300 bg-slate-100 active:opacity-85 dark:border-slate-700 dark:bg-[#0f172a]"
-        >
-          <Link2 color="#94a3b8" size={17} strokeWidth={2.2} />
-        </Pressable>
-
         {hasImage ? (
           <Pressable
             accessibilityLabel={`Remove ${label}`}
@@ -215,38 +192,6 @@ export function ImageUploadField({
           </Pressable>
         ) : null}
       </View>
-
-      {/* URL Input Modal */}
-      <Modal visible={urlModalOpen} transparent animationType="fade" onRequestClose={() => setUrlModalOpen(false)}>
-        <Pressable className="flex-1 items-center justify-center bg-black/60 px-5" onPress={() => setUrlModalOpen(false)}>
-          <Pressable className="w-full max-w-md rounded-[26px] border border-slate-200 bg-card p-5 dark:border-slate-700 dark:bg-dark-card" onPress={(e) => e.stopPropagation()}>
-            <View className="mb-3 flex-row items-center justify-between">
-              <Text className="text-base font-bold text-textPrimary dark:text-dark-textPrimary">Enter Image URL</Text>
-              <Pressable onPress={() => setUrlModalOpen(false)} className="p-1">
-                <X color="#94a3b8" size={20} />
-              </Pressable>
-            </View>
-            <TextInput
-              value={urlInput}
-              onChangeText={setUrlInput}
-              placeholder="https://example.com/image.jpg"
-              placeholderTextColor="#94a3b8"
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="url"
-              className="rounded-xl border border-slate-200 bg-background px-4 py-3 text-textPrimary dark:border-slate-700 dark:bg-dark-background dark:text-dark-textPrimary"
-            />
-            <View className="mt-4 flex-row justify-end gap-2">
-              <Pressable onPress={() => setUrlModalOpen(false)} className="rounded-xl px-4 py-2.5">
-                <Text className="font-semibold text-textMuted dark:text-dark-textMuted">Cancel</Text>
-              </Pressable>
-              <Pressable onPress={handleApplyUrl} className="rounded-xl bg-primary px-5 py-2.5 dark:bg-dark-primary">
-                <Text className="font-bold text-white">Apply</Text>
-              </Pressable>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
     </View>
   );
 }

@@ -9,7 +9,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import { Image } from 'expo-image';
+import { MediaImage } from '@/components/uiComponents/MediaImage';
 import * as Haptics from 'expo-haptics';
 import { BottomSheetTextInput } from '@gorhom/bottom-sheet';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -584,8 +584,8 @@ export function CardSectionEditor({
             }`}
           >
             {getFieldValue('coverPhoto') ? (
-              <Image
-                source={{ uri: getFieldValue('coverPhoto') }}
+              <MediaImage
+                sourceUrl={getFieldValue('coverPhoto')}
                 contentFit="cover"
                 style={{ width: '100%', height: '100%' }}
               />
@@ -615,8 +615,8 @@ export function CardSectionEditor({
                   }`}
                 >
                   {imageUri ? (
-                    <Image
-                      source={{ uri: imageUri }}
+                    <MediaImage
+                      sourceUrl={imageUri}
                       contentFit={option.variant === 'logo' ? 'contain' : 'cover'}
                       style={{ width: '100%', height: '100%' }}
                     />

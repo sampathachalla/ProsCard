@@ -6,6 +6,7 @@ type ApiRequestOptions = Omit<RequestInit, 'body'> & {
   body?: unknown;
   authenticated?: boolean;
   retryAuth?: boolean;
+  accessToken?: string;
 };
 
 export class ApiError extends Error {
@@ -48,14 +49,14 @@ async function refreshSession(): Promise<AuthSession | null> {
 }
 
 export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
-  const { body, authenticated = true, retryAuth = true, headers, ...requestOptions } = options;
+  const { body, authenticated = true, retryAuth = true, accessToken, headers, ...requestOptions } = options;
   const session = authenticated ? await getSession() : null;
   const response = await fetch(`${requireApiUrl()}${path}`, {
     ...requestOptions,
     headers: {
       Accept: 'application/json',
       ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
-      ...(session?.token ? { Authorization: `Bearer ${session.token}` } : {}),
+      ...(accessToken || session?.token ? { Authorization: `Bearer ${accessToken || session?.token}` } : {}),
       ...headers,
     },
     body: body === undefined ? undefined : JSON.stringify(body),

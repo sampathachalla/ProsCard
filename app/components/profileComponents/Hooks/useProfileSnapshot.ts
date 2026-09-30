@@ -1,29 +1,24 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import type { Profile } from '../types/profile.types';
-import { DEFAULT_PROFILE, getProfile, getStoredUser, subscribeProfile } from '../Services/profileService';
+import { DEFAULT_PROFILE, getProfile, profileIsOffline, subscribeProfile } from '../Services/profileService';
+import { queryClient, queryKeys } from '@/services/api/queryClient';
 
-async function loadProfile(): Promise<Profile> {
-  const [storedProfile, user] = await Promise.all([getProfile(), getStoredUser()]);
-  return !storedProfile.fullName && user?.username
-    ? { ...storedProfile, fullName: user.username }
-    : storedProfile;
+function loadProfile(): Promise<Profile> {
+  return getProfile();
 }
 
 export function useProfileSnapshot() {
-  const [profile, setProfile] = useState<Profile>(DEFAULT_PROFILE);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  useEffect(() => {
-    loadProfile()
-      .then(setProfile)
-      .catch((reason) => setError(reason instanceof Error ? reason : new Error('Could not load profile.')))
-      .finally(() => setLoading(false));
-    const unsubscribe = subscribeProfile((updated) => {
-      setProfile(updated);
-    });
-    return unsubscribe;
-  }, []);
-
-  return { profile, loading, error, refresh: loadProfile };
+  const query = useQuery({ queryKey: queryKeys.profile, queryFn: loadProfile, initialData: DEFAULT_PROFILE, initialDataUpdatedAt: 0 });
+  useEffect(() => subscribeProfile((profile) => {
+    queryClient.setQueryData(queryKeys.profile, profile);
+  }), []);
+  return {
+    profile: query.data,
+    loading: query.isLoading,
+    refreshing: query.isFetching,
+    offline: profileIsOffline(),
+    error: query.error instanceof Error ? query.error : null,
+    refresh: query.refetch,
+  };
 }

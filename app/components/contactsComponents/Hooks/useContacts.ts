@@ -1,10 +1,16 @@
 // components/contactsComponents/Hooks/useContacts.ts
 import { useMemo, useState } from 'react';
-import { getContacts } from '../Services/contactsService';
+import { useQuery } from '@tanstack/react-query';
+import { listContacts } from '../Services/contactsService';
+import { queryKeys } from '@/services/api/queryClient';
+import type { Contact } from '../types/contact.types';
+
+const EMPTY: Contact[] = [];
 
 export function useContacts() {
   const [query, setQuery] = useState('');
-  const contacts = getContacts();
+  const contactsQuery = useQuery({ queryKey: queryKeys.contacts, queryFn: listContacts });
+  const contacts = contactsQuery.data ?? EMPTY;
 
   const filtered = useMemo(() => {
     if (!query.trim()) return contacts;
@@ -17,5 +23,14 @@ export function useContacts() {
     );
   }, [query, contacts]);
 
-  return { query, setQuery, contacts, filtered };
+  return {
+    query,
+    setQuery,
+    contacts,
+    filtered,
+    loading: contactsQuery.isLoading,
+    refreshing: contactsQuery.isRefetching,
+    error: contactsQuery.error,
+    refresh: contactsQuery.refetch,
+  };
 }

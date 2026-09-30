@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 import type { Profile, ProfileFieldKey, SocialFieldKey } from '../types/profile.types';
-import { DEFAULT_PROFILE, getProfile, getStoredUser, saveProfile } from '../Services/profileService';
+import { DEFAULT_PROFILE, getProfile, profileIsOffline, saveProfile } from '../Services/profileService';
 import { validateProfile } from '../Utils/validateProfile';
 
 export function useProfileEditor() {
@@ -16,13 +16,10 @@ export function useProfileEditor() {
 
     (async () => {
       try {
-        const [storedProfile, user] = await Promise.all([getProfile(), getStoredUser()]);
-        const seeded = !storedProfile.fullName && user?.username
-          ? { ...storedProfile, fullName: user.username }
-          : storedProfile;
+        const storedProfile = await getProfile();
         if (!cancelled) {
-          setProfile(seeded);
-          setDraft(seeded);
+          setProfile(storedProfile);
+          setDraft(storedProfile);
         }
       } catch (error) {
         if (!cancelled) Alert.alert('Load Failed', error instanceof Error ? error.message : 'Could not load your profile.');
@@ -55,6 +52,10 @@ export function useProfileEditor() {
   };
 
   const submit = async () => {
+    if (profileIsOffline()) {
+      Alert.alert('You are offline', 'Reconnect before saving profile changes.');
+      return false;
+    }
     const fullName = [draft.prefix, draft.firstName, draft.middleName, draft.lastName, draft.suffix]
       .map((part) => part.trim())
       .filter(Boolean)
@@ -85,6 +86,7 @@ export function useProfileEditor() {
     isEditing,
     isSaving,
     loading,
+    offline: profileIsOffline(),
     startEditing,
     cancelEditing,
     updateField,

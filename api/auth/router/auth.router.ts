@@ -10,5 +10,6 @@ export function createAuthRouter(controller: AuthController,authenticate:Request
   router.post('/refresh', asyncHandler(controller.refresh));
   router.post('/logout', asyncHandler(controller.logout));
   router.post('/reset-password',authenticate,asyncHandler(controller.updatePassword));
+  router.get('/me',authenticate,asyncHandler(controller.me));
   return router;
 }

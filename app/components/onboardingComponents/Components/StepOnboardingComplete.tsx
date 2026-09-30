@@ -80,10 +80,12 @@ export function StepOnboardingComplete({
         </Animated.View>
 
         {/* Mid zone: success message */}
-        <View className="flex-1 items-center justify-center px-2">
-          <Animated.View entering={FadeInDown.delay(80).duration(450)} className="items-center">
-            <View className="mb-6 h-[72px] w-[72px] items-center justify-center rounded-full bg-emerald-500/12">
-              <CheckCircle2 color="#34d399" size={40} strokeWidth={2.2} />
+        <View style={styles.messageZone}>
+          <Animated.View entering={FadeInDown.delay(80).duration(450)} style={styles.messageBlock}>
+            <View style={[styles.badgeHalo, { backgroundColor: isDark ? 'rgba(52,211,153,0.08)' : 'rgba(16,185,129,0.10)' }]}>
+              <View style={[styles.badge, { backgroundColor: isDark ? 'rgba(52,211,153,0.16)' : 'rgba(16,185,129,0.16)' }]}>
+                <CheckCircle2 color={isDark ? '#34d399' : '#059669'} size={40} strokeWidth={2.2} />
+              </View>
             </View>
 
             <Text
@@ -102,10 +104,7 @@ export function StepOnboardingComplete({
         </View>
 
         {/* Bottom zone: primary CTA */}
-        <Animated.View
-          entering={FadeInDown.delay(180).duration(450)}
-          className="w-full items-center"
-        >
+        <Animated.View entering={FadeInDown.delay(180).duration(450)} style={styles.ctaZone}>
           <LinearGradient
             colors={['#2563eb', '#0284c7', '#00a8e8']}
             start={{ x: 0, y: 0.5 }}
@@ -118,7 +117,7 @@ export function StepOnboardingComplete({
               disabled={isSaving}
               onPress={handlePress}
               className={`min-h-[54px] w-full flex-row items-center justify-center gap-2.5 px-6 py-3.5 ${
-                isSaving ? 'opacity-50' : 'active:opacity-92'
+                isSaving ? 'opacity-50' : 'active:opacity-90'
               }`}
             >
               {isSaving ? (
@@ -156,6 +155,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 24,
+  },
+  messageZone: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  messageBlock: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  badgeHalo: {
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 28,
+  },
+  badge: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ctaZone: {
+    width: '100%',
+    alignItems: 'center',
   },
   ctaGradient: {
     borderRadius: 16,

@@ -1,12 +1,17 @@
 // app/(tabs)/_layout.tsx
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
+import { ActivityIndicator, View } from 'react-native';
 import { Colors } from '@/constants/Colors';
 import { useThemeContext } from '../../context/ThemeContext';
+import { useAuthSession } from '@/components/authComponents/Hooks/useAuthSession';
 
 export default function TabsLayout() {
+  const { isAuthenticated, isHydrating } = useAuthSession();
   const { theme } = useThemeContext();
   const isDark = theme === 'dark';
   const palette = isDark ? Colors.dark : Colors.light;
+  if (isHydrating) return <View className="flex-1 items-center justify-center"><ActivityIndicator /></View>;
+  if (!isAuthenticated) return <Redirect href="/auth/login" />;
 
   return (
     <Tabs

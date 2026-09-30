@@ -1,11 +1,12 @@
 // app/(tabs)/profilePage.tsx
-import { View, Text, TouchableOpacity, ScrollView, Switch, Alert, Linking } from 'react-native';
+import { useState } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, Switch, Linking, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import { Colors } from '@/constants/Colors';
 import { useThemeContext } from '../../context/ThemeContext';
-import { Bell, CreditCard, Focus, HelpCircle, Info, Layers3, Moon, Sparkles, User } from 'lucide-react-native';
+import { Bell, CreditCard, Focus, HelpCircle, Info, Layers3, LogOut, Moon, Sparkles, Trash2, User } from 'lucide-react-native';
 import { useCardViewPreference } from '@/components/homepageComponents/Hooks/useCardViewPreference';
 import { SettingsRow } from '../../components/profileComponents/Components/SettingsRow';
 import { useProfile } from '../../components/profileComponents/Hooks/useProfile';
@@ -16,6 +17,7 @@ import { PageHeader } from '@/components/uiComponents/PageHeader';
 import { useFloatingTools } from '@/components/toolsButton';
 import { QuickToolsSection } from '../../components/profileComponents/Components/QuickToolsSection';
 import { useEditorPreferences } from '../../components/profileComponents/Hooks/useEditorPreferences';
+import { confirmAction, showMessage } from '@/components/uiComponents/confirmAction';
 
 const SUPPORT_EMAIL = 'support@proscard.app';
 
@@ -23,7 +25,8 @@ export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { theme, toggleTheme } = useThemeContext();
-  const { logout } = useProfile();
+  const { logout, deleteAccount } = useProfile();
+  const [accountAction, setAccountAction] = useState<'logout' | 'delete' | null>(null);
   const { profile } = useProfileSnapshot();
   const {
     enabled: toolsEnabled,
@@ -50,11 +53,35 @@ export default function ProfileScreen() {
     viewMode,
   } = useCardViewPreference();
 
-  const handleLogout = () => {
-    Alert.alert('Log out', 'Are you sure you want to log out?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Log out', style: 'destructive', onPress: logout },
-    ]);
+  const handleLogout = async () => {
+    if (accountAction) return;
+    const confirmed = await confirmAction({ title: 'Log out', message: 'Are you sure you want to log out?', confirmLabel: 'Log out' });
+    if (!confirmed) return;
+    setAccountAction('logout');
+    try {
+      await logout();
+    } finally {
+      setAccountAction(null);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (accountAction) return;
+    const confirmed = await confirmAction({
+      title: 'Delete account?',
+      message: 'This permanently deletes your account, profile, cards, contacts and uploaded images. This cannot be undone.',
+      confirmLabel: 'Delete account',
+      destructive: true,
+    });
+    if (!confirmed) return;
+    setAccountAction('delete');
+    try {
+      await deleteAccount();
+    } catch (error) {
+      showMessage('Delete failed', error instanceof Error ? error.message : 'Could not delete your account. Please try again.');
+    } finally {
+      setAccountAction(null);
+    }
   };
 
   const handleHelpAndSupport = async () => {
@@ -64,15 +91,12 @@ export default function ProfileScreen() {
       Linking.openURL(mailUrl);
       return;
     }
-    Alert.alert(
-      'Help & support',
-      `No email app is set up on this device. Reach us at ${SUPPORT_EMAIL}.`,
-    );
+    showMessage('Help & support', `No email app is set up on this device. Reach us at ${SUPPORT_EMAIL}.`);
   };
 
   const handleAbout = () => {
     const version = Constants.expoConfig?.version ?? '1.0.0';
-    Alert.alert('ProsCard', `Version ${version}`);
+    showMessage('ProsCard', `Version ${version}`);
   };
 
   return (
@@ -90,6 +114,29 @@ export default function ProfileScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
+      <View className="mb-4 flex-row gap-3 px-4">
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Log out"
+          disabled={accountAction !== null}
+          onPress={handleLogout}
+          className={`flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-slate-200 dark:border-slate-700 bg-card dark:bg-dark-card py-3.5 ${accountAction ? 'opacity-60' : ''}`}
+        >
+          {accountAction === 'logout' ? <ActivityIndicator color={Colors.light.tint} /> : <LogOut color={Colors.light.tint} size={18} strokeWidth={2.2} />}
+          <Text className="font-semibold text-textPrimary dark:text-dark-textPrimary">Log out</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Delete account"
+          disabled={accountAction !== null}
+          onPress={handleDeleteAccount}
+          className={`flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-error dark:border-dark-error py-3.5 ${accountAction ? 'opacity-60' : ''}`}
+        >
+          {accountAction === 'delete' ? <ActivityIndicator color="#ef4444" /> : <Trash2 color="#ef4444" size={18} strokeWidth={2.2} />}
+          <Text className="font-semibold text-error dark:text-dark-error">Delete account</Text>
+        </TouchableOpacity>
+      </View>
+
       <SettingsRow icon={User} label="Account" onPress={() => router.push('/(tabs)/accountPage')} />
 
       <ProfileDetails profile={profile} />
@@ -179,15 +226,6 @@ export default function ProfileScreen() {
       </Text>
       <SettingsRow icon={HelpCircle} label="Help & support" onPress={handleHelpAndSupport} />
       <SettingsRow icon={Info} label="About ProsCard" onPress={handleAbout} />
-
-      <TouchableOpacity
-        accessibilityRole="button"
-        accessibilityLabel="Log out"
-        className="mt-6 mx-0 rounded-none py-4 items-center border-y border-error dark:border-dark-error"
-        onPress={handleLogout}
-      >
-        <Text className="text-error dark:text-dark-error font-semibold">Log out</Text>
-      </TouchableOpacity>
       </ScrollView>
     </View>
   );

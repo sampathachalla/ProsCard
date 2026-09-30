@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, type LayoutChangeEvent } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useRouter } from 'expo-router';
@@ -11,18 +11,54 @@ import { HomeHeader } from '@/components/homepageComponents/Components/HomeHeade
 import { useThemeContext } from '@/context/ThemeContext';
 import { useProfileSnapshot } from '@/components/profileComponents/Hooks/useProfileSnapshot';
 import { QRCodeModal } from '@/components/uiComponents/QRCodeModal';
+import { useShareUrl } from '@/components/sharingComponents/Hooks/useShareUrl';
+import { createDefaultCard, ensureDefaultCard } from '@/components/cardsComponents/Services/cardsService';
+import { showMessage } from '@/components/uiComponents/confirmAction';
 
 export default function HomepageScreen() {
-  const { cards } = useCards();
+  const { cards, fetched, error: cardsError, offline } = useCards();
+  const [addingCard, setAddingCard] = useState(false);
   const [actionBarHeight, setActionBarHeight] = useState(0);
   const [activeCardIndex, setActiveCardIndex] = useState(0);
   const [showcaseHeight, setShowcaseHeight] = useState(0);
   const { hydrated: viewModeHydrated, viewMode } = useCardViewPreference();
   const [qrCardId, setQrCardId] = useState<string | null>(null);
+  const share = useShareUrl(qrCardId);
   const { profile } = useProfileSnapshot();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { theme } = useThemeContext();
+
+  // Every account starts with one default card; this covers users who reach home without one.
+  const [defaultCardFailed, setDefaultCardFailed] = useState(false);
+  const needsDefaultCard = fetched && !cardsError && !offline && cards.length === 0 && !defaultCardFailed;
+  useEffect(() => {
+    if (!needsDefaultCard) return;
+    ensureDefaultCard(profile).catch((reason) => {
+      setDefaultCardFailed(true);
+      showMessage('Could not create your card', reason instanceof Error ? reason.message : 'Try again from the Add card tile.');
+    });
+    // Profile is read at creation time only; re-running for profile changes would not add value.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [needsDefaultCard]);
+
+  const handleAddCard = async () => {
+    if (addingCard) return;
+    if (offline) {
+      showMessage('You are offline', 'Reconnect to create a new card.');
+      return;
+    }
+    setAddingCard(true);
+    try {
+      const created = await createDefaultCard(profile);
+      const nextCards = [...cards.filter((card) => card.id !== created.id), created];
+      setActiveCardIndex(nextCards.length - 1);
+    } catch (reason) {
+      showMessage('Could not create card', reason instanceof Error ? reason.message : 'Please try again.');
+    } finally {
+      setAddingCard(false);
+    }
+  };
 
   const currentCard = cards[activeCardIndex] ?? cards[0];
   const userName = currentCard?.name ?? 'ProsCard User';
@@ -64,6 +100,8 @@ export default function HomepageScreen() {
         {showcaseHeight > 0 && viewModeHydrated ? (
           <CardShowcaseSection
             activeIndex={activeCardIndex}
+            addingCard={addingCard || needsDefaultCard}
+            onAddCard={handleAddCard}
             bottomInset={actionBarHeight}
             cards={cards}
             height={showcaseHeight}
@@ -103,7 +141,8 @@ export default function HomepageScreen() {
       <QRCodeModal
         visible={Boolean(qrCardId)}
         cardName={cards.find((card) => card.id === qrCardId)?.name ?? 'ProsCard'}
-        url={`https://proscard.app/card/${qrCardId ?? ''}`}
+        url={share.url}
+        error={share.error instanceof Error ? share.error.message : undefined}
         onClose={() => setQrCardId(null)}
       />
     </View>

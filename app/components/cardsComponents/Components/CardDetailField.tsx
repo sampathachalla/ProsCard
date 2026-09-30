@@ -1,5 +1,5 @@
 import { Linking, TouchableOpacity, View } from 'react-native';
-import { Image } from 'expo-image';
+import { MediaImage } from '@/components/uiComponents/MediaImage';
 import { AtSign, ExternalLink, ImageIcon, Mail, MapPin, Phone, Type, type LucideIcon } from 'lucide-react-native';
 import { Text } from '@/components/uiComponents/Text';
 import type { CardDetailField as CardDetailFieldData } from '../Templates/cardDetailTemplate';
@@ -28,7 +28,7 @@ export function CardDetailField({ field }: { field: CardDetailFieldData }) {
     return (
       <View className="mb-3 overflow-hidden rounded-2xl border border-slate-200 bg-card dark:border-slate-700 dark:bg-dark-card">
         {field.value ? (
-          <Image source={{ uri: field.value }} style={{ width: '100%', height: field.id === 'coverPhoto' ? 150 : 110 }} contentFit={field.id === 'logo' ? 'contain' : 'cover'} />
+          <MediaImage sourceUrl={field.value} style={{ width: '100%', height: field.id === 'coverPhoto' ? 150 : 110 }} contentFit={field.id === 'logo' ? 'contain' : 'cover'} />
         ) : (
           <View className="h-24 items-center justify-center bg-slate-100 dark:bg-slate-800">
             <ImageIcon color="#94a3b8" size={24} />

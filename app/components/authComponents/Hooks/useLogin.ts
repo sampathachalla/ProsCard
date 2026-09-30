@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { login } from '../Services/authService';
 import { getLoginInitialFields } from '../Config/authMode';
 import { validateLogin, type AuthFieldErrors } from '../Utils/validateAuth';
+import { getHasCompletedOnboarding } from '@/components/onboardingComponents/Services/onboardingService';
 
 export function useLogin() {
   const initialFields = getLoginInitialFields();
@@ -34,7 +35,7 @@ export function useLogin() {
     setIsSubmitting(true);
     try {
       await login({ email: email.trim(), password });
-      router.replace('/(tabs)/homepage');
+      router.replace(await getHasCompletedOnboarding() ? '/(tabs)/homepage' : '/(tabs)/onboardingPage');
     } catch (err) {
       Alert.alert('Login Failed', err instanceof Error ? err.message : 'Could not log in. Please try again.');
     } finally {

@@ -10,7 +10,7 @@ import {
   saveProfile,
 } from '@/services/profileService';
 import { getOnboardingState, saveOnboardingDraft, setHasCompletedOnboarding } from '@/services/onboardingService';
-import { savePrimaryCard } from '@/services/cardsService';
+import { hydrateCards, savePrimaryCard } from '@/services/cardsService';
 
 import type {
   OnboardingDraft,
@@ -85,17 +85,23 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
 
   useEffect(() => {
     let isMounted = true;
-    Promise.all([getStoredUser(), getProfile(), getOnboardingState().catch(() => null)]).then(([user, existingProfile, onboarding]) => {
+    Promise.all([getStoredUser(), getProfile(), getOnboardingState().catch(() => null), hydrateCards()]).then(([user, existingProfile, onboarding]) => {
       if (!isMounted || hasHydratedFromStorageRef.current) return;
       hasHydratedFromStorageRef.current = true;
       setDraft((prev) => {
         const profileDraft = mapProfileToDraft(existingProfile);
+        const savedDraft = { ...(onboarding?.draft ?? {}) };
+        // Older builds prefilled the login email as the name; drop it so the fields start empty.
+        const loginEmail = user?.username?.trim().toLowerCase();
+        for (const field of ['firstName', 'fullName'] as const) {
+          if (loginEmail && savedDraft[field]?.trim().toLowerCase() === loginEmail) delete savedDraft[field];
+        }
         const next = {
           ...prev,
           ...profileDraft,
-          ...(onboarding?.draft ?? {}),
-          fullName: profileDraft.fullName || user?.username || '',
-          firstName: profileDraft.firstName || user?.username || prev.firstName,
+          ...savedDraft,
+          fullName: savedDraft.fullName || profileDraft.fullName || '',
+          firstName: savedDraft.firstName || profileDraft.firstName || prev.firstName,
         };
         draftRef.current = next;
         return next;
@@ -284,11 +290,11 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
       const profileToSave = mapDraftToProfile(currentDraft);
       const primaryCard = mapDraftToBusinessCard(currentDraft);
 
-      await Promise.all([
-        saveProfile(profileToSave),
-        savePrimaryCard(primaryCard),
-        setHasCompletedOnboarding(currentDraft),
-      ]);
+      await saveProfile(profileToSave);
+      const savedCard = await savePrimaryCard(primaryCard);
+      const completedDraft = { ...currentDraft, primaryCardId: savedCard.id };
+      await saveOnboardingDraft(completedDraft);
+      await setHasCompletedOnboarding(completedDraft);
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       router.replace('/(tabs)/homepage');

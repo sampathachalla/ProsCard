@@ -9,10 +9,12 @@ import { WalletStackView } from './StackedCardView';
 
 type CardShowcaseSectionProps = {
   activeIndex: number;
+  addingCard?: boolean;
   bottomInset: number;
   cards: BusinessCard[];
   height: number;
   onActiveIndexChange: (index: number) => void;
+  onAddCard?: () => void;
   onCardDoubleTap?: (card: BusinessCard) => void;
   onCardSwipeDown?: (card: BusinessCard) => void;
   profile: Profile;
@@ -23,10 +25,12 @@ const FOOTER_HEIGHT = 38;
 
 export function CardShowcaseSection({
   activeIndex,
+  addingCard,
   bottomInset,
   cards,
   height,
   onActiveIndexChange,
+  onAddCard,
   onCardDoubleTap,
   onCardSwipeDown,
   profile,
@@ -50,10 +54,12 @@ export function CardShowcaseSection({
         {viewMode === 'carousel' ? (
           <BusinessCardCarousel
             activeIndex={activeIndex}
+            addingCard={addingCard}
             cards={cards}
             height={contentHeight}
             progress={carouselProgress}
             onActiveIndexChange={onActiveIndexChange}
+            onAddCard={onAddCard}
             onCardDoubleTap={onCardDoubleTap}
             onCardSwipeDown={onCardSwipeDown}
             profile={profile}
@@ -61,10 +67,12 @@ export function CardShowcaseSection({
         ) : (
           <WalletStackView
             activeIndex={activeIndex}
+            addingCard={addingCard}
             bottomInset={bottomInset + FOOTER_HEIGHT}
             cards={cards}
             height={contentHeight}
             onActiveIndexChange={onActiveIndexChange}
+            onAddCard={onAddCard}
             onCardDoubleTap={onCardDoubleTap}
             onCardSwipeDown={onCardSwipeDown}
             profile={profile}

@@ -1,0 +1,11 @@
+*
+!api
+api/node_modules
+api/dist
+api/.env
+api/.env.*
+!api/.env.example
+api/secrets
+api/secrets_oci
+api/tests
+**/.DS_Store

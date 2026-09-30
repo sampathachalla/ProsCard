@@ -53,6 +53,7 @@ export interface OnboardingDraft {
   // Card customization (not Profile)
   cardGradient: [string, string];
   cardCategory: string;
+  primaryCardId?: string;
 }
 
 export type FieldTier = 'must' | 'nice' | 'later';
@@ -190,4 +191,5 @@ export const INITIAL_ONBOARDING_DRAFT: OnboardingDraft = {
   portfolio: '',
   cardGradient: INITIAL_CARD_GRADIENT,
   cardCategory: DEFAULT_CARD_CATEGORY,
+  primaryCardId: undefined,
 };

@@ -4,10 +4,16 @@ The local Node API uses Supabase Auth for identity, PostgreSQL for application d
 
 ## Local development
 
-1. Copy `.env.example` to `.env` and supply local/cloud credentials.
-2. Start PostgreSQL: `npm run db:up`.
-3. Start the API: `npm run dev`.
-4. Check `http://localhost:3000/health`.
+1. Copy `.env.example` to `.env` and supply local/cloud credentials. Place the OCI key in `secrets/`.
+2. Start PostgreSQL and the API in Docker: `npm run docker:up`, or `docker compose up -d --build` from the repository root. The `Dockerfile`, `.dockerignore`, and `docker-compose.yml` live at the repository root; the root `.env` is a git-ignored symlink to `api/.env` so Compose can read `PORT` and `DB_*`.
+3. Check `http://localhost:${PORT}/health` (default `3000`).
+
+The `api` container runs `tsx watch` against the mounted source, so edits reload automatically. Inside the compose network it connects to `postgres:5432`; the `DB_HOST`/`DB_PORT` values in `.env` are only used when running scripts from the host. Useful commands:
+
+- `npm run docker:logs`: follow API logs.
+- `npm run docker:migrate`: apply migrations inside the container.
+- `npm run docker:down`: stop both containers (data stays in the `proscard_postgres_data` volume).
+- Rebuild after changing dependencies: `npm run docker:up`.
 
 Operational endpoints:
 

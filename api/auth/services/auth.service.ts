@@ -29,5 +29,8 @@ export class AuthService {
     await this.repository.logout(accessToken);
     return { message: 'Signed out.' };
   }
+  currentUser(user: { id: string; email: string }) {
+    return { user: { id: user.id, username: user.email } };
+  }
   async updatePassword(userId:string,password:string){await this.repository.updatePassword(userId,password);return{message:'Password updated.'};}
 }

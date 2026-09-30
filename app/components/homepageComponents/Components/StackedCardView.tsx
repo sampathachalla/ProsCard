@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Pressable, View, useWindowDimensions } from 'react-native';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { ActivityIndicator, Pressable, View, useWindowDimensions } from 'react-native';
+import { Plus } from 'lucide-react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -17,10 +18,12 @@ import { Text } from '@/components/uiComponents/Text';
 /** Wallet view — section 1 + 2 via `WalletCardRenderEngine` (no flip). */
 type StackedCardViewProps = {
   activeIndex: number;
+  addingCard?: boolean;
   bottomInset: number;
   cards: BusinessCard[];
   height: number;
   onActiveIndexChange: (index: number) => void;
+  onAddCard?: () => void;
   onCardDoubleTap?: (card: BusinessCard) => void;
   onCardSwipeDown?: (card: BusinessCard) => void;
   profile: Profile;
@@ -30,35 +33,15 @@ const FOCUSED_CARD_TOP = 8;
 const COLLAPSED_CARD_STEP = 36;
 const COLLAPSED_STACK_VISIBLE_HEIGHT = 40;
 
-type WalletStackItemProps = {
-  card: BusinessCard;
-  cardHeight: number;
-  cardWidth: number;
-  index: number;
-  onPress: (index: number) => void;
-  onDoubleTap: (index: number) => void;
-  onSwipeDown: (index: number) => void;
-  profile: Profile;
-  selected: boolean;
+type StackSlotProps = {
+  children: ReactNode;
   targetScale: number;
   targetY: number;
   zIndex: number;
 };
 
-function WalletStackItem({
-  card,
-  cardHeight,
-  cardWidth,
-  index,
-  onPress,
-  onDoubleTap,
-  onSwipeDown,
-  profile,
-  selected,
-  targetScale,
-  targetY,
-  zIndex,
-}: WalletStackItemProps) {
+/** Positions one pass in the stack and springs it to its target position. */
+function StackSlot({ children, targetScale, targetY, zIndex }: StackSlotProps) {
   const translateY = useSharedValue(targetY);
   const scale = useSharedValue(targetScale);
 
@@ -96,26 +79,59 @@ function WalletStackItem({
         animatedStyle,
       ]}
     >
-      <WalletCardRenderEngine
-        card={card}
-        profile={profile}
-        width={cardWidth}
-        height={cardHeight}
-        onDoubleTap={() => onDoubleTap(index)}
-        onSwipeDown={() => onSwipeDown(index)}
-        onSingleTap={() => onPress(index)}
-      />
+      {children}
     </Animated.View>
   );
 }
 
+/** Last pass in the stack: creates a card in the default design. Its label sits in the strip that peeks out. */
+function AddCardPass({ adding, cardHeight, cardWidth, onPress }: { adding: boolean; cardHeight: number; cardWidth: number; onPress?: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Add a new card"
+      accessibilityState={{ busy: adding, disabled: adding }}
+      disabled={adding}
+      onPress={onPress}
+      style={{ width: cardWidth, height: cardHeight }}
+      className="overflow-hidden rounded-[28px] border-2 border-dashed border-slate-300 bg-card px-5 pt-3 active:opacity-90 dark:border-slate-600 dark:bg-dark-card"
+    >
+      <View className="flex-row items-center gap-3">
+        <View className="h-9 w-9 items-center justify-center rounded-full bg-primary dark:bg-dark-primary">
+          {adding ? <ActivityIndicator color="#ffffff" size="small" /> : <Plus color="#ffffff" size={20} strokeWidth={2.6} />}
+        </View>
+        <Text className="text-base font-bold text-textPrimary dark:text-dark-textPrimary">
+          {adding ? 'Creating card…' : 'Add card'}
+        </Text>
+      </View>
+      <View className="flex-1 items-center justify-center px-4">
+        <Text variant="muted" className="text-center">
+          Starts with the default design. Customize its theme and layout anytime.
+        </Text>
+      </View>
+    </Pressable>
+  );
+}
+
+/**
+ * Front-to-back position of a slot (0 = front). Cards rotate among themselves and the
+ * "Add card" pass (slot `cardCount`) stays behind them, unless it is the active slot.
+ */
+export function stackRankFor(index: number, activeIndex: number, cardCount: number): number {
+  if (activeIndex >= cardCount) return index === cardCount ? 0 : cardCount - index;
+  if (index === cardCount) return cardCount;
+  return (index - activeIndex + cardCount) % cardCount;
+}
+
 /** Stacked homepage layout — each card is a wallet pass (sections 1 + 2). */
 export function WalletStackView({
-  activeIndex,
+  activeIndex: requestedActiveIndex,
+  addingCard = false,
   bottomInset,
   cards,
   height,
   onActiveIndexChange,
+  onAddCard,
   onCardDoubleTap,
   onCardSwipeDown,
   profile,
@@ -129,19 +145,22 @@ export function WalletStackView({
     availableHeight: passVerticalBudget,
   });
   const cardHeight = getWalletCardDimensions(cardWidth).height;
+  // Slots are every card plus the "Add card" pass, which is always the last slot.
+  const slotCount = cards.length + 1;
+  const addSlotIndex = cards.length;
+  const activeIndex = Math.max(0, Math.min(requestedActiveIndex, slotCount - 1));
   const defaultStackStep =
-    cards.length > 1
+    slotCount > 1
       ? Math.max(
           0,
-          (containerHeight - cardHeight - FOCUSED_CARD_TOP) / (cards.length - 1),
+          (containerHeight - cardHeight - FOCUSED_CARD_TOP) / (slotCount - 1),
         )
       : 0;
 
   const collapsedCardOrder = useMemo(() => {
-    return cards
-      .map((_, index) => index)
+    return Array.from({ length: slotCount }, (_, index) => index)
       .filter((index) => index !== expandedIndex);
-  }, [cards, expandedIndex]);
+  }, [slotCount, expandedIndex]);
   const collapsedStackTop = Math.max(
     FOCUSED_CARD_TOP,
     containerHeight -
@@ -170,19 +189,6 @@ export function WalletStackView({
     setExpandedIndex(null);
   };
 
-  if (cards.length === 0) {
-    return (
-      <View className="mx-5 min-h-80 items-center justify-center rounded-[32px] border border-dashed border-slate-300 bg-card px-8 dark:border-slate-700 dark:bg-dark-card">
-        <Text variant="heading" className="text-center">
-          No business cards found
-        </Text>
-        <Text variant="muted" className="mt-2 text-center">
-          Create your first digital business card to begin networking.
-        </Text>
-      </View>
-    );
-  }
-
   return (
     <View
       accessibilityLabel={`Wallet stack with ${cards.length} cards`}
@@ -198,43 +204,47 @@ export function WalletStackView({
         />
       ) : null}
 
-      {cards.map((card, index) => {
+      {Array.from({ length: slotCount }, (_, index) => {
         const isExpanded = expandedIndex !== null;
         const selected = index === expandedIndex;
         const collapsedIndex = collapsedCardOrder.indexOf(index);
-        const stackRank =
-          (index - activeIndex + cards.length) % cards.length;
+        const stackRank = stackRankFor(index, activeIndex, cards.length);
         const targetY = isExpanded
           ? selected
             ? FOCUSED_CARD_TOP
             : collapsedStackTop + collapsedIndex * COLLAPSED_CARD_STEP
           : FOCUSED_CARD_TOP +
-            (cards.length - 1 - stackRank) * defaultStackStep;
+            (slotCount - 1 - stackRank) * defaultStackStep;
         const targetScale = isExpanded && !selected
           ? 0.94 + collapsedIndex * 0.015
           : 1;
         const zIndex = isExpanded
           ? selected
-            ? cards.length + 1
+            ? slotCount + 1
             : collapsedIndex + 1
-          : cards.length - stackRank;
+          : slotCount - stackRank;
 
+        if (index === addSlotIndex) {
+          return (
+            <StackSlot key="__add-card__" targetScale={targetScale} targetY={targetY} zIndex={zIndex}>
+              <AddCardPass adding={addingCard} cardHeight={cardHeight} cardWidth={cardWidth} onPress={onAddCard} />
+            </StackSlot>
+          );
+        }
+
+        const card = cards[index]!;
         return (
-          <WalletStackItem
-            key={card.id}
-            card={card}
-            cardHeight={cardHeight}
-            cardWidth={cardWidth}
-            index={index}
-            onDoubleTap={openCard}
-            onSwipeDown={showQr}
-            onPress={selectCard}
-            profile={profile}
-            selected={selected}
-            targetScale={targetScale}
-            targetY={targetY}
-            zIndex={zIndex}
-          />
+          <StackSlot key={card.id} targetScale={targetScale} targetY={targetY} zIndex={zIndex}>
+            <WalletCardRenderEngine
+              card={card}
+              profile={profile}
+              width={cardWidth}
+              height={cardHeight}
+              onDoubleTap={() => openCard(index)}
+              onSwipeDown={() => showQr(index)}
+              onSingleTap={() => selectCard(index)}
+            />
+          </StackSlot>
         );
       })}
     </View>

@@ -28,4 +28,5 @@ export class AuthController {
     response.json(await this.service.logout(token));
   };
   updatePassword=async(request:AuthenticatedRequest,response:Response)=>{const input=newPasswordSchema.parse(request.body);response.json(await this.service.updatePassword(request.user.id,input.password));};
+  me=async(request:AuthenticatedRequest,response:Response)=>response.json(this.service.currentUser(request.user));
 }

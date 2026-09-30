@@ -4,6 +4,7 @@ import { View, Text, TextInput } from 'react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { Contact2, Briefcase, Image as ImageIcon, Phone, MapPinned, Share2, MessageCircle, PlaySquare } from 'lucide-react-native';
 import type { Profile, ProfileFieldKey, SocialFieldKey } from '../types/profile.types';
+import { ImageUploadField } from '@/components/uiComponents/ImageUploadField';
 
 const SECTIONS: {
   heading: string;
@@ -34,16 +35,6 @@ const SECTIONS: {
       { key: 'title', label: 'Title' },
       { key: 'department', label: 'Department' },
       { key: 'organization', label: 'Company' },
-    ],
-  },
-  {
-    heading: 'Photos & logo',
-    icon: ImageIcon,
-    accentColor: '#db2777',
-    fields: [
-      { key: 'photoUrl', label: 'Profile photo URL', keyboardType: 'url' },
-      { key: 'coverPhotoUrl', label: 'Cover photo URL', keyboardType: 'url' },
-      { key: 'companyLogoUrl', label: 'Logo URL', keyboardType: 'url' },
     ],
   },
   {
@@ -144,6 +135,12 @@ export function ProfileForm({
           ))}
         </SectionCard>
       ))}
+
+      <SectionCard accentColor="#db2777" fieldCount={3} heading="Photos & logo" icon={ImageIcon}>
+        <ImageUploadField label="Profile photo" variant="avatar" value={draft.photoUrl} onChange={(value) => onChange('photoUrl', value)} onRemove={() => onChange('photoUrl', '')} />
+        <ImageUploadField label="Cover photo" variant="banner" value={draft.coverPhotoUrl} onChange={(value) => onChange('coverPhotoUrl', value)} onRemove={() => onChange('coverPhotoUrl', '')} />
+        <ImageUploadField label="Company logo" variant="logo" value={draft.companyLogoUrl} onChange={(value) => onChange('companyLogoUrl', value)} onRemove={() => onChange('companyLogoUrl', '')} />
+      </SectionCard>
 
       {LINK_SECTIONS.map((section) => (
         <SectionCard key={section.heading} accentColor={section.accentColor} fieldCount={section.fields.length} heading={section.heading} icon={section.icon}>

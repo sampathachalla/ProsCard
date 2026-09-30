@@ -1,4 +1,5 @@
 // components/onboardingComponents/Utils/validateOnboarding.ts
+import { isMediaReference } from '@/components/profileComponents/Services/pendingMedia';
 import type {
   OnboardingDraft,
   ValidationErrors,
@@ -142,13 +143,7 @@ export function validateProfessionalStep(
   }
 
   const logo = draft.companyLogoUrl?.trim() || '';
-  const isLocalUri =
-    logo.startsWith('file:') ||
-    logo.startsWith('content:') ||
-    logo.startsWith('ph://') ||
-    logo.startsWith('assets-library:') ||
-    logo.startsWith('data:');
-  if (logo && !isLocalUri && !URL_PATTERN.test(logo)) {
+  if (logo && !isMediaReference(logo) && !URL_PATTERN.test(logo)) {
     errors.companyLogoUrl = 'Enter a valid logo URL.';
   }
 
@@ -176,12 +171,7 @@ export function validateSocialStep(
 ): ValidationErrors {
   const errors: ValidationErrors = {};
 
-  const isLocalOrEmptyUri = (value: string) =>
-    !value ||
-    value.startsWith('file:') ||
-    value.startsWith('content:') ||
-    value.startsWith('ph://') ||
-    value.startsWith('assets-library:');
+  const isLocalOrEmptyUri = (value: string) => !value || isMediaReference(value);
 
   const validateRemoteUrl = (value: string | undefined, fieldKey: string, label: string) => {
     const trimmed = value?.trim() || '';

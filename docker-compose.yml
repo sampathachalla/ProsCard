@@ -1,0 +1,52 @@
+name: proscard
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: proscard-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-proscard}
+      POSTGRES_USER: ${DB_USER:-proscard}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-proscard-local}
+    ports:
+      - "${DB_PORT:-5433}:5432"
+    volumes:
+      - proscard_postgres_data:/var/lib/postgresql/data
+      - ./api/database/init.sql:/docker-entrypoint-initdb.d/001-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-proscard} -d ${DB_NAME:-proscard}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: proscard-api
+    restart: unless-stopped
+    env_file: ./api/.env
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      NODE_ENV: development
+    command: npm run dev
+    ports:
+      - "${PORT:-3000}:${PORT:-3000}"
+    volumes:
+      - ./api:/app
+      - /app/node_modules
+      - ./api/secrets:/app/secrets:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:$${PORT:-3000}/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  proscard_postgres_data:
+    name: api_proscard_postgres_data

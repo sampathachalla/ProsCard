@@ -13,3 +13,6 @@
 # Local agent workspace metadata
 /.agents/
 /ORIGINAL_REQUEST.md
+
+# Root .env is a symlink to api/.env for docker compose variable interpolation
+/.env

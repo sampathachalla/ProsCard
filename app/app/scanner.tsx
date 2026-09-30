@@ -18,6 +18,8 @@ import { ScannerTopPanel } from '../components/scannerComponents/Components/Scan
 import { useScanner } from '../components/scannerComponents/Hooks/useScanner';
 import { PageHeader } from '@/components/uiComponents/PageHeader';
 import { pickImageFromLibrary } from '@/components/uiComponents/usePickImage';
+import { lookupScannedCard } from '../components/scannerComponents/Services/scannerService';
+import type { SharedCard } from '@/components/sharingComponents/Services/sharingService';
 
 type ScanStage = 'camera' | 'processing' | 'result';
 
@@ -29,6 +31,9 @@ export default function ScannerScreen() {
   const [stage, setStage] = useState<ScanStage>('camera');
   const [capturedUri, setCapturedUri] = useState<string | null>(null);
   const [scanData, setScanData] = useState<string | null>(null);
+  const [scannedCard, setScannedCard] = useState<SharedCard | null>(null);
+  const [lookupError, setLookupError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const { permission, requestPermission, isActive, handleBarcodeScanned, resumeScanning, saveContact } = useScanner();
 
   useEffect(
@@ -70,7 +75,12 @@ export default function ScannerScreen() {
   const processDetectedCode = (data: string) => {
     handleBarcodeScanned(
       { data, type: 'qr', cornerPoints: [], bounds: { origin: { x: 0, y: 0 }, size: { width: 0, height: 0 } } },
-      () => finishProcessing(data, null)
+      () => {
+        finishProcessing(data, null);
+        lookupScannedCard(data)
+          .then(setScannedCard)
+          .catch((reason) => setLookupError(reason instanceof Error ? reason.message : 'Could not read this card.'));
+      }
     );
   };
 
@@ -79,17 +89,23 @@ export default function ScannerScreen() {
     processingTimer.current = null;
     setCapturedUri(null);
     setScanData(null);
+    setScannedCard(null);
+    setLookupError(null);
     setStage('camera');
     resumeScanning();
   };
 
   const confirmResult = async () => {
     if (scanData) {
+      if (!scannedCard || saving) return;
+      setSaving(true);
       try {
-        await saveContact(scanData);
-      } catch {
-        Alert.alert('Save Failed', 'Could not save this contact. Please try again.');
+        await saveContact(scannedCard);
+      } catch (reason) {
+        Alert.alert('Save Failed', reason instanceof Error ? reason.message : 'Could not save this contact. Please try again.');
         return;
+      } finally {
+        setSaving(false);
       }
     }
     router.replace('/(tabs)/contactsPage');
@@ -145,18 +161,26 @@ export default function ScannerScreen() {
               <View style={styles.resultBadge}>
                 <Check color={Colors.palette.successLight} size={22} strokeWidth={3} />
               </View>
-              <Text style={styles.resultTitle}>{scanData ? 'Digital card found' : 'Card photo is ready'}</Text>
+              <Text style={styles.resultTitle}>
+                {!scanData ? 'Card photo is ready' : lookupError ? 'Card not recognized' : scannedCard ? scannedCard.name : 'Looking up card…'}
+              </Text>
               <Text style={styles.resultValue} numberOfLines={3}>
-                {scanData ?? 'Review the captured image, then continue to your collected contact cards.'}
+                {!scanData
+                  ? 'Review the captured image, then continue to your collected contact cards.'
+                  : lookupError ?? (scannedCard ? [scannedCard.title, scannedCard.company].filter(Boolean).join(' · ') : ' ')}
               </Text>
               <View style={styles.resultActions}>
                 <Pressable onPress={resetScanner} style={styles.secondaryAction}>
                   <RotateCcw color="#FFFFFF" size={18} />
                   <Text style={styles.secondaryActionText}>Retake</Text>
                 </Pressable>
-                <Pressable onPress={confirmResult} style={styles.primaryAction}>
+                <Pressable
+                  onPress={confirmResult}
+                  disabled={Boolean(scanData) && (!scannedCard || saving)}
+                  style={[styles.primaryAction, Boolean(scanData) && (!scannedCard || saving) && { opacity: 0.5 }]}
+                >
                   <Check color="#FFFFFF" size={18} strokeWidth={2.6} />
-                  <Text style={styles.primaryActionText}>{scanData ? 'Save card' : 'Use photo'}</Text>
+                  <Text style={styles.primaryActionText}>{scanData ? (saving ? 'Saving…' : 'Save card') : 'Use photo'}</Text>
                 </Pressable>
               </View>
             </View>

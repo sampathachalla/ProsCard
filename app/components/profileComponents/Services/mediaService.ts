@@ -36,7 +36,7 @@ export async function getMediaDownloadUrl(mediaId: string): Promise<string> {
 }
 
 export function resolveProtectedMediaUrl(contentUrl: string): string {
-  if (!contentUrl || /^https?:\/\//i.test(contentUrl)) return contentUrl;
+  if (!contentUrl || /^(https?:|file:|content:|ph:\/\/|assets-library:|data:|blob:)/i.test(contentUrl)) return contentUrl;
   return `${API_BASE_URL}${contentUrl.startsWith('/') ? '' : '/'}${contentUrl}`;
 }
 

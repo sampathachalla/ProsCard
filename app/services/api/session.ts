@@ -16,6 +16,7 @@ export async function getSession(): Promise<AuthSession | null> {
 }
 
 export async function setSession(session: AuthSession | null): Promise<void> {
+  const previousSession = memorySession;
   memorySession = session;
   if (session) {
     await Promise.all([
@@ -23,10 +24,13 @@ export async function setSession(session: AuthSession | null): Promise<void> {
       AsyncStorage.setItem('userInfo', JSON.stringify({ ...session.user, token: session.token })),
     ]);
   } else {
+    const userId = previousSession?.user.id;
+    const scopedKeys = userId ? USER_SCOPED_CACHE_KEYS.map((key) => `${key}:${userId}`) : [];
     await Promise.all([
       AsyncStorage.removeItem(AUTH_SESSION_KEY),
       AsyncStorage.removeItem(LEGACY_USER_KEY),
       ...USER_SCOPED_CACHE_KEYS.map((key) => AsyncStorage.removeItem(key)),
+      ...scopedKeys.map((key) => AsyncStorage.removeItem(key)),
     ]);
   }
   listeners.forEach((listener) => listener(session));

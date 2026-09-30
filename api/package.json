@@ -22,10 +22,16 @@
     "test:live:media:logo": "tsx tests/live/media.live.test.ts companyLogo",
     "test:live:media:replacement": "tsx tests/live/media-replacement.live.test.ts",
     "test:live:media:cleanup": "tsx tests/live/media-cleanup.live.test.ts",
-    "db:up": "docker compose up -d postgres",
-    "db:down": "docker compose down",
-    "db:logs": "docker compose logs -f postgres",
-    "db:migrate": "tsx scripts/migrate.ts"
+    "test:live:media:card": "tsx tests/live/card-media.live.test.ts",
+    "test:live:contacts-sharing": "tsx tests/live/contacts-sharing.live.test.ts",
+    "db:up": "docker compose -f ../docker-compose.yml up -d postgres",
+    "db:down": "docker compose -f ../docker-compose.yml down",
+    "db:logs": "docker compose -f ../docker-compose.yml logs -f postgres",
+    "db:migrate": "tsx scripts/migrate.ts",
+    "docker:up": "docker compose -f ../docker-compose.yml up -d --build",
+    "docker:down": "docker compose -f ../docker-compose.yml down",
+    "docker:logs": "docker compose -f ../docker-compose.yml logs -f api",
+    "docker:migrate": "docker compose -f ../docker-compose.yml exec api npm run db:migrate"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
@@ -39,7 +45,6 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@rolldown/binding-darwin-arm64": "^1.2.11",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^26.6.3",
@@ -49,5 +54,8 @@
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vitest": "^5.0.2"
+  },
+  "optionalDependencies": {
+    "@rolldown/binding-darwin-arm64": "^1.2.11"
   }
 }

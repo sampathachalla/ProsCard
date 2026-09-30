@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { Profile, ProfileFieldKey, SocialFieldKey } from '@/components/profileComponents/types/profile.types';
 import {
   DEFAULT_PROFILE,
-  getStoredUser,
   saveProfile,
 } from '@/components/profileComponents/Services/profileService';
 import { validateProfile } from '@/components/profileComponents/Utils/validateProfile';
@@ -19,14 +18,6 @@ export function useOnboarding() {
   const [draft, setDraft] = useState<Profile>(DEFAULT_PROFILE);
   const [isSaving, setIsSaving] = useState(false);
   const isLastSlide = activeIndex === ONBOARDING_SLIDES.length - 1;
-
-  useEffect(() => {
-    getStoredUser().then((user) => {
-      if (user?.username) {
-        setDraft((prev) => (prev.fullName ? prev : { ...prev, fullName: user.username }));
-      }
-    });
-  }, []);
 
   const goToForm = () => setPhase('form');
 

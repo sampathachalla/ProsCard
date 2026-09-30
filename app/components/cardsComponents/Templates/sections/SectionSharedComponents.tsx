@@ -1,6 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 import { Image } from 'expo-image';
+import { MediaImage } from '@/components/uiComponents/MediaImage';
 import {
   AtSign,
   Award,
@@ -162,7 +163,7 @@ export function IdentityImage({
       </View>
     );
   }
-  return <Image source={{ uri: field.value }} contentFit={fit} style={style} />;
+  return <MediaImage sourceUrl={field.value} contentFit={fit} style={style} />;
 }
 
 export function UniversalLogoBadge({
@@ -202,12 +203,8 @@ export function UniversalLogoBadge({
 
   const defaultBrandLogo = isBackdropLight ? mindProsLogoLight : mindProsLogoDark;
 
-  const resolvedSource =
-    field?.value && typeof field.value === 'string' && field.value.startsWith('http')
-      ? { uri: field.value }
-      : field?.value && typeof field.value === 'string' && field.value.length > 0
-        ? { uri: field.value }
-        : defaultBrandLogo;
+  // Uploaded logos are protected backend paths; MediaImage resolves them to a signed URL.
+  const customLogo = typeof field?.value === 'string' ? field.value.trim() : '';
 
   return (
     <View
@@ -232,11 +229,11 @@ export function UniversalLogoBadge({
         style,
       ]}
     >
-      <Image
-        source={resolvedSource}
-        contentFit="contain"
-        style={{ width: logoWidth, height: logoHeight }}
-      />
+      {customLogo ? (
+        <MediaImage sourceUrl={customLogo} contentFit="contain" style={{ width: logoWidth, height: logoHeight }} />
+      ) : (
+        <Image source={defaultBrandLogo} contentFit="contain" style={{ width: logoWidth, height: logoHeight }} />
+      )}
     </View>
   );
 }

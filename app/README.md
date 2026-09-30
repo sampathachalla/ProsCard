@@ -4,15 +4,25 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 
 ## Backend integration
 
-Copy `.env.example` to a local `.env` and set `EXPO_PUBLIC_API_URL` to the API host. Use
-your computer's LAN address when running on a physical device. The value may be either
-the server root (`http://192.168.1.10:8050`) or the versioned API root
-(`http://192.168.1.10:8050/api/v1`).
+Copy `.env.example` to a local `.env` and set both backend URLs:
+
+- `EXPO_PUBLIC_LOCAL_API_URL`: the local Docker API. Use your computer's LAN address when
+  running on a physical device.
+- `EXPO_PUBLIC_OCI_API_URL`: the API deployed on the OCI instance.
+
+Choose which one the app uses by flipping `USE_OCI_BACKEND` in `services/api/config.ts`
+(`false` = local, `true` = OCI), then restart Expo with `npx expo start -c` so the change is
+picked up. Each value may be either the server root (`http://192.168.1.10:8050`) or the
+versioned API root (`http://192.168.1.10:8050/api/v1`).
 
 Authentication test mode is opt-in with `EXPO_PUBLIC_AUTH_TEST_MODE=true`. Normally,
 the backend is authoritative for sessions, profiles, onboarding drafts, cards, and OCI
 media. AsyncStorage stores the current session and local caches; it is not the source
 of truth.
+
+Password recovery uses `/auth/reset-password` on web and the `proscard://auth/reset-password`
+deep link in native builds. The matching URL must be configured as
+`PASSWORD_RESET_REDIRECT_URL` in the API and allowed in Supabase Auth settings.
 
 ## Get started
 

@@ -9,8 +9,6 @@
  */
 export const AUTH_TEST_MODE = process.env.EXPO_PUBLIC_AUTH_TEST_MODE === 'true';
 
-export const AUTH_API_BASE_URL = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, '') ?? '';
-
 export const AUTH_TEST_FIXTURES = {
   login: {
     email: 'test@proscard.app',

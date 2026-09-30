@@ -1,5 +1,5 @@
 import { forwardRef, useMemo } from 'react';
-import { Alert, View } from 'react-native';
+import { Alert, Platform, Share, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import * as Haptics from 'expo-haptics';
@@ -9,6 +9,8 @@ import { closeBottomSheet } from '@/components/uiComponents/closeBottomSheet';
 import { SheetActionRow } from '@/components/uiComponents/SheetActionRow';
 import { SheetHeader } from '@/components/uiComponents/SheetHeader';
 import { ThemedBottomSheet } from '@/components/uiComponents/ThemedBottomSheet';
+import { getShareUrl } from '@/components/sharingComponents/Services/sharingService';
+import { queryClient, queryKeys } from '@/services/api/queryClient';
 
 type CardActionsBottomSheetProps = {
   card?: BusinessCard;
@@ -53,11 +55,21 @@ export const CardActionsBottomSheet = forwardRef<BottomSheet, CardActionsBottomS
       {
         id: 'copy',
         label: 'Copy Public Link',
-        description: `proscard.app/card/${card?.id || '1'}`,
+        description: 'Share a link anyone can open',
         icon: Copy,
         color: '#0284c7',
         onPress: () => {
-          Alert.alert('Link Copied', 'Your public card link has been copied to clipboard!');
+          if (!card) return;
+          queryClient.fetchQuery({ queryKey: queryKeys.share(card.id), queryFn: () => getShareUrl(card.id), staleTime: Infinity })
+            .then(async (url) => {
+              if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
+                await navigator.clipboard.writeText(url);
+                Alert.alert('Link Copied', 'Your public card link has been copied to clipboard.');
+              } else {
+                await Share.share({ message: url, title: `${card.name} | ProsCard`, url });
+              }
+            })
+            .catch((reason) => Alert.alert('Share link unavailable', reason instanceof Error ? reason.message : 'Try again.'));
         },
       },
       {

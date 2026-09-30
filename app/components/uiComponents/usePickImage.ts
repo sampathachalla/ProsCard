@@ -1,5 +1,6 @@
 import { Alert, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { registerPendingMedia } from '@/components/profileComponents/Services/pendingMedia';
 
 type PickImageOptions = {
   aspect?: [number, number];
@@ -31,5 +32,6 @@ export async function pickImageFromLibrary(options: PickImageOptions = {}): Prom
     return null;
   }
 
+  registerPendingMedia(result.assets[0]);
   return result.assets[0].uri;
 }

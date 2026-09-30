@@ -1,14 +1,21 @@
 // app/(tabs)/contactsPage.tsx
-import { View, Text, TextInput, FlatList } from 'react-native';
+import { View, Text, TextInput, FlatList, RefreshControl, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Search, Users } from 'lucide-react-native';
 import { PageHeader } from '@/components/uiComponents/PageHeader';
 import { ContactRow } from '../../components/contactsComponents/Components/ContactRow';
 import { useContacts } from '../../components/contactsComponents/Hooks/useContacts';
+import { deleteContact } from '../../components/contactsComponents/Services/contactsService';
+import type { Contact } from '../../components/contactsComponents/types/contact.types';
 
 export default function ContactsScreen() {
-  const { query, setQuery, contacts, filtered } = useContacts();
+  const { query, setQuery, contacts, filtered, loading, refreshing, error, refresh } = useContacts();
   const insets = useSafeAreaInsets();
+  const removeContact = (contact: Contact) => {
+    deleteContact(contact.id)
+      .then(() => refresh())
+      .catch((reason) => Alert.alert('Remove failed', reason instanceof Error ? reason.message : 'Try again.'));
+  };
 
   return (
     <View className="flex-1 bg-background dark:bg-dark-background">
@@ -29,17 +36,18 @@ export default function ContactsScreen() {
       <FlatList
         data={filtered}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <ContactRow contact={item} />}
+        renderItem={({ item }) => <ContactRow contact={item} onDelete={removeContact} />}
         contentContainerStyle={{
           paddingHorizontal: 24,
           paddingBottom: Math.max(insets.bottom, 20) + 16,
         }}
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { void refresh(); }} />}
         ListEmptyComponent={
           <View className="items-center justify-center mt-16">
             <Users color="#7A7A7A" size={48} strokeWidth={1.8} />
             <Text className="text-textMuted dark:text-dark-textMuted mt-3">
-              No contacts found
+              {loading ? 'Loading contacts…' : error ? 'Could not load contacts. Pull to retry.' : query.trim() ? 'No contacts found' : 'No contacts yet. Scan a ProsCard QR code to add one.'}
             </Text>
           </View>
         }

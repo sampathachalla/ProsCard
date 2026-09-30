@@ -1,5 +1,6 @@
 // components/onboardingComponents/Utils/onboardingMappers.ts
 import { Colors } from '@/constants/Colors';
+import { isMediaReference } from '@/components/profileComponents/Services/pendingMedia';
 import type { Profile } from '@/components/profileComponents/types/profile.types';
 import type { BusinessCard } from '@/components/cardsComponents/types/card.types';
 import {
@@ -27,15 +28,7 @@ export function buildFullName(
 function normalizeMediaUri(input: string): string {
   const trimmed = input.trim();
   if (!trimmed) return '';
-  if (
-    trimmed.startsWith('file:') ||
-    trimmed.startsWith('content:') ||
-    trimmed.startsWith('ph://') ||
-    trimmed.startsWith('assets-library:') ||
-    trimmed.startsWith('data:')
-  ) {
-    return trimmed;
-  }
+  if (isMediaReference(trimmed)) return trimmed;
   return normalizeUrl(trimmed, 'generic');
 }
 

@@ -60,11 +60,11 @@ export function ProfileHero({
 
       {profile.accreditations ? <Text className="mt-1 text-sm font-semibold text-textMuted dark:text-dark-textMuted">{profile.accreditations}</Text> : null}
 
-      {(profile.title || profile.organization) && (
+      {profile.title || profile.organization ? (
         <Text className="text-textMuted dark:text-dark-textMuted text-sm mt-1 text-center">
           {[profile.title, profile.department, profile.organization].filter(Boolean).join(' · ')}
         </Text>
-      )}
+      ) : null}
 
       {media.companyLogoUrl ? (
         <Image

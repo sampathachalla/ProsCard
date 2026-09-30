@@ -4,8 +4,17 @@ import type { Profile, StoredUser } from '../types/profile.types';
 import { apiRequest, ApiError } from '@/services/api/client';
 import { AUTH_TEST_MODE } from '@/components/authComponents/Config/authMode';
 import { logout } from '@/components/authComponents/Services/authService';
+import { commitPendingMedia, mediaIdFromContentUrl } from './pendingMedia';
+import { deleteMedia } from './mediaService';
+import { getSession } from '@/services/api/session';
 
 const PROFILE_STORAGE_KEY = 'userProfile';
+let lastProfileSyncFailed = false;
+export const profileIsOffline = () => lastProfileSyncFailed;
+async function profileStorageKey() {
+  const session = await getSession();
+  return session?.user.id ? `${PROFILE_STORAGE_KEY}:${session.user.id}` : PROFILE_STORAGE_KEY;
+}
 
 /** Blank slate for a user who hasn't filled in a profile yet — every field
  * starts empty so the UI shows real empty/placeholder states instead of a
@@ -54,18 +63,25 @@ export async function logoutUser(): Promise<void> {
 }
 
 export async function getProfile(): Promise<Profile> {
+  const storageKey = await profileStorageKey();
   if (!AUTH_TEST_MODE) {
     try {
       const remote = await apiRequest<Profile>('/profiles/me');
+      lastProfileSyncFailed = false;
       const normalized = normalizeProfile(remote);
-      await AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(normalized));
+      await AsyncStorage.setItem(storageKey, JSON.stringify(normalized));
       return normalized;
     } catch (error) {
-      if (!(error instanceof ApiError && error.status === 404)) throw error;
-      return DEFAULT_PROFILE;
+      if (error instanceof ApiError && error.status === 404) return DEFAULT_PROFILE;
+      const cached = await AsyncStorage.getItem(storageKey);
+      if (cached) {
+        lastProfileSyncFailed = true;
+        return normalizeProfile(JSON.parse(cached) as Partial<Profile>);
+      }
+      throw error;
     }
   }
-  const raw = await AsyncStorage.getItem(PROFILE_STORAGE_KEY);
+  const raw = await AsyncStorage.getItem(storageKey);
   if (!raw) return DEFAULT_PROFILE;
   return normalizeProfile(JSON.parse(raw) as Partial<Profile>);
 }
@@ -95,11 +111,27 @@ export function subscribeProfile(listener: ProfileListener): () => void {
 }
 
 export async function saveProfile(profile: Profile): Promise<Profile> {
-  const { userId: _userId, updatedAt: _updatedAt, ...payload } = profile;
+  let prepared = profile;
+  if (!AUTH_TEST_MODE) {
+    const current = await getProfile().catch(() => DEFAULT_PROFILE);
+    const [photoUrl, coverPhotoUrl, companyLogoUrl] = await Promise.all([
+      commitPendingMedia(profile.photoUrl, 'profilePhoto'),
+      commitPendingMedia(profile.coverPhotoUrl, 'coverPhoto'),
+      commitPendingMedia(profile.companyLogoUrl, 'companyLogo'),
+    ]);
+    prepared = { ...profile, photoUrl, coverPhotoUrl, companyLogoUrl };
+    const removals = [
+      !profile.photoUrl && mediaIdFromContentUrl(current.photoUrl),
+      !profile.coverPhotoUrl && mediaIdFromContentUrl(current.coverPhotoUrl),
+      !profile.companyLogoUrl && mediaIdFromContentUrl(current.companyLogoUrl),
+    ].filter((id): id is string => Boolean(id));
+    await Promise.all(removals.map(deleteMedia));
+  }
+  const { userId: _userId, updatedAt: _updatedAt, ...payload } = prepared;
   const saved = AUTH_TEST_MODE
-    ? normalizeProfile(profile)
+    ? normalizeProfile(prepared)
     : normalizeProfile(await apiRequest<Profile>('/profiles/me', { method: 'PUT', body: payload }));
-  await AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(saved));
+  await AsyncStorage.setItem(await profileStorageKey(), JSON.stringify(saved));
   listeners.forEach((listener) => listener(saved));
   return saved;
 }
