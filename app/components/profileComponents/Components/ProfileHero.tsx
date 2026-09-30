@@ -1,12 +1,10 @@
 // components/profileComponents/Components/ProfileHero.tsx
 import { View, Text, TouchableOpacity } from 'react-native';
-import { Image } from 'expo-image';
 import { PencilLine } from 'lucide-react-native';
 import { Colors } from '@/constants/Colors';
+import { MediaImage } from '@/components/uiComponents/MediaImage';
 import type { Profile } from '../types/profile.types';
 import { getInitials } from '../Utils/initials';
-import { useEffect, useState } from 'react';
-import { getDisplayMediaUrl } from '../Services/mediaService';
 
 export function ProfileHero({
   profile,
@@ -17,35 +15,15 @@ export function ProfileHero({
   isEditing: boolean;
   onEditPress: () => void;
 }) {
-  const [media, setMedia] = useState({ coverPhotoUrl: '', photoUrl: '', companyLogoUrl: '' });
-
-  useEffect(() => {
-    let active = true;
-    Promise.all([
-      getDisplayMediaUrl(profile.coverPhotoUrl),
-      getDisplayMediaUrl(profile.photoUrl),
-      getDisplayMediaUrl(profile.companyLogoUrl),
-    ]).then(([coverPhotoUrl, photoUrl, companyLogoUrl]) => {
-      if (active) setMedia({ coverPhotoUrl, photoUrl, companyLogoUrl });
-    }).catch(() => {
-      if (active) setMedia({
-        coverPhotoUrl: profile.coverPhotoUrl,
-        photoUrl: profile.photoUrl,
-        companyLogoUrl: profile.companyLogoUrl,
-      });
-    });
-    return () => { active = false; };
-  }, [profile.companyLogoUrl, profile.coverPhotoUrl, profile.photoUrl]);
-
   return (
     <View className="items-center mb-6">
       <View className="h-32 w-full overflow-hidden rounded-3xl bg-slate-200 dark:bg-slate-800">
-        {media.coverPhotoUrl ? <Image source={{ uri: media.coverPhotoUrl }} style={{ width: '100%', height: '100%' }} contentFit="cover" /> : null}
+        {profile.coverPhotoUrl ? <MediaImage sourceUrl={profile.coverPhotoUrl} style={{ width: '100%', height: '100%' }} contentFit="cover" /> : null}
       </View>
       <View className="-mt-12 w-24 h-24 rounded-full border-4 border-background dark:border-dark-background bg-primary dark:bg-dark-primary items-center justify-center mb-3 overflow-hidden">
-        {media.photoUrl ? (
-          <Image
-            source={{ uri: media.photoUrl }}
+        {profile.photoUrl ? (
+          <MediaImage
+            sourceUrl={profile.photoUrl}
             style={{ width: '100%', height: '100%' }}
             contentFit="cover"
           />
@@ -66,9 +44,9 @@ export function ProfileHero({
         </Text>
       ) : null}
 
-      {media.companyLogoUrl ? (
-        <Image
-          source={{ uri: media.companyLogoUrl }}
+      {profile.companyLogoUrl ? (
+        <MediaImage
+          sourceUrl={profile.companyLogoUrl}
           style={{ width: 28, height: 28, borderRadius: 6, marginTop: 8 }}
           contentFit="contain"
         />

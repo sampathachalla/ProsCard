@@ -13,12 +13,32 @@ const SECTION_FIELD_IDS: Record<Exclude<CardSectionId, 'connections'>, CardSecti
   bio: ['bio'],
 };
 
-export function useEditView(cardId?: string, startInEditMode = false) {
-  const [card, setCard] = useState<EditableCard>(() => getEditableCard(cardId));
-  const [draft, setDraft] = useState<EditableCard>(() => getEditableCard(cardId));
+/** Server-owned metadata (timestamps, primary state) must not make the editor dirty. */
+function editableSnapshot(card: EditableCard) {
+  return {
+    category: card.category,
+    name: card.name,
+    title: card.title,
+    company: card.company,
+    phone: card.phone,
+    email: card.email,
+    gradient: card.gradient,
+    sectionLayouts: card.sectionLayouts,
+    sectionOverrides: card.sectionOverrides,
+    connectionFields: card.connectionFields,
+    connectionFieldsCustomized: card.connectionFieldsCustomized,
+    cardTheme: card.cardTheme,
+    sectionThemes: card.sectionThemes,
+    customThemes: card.customThemes ?? [],
+  };
+}
+
+export function useEditView(cardId?: string, startInEditMode = false, initialCard?: EditableCard) {
+  const [card, setCard] = useState<EditableCard>(() => initialCard ?? getEditableCard(cardId));
+  const [draft, setDraft] = useState<EditableCard>(() => initialCard ?? getEditableCard(cardId));
   const [isEditing, setIsEditing] = useState(startInEditMode);
   const [isSaving, setIsSaving] = useState(false);
-  const hasChanges = JSON.stringify(draft) !== JSON.stringify(card);
+  const hasChanges = JSON.stringify(editableSnapshot(draft)) !== JSON.stringify(editableSnapshot(card));
   const hasSectionChanges = (section: CardSectionId) => {
     const commonChanged =
       draft.sectionLayouts[section] !== card.sectionLayouts[section] ||
@@ -155,15 +175,18 @@ export function useEditView(cardId?: string, startInEditMode = false) {
     const error = validateCard(draft);
     if (error) {
       Alert.alert('Check your details', error);
-      return;
+      return null;
     }
     setIsSaving(true);
     try {
       const saved = await saveCard(draft);
       setCard(saved);
+      setDraft(saved);
       setIsEditing(false);
+      return saved;
     } catch (error) {
       Alert.alert('Save failed', error instanceof Error ? error.message : 'Could not save this card.');
+      return null;
     } finally {
       setIsSaving(false);
     }
@@ -207,6 +230,48 @@ export function useEditView(cardId?: string, startInEditMode = false) {
     try {
       const saved = await saveCard(candidate);
       setCard(saved);
+      // Keep unsaved work in other sections, but replace the section that the
+      // backend just accepted. This also adopts normalized media URLs returned
+      // after an upload instead of comparing them with stale pending URLs.
+      setDraft((current) => {
+        const sectionOverrides = { ...current.sectionOverrides };
+        if (section !== 'connections') {
+          SECTION_FIELD_IDS[section].forEach((field) => {
+            const value = saved.sectionOverrides[field];
+            if (value === undefined) delete sectionOverrides[field];
+            else sectionOverrides[field] = value;
+          });
+        }
+
+        return {
+          ...current,
+          id: saved.id,
+          isPrimary: saved.isPrimary,
+          createdAt: saved.createdAt,
+          updatedAt: saved.updatedAt,
+          ...(section === 'identity' ? { name: saved.name } : {}),
+          ...(section === 'professional' ? { title: saved.title, company: saved.company } : {}),
+          sectionLayouts: { ...current.sectionLayouts, [section]: saved.sectionLayouts[section] },
+          sectionThemes: {
+            ...current.sectionThemes,
+            [section]: {
+              ...saved.sectionThemes[section],
+              gradient: [...saved.sectionThemes[section].gradient],
+            },
+          },
+          sectionOverrides,
+          connectionFields: section === 'connections'
+            ? saved.connectionFields.map((field) => ({ ...field }))
+            : current.connectionFields,
+          connectionFieldsCustomized: section === 'connections'
+            ? saved.connectionFieldsCustomized
+            : current.connectionFieldsCustomized,
+          customThemes: (saved.customThemes ?? []).map((item) => ({
+            ...item,
+            gradient: [item.gradient[0], item.gradient[1]] as [string, string],
+          })),
+        };
+      });
       return true;
     } catch (error) {
       Alert.alert('Save failed', error instanceof Error ? error.message : 'Could not save this card.');

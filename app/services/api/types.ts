@@ -27,14 +27,15 @@ export type OnboardingState<TDraft> = {
   updatedAt?: string;
 };
 
-export type MediaKind = 'profilePhoto' | 'coverPhoto' | 'companyLogo';
-export type MediaScope = 'profile' | 'card';
+export type MediaKind = 'profilePhoto' | 'coverPhoto' | 'companyLogo' | 'contactCard';
+export type MediaScope = 'profile' | 'card' | 'contact';
 export type MediaStatus = 'pending' | 'ready' | 'cleanup_failed';
 
 export type MediaUploadRequest = {
   kind: MediaKind;
   scope?: MediaScope;
   cardId?: string;
+  contactId?: string;
   fileName: string;
   contentType: string;
   sizeBytes?: number;
@@ -45,6 +46,7 @@ export type MediaUploadTicket = {
   kind: MediaKind;
   scope: MediaScope;
   cardId?: string;
+  contactId?: string;
   status: MediaStatus;
   objectName: string;
   method: 'PUT';
@@ -58,9 +60,11 @@ export type ConfirmedMedia = {
   kind: MediaKind;
   scope: MediaScope;
   cardId?: string | null;
+  contactId?: string | null;
   status: 'ready';
   profileField?: 'photoUrl' | 'coverPhotoUrl' | 'companyLogoUrl';
   cardField?: 'profilePhoto' | 'coverPhoto' | 'logo';
+  contactField?: 'cardImageUrl';
   contentUrl: string;
   replacedMediaId?: string;
   cleanupPending: boolean;

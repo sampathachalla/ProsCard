@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { CreditCard, ScanLine } from 'lucide-react-native';
 import Animated, {
@@ -12,6 +12,10 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Colors } from '@/constants/Colors';
+import { CaptureTipCaption, CaptureTipIcon, useCaptureTipCycle } from './CaptureTips';
+
+/** Size of the orbit ring; the animation scales down when the panel is shorter than this. */
+const STAGE_SIZE = 176;
 
 type ScannerTopPanelProps = {
   stage: 'camera' | 'processing' | 'result';
@@ -22,6 +26,8 @@ export function ScannerTopPanel({ stage, hasScanData }: ScannerTopPanelProps) {
   const scanY = useSharedValue(0);
   const pulse = useSharedValue(0);
   const orbit = useSharedValue(0);
+  const [stageScale, setStageScale] = useState(1);
+  const tips = useCaptureTipCycle(stage === 'camera');
 
   useEffect(() => {
     scanY.value = withRepeat(
@@ -75,7 +81,7 @@ export function ScannerTopPanel({ stage, hasScanData }: ScannerTopPanelProps) {
         ? hasScanData
           ? 'ProsCard link found successfully'
           : 'Review the capture below, then continue'
-        : 'Point the camera at a card or ProsCard QR';
+        : 'Edges are detected automatically';
 
   return (
     <View style={styles.panel}>
@@ -87,20 +93,29 @@ export function ScannerTopPanel({ stage, hasScanData }: ScannerTopPanelProps) {
         <Text style={styles.subtitle}>{subtitle}</Text>
       </Animated.View>
 
-      <View style={styles.stage}>
-        <Animated.View style={[styles.orbitRing, orbitStyle]}>
-          <View style={styles.orbitDot} />
-        </Animated.View>
+      <View
+        style={styles.stage}
+        onLayout={({ nativeEvent }) => setStageScale(Math.min(1, nativeEvent.layout.height / STAGE_SIZE))}
+      >
+        <View style={[styles.stageArt, { transform: [{ scale: stageScale }] }]}>
+          <Animated.View style={[styles.orbitRing, orbitStyle]}>
+            <View style={styles.orbitDot} />
+          </Animated.View>
 
-        <Animated.View style={[styles.pulseRing, ringStyle]} />
+          <Animated.View style={[styles.pulseRing, ringStyle]} />
 
-        <View style={styles.cardFrame}>
-          <CreditCard
-            color={stage === 'processing' ? Colors.palette.brandCyanLight : '#E2E8F0'}
-            size={34}
-            strokeWidth={1.8}
-          />
-          <Animated.View style={[styles.scanLine, scanLineStyle]} />
+          <View style={styles.cardFrame}>
+            {stage === 'camera' ? (
+              <CaptureTipIcon tip={tips.tip} />
+            ) : (
+              <CreditCard
+                color={stage === 'processing' ? Colors.palette.brandCyanLight : '#E2E8F0'}
+                size={34}
+                strokeWidth={1.8}
+              />
+            )}
+            <Animated.View style={[styles.scanLine, scanLineStyle]} />
+          </View>
         </View>
 
         {stage === 'processing' && (
@@ -110,6 +125,8 @@ export function ScannerTopPanel({ stage, hasScanData }: ScannerTopPanelProps) {
           </Animated.View>
         )}
       </View>
+
+      {stage === 'camera' && <CaptureTipCaption index={tips.index} onSelect={tips.select} />}
     </View>
   );
 }
@@ -150,6 +167,13 @@ const styles = StyleSheet.create({
   },
   stage: {
     flex: 1,
+    minHeight: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stageArt: {
+    width: STAGE_SIZE,
+    height: STAGE_SIZE,
     alignItems: 'center',
     justifyContent: 'center',
   },

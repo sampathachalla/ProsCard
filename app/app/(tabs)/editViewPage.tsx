@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState } from 'react';
-import { Modal, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Modal, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -16,6 +16,7 @@ import { CardSectionEditor } from '@/components/editViewComponents/Components/Ca
 import { useProfileSnapshot } from '@/components/profileComponents/Hooks/useProfileSnapshot';
 import { useEditorPreferences } from '@/components/profileComponents/Hooks/useEditorPreferences';
 import type { CardSectionId } from '@/components/cardsComponents/types/card.types';
+import { buildDefaultCard } from '@/components/cardsComponents/Services/cardsService';
 import { useEditView } from '@/components/editViewComponents/Hooks/useEditView';
 import { useThemeContext } from '@/context/ThemeContext';
 
@@ -28,14 +29,18 @@ const SECTION_CHOICES: { id: CardSectionId; title: string; description: string; 
   { id: 'bio', title: 'About', description: 'Short professional biography', icon: AlignLeft },
   { id: 'connections', title: 'Contact & links', description: 'Email, phone and social links', icon: Link2 },
 ];
+const CREATION_STEPS: CardSectionId[] = ['identity', 'professional', 'bio', 'connections'];
 
 export default function EditViewPage() {
-  const params = useLocalSearchParams<{ cardId?: string | string[] }>();
+  const params = useLocalSearchParams<{ cardId?: string | string[]; create?: string | string[]; origin?: string | string[] }>();
   const cardId = Array.isArray(params.cardId) ? params.cardId[0] : params.cardId;
+  const createParam = Array.isArray(params.create) ? params.create[0] : params.create;
+  const isCreateMode = createParam === '1';
   const router = useRouter();
   const safeAreaInsets = useSafeAreaInsets();
   const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const { profile } = useProfileSnapshot();
+  const [creationDraft] = useState(() => buildDefaultCard(profile));
   const { theme } = useThemeContext();
   const {
     glassmorphicEditorEnabled,
@@ -57,7 +62,7 @@ export default function EditViewPage() {
   const [stylingOpen, setStylingOpen] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [sectionPickerOpen, setSectionPickerOpen] = useState(false);
-  const { card, draft, hasChanges, hasSectionChanges, isEditing, isSaving, startEditing, stopEditing, cancelEditing, updateSectionLayout, updateSectionField, replaceConnectionFields, resetSection, updateSectionTheme, saveCustomSectionTheme, submit, submitSection } = useEditView(cardId, false);
+  const { card, draft, hasChanges, hasSectionChanges, isEditing, isSaving, startEditing, stopEditing, cancelEditing, updateSectionLayout, updateSectionField, replaceConnectionFields, resetSection, updateSectionTheme, saveCustomSectionTheme, submit, submitSection } = useEditView(cardId, isCreateMode, isCreateMode ? creationDraft : undefined);
   const editorChromeBackground = glassmorphicEditorEnabled
     ? theme === 'dark'
       ? 'rgba(2, 6, 23, 0.74)'
@@ -65,6 +70,14 @@ export default function EditViewPage() {
     : theme === 'dark'
       ? '#020617'
       : '#ffffff';
+
+  useEffect(() => {
+    if (!isCreateMode) return;
+    const frame = requestAnimationFrame(() => {
+      sheetRef.current?.snapToIndex(0);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [isCreateMode]);
 
   const openSection = (section: CardSectionId) => {
     startEditing();
@@ -110,6 +123,17 @@ export default function EditViewPage() {
     setStylingOpen(false);
   };
   const handleHeaderBack = () => {
+    if (isCreateMode) {
+      Alert.alert(
+        'Discard new card?',
+        'Your card has not been created yet. All changes in this setup will be discarded.',
+        [
+          { text: 'Keep editing', style: 'cancel' },
+          { text: 'Discard', style: 'destructive', onPress: () => router.back() },
+        ],
+      );
+      return;
+    }
     if (isEditing) {
       closeEditor();
       return;
@@ -132,6 +156,33 @@ export default function EditViewPage() {
     router.replace('/(tabs)/cardsPage');
   };
   const saveSection = async () => {
+    if (isCreateMode) {
+      if (activeEditTab === 'layout') {
+        setActiveEditTab('content');
+        setStylingOpen(false);
+        sheetRef.current?.snapToIndex(0);
+        return;
+      }
+
+      const stepIndex = CREATION_STEPS.indexOf(activeSection);
+      const nextSection = CREATION_STEPS[stepIndex + 1];
+      if (nextSection) {
+        setActiveSection(nextSection);
+        setActiveEditTab('layout');
+        setStylingOpen(false);
+        requestAnimationFrame(() => {
+          sheetRef.current?.snapToIndex(0);
+          const sectionY = sectionOffsets.current[nextSection];
+          if (sectionY !== undefined) cardScrollRef.current?.scrollTo({ y: Math.max(0, sectionY - 8), animated: true });
+        });
+        return;
+      }
+
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+      const saved = await submit();
+      if (saved) router.back();
+      return;
+    }
     await submitSection(activeSection);
   };
   const saveAllChanges = async () => {
@@ -174,11 +225,11 @@ export default function EditViewPage() {
       }}
     >
       <PageHeader
-        title={isEditing ? (stylingOpen ? `Style ${SECTION_TITLES[activeSection]}` : `Edit ${SECTION_TITLES[activeSection]}`) : 'Edit Card'}
-        subtitle={isEditing ? (stylingOpen ? `Styling opened from ${activeEditTab === 'layout' ? 'Layout' : 'Content'}` : 'Customize this card section') : (card.name || 'Choose a section to customize')}
+        title={isCreateMode ? 'Add Card' : isEditing ? (stylingOpen ? `Style ${SECTION_TITLES[activeSection]}` : `Edit ${SECTION_TITLES[activeSection]}`) : 'Edit Card'}
+        subtitle={isCreateMode ? `${SECTION_TITLES[activeSection]} · ${activeEditTab === 'layout' ? 'Layout' : 'Content'} · Step ${CREATION_STEPS.indexOf(activeSection) + 1} of ${CREATION_STEPS.length}` : isEditing ? (stylingOpen ? `Styling opened from ${activeEditTab === 'layout' ? 'Layout' : 'Content'}` : 'Customize this card section') : (card.name || 'Choose a section to customize')}
         onBackPress={handleHeaderBack}
         right={isEditing ? (
-          hasSectionChanges(activeSection) ? (
+          !isCreateMode && hasSectionChanges(activeSection) ? (
             <Pressable
               accessibilityLabel={`Undo unsaved ${SECTION_TITLES[activeSection]} changes`}
               accessibilityRole="button"
@@ -344,7 +395,7 @@ export default function EditViewPage() {
       topInset={headerHeight}
       containerStyle={{ zIndex: 50 }}
       backdropEnabled={false}
-      enablePanDownToClose
+      enablePanDownToClose={!isCreateMode}
       glassmorphic={glassmorphicEditorEnabled}
       showHandle={sheetIndex === 1}
       footer={isEditing && !compactBarHidden ? (
@@ -360,17 +411,18 @@ export default function EditViewPage() {
           <View style={{ alignSelf: 'center', maxWidth: 760, width: '100%' }}>
             <EditHomeBar
               activeTab={activeEditTab}
+              actionLabel={isCreateMode ? (activeEditTab === 'layout' ? 'Next' : activeSection === 'connections' ? 'Create' : 'Save & next') : 'Save'}
               isSaving={isSaving}
               onChange={changeEditTab}
               onSave={saveSection}
-              saveDisabled={!hasSectionChanges(activeSection)}
+              saveDisabled={!isCreateMode && !hasSectionChanges(activeSection)}
             />
           </View>
         </View>
       ) : null}
       onChange={(index) => {
         setSheetIndex(index);
-        if (index === -1 && !isSaving) {
+        if (index === -1 && !isSaving && !isCreateMode) {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
           if (isEditing) stopEditing();
         }

@@ -5,6 +5,14 @@ import type {
   MediaUploadRequest,
   MediaUploadTicket,
 } from '@/services/api/types';
+import {
+  getCachedMediaDownloadUrl,
+  invalidateCachedMedia,
+  mediaImageCacheKey,
+  peekCachedMediaDownloadUrl,
+} from './mediaCache';
+
+const PROTECTED_MEDIA_PATTERN = /\/api\/v1\/media\/([^/]+)\/content$/;
 
 export async function requestMediaUpload(input: MediaUploadRequest): Promise<MediaUploadTicket> {
   return apiRequest('/media/upload-url', { method: 'POST', body: input });
@@ -28,11 +36,14 @@ export async function confirmMedia(mediaId: string): Promise<ConfirmedMedia> {
 
 export async function deleteMedia(mediaId: string): Promise<void> {
   await apiRequest(`/media/${encodeURIComponent(mediaId)}`, { method: 'DELETE' });
+  await invalidateCachedMedia(mediaId);
 }
 
 export async function getMediaDownloadUrl(mediaId: string): Promise<string> {
-  const result = await apiRequest<{ url: string }>(`/media/${encodeURIComponent(mediaId)}/download-url`);
-  return result.url;
+  return getCachedMediaDownloadUrl(mediaId, async () => {
+    const result = await apiRequest<{ url: string }>(`/media/${encodeURIComponent(mediaId)}/download-url`);
+    return result.url;
+  });
 }
 
 export function resolveProtectedMediaUrl(contentUrl: string): string {
@@ -41,8 +52,18 @@ export function resolveProtectedMediaUrl(contentUrl: string): string {
 }
 
 export async function getDisplayMediaUrl(storedUrl: string): Promise<string> {
-  const match = storedUrl.match(/\/api\/v1\/media\/([^/]+)\/content$/);
+  const match = storedUrl.match(PROTECTED_MEDIA_PATTERN);
   return match ? getMediaDownloadUrl(match[1]) : resolveProtectedMediaUrl(storedUrl);
+}
+
+export function getImmediateDisplayMediaUrl(storedUrl: string): string {
+  const match = storedUrl.match(PROTECTED_MEDIA_PATTERN);
+  return match ? (peekCachedMediaDownloadUrl(match[1]) ?? '') : resolveProtectedMediaUrl(storedUrl);
+}
+
+export function getMediaImageCacheKey(storedUrl: string): string | undefined {
+  const match = storedUrl.match(PROTECTED_MEDIA_PATTERN);
+  return match ? mediaImageCacheKey(match[1]) : undefined;
 }
 
 export async function retryMediaCleanup(): Promise<{ examined: number; cleaned: number; failed: number }> {

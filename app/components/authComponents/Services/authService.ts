@@ -5,6 +5,10 @@ import { getSession, setSession } from '@/services/api/session';
 import type { AuthSession } from '@/services/api/types';
 import { queryClient } from '@/services/api/queryClient';
 import { clearCardState } from '@/components/cardsComponents/Services/cardsService';
+import * as Linking from 'expo-linking';
+import * as WebBrowser from 'expo-web-browser';
+
+WebBrowser.maybeCompleteAuthSession();
 
 function toStoredUser(session: AuthSession): StoredUser {
   return {
@@ -42,6 +46,35 @@ export async function signup(credentials: SignupCredentials): Promise<StoredUser
   return AUTH_TEST_MODE
     ? mockAuthentication(credentials.email)
     : authenticate('/auth/signup', { email: credentials.email, password: credentials.password });
+}
+
+function oauthTokens(callbackUrl: string): { accessToken: string; refreshToken?: string } {
+  const fragment = callbackUrl.includes('#') ? callbackUrl.slice(callbackUrl.indexOf('#') + 1) : '';
+  const query = callbackUrl.includes('?') ? callbackUrl.slice(callbackUrl.indexOf('?') + 1).split('#')[0] : '';
+  const parameters = new URLSearchParams(fragment || query);
+  const error = parameters.get('error_description') || parameters.get('error');
+  if (error) throw new Error(decodeURIComponent(error.replace(/\+/g, ' ')));
+  const accessToken = parameters.get('access_token');
+  if (!accessToken) throw new Error('Google sign-in completed without an access token. Please try again.');
+  return { accessToken, refreshToken: parameters.get('refresh_token') ?? undefined };
+}
+
+export async function signInWithGoogle(): Promise<StoredUser | null> {
+  if (AUTH_TEST_MODE) return mockAuthentication(AUTH_TEST_FIXTURES.user.username);
+  const redirectTo = Linking.createURL('auth/callback');
+  const { url } = await apiRequest<{ url: string }>('/auth/google', {
+    method: 'POST', authenticated: false, body: { redirectTo },
+  });
+  const result = await WebBrowser.openAuthSessionAsync(url, redirectTo);
+  if (result.type !== 'success' || !result.url) return null;
+  const { accessToken, refreshToken } = oauthTokens(result.url);
+  return establishRecoverySession(accessToken, refreshToken);
+}
+
+/** Completes Google sign-in from the redirect URL when the app lands on it directly. */
+export async function completeGoogleRedirect(callbackUrl: string): Promise<StoredUser> {
+  const { accessToken, refreshToken } = oauthTokens(callbackUrl);
+  return establishRecoverySession(accessToken, refreshToken);
 }
 
 export async function requestPasswordReset(email: string): Promise<void> {

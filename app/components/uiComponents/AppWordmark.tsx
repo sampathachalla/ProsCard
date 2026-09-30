@@ -20,7 +20,14 @@ export function AppWordmark({ className = '' }: AppWordmarkProps) {
         lineHeight: 46,
       }}
     >
-      ProsCard
+      <Text variant="none" className="text-primary dark:text-dark-primary">
+        P
+      </Text>
+      ros
+      <Text variant="none" className="text-primary dark:text-dark-primary">
+        C
+      </Text>
+      ard
     </Text>
   );
 }

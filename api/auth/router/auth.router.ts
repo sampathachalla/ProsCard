@@ -6,6 +6,7 @@ export function createAuthRouter(controller: AuthController,authenticate:Request
   const router = Router();
   router.post('/signup', asyncHandler(controller.signup));
   router.post('/login', asyncHandler(controller.login));
+  router.post('/google', asyncHandler(controller.google));
   router.post('/forgot-password', asyncHandler(controller.forgotPassword));
   router.post('/refresh', asyncHandler(controller.refresh));
   router.post('/logout', asyncHandler(controller.logout));

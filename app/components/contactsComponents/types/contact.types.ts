@@ -6,6 +6,11 @@ export type Contact = {
   company: string;
   phone: string;
   email?: string;
+  website?: string;
+  address?: string;
+  notes?: string;
+  /** Scanned business-card photo; set by the backend when the upload is confirmed. */
+  cardImageUrl?: string;
   initials: string;
   color: string;
   sourceCardId?: string | null;
@@ -13,4 +18,4 @@ export type Contact = {
   updatedAt?: string;
 };
 
-export type ContactInput = Omit<Contact, 'id' | 'createdAt' | 'updatedAt'>;
+export type ContactInput = Omit<Contact, 'id' | 'createdAt' | 'updatedAt' | 'cardImageUrl'>;

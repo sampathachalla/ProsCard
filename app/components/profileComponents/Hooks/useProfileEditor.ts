@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 import type { Profile, ProfileFieldKey, SocialFieldKey } from '../types/profile.types';
 import { DEFAULT_PROFILE, getProfile, profileIsOffline, saveProfile } from '../Services/profileService';
-import { validateProfile } from '../Utils/validateProfile';
+import { validateProfile, type ProfileValidationSection } from '../Utils/validateProfile';
 
 export function useProfileEditor() {
   const [profile, setProfile] = useState<Profile>(DEFAULT_PROFILE);
@@ -51,7 +51,7 @@ export function useProfileEditor() {
     setDraft((prev) => ({ ...prev, social: { ...prev.social, [field]: value } }));
   };
 
-  const submit = async () => {
+  const submit = async (section: ProfileValidationSection = 'all', sectionLabel?: string) => {
     if (profileIsOffline()) {
       Alert.alert('You are offline', 'Reconnect before saving profile changes.');
       return false;
@@ -61,15 +61,16 @@ export function useProfileEditor() {
       .filter(Boolean)
       .join(' ') || draft.fullName.trim();
     const normalizedDraft = { ...draft, fullName };
-    const error = validateProfile(normalizedDraft);
+    const error = validateProfile(normalizedDraft, section);
     if (error) {
-      Alert.alert('Check your details', error);
+      Alert.alert(sectionLabel ? `Check ${sectionLabel.toLowerCase()}` : 'Check your details', error);
       return false;
     }
     setIsSaving(true);
     try {
       const saved = await saveProfile(normalizedDraft);
       setProfile(saved);
+      setDraft(saved);
       setIsEditing(false);
       return true;
     } catch (err) {
@@ -89,6 +90,7 @@ export function useProfileEditor() {
     offline: profileIsOffline(),
     startEditing,
     cancelEditing,
+    resetDraft: cancelEditing,
     updateField,
     updateSocial,
     submit,

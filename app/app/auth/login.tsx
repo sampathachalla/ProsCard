@@ -1,4 +1,4 @@
-import { Alert, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { BrandLogo } from '@/components/uiComponents/BrandLogo';
@@ -9,6 +9,7 @@ import { AuthScreenShell } from '@/components/authComponents/Components/AuthScre
 import { AuthSoftInput } from '@/components/authComponents/Components/AuthSoftInput';
 import { AuthFooterSwitch } from '@/components/authComponents/Components/AuthFooterSwitch';
 import { useLogin } from '@/components/authComponents/Hooks/useLogin';
+import { useGoogleAuth } from '@/components/authComponents/Hooks/useGoogleAuth';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -21,6 +22,7 @@ export default function LoginScreen() {
     isSubmitting,
     handleLogin,
   } = useLogin();
+  const { handleGoogleAuth, isGoogleSubmitting } = useGoogleAuth('login');
 
   return (
     <AuthScreenShell
@@ -93,15 +95,14 @@ export default function LoginScreen() {
         </View>
 
         <Pressable
-          onPress={() =>
-            Alert.alert('Google Sign-In', 'Google sign-in isn\'t available yet — please continue with email and password.')
-          }
+          onPress={handleGoogleAuth}
+          disabled={isSubmitting || isGoogleSubmitting}
           accessibilityRole="button"
           accessibilityLabel="Continue with Google"
           className="items-center py-2 active:opacity-70"
         >
           <Text className="text-[14px] font-semibold text-sky-700 dark:text-sky-400">
-            Continue with Google
+            {isGoogleSubmitting ? 'Connecting to Google…' : 'Continue with Google'}
           </Text>
         </Pressable>
         </Animated.View>

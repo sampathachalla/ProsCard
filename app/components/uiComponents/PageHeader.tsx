@@ -35,7 +35,7 @@ export function PageHeader({
     if (router.canGoBack()) {
       router.back();
     } else {
-      router.replace('/homepage');
+      router.replace('/(tabs)/homepage');
     }
   };
 

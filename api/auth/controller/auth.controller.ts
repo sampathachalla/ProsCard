@@ -2,7 +2,7 @@ import type { Request, Response } from 'express';
 import type { AuthenticatedRequest } from '../../src/types.js';
 import type { AuthService } from '../services/auth.service.js';
 import { HttpError } from '../../src/errors.js';
-import { credentialsSchema, forgotPasswordSchema, newPasswordSchema, refreshSchema } from '../utils/auth.schemas.js';
+import { credentialsSchema, forgotPasswordSchema, newPasswordSchema, oauthRedirectSchema, refreshSchema } from '../utils/auth.schemas.js';
 
 export class AuthController {
   constructor(private readonly service: AuthService) {}
@@ -13,6 +13,10 @@ export class AuthController {
   login = async (request: Request, response: Response) => {
     const input = credentialsSchema.parse(request.body);
     response.json(await this.service.login(input.email, input.password));
+  };
+  google = async (request: Request, response: Response) => {
+    const input = oauthRedirectSchema.parse(request.body);
+    response.json(await this.service.googleOAuthUrl(input.redirectTo));
   };
   forgotPassword = async (request: Request, response: Response) => {
     const input = forgotPasswordSchema.parse(request.body);

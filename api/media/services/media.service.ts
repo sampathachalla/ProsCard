@@ -3,17 +3,25 @@ import { HttpError } from '../../src/errors.js';
 import type { MediaKind, MediaRepository, MediaRow, MediaScope } from '../repository/media.repository.js';
 import type { ObjectStorageGateway } from './oci-storage.service.js';
 
-const profileField: Record<MediaKind, string> = {
+type ProfileMediaKind = Exclude<MediaKind, 'contactCard'>;
+const profileField: Record<ProfileMediaKind, string> = {
   profilePhoto: 'photoUrl', coverPhoto: 'coverPhotoUrl', companyLogo: 'companyLogoUrl',
 };
-const cardField: Record<MediaKind, string> = {
+const cardField: Record<ProfileMediaKind, string> = {
   profilePhoto: 'profilePhoto', coverPhoto: 'coverPhoto', companyLogo: 'logo',
 };
-const fieldFor = (row: Pick<MediaRow, 'attachment_scope' | 'kind'>) =>
-  row.attachment_scope === 'profile' ? profileField[row.kind] : cardField[row.kind];
+/** Contact data field that holds the scanned business-card photo. */
+export const CONTACT_CARD_FIELD = 'cardImageUrl';
+const fieldFor = (row: Pick<MediaRow, 'attachment_scope' | 'kind'>) => {
+  if (row.attachment_scope === 'contact' || row.kind === 'contactCard') return CONTACT_CARD_FIELD;
+  const kind = row.kind as ProfileMediaKind;
+  return row.attachment_scope === 'profile' ? profileField[kind] : cardField[kind];
+};
+const targetIdFor = (row: Pick<MediaRow, 'attachment_scope' | 'card_id' | 'contact_id'>) =>
+  (row.attachment_scope === 'contact' ? row.contact_id : row.card_id) ?? undefined;
 
 type UploadInput = {
-  kind: MediaKind; scope: MediaScope; cardId?: string;
+  kind: MediaKind; scope: MediaScope; cardId?: string; contactId?: string;
   fileName: string; contentType: string; sizeBytes?: number;
 };
 
@@ -24,15 +32,19 @@ export class MediaService {
     if (input.scope === 'card' && (!input.cardId || !await this.repo.cardOwned(userId, input.cardId))) {
       throw new HttpError(404, 'Card not found.');
     }
-    const target = input.scope === 'card' ? `cards/${input.cardId}` : 'profile';
+    if (input.scope === 'contact' && (!input.contactId || !await this.repo.contactOwned(userId, input.contactId))) {
+      throw new HttpError(404, 'Contact not found.');
+    }
+    const target = input.scope === 'card' ? `cards/${input.cardId}`
+      : input.scope === 'contact' ? `contacts/${input.contactId}` : 'profile';
     const objectName = `users/${userId}/${target}/${input.kind}/${randomUUID()}-${input.fileName}`;
     const row = await this.repo.create(
       userId, objectName, input.kind, input.contentType, input.fileName,
-      input.sizeBytes, input.scope, input.cardId,
+      input.sizeBytes, input.scope, input.cardId, input.contactId,
     );
     const signed = await this.storage.createUploadUrl(objectName);
     return {
-      mediaId: row.id, kind: input.kind, scope: input.scope, cardId: input.cardId,
+      mediaId: row.id, kind: input.kind, scope: input.scope, cardId: input.cardId, contactId: input.contactId,
       status: row.status, objectName, method: 'PUT', headers: { 'Content-Type': input.contentType }, ...signed,
     };
   }
@@ -45,8 +57,11 @@ export class MediaService {
     if (row.attachment_scope === 'card' && (!row.card_id || !await this.repo.cardOwned(userId, row.card_id))) {
       throw new HttpError(404, 'Card not found.');
     }
+    if (row.attachment_scope === 'contact' && (!row.contact_id || !await this.repo.contactOwned(userId, row.contact_id))) {
+      throw new HttpError(404, 'Contact not found.');
+    }
     const field = fieldFor(row);
-    const previous = await this.repo.findAttached(userId, row.attachment_scope, field, row.card_id ?? undefined);
+    const previous = await this.repo.findAttached(userId, row.attachment_scope, field, targetIdFor(row));
     const ready = await this.repo.ready(userId, id);
     await this.repo.attach(ready!, field);
     let replacedMediaId: string | undefined;
@@ -62,9 +77,10 @@ export class MediaService {
       }
     }
     return {
-      mediaId: id, kind: row.kind, scope: row.attachment_scope, cardId: row.card_id,
+      mediaId: id, kind: row.kind, scope: row.attachment_scope, cardId: row.card_id, contactId: row.contact_id,
       status: ready!.status, profileField: row.attachment_scope === 'profile' ? field : undefined,
       cardField: row.attachment_scope === 'card' ? field : undefined,
+      contactField: row.attachment_scope === 'contact' ? field : undefined,
       contentUrl: `/api/v1/media/${id}/content`, replacedMediaId, cleanupPending,
     };
   }
@@ -95,6 +111,19 @@ export class MediaService {
       } catch {
         await this.repo.cleanupFailed(userId, row.id);
         await this.repo.clearCardId(userId, row.id);
+      }
+    }
+  }
+
+  async cleanupContact(userId: string, contactId: string) {
+    const rows = await this.repo.contactMedia(userId, contactId);
+    for (const row of rows) {
+      try {
+        await this.storage.deleteObject(row.object_name);
+        await this.repo.delete(userId, row.id);
+      } catch {
+        await this.repo.cleanupFailed(userId, row.id);
+        await this.repo.clearContactId(userId, row.id);
       }
     }
   }

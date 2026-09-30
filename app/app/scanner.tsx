@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
-  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -10,14 +9,15 @@ import {
 } from 'react-native';
 import { CameraView } from 'expo-camera';
 import { useRouter } from 'expo-router';
-import { Check, ChevronLeft, MoreHorizontal, RotateCcw, ScanLine } from 'lucide-react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Check, ChevronLeft, ImagePlus, RotateCcw, ScanLine } from 'lucide-react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/Colors';
 import { PermissionGate } from '../components/scannerComponents/Components/PermissionGate';
 import { ScannerTopPanel } from '../components/scannerComponents/Components/ScannerTopPanel';
 import { useScanner } from '../components/scannerComponents/Hooks/useScanner';
 import { PageHeader } from '@/components/uiComponents/PageHeader';
-import { pickImageFromLibrary } from '@/components/uiComponents/usePickImage';
+import { useCardCapture } from '../components/scannerComponents/Hooks/useCardCapture';
+import { isDocumentScannerAvailable } from '../components/scannerComponents/Services/cardCaptureService';
 import { lookupScannedCard } from '../components/scannerComponents/Services/scannerService';
 import type { SharedCard } from '@/components/sharingComponents/Services/sharingService';
 
@@ -29,12 +29,12 @@ export default function ScannerScreen() {
   const cameraRef = useRef<CameraView>(null);
   const processingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [stage, setStage] = useState<ScanStage>('camera');
-  const [capturedUri, setCapturedUri] = useState<string | null>(null);
   const [scanData, setScanData] = useState<string | null>(null);
   const [scannedCard, setScannedCard] = useState<SharedCard | null>(null);
   const [lookupError, setLookupError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const { permission, requestPermission, isActive, handleBarcodeScanned, resumeScanning, saveContact } = useScanner();
+  const { busy: capturing, startContactFromCard, openNewContact } = useCardCapture();
 
   useEffect(
     () => () => {
@@ -48,18 +48,24 @@ export default function ScannerScreen() {
     else router.replace('/(tabs)/homepage');
   };
 
-  const finishProcessing = (data: string | null, uri: string | null) => {
+  const finishProcessing = (data: string) => {
     setScanData(data);
-    setCapturedUri(uri);
     setStage('processing');
     processingTimer.current = setTimeout(() => setStage('result'), 2400);
   };
 
+  /** Photos go to the new-contact form; the native scanner detects the card edges when available. */
   const captureCard = async () => {
-    if (!cameraRef.current || stage !== 'camera') return;
+    if (stage !== 'camera' || capturing) return;
+    if (isDocumentScannerAvailable()) {
+      await startContactFromCard('scan', { replace: true });
+      return;
+    }
+    // Expo Go has no native scanner, so fall back to a plain photo from the live preview.
+    if (!cameraRef.current) return;
     try {
       const photo = await cameraRef.current.takePictureAsync({ quality: 0.82, skipProcessing: false });
-      if (photo?.uri) finishProcessing(null, photo.uri);
+      if (photo?.uri) openNewContact({ uri: photo.uri, source: 'camera', edgeDetected: false, mimeType: 'image/jpeg' }, { replace: true });
     } catch {
       // Keep the live preview open if capture is interrupted.
       Alert.alert('Capture Failed', 'Could not take the photo. Please try again.');
@@ -67,16 +73,15 @@ export default function ScannerScreen() {
   };
 
   const openLibrary = async () => {
-    if (stage !== 'camera') return;
-    const uri = await pickImageFromLibrary({ allowsEditing: false });
-    if (uri) finishProcessing(null, uri);
+    if (stage !== 'camera' || capturing) return;
+    await startContactFromCard('library', { replace: true });
   };
 
   const processDetectedCode = (data: string) => {
     handleBarcodeScanned(
       { data, type: 'qr', cornerPoints: [], bounds: { origin: { x: 0, y: 0 }, size: { width: 0, height: 0 } } },
       () => {
-        finishProcessing(data, null);
+        finishProcessing(data);
         lookupScannedCard(data)
           .then(setScannedCard)
           .catch((reason) => setLookupError(reason instanceof Error ? reason.message : 'Could not read this card.'));
@@ -87,7 +92,6 @@ export default function ScannerScreen() {
   const resetScanner = () => {
     if (processingTimer.current) clearTimeout(processingTimer.current);
     processingTimer.current = null;
-    setCapturedUri(null);
     setScanData(null);
     setScannedCard(null);
     setLookupError(null);
@@ -96,26 +100,17 @@ export default function ScannerScreen() {
   };
 
   const confirmResult = async () => {
-    if (scanData) {
-      if (!scannedCard || saving) return;
-      setSaving(true);
-      try {
-        await saveContact(scannedCard);
-      } catch (reason) {
-        Alert.alert('Save Failed', reason instanceof Error ? reason.message : 'Could not save this contact. Please try again.');
-        return;
-      } finally {
-        setSaving(false);
-      }
+    if (!scannedCard || saving) return;
+    setSaving(true);
+    try {
+      await saveContact(scannedCard);
+    } catch (reason) {
+      Alert.alert('Save Failed', reason instanceof Error ? reason.message : 'Could not save this contact. Please try again.');
+      return;
+    } finally {
+      setSaving(false);
     }
     router.replace('/(tabs)/contactsPage');
-  };
-
-  const showMoreOptions = () => {
-    Alert.alert('Scan options', undefined, [
-      { text: 'Choose from Library', onPress: openLibrary },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
   };
 
   if (!permission) return <View style={styles.screen} />;
@@ -132,9 +127,9 @@ export default function ScannerScreen() {
   return (
     <View style={styles.screen}>
       {/* Top: status / processing animation */}
-      <View style={[styles.topPane, { paddingTop: insets.top + 8 }]}>
+      <SafeAreaView edges={['top']} style={styles.topPane}>
         <ScannerTopPanel stage={stage} hasScanData={Boolean(scanData)} />
-      </View>
+      </SafeAreaView>
 
       {/* Bottom: live camera */}
       <View style={[styles.bottomPane, { paddingBottom: Math.max(insets.bottom, 12) }]}>
@@ -144,11 +139,10 @@ export default function ScannerScreen() {
               ref={cameraRef}
               style={StyleSheet.absoluteFill}
               facing="back"
+              active={!capturing}
               barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
               onBarcodeScanned={isActive ? ({ data }) => processDetectedCode(data) : undefined}
             />
-          ) : capturedUri ? (
-            <Image source={{ uri: capturedUri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
           ) : (
             <View style={styles.detectedPlaceholder}>
               <ScanLine color={Colors.palette.brandCyanLight} size={52} strokeWidth={1.4} />
@@ -162,12 +156,10 @@ export default function ScannerScreen() {
                 <Check color={Colors.palette.successLight} size={22} strokeWidth={3} />
               </View>
               <Text style={styles.resultTitle}>
-                {!scanData ? 'Card photo is ready' : lookupError ? 'Card not recognized' : scannedCard ? scannedCard.name : 'Looking up card…'}
+                {lookupError ? 'Card not recognized' : scannedCard ? scannedCard.name : 'Looking up card…'}
               </Text>
               <Text style={styles.resultValue} numberOfLines={3}>
-                {!scanData
-                  ? 'Review the captured image, then continue to your collected contact cards.'
-                  : lookupError ?? (scannedCard ? [scannedCard.title, scannedCard.company].filter(Boolean).join(' · ') : ' ')}
+                {lookupError ?? (scannedCard ? [scannedCard.title, scannedCard.company].filter(Boolean).join(' · ') : ' ')}
               </Text>
               <View style={styles.resultActions}>
                 <Pressable onPress={resetScanner} style={styles.secondaryAction}>
@@ -176,11 +168,11 @@ export default function ScannerScreen() {
                 </Pressable>
                 <Pressable
                   onPress={confirmResult}
-                  disabled={Boolean(scanData) && (!scannedCard || saving)}
-                  style={[styles.primaryAction, Boolean(scanData) && (!scannedCard || saving) && { opacity: 0.5 }]}
+                  disabled={!scannedCard || saving}
+                  style={[styles.primaryAction, (!scannedCard || saving) && { opacity: 0.5 }]}
                 >
                   <Check color="#FFFFFF" size={18} strokeWidth={2.6} />
-                  <Text style={styles.primaryActionText}>{scanData ? (saving ? 'Saving…' : 'Save card') : 'Use photo'}</Text>
+                  <Text style={styles.primaryActionText}>{saving ? 'Saving…' : 'Save card'}</Text>
                 </Pressable>
               </View>
             </View>
@@ -192,12 +184,12 @@ export default function ScannerScreen() {
                 <ChevronLeft color="#FFFFFF" size={26} strokeWidth={2.2} />
               </TouchableOpacity>
 
-              <TouchableOpacity accessibilityLabel="Capture card" onPress={captureCard} style={styles.shutterOuter}>
+              <TouchableOpacity accessibilityLabel="Scan business card" disabled={capturing} onPress={captureCard} style={[styles.shutterOuter, capturing && { opacity: 0.5 }]}>
                 <View style={styles.shutterInner} />
               </TouchableOpacity>
 
-              <TouchableOpacity accessibilityLabel="More options" onPress={showMoreOptions} style={styles.sideButton}>
-                <MoreHorizontal color="#FFFFFF" size={22} strokeWidth={2.2} />
+              <TouchableOpacity accessibilityLabel="Upload card photo" disabled={capturing} onPress={openLibrary} style={styles.sideButton}>
+                <ImagePlus color="#FFFFFF" size={22} strokeWidth={2.2} />
               </TouchableOpacity>
             </View>
           )}
@@ -214,6 +206,7 @@ const styles = StyleSheet.create({
   },
   topPane: {
     flex: 0.42,
+    paddingTop: 12,
   },
   bottomPane: {
     flex: 0.58,

@@ -18,6 +18,9 @@ export class AuthService {
   async login(email: string, password: string) {
     return responsePayload(await this.repository.login(email, password));
   }
+  async googleOAuthUrl(redirectTo: string) {
+    return { url: await this.repository.googleOAuthUrl(redirectTo) };
+  }
   async forgotPassword(email: string) {
     await this.repository.requestPasswordReset(email);
     return { message: 'If an account exists, password reset instructions have been sent.' };

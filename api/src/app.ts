@@ -17,11 +17,12 @@ import { ContactRepository } from '../contacts/repository/contact.repository.js'
 import { OnboardingRepository } from '../onboarding/repository/onboarding.repository.js'; import { OnboardingService } from '../onboarding/services/onboarding.service.js'; import { OnboardingController } from '../onboarding/controller/onboarding.controller.js'; import { createOnboardingRouter } from '../onboarding/router/onboarding.router.js';
 import { SharingRepository } from '../sharing/repository/sharing.repository.js'; import { SharingService } from '../sharing/services/sharing.service.js'; import { SharingController } from '../sharing/controller/sharing.controller.js'; import { createSharingRouter } from '../sharing/router/sharing.router.js';
 import { MediaRepository } from '../media/repository/media.repository.js'; import { MediaService } from '../media/services/media.service.js'; import { MediaController } from '../media/controller/media.controller.js'; import { createMediaRouter } from '../media/router/media.router.js';
+import { ScannerService } from '../scanner/services/scanner.service.js'; import { ScannerController } from '../scanner/controller/scanner.controller.js'; import { createScannerRouter } from '../scanner/router/scanner.router.js'; import type { CardReaderGateway } from '../scanner/services/openai-card-reader.service.js';
 import { AccountRepository } from '../account/repository/account.repository.js'; import { AccountService } from '../account/services/account.service.js'; import { AccountController } from '../account/controller/account.controller.js'; import { createAccountRouter } from '../account/router/account.router.js';
 
-export type AppDependencies={db:Queryable;supabase:SupabaseClient;storage:ObjectStorageGateway;corsOrigins?:string[];authRateLimitMax?:number;passwordResetRedirectUrl?:string};
+export type AppDependencies={db:Queryable;supabase:SupabaseClient;storage:ObjectStorageGateway;corsOrigins?:string[];authRateLimitMax?:number;passwordResetRedirectUrl?:string;cardReader?:CardReaderGateway;scannerRateLimitMax?:number};
 export function createApp(deps:AppDependencies){
-  const app=express();app.disable('x-powered-by');app.use(helmet());app.use(requestLogger);app.use(cors({origin(origin,callback){if(!origin||!deps.corsOrigins?.length||deps.corsOrigins.includes(origin))return callback(null,true);callback(new HttpError(403,'Origin is not allowed.'))}}));app.use(express.json({limit:'1mb'}));
+  const app=express();app.disable('x-powered-by');app.use(helmet());app.use(requestLogger);app.use(cors({origin(origin,callback){if(!origin||!deps.corsOrigins?.length||deps.corsOrigins.includes(origin))return callback(null,true);callback(new HttpError(403,'Origin is not allowed.'))}}));app.use('/api/v1/scanner',express.json({limit:'8mb'}));app.use(express.json({limit:'1mb'}));
   const auth=createAuthenticator(deps.supabase);
   app.get('/health',(_q,r)=>r.json({status:'ok'}));
   app.get('/ready',asyncHandler(async(_q,r)=>{await deps.db.query('SELECT 1');r.json({status:'ready',database:'ok'})}));
@@ -30,9 +31,10 @@ export function createApp(deps:AppDependencies){
   app.use('/api/v1/auth',rateLimit({windowMs:60_000,limit:deps.authRateLimitMax??20,standardHeaders:'draft-8',legacyHeaders:false,message:{message:'Too many authentication requests. Try again shortly.'}}),createAuthRouter(new AuthController(new AuthService(new AuthRepository(deps.supabase,deps.passwordResetRedirectUrl))),auth));
   app.use('/api/v1/profiles',createProfileRouter(auth,new ProfileController(new ProfileService(new ProfileRepository(deps.db)))));
   app.use('/api/v1/cards',createCardRouter(auth,new CardController(new CardService(new CardRepository(deps.db),mediaService))));
-  app.use('/api/v1/contacts',createContactRouter(auth,new ContactController(new ContactService(new ContactRepository(deps.db)))));
+  app.use('/api/v1/contacts',createContactRouter(auth,new ContactController(new ContactService(new ContactRepository(deps.db),mediaService))));
   app.use('/api/v1/onboarding',createOnboardingRouter(auth,new OnboardingController(new OnboardingService(new OnboardingRepository(deps.db)))));
   app.use('/api/v1/sharing',createSharingRouter(auth,new SharingController(new SharingService(new SharingRepository(deps.db)))));
+  app.use('/api/v1/scanner',createScannerRouter(auth,rateLimit({windowMs:60_000,limit:deps.scannerRateLimitMax??20,standardHeaders:'draft-8',legacyHeaders:false,message:{message:'Too many card scans. Try again shortly.'}}),new ScannerController(new ScannerService(deps.cardReader))));
   app.use('/api/v1/media',createMediaRouter(auth,new MediaController(mediaService)));
   app.use('/api/v1/account',createAccountRouter(auth,new AccountController(new AccountService(new AccountRepository(deps.db,deps.supabase),mediaService))));
   app.use((_q,r)=>r.status(404).json({message:'Route not found.'}));app.use(errorHandler);return app;

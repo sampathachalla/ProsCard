@@ -49,6 +49,7 @@ export function normalizeCard(card: BusinessCard | (Omit<BusinessCard, 'sectionL
   const defaultThemes = createDefaultCardSectionThemes(cardTheme);
   return {
     ...card,
+    isPrimary: card.isPrimary ?? false,
     sectionLayouts: { ...DEFAULT_CARD_SECTION_LAYOUTS, ...(card.sectionLayouts ?? {}) },
     sectionOverrides: { ...(card.sectionOverrides ?? {}) },
     connectionFields: Array.isArray(card.connectionFields) ? card.connectionFields : [],
@@ -70,6 +71,7 @@ export function normalizeCard(card: BusinessCard | (Omit<BusinessCard, 'sectionL
 export const CARDS: BusinessCard[] = AUTH_TEST_MODE ? [
   {
     id: '1',
+    isPrimary: true,
     category: 'Professional',
     name: 'Dr. Sampath Kumar Achalla PhD',
     title: 'FDE',
@@ -202,6 +204,14 @@ export function subscribeCards(listener: CardsListener): () => void {
 
 export function notifyCardListeners(): void {
   const current = getCards();
+  // Keep both the collection screen and any already-mounted card detail screen
+  // on the same object after an edit. Card detail queries use a separate cache
+  // key and otherwise remain fresh for their stale-time window, showing the
+  // pre-edit layout when the editor is popped.
+  queryClient.setQueryData<BusinessCard[]>(queryKeys.cards, [...current]);
+  current.forEach((card) => {
+    queryClient.setQueryData<BusinessCard>(queryKeys.card(card.id), card);
+  });
   listeners.forEach((listener) => {
     try {
       listener(current);
@@ -435,6 +445,8 @@ function isServerCardId(id: string): boolean {
 }
 
 export async function deleteCard(cardId: string): Promise<void> {
+  const card = CARDS.find((item) => item.id === cardId);
+  if (card?.isPrimary) throw new Error('The primary card cannot be deleted. Make another card primary first.');
   if (!AUTH_TEST_MODE) {
     await apiRequest(`/cards/${encodeURIComponent(cardId)}`, { method: 'DELETE' });
   }
@@ -443,4 +455,22 @@ export async function deleteCard(cardId: string): Promise<void> {
   await AsyncStorage.setItem(await scopedCardKey(USER_CARDS_KEY), JSON.stringify(CARDS));
   notifyCardListeners();
   queryClient.removeQueries({ queryKey: queryKeys.card(cardId) });
+}
+
+export async function setPrimaryCard(cardId: string): Promise<BusinessCard> {
+  const existing = CARDS.find((card) => card.id === cardId);
+  if (!existing) throw new Error('Card not found.');
+  const primary = AUTH_TEST_MODE
+    ? normalizeCard({ ...existing, isPrimary: true })
+    : normalizeCard(await apiRequest<BusinessCard>(`/cards/${encodeURIComponent(cardId)}/primary`, { method: 'PUT' }));
+  for (let index = 0; index < CARDS.length; index += 1) {
+    CARDS[index] = normalizeCard({ ...CARDS[index], isPrimary: CARDS[index].id === cardId });
+  }
+  CARDS.sort((left, right) => Number(Boolean(right.isPrimary)) - Number(Boolean(left.isPrimary)));
+  await Promise.all([
+    AsyncStorage.setItem(await scopedCardKey(PRIMARY_CARD_KEY), JSON.stringify(primary)),
+    AsyncStorage.setItem(await scopedCardKey(USER_CARDS_KEY), JSON.stringify(CARDS)),
+  ]);
+  notifyCardListeners();
+  return primary;
 }

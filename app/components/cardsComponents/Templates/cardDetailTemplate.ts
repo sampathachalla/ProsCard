@@ -1,27 +1,6 @@
 import type { BusinessCard, CardSectionId, CardTemplateId, DynamicCardField } from '../types/card.types';
 import type { Profile } from '@/components/profileComponents/types/profile.types';
 
-export const DUMMY_CARD_MEDIA = {
-  coverPhoto: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1400&q=80',
-  profilePhoto: 'https://i.pravatar.cc/600?img=12',
-  logo: '',
-} as const;
-
-export const DUMMY_CARD_PROFESSIONAL = {
-  title: 'FDE',
-  company: 'MindPros Technologies',
-  tagline: 'Building next-generation digital networking tools for visionary professionals worldwide.',
-  accreditations: 'MBA, AWS Certified Architect, PMP',
-  prefix: 'Dr.',
-  firstName: 'Sampath',
-  middleName: 'Kumar',
-  lastName: 'Achalla',
-  suffix: 'PhD',
-} as const;
-
-export const DUMMY_CARD_BIO =
-  'Product builder focused on creating thoughtful digital experiences that help professionals connect, share their work, and build meaningful relationships across global ecosystems.';
-
 export type CardDetailFieldType = 'text' | 'image' | 'multiline' | 'email' | 'phone' | 'url';
 
 export type CardDetailField = {
@@ -44,19 +23,19 @@ function override(card: BusinessCard, id: keyof BusinessCard['sectionOverrides']
 
 function defaultConnections(card: BusinessCard, profile: Profile): DynamicCardField[] {
   return [
-    { id: 'email', title: 'Email', type: 'email', value: profile.email || card.email || 'sampath@proscard.app' },
-    { id: 'phone', title: 'Phone', type: 'phone', value: profile.phone || card.phone || '+1 (555) 010-2030' },
-    { id: 'website', title: 'Website', type: 'url', value: profile.website || 'https://proscard.app' },
-    { id: 'address', title: 'Address', type: 'text', value: profile.businessAddress || 'San Francisco, CA' },
-    { id: 'linkedin', title: 'LinkedIn', type: 'url', value: profile.social?.linkedin || 'https://linkedin.com/in/sampath' },
-    { id: 'x', title: 'X', type: 'url', value: profile.social?.x || 'https://x.com/sampath' },
-    { id: 'github', title: 'GitHub', type: 'url', value: profile.social?.github || 'https://github.com/sampath' },
-    { id: 'portfolio', title: 'Portfolio', type: 'url', value: profile.social?.portfolio || 'https://sampath.dev' },
-    { id: 'instagram', title: 'Instagram', type: 'url', value: profile.social?.instagram || 'https://instagram.com/sampath' },
-    { id: 'whatsapp', title: 'WhatsApp', type: 'url', value: profile.social?.whatsapp || '+15550102030' },
-    { id: 'youtube', title: 'YouTube', type: 'url', value: profile.social?.youtube || 'https://youtube.com/@sampath' },
-    { id: 'facebook', title: 'Facebook', type: 'url', value: profile.social?.facebook || 'https://facebook.com/sampath' },
-    { id: 'tiktok', title: 'TikTok', type: 'url', value: profile.social?.tiktok || 'https://tiktok.com/@sampath' },
+    { id: 'email', title: 'Email', type: 'email', value: profile.email || card.email || '' },
+    { id: 'phone', title: 'Phone', type: 'phone', value: profile.phone || card.phone || '' },
+    { id: 'website', title: 'Website', type: 'url', value: profile.website || '' },
+    { id: 'address', title: 'Address', type: 'text', value: profile.businessAddress || '' },
+    { id: 'linkedin', title: 'LinkedIn', type: 'url', value: profile.social?.linkedin || '' },
+    { id: 'x', title: 'X', type: 'url', value: profile.social?.x || '' },
+    { id: 'github', title: 'GitHub', type: 'url', value: profile.social?.github || '' },
+    { id: 'portfolio', title: 'Portfolio', type: 'url', value: profile.social?.portfolio || '' },
+    { id: 'instagram', title: 'Instagram', type: 'url', value: profile.social?.instagram || '' },
+    { id: 'whatsapp', title: 'WhatsApp', type: 'url', value: profile.social?.whatsapp || '' },
+    { id: 'youtube', title: 'YouTube', type: 'url', value: profile.social?.youtube || '' },
+    { id: 'facebook', title: 'Facebook', type: 'url', value: profile.social?.facebook || '' },
+    { id: 'tiktok', title: 'TikTok', type: 'url', value: profile.social?.tiktok || '' },
   ];
 }
 
@@ -64,8 +43,9 @@ export function createCardDetailTemplate(
   card: BusinessCard,
   profile: Profile,
 ): CardDetailSection[] {
-  const fallbackFirstName = card.name?.split(' ')[0] || DUMMY_CARD_PROFESSIONAL.firstName;
-  const fallbackLastName = card.name?.split(' ').slice(1).join(' ') || DUMMY_CARD_PROFESSIONAL.lastName;
+  // Empty profile fields stay empty (renderers show neutral placeholders), never demo data.
+  const fallbackFirstName = card.name?.split(' ')[0] || '';
+  const fallbackLastName = card.name?.split(' ').slice(1).join(' ') || '';
 
   return [
     {
@@ -77,25 +57,25 @@ export function createCardDetailTemplate(
           id: 'preferredName',
           title: 'Preferred name',
           type: 'text',
-          value: override(card, 'preferredName', profile.preferredName || card.name || 'Sampath Achalla'),
+          value: override(card, 'preferredName', profile.preferredName || card.name || ''),
         },
         {
           id: 'coverPhoto',
           title: 'Cover photo',
           type: 'image',
-          value: override(card, 'coverPhoto', profile.coverPhotoUrl || DUMMY_CARD_MEDIA.coverPhoto),
+          value: override(card, 'coverPhoto', profile.coverPhotoUrl || ''),
         },
         {
           id: 'profilePhoto',
           title: 'Profile photo',
           type: 'image',
-          value: override(card, 'profilePhoto', profile.photoUrl || DUMMY_CARD_MEDIA.profilePhoto),
+          value: override(card, 'profilePhoto', profile.photoUrl || ''),
         },
         {
           id: 'logo',
           title: 'Logo',
           type: 'image',
-          value: override(card, 'logo', profile.companyLogoUrl || DUMMY_CARD_MEDIA.logo),
+          value: override(card, 'logo', profile.companyLogoUrl || ''),
         },
       ],
     },
@@ -108,31 +88,31 @@ export function createCardDetailTemplate(
           id: 'title',
           title: 'Job title',
           type: 'text',
-          value: override(card, 'title', profile.title || card.title || DUMMY_CARD_PROFESSIONAL.title),
+          value: override(card, 'title', profile.title || card.title || ''),
         },
         {
           id: 'company',
           title: 'Company name',
           type: 'text',
-          value: override(card, 'company', profile.organization || card.company || DUMMY_CARD_PROFESSIONAL.company),
+          value: override(card, 'company', profile.organization || card.company || ''),
         },
         {
           id: 'tagline',
           title: 'Tagline',
           type: 'text',
-          value: override(card, 'tagline', profile.tagline || DUMMY_CARD_PROFESSIONAL.tagline),
+          value: override(card, 'tagline', profile.tagline || ''),
         },
         {
           id: 'accreditations',
           title: 'Accreditations',
           type: 'text',
-          value: override(card, 'accreditations', profile.accreditations || DUMMY_CARD_PROFESSIONAL.accreditations),
+          value: override(card, 'accreditations', profile.accreditations || ''),
         },
         {
           id: 'prefix',
           title: 'Prefix',
           type: 'text',
-          value: override(card, 'prefix', profile.prefix || DUMMY_CARD_PROFESSIONAL.prefix),
+          value: override(card, 'prefix', profile.prefix || ''),
         },
         {
           id: 'firstName',
@@ -144,7 +124,7 @@ export function createCardDetailTemplate(
           id: 'middleName',
           title: 'Middle name',
           type: 'text',
-          value: override(card, 'middleName', profile.middleName || DUMMY_CARD_PROFESSIONAL.middleName),
+          value: override(card, 'middleName', profile.middleName || ''),
         },
         {
           id: 'lastName',
@@ -156,7 +136,7 @@ export function createCardDetailTemplate(
           id: 'suffix',
           title: 'Suffix',
           type: 'text',
-          value: override(card, 'suffix', profile.suffix || DUMMY_CARD_PROFESSIONAL.suffix),
+          value: override(card, 'suffix', profile.suffix || ''),
         },
       ],
     },
@@ -169,7 +149,7 @@ export function createCardDetailTemplate(
           id: 'bio',
           title: 'Bio',
           type: 'multiline',
-          value: override(card, 'bio', profile.shortBio || DUMMY_CARD_BIO),
+          value: override(card, 'bio', profile.shortBio || ''),
         },
       ],
     },

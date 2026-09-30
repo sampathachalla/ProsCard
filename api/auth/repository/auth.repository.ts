@@ -17,6 +17,16 @@ export class AuthRepository {
     return { user: data.user, session: data.session };
   }
 
+  async googleOAuthUrl(redirectTo: string) {
+    const { data, error } = await this.supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo, skipBrowserRedirect: true },
+    });
+    if (error) throw new HttpError(error.status ?? 400, error.message);
+    if (!data.url) throw new HttpError(502, 'Supabase did not return a Google authorization URL.');
+    return data.url;
+  }
+
   async requestPasswordReset(email: string) {
     const { error } = await this.supabase.auth.resetPasswordForEmail(email,this.resetRedirectUrl?{redirectTo:this.resetRedirectUrl}:undefined);
     if (error) throw new HttpError(error.status ?? 400, error.message);

@@ -14,6 +14,7 @@ const supabase={auth:{
   getUser:async(token:string)=>token==='test-token'?{data:{user:fakeUser},error:null}:{data:{user:null},error:{message:'invalid'}},
   signUp:async()=>({data:{user:fakeUser,session:fakeSession},error:null}),
   signInWithPassword:async()=>({data:{user:fakeUser,session:fakeSession},error:null}),
+  signInWithOAuth:async()=>({data:{provider:'google',url:'https://supabase.test/auth/v1/authorize?provider=google'},error:null}),
   resetPasswordForEmail:async()=>({data:{},error:null}),
   refreshSession:async()=>({data:{user:fakeUser,session:fakeSession},error:null}),
   admin:{signOut:async()=>({data:{},error:null}),updateUserById:async()=>({data:{user:fakeUser},error:null}),deleteUser:async()=>{deletedAuthUsers.push(userId);return{data:{user:fakeUser},error:null}}},
@@ -30,7 +31,8 @@ const storage:ObjectStorageGateway={
 
 const config=loadConfig();
 const pool=createPool(config);
-const app=createApp({db:pool,supabase,storage});
+const cardReader={read:async()=>({isBusinessCard:true,cardBounds:{x:0.1,y:0.1,width:0.8,height:0.5},rotation:0 as const,contact:{name:'Grace Hopper',title:'Rear Admiral',company:'US Navy',phone:'',email:'grace@navy.mil',website:'',address:'',notes:''}})};
+const app=createApp({db:pool,supabase,storage,cardReader});
 const auth={Authorization:'Bearer test-token'};
 let cardId='';let shareId='';let shareSlug='';let contactId='';let mediaId='';
 
@@ -51,6 +53,7 @@ describe('ProsCard API routes',()=>{
   it('supports signup, login, and password reset',async()=>{
     const signup=await request(app).post('/api/v1/auth/signup').send({email:'test@proscard.dev',password:'password123'});expect(signup.status).toBe(201);expect(signup.body.token).toBe('test-token');
     expect((await request(app).post('/api/v1/auth/login').send({email:'test@proscard.dev',password:'password123'})).status).toBe(200);
+    const google=await request(app).post('/api/v1/auth/google').send({redirectTo:'proscard://auth/callback'});expect(google.status).toBe(200);expect(google.body.url).toContain('provider=google');
     expect((await request(app).post('/api/v1/auth/forgot-password').send({email:'test@proscard.dev'})).status).toBe(202);
     expect((await request(app).post('/api/v1/auth/refresh').send({refreshToken:'refresh-token'})).body.token).toBe('test-token');
     expect((await request(app).post('/api/v1/auth/logout').set(auth)).status).toBe(200);
@@ -69,7 +72,7 @@ describe('ProsCard API routes',()=>{
     const done=await request(app).post('/api/v1/onboarding/complete').set(auth).send({step:5});expect(done.status).toBe(200);expect(done.body.completed).toBe(true);
   });
   it('covers card CRUD',async()=>{
-    const created=await request(app).post('/api/v1/cards').set(auth).send(card);expect(created.status).toBe(201);cardId=created.body.id;
+    const created=await request(app).post('/api/v1/cards').set(auth).send(card);expect(created.status).toBe(201);expect(created.body.isPrimary).toBe(true);cardId=created.body.id;
     expect((await request(app).get('/api/v1/cards').set(auth)).body).toHaveLength(1);
     expect((await request(app).get(`/api/v1/cards/${cardId}`).set(auth)).body.name).toBe('Ada Lovelace');
     expect((await request(app).put(`/api/v1/cards/${cardId}`).set(auth).send({title:'Programmer'})).body.title).toBe('Programmer');
@@ -80,12 +83,32 @@ describe('ProsCard API routes',()=>{
     expect((await request(app).delete(`/api/v1/sharing/${shareId}`).set(auth)).status).toBe(204);
     expect((await request(app).get(`/api/v1/sharing/public/${shareSlug}`)).status).toBe(404);
   });
+  it('reads business-card photos for signed-in users only',async()=>{
+    expect((await request(app).post('/api/v1/scanner/read').send({image:'aGVsbG8='})).status).toBe(401);
+    expect((await request(app).post('/api/v1/scanner/read').set(auth).send({image:'not base64!'})).status).toBe(400);
+    const read=await request(app).post('/api/v1/scanner/read').set(auth).send({image:'aGVsbG8=',mimeType:'image/jpeg'});expect(read.status).toBe(200);expect(read.body.contact.name).toBe('Grace Hopper');expect(read.body.cardBounds.width).toBe(0.8);
+    const large=await request(app).post('/api/v1/scanner/read').set(auth).send({image:'A'.repeat(2*1024*1024)});expect(large.status).toBe(200);
+    expect((await request(createApp({db:pool,supabase,storage})).post('/api/v1/scanner/read').set(auth).send({image:'aGVsbG8='})).status).toBe(503);
+  });
   it('covers contact CRUD',async()=>{
     const created=await request(app).post('/api/v1/contacts').set(auth).send({name:'Grace Hopper',title:'Admiral'});expect(created.status).toBe(201);contactId=created.body.id;
     expect((await request(app).get('/api/v1/contacts').set(auth)).body).toHaveLength(1);
     expect((await request(app).get(`/api/v1/contacts/${contactId}`).set(auth)).body.name).toBe('Grace Hopper');
     expect((await request(app).put(`/api/v1/contacts/${contactId}`).set(auth).send({company:'US Navy'})).body.company).toBe('US Navy');
     expect((await request(app).delete(`/api/v1/contacts/${contactId}`).set(auth)).status).toBe(204);
+  });
+  it('stores scanned card photos against a contact and removes them with it',async()=>{
+    const contact=await request(app).post('/api/v1/contacts').set(auth).send({name:'Katherine Johnson',website:'nasa.gov',notes:'Met at expo'});expect(contact.status).toBe(201);expect(contact.body.website).toBe('nasa.gov');
+    const id=contact.body.id as string;
+    const upload=await request(app).post('/api/v1/media/upload-url').set(auth).send({kind:'contactCard',scope:'contact',contactId:id,fileName:'card.jpg',contentType:'image/jpeg'});expect(upload.status).toBe(201);expect(upload.body.objectName).toContain(`/contacts/${id}/contactCard/`);
+    const confirmed=await request(app).post(`/api/v1/media/${upload.body.mediaId}/confirm`).set(auth);expect(confirmed.status).toBe(200);expect(confirmed.body.contactField).toBe('cardImageUrl');
+    expect((await request(app).get(`/api/v1/contacts/${id}`).set(auth)).body.cardImageUrl).toBe(`/api/v1/media/${upload.body.mediaId}/content`);
+    const retake=await request(app).post('/api/v1/media/upload-url').set(auth).send({kind:'contactCard',scope:'contact',contactId:id,fileName:'card-2.jpg',contentType:'image/jpeg'});
+    const replaced=await request(app).post(`/api/v1/media/${retake.body.mediaId}/confirm`).set(auth);expect(replaced.body.replacedMediaId).toBe(upload.body.mediaId);expect(deletedObjects).toContain(upload.body.objectName);
+    expect((await request(app).post('/api/v1/media/upload-url').set(auth).send({kind:'contactCard',scope:'contact',contactId:'00000000-0000-4000-8000-000000000000',fileName:'x.jpg',contentType:'image/jpeg'})).status).toBe(404);
+    expect((await request(app).delete(`/api/v1/contacts/${id}`).set(auth)).status).toBe(204);
+    expect(deletedObjects).toContain(retake.body.objectName);
+    expect((await pool.query('SELECT 1 FROM media WHERE id=$1',[retake.body.mediaId])).rowCount).toBe(0);
   });
   it('creates, replaces, and removes attached media safely',async()=>{
     const created=await request(app).post('/api/v1/media/upload-url').set(auth).send({kind:'profilePhoto',fileName:'avatar.png',contentType:'image/png',sizeBytes:1024});expect(created.status).toBe(201);mediaId=created.body.mediaId;expect(created.body.kind).toBe('profilePhoto');expect(created.body.objectName).toContain('/profilePhoto/');expect(created.body.url).toContain('oci.test/upload');
@@ -115,6 +138,9 @@ describe('ProsCard API routes',()=>{
     const upload=await request(app).post('/api/v1/media/upload-url').set(auth).send({kind:'companyLogo',scope:'card',cardId,fileName:'card-logo.png',contentType:'image/png'});expect(upload.status).toBe(201);expect(upload.body.scope).toBe('card');
     const attached=await request(app).post(`/api/v1/media/${upload.body.mediaId}/confirm`).set(auth);expect(attached.status).toBe(200);expect(attached.body.cardField).toBe('logo');
     expect((await request(app).get(`/api/v1/cards/${cardId}`).set(auth)).body.sectionOverrides.logo).toBe(`/api/v1/media/${upload.body.mediaId}/content`);
+    expect((await request(app).delete(`/api/v1/cards/${cardId}`).set(auth)).status).toBe(409);
+    const replacement=await request(app).post('/api/v1/cards').set(auth).send({...card,name:'Replacement card'});expect(replacement.status).toBe(201);expect(replacement.body.isPrimary).toBe(false);
+    const promoted=await request(app).put(`/api/v1/cards/${replacement.body.id}/primary`).set(auth);expect(promoted.status).toBe(200);expect(promoted.body.isPrimary).toBe(true);
     expect((await request(app).delete(`/api/v1/cards/${cardId}`).set(auth)).status).toBe(204);
     expect((await request(app).get(`/api/v1/cards/${cardId}`).set(auth)).status).toBe(404);
   });

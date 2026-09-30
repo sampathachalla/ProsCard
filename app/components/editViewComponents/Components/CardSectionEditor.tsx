@@ -569,7 +569,7 @@ export function CardSectionEditor({
             <TextInput
               value={getFieldValue('preferredName')}
               onChangeText={(value) => onFieldChange('preferredName', value)}
-              placeholder="e.g. Dr. Sampath Achalla"
+              placeholder="e.g. Dr. Jane Smith"
               placeholderTextColor="#64748b"
               className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 text-base font-bold text-textPrimary dark:border-slate-700/80 dark:bg-[#060a14] dark:text-white"
               style={{ height: editBarCollapsed ? 72 : 52 }}
@@ -651,7 +651,7 @@ export function CardSectionEditor({
         <TextInput
           value={getFieldValue('preferredName')}
           onChangeText={(val) => onFieldChange('preferredName', val)}
-          placeholder="e.g. Dr. Sampath Achalla"
+          placeholder="e.g. Dr. Jane Smith"
           placeholderTextColor="#64748b"
           className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3.5 text-base font-bold text-textPrimary dark:border-slate-700/80 dark:bg-[#060a14] dark:text-white"
         />

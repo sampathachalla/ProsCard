@@ -12,12 +12,11 @@ import { useThemeContext } from '@/context/ThemeContext';
 import { useProfileSnapshot } from '@/components/profileComponents/Hooks/useProfileSnapshot';
 import { QRCodeModal } from '@/components/uiComponents/QRCodeModal';
 import { useShareUrl } from '@/components/sharingComponents/Hooks/useShareUrl';
-import { createDefaultCard, ensureDefaultCard } from '@/components/cardsComponents/Services/cardsService';
+import { ensureDefaultCard } from '@/components/cardsComponents/Services/cardsService';
 import { showMessage } from '@/components/uiComponents/confirmAction';
 
 export default function HomepageScreen() {
   const { cards, fetched, error: cardsError, offline } = useCards();
-  const [addingCard, setAddingCard] = useState(false);
   const [actionBarHeight, setActionBarHeight] = useState(0);
   const [activeCardIndex, setActiveCardIndex] = useState(0);
   const [showcaseHeight, setShowcaseHeight] = useState(0);
@@ -42,22 +41,12 @@ export default function HomepageScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [needsDefaultCard]);
 
-  const handleAddCard = async () => {
-    if (addingCard) return;
+  const handleAddCard = () => {
     if (offline) {
       showMessage('You are offline', 'Reconnect to create a new card.');
       return;
     }
-    setAddingCard(true);
-    try {
-      const created = await createDefaultCard(profile);
-      const nextCards = [...cards.filter((card) => card.id !== created.id), created];
-      setActiveCardIndex(nextCards.length - 1);
-    } catch (reason) {
-      showMessage('Could not create card', reason instanceof Error ? reason.message : 'Please try again.');
-    } finally {
-      setAddingCard(false);
-    }
+    router.push({ pathname: '/(tabs)/editViewPage', params: { create: '1', origin: 'home' } });
   };
 
   const currentCard = cards[activeCardIndex] ?? cards[0];
@@ -100,7 +89,7 @@ export default function HomepageScreen() {
         {showcaseHeight > 0 && viewModeHydrated ? (
           <CardShowcaseSection
             activeIndex={activeCardIndex}
-            addingCard={addingCard || needsDefaultCard}
+            addingCard={needsDefaultCard}
             onAddCard={handleAddCard}
             bottomInset={actionBarHeight}
             cards={cards}

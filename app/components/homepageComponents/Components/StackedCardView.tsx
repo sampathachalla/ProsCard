@@ -20,6 +20,7 @@ type StackedCardViewProps = {
   activeIndex: number;
   addingCard?: boolean;
   bottomInset: number;
+  cardOverlay?: (card: BusinessCard) => ReactNode;
   cards: BusinessCard[];
   height: number;
   onActiveIndexChange: (index: number) => void;
@@ -27,6 +28,8 @@ type StackedCardViewProps = {
   onCardDoubleTap?: (card: BusinessCard) => void;
   onCardSwipeDown?: (card: BusinessCard) => void;
   profile: Profile;
+  showAddCardPass?: boolean;
+  showPrimaryTag?: boolean;
 };
 
 const FOCUSED_CARD_TOP = 8;
@@ -128,6 +131,7 @@ export function WalletStackView({
   activeIndex: requestedActiveIndex,
   addingCard = false,
   bottomInset,
+  cardOverlay,
   cards,
   height,
   onActiveIndexChange,
@@ -135,20 +139,31 @@ export function WalletStackView({
   onCardDoubleTap,
   onCardSwipeDown,
   profile,
+  showAddCardPass = true,
+  showPrimaryTag = false,
 }: StackedCardViewProps) {
   const { width: windowWidth } = useWindowDimensions();
-  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  // Stack mode opens with the active card focused and the remaining passes
+  // collapsed at the bottom. Users can still tap the backdrop to collapse it.
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(() =>
+    Math.max(0, Math.min(requestedActiveIndex, cards.length)),
+  );
   const containerHeight = height;
-  const passVerticalBudget = Math.max(0, containerHeight - bottomInset - FOCUSED_CARD_TOP - 8);
+  const focusedCardTop = showPrimaryTag ? 30 : FOCUSED_CARD_TOP;
+  const passVerticalBudget = Math.max(0, containerHeight - bottomInset - focusedCardTop - 8);
   const cardWidth = resolveWalletCardWidth({
     windowWidth,
     availableHeight: passVerticalBudget,
   });
   const cardHeight = getWalletCardDimensions(cardWidth).height;
   // Slots are every card plus the "Add card" pass, which is always the last slot.
-  const slotCount = cards.length + 1;
-  const addSlotIndex = cards.length;
+  const slotCount = cards.length + (showAddCardPass ? 1 : 0);
+  const addSlotIndex = showAddCardPass ? cards.length : -1;
   const activeIndex = Math.max(0, Math.min(requestedActiveIndex, slotCount - 1));
+  const effectiveExpandedIndex = expandedIndex === null || slotCount === 0
+    ? null
+    : Math.min(expandedIndex, slotCount - 1);
+
   const defaultStackStep =
     slotCount > 1
       ? Math.max(
@@ -159,10 +174,10 @@ export function WalletStackView({
 
   const collapsedCardOrder = useMemo(() => {
     return Array.from({ length: slotCount }, (_, index) => index)
-      .filter((index) => index !== expandedIndex);
-  }, [slotCount, expandedIndex]);
+      .filter((index) => index !== effectiveExpandedIndex);
+  }, [slotCount, effectiveExpandedIndex]);
   const collapsedStackTop = Math.max(
-    FOCUSED_CARD_TOP,
+    focusedCardTop,
     containerHeight -
       bottomInset -
       COLLAPSED_STACK_VISIBLE_HEIGHT -
@@ -170,7 +185,7 @@ export function WalletStackView({
   );
 
   const selectCard = (index: number) => {
-    if (index === expandedIndex) return;
+    if (index === effectiveExpandedIndex) return;
 
     setExpandedIndex(index);
     onActiveIndexChange(index);
@@ -195,7 +210,7 @@ export function WalletStackView({
       className="overflow-hidden"
       style={{ height: containerHeight }}
     >
-      {expandedIndex !== null ? (
+      {effectiveExpandedIndex !== null ? (
         <Pressable
           accessibilityLabel="Return to the wallet stack"
           accessibilityRole="button"
@@ -205,15 +220,15 @@ export function WalletStackView({
       ) : null}
 
       {Array.from({ length: slotCount }, (_, index) => {
-        const isExpanded = expandedIndex !== null;
-        const selected = index === expandedIndex;
+        const isExpanded = effectiveExpandedIndex !== null;
+        const selected = index === effectiveExpandedIndex;
         const collapsedIndex = collapsedCardOrder.indexOf(index);
         const stackRank = stackRankFor(index, activeIndex, cards.length);
         const targetY = isExpanded
           ? selected
-            ? FOCUSED_CARD_TOP
+            ? focusedCardTop
             : collapsedStackTop + collapsedIndex * COLLAPSED_CARD_STEP
-          : FOCUSED_CARD_TOP +
+          : focusedCardTop +
             (slotCount - 1 - stackRank) * defaultStackStep;
         const targetScale = isExpanded && !selected
           ? 0.94 + collapsedIndex * 0.015
@@ -235,15 +250,23 @@ export function WalletStackView({
         const card = cards[index]!;
         return (
           <StackSlot key={card.id} targetScale={targetScale} targetY={targetY} zIndex={zIndex}>
-            <WalletCardRenderEngine
-              card={card}
-              profile={profile}
-              width={cardWidth}
-              height={cardHeight}
-              onDoubleTap={() => openCard(index)}
-              onSwipeDown={() => showQr(index)}
-              onSingleTap={() => selectCard(index)}
-            />
+            <View style={{ position: 'relative' }}>
+              <WalletCardRenderEngine
+                card={card}
+                profile={profile}
+                width={cardWidth}
+                height={cardHeight}
+                onDoubleTap={() => openCard(index)}
+                onSwipeDown={() => showQr(index)}
+                onSingleTap={() => selectCard(index)}
+              />
+              {showPrimaryTag && card.isPrimary ? (
+                <View pointerEvents="none" className="absolute -top-5 right-3 rounded-full bg-sky-500 px-3 py-1 shadow-sm">
+                  <Text className="text-[11px] font-bold uppercase tracking-wide text-white">Primary</Text>
+                </View>
+              ) : null}
+              {cardOverlay?.(card)}
+            </View>
           </StackSlot>
         );
       })}

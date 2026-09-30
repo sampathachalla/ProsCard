@@ -15,11 +15,10 @@ import {
 } from 'lucide-react-native';
 
 import { Text } from '@/components/uiComponents/Text';
-import type { OnboardingDraft } from '../types/onboardingStepper.types';
 import { OnboardingFormField } from './OnboardingFormField';
 
 export type SocialDraftKey = keyof Pick<
-  OnboardingDraft,
+  import('../types/onboardingStepper.types').OnboardingDraft,
   | 'linkedin'
   | 'github'
   | 'x'
@@ -30,6 +29,8 @@ export type SocialDraftKey = keyof Pick<
   | 'tiktok'
   | 'portfolio'
 >;
+
+export type SocialLinksDraft = Record<SocialDraftKey, string | undefined>;
 
 const SOCIAL_PLATFORMS: {
   key: SocialDraftKey;
@@ -108,7 +109,7 @@ const SOCIAL_CHIP_GAP = 10;
 /** ~4 chips per row with gap; flex item width for wrap layout */
 const SOCIAL_CHIP_WIDTH = `${(100 - (SOCIAL_CHIP_COLUMNS - 1) * 2.2) / SOCIAL_CHIP_COLUMNS}%`;
 
-function firstEmptyPlatformKey(draft: OnboardingDraft): SocialDraftKey | null {
+function firstEmptyPlatformKey(draft: SocialLinksDraft): SocialDraftKey | null {
   const empty = SOCIAL_PLATFORMS.find((p) => !draft[p.key]?.trim());
   return empty?.key ?? null;
 }
@@ -125,10 +126,12 @@ export function SocialLinksFieldsBlock({
   draft,
   updateDraft,
   errors,
+  embedded = false,
 }: {
-  draft: OnboardingDraft;
-  updateDraft: (fields: Partial<OnboardingDraft>) => void;
+  draft: SocialLinksDraft;
+  updateDraft: (fields: Partial<SocialLinksDraft>) => void;
   errors: Record<string, string>;
+  embedded?: boolean;
 }) {
   const [formOpen, setFormOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -172,9 +175,9 @@ export function SocialLinksFieldsBlock({
   };
 
   const removePlatform = (key: SocialDraftKey) => {
-    updateDraft({ [key]: '' } as Partial<OnboardingDraft>);
+    updateDraft({ [key]: '' } as Partial<SocialLinksDraft>);
     if (selectedKey === key) {
-      setSelectedKey(firstEmptyPlatformKey({ ...draft, [key]: '' } as OnboardingDraft));
+      setSelectedKey(firstEmptyPlatformKey({ ...draft, [key]: '' }));
     }
   };
 
@@ -201,7 +204,7 @@ export function SocialLinksFieldsBlock({
   }, [firstSocialErrorKey]);
 
   return (
-    <View className="w-full rounded-2xl border border-border/80 bg-card/40 p-4 dark:border-dark-border/80 dark:bg-dark-card/30">
+    <View className={embedded ? 'w-full' : 'w-full rounded-2xl border border-border/80 bg-card/40 p-4 dark:border-dark-border/80 dark:bg-dark-card/30'}>
       {firstSocialErrorKey && !formOpen ? (
         <Text variant="none" className="mb-3 text-center text-sm font-medium text-red-400">
           Fix the highlighted link below, then tap Continue again.
@@ -347,7 +350,7 @@ export function SocialLinksFieldsBlock({
                 label=""
                 value={String(draft[selectedKey] ?? '')}
                 onChangeText={(text) =>
-                  updateDraft({ [selectedKey]: text } as Partial<OnboardingDraft>)
+                  updateDraft({ [selectedKey]: text } as Partial<SocialLinksDraft>)
                 }
                 placeholder={selectedPlatform.placeholder}
                 error={errors[selectedKey]}

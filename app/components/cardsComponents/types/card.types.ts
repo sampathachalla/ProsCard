@@ -150,6 +150,7 @@ export function createDefaultCardSectionThemes(theme: CardVisualTheme = DEFAULT_
 
 export type BusinessCard = {
   id: string;
+  isPrimary?: boolean;
   category: string;
   name: string;
   title: string;

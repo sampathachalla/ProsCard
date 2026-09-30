@@ -1,24 +1,24 @@
 import type { Queryable } from '../../src/types.js';
 
-export type MediaKind = 'profilePhoto' | 'coverPhoto' | 'companyLogo';
-export type MediaScope = 'profile' | 'card';
+export type MediaKind = 'profilePhoto' | 'coverPhoto' | 'companyLogo' | 'contactCard';
+export type MediaScope = 'profile' | 'card' | 'contact';
 export type MediaStatus = 'pending' | 'ready' | 'cleanup_failed';
 export type MediaRow = {
   id: string; user_id: string; object_name: string; kind: MediaKind;
   status: MediaStatus; content_type: string; original_name: string;
   size_bytes: number | null; created_at: Date; attachment_scope: MediaScope;
-  card_id: string | null;
+  card_id: string | null; contact_id: string | null;
 };
 
 export class MediaRepository {
   constructor(private readonly db: Queryable) {}
 
   create(userId: string, objectName: string, kind: MediaKind, contentType: string,
-    originalName: string, sizeBytes: number | undefined, scope: MediaScope, cardId?: string) {
+    originalName: string, sizeBytes: number | undefined, scope: MediaScope, cardId?: string, contactId?: string) {
     return this.db.query<MediaRow>(
-      `INSERT INTO media(user_id,object_name,kind,content_type,original_name,size_bytes,attachment_scope,card_id)
-       VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
-      [userId, objectName, kind, contentType, originalName, sizeBytes ?? null, scope, cardId ?? null],
+      `INSERT INTO media(user_id,object_name,kind,content_type,original_name,size_bytes,attachment_scope,card_id,contact_id)
+       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+      [userId, objectName, kind, contentType, originalName, sizeBytes ?? null, scope, cardId ?? null, contactId ?? null],
     ).then((result) => result.rows[0]!);
   }
 
@@ -32,7 +32,12 @@ export class MediaRepository {
       .then((result) => (result.rowCount ?? 0) > 0);
   }
 
-  findAttached(userId: string, scope: MediaScope, field: string, cardId?: string) {
+  contactOwned(userId: string, contactId: string) {
+    return this.db.query('SELECT 1 FROM contacts WHERE id=$1 AND user_id=$2', [contactId, userId])
+      .then((result) => (result.rowCount ?? 0) > 0);
+  }
+
+  findAttached(userId: string, scope: MediaScope, field: string, targetId?: string) {
     const contentExpression = "('/api/v1/media/' || m.id::text || '/content')";
     if (scope === 'profile') {
       return this.db.query<MediaRow>(
@@ -42,11 +47,19 @@ export class MediaRepository {
         [userId, field],
       ).then((result) => result.rows[0] ?? null);
     }
+    if (scope === 'contact') {
+      return this.db.query<MediaRow>(
+        `SELECT m.* FROM contacts c JOIN media m ON m.contact_id=c.id AND m.user_id=c.user_id
+         WHERE c.user_id=$1 AND c.id=$2 AND m.attachment_scope='contact'
+           AND (c.data ->> $3::text)=${contentExpression} LIMIT 1`,
+        [userId, targetId, field],
+      ).then((result) => result.rows[0] ?? null);
+    }
     return this.db.query<MediaRow>(
       `SELECT m.* FROM cards c JOIN media m ON m.card_id=c.id AND m.user_id=c.user_id
        WHERE c.user_id=$1 AND c.id=$2 AND m.attachment_scope='card'
          AND (c.data->'sectionOverrides'->>$3::text)=${contentExpression} LIMIT 1`,
-      [userId, cardId, field],
+      [userId, targetId, field],
     ).then((result) => result.rows[0] ?? null);
   }
 
@@ -70,6 +83,12 @@ export class MediaRepository {
       [userId, cardId],
     ).then((result) => result.rows);
   }
+  contactMedia(userId: string, contactId: string) {
+    return this.db.query<MediaRow>(
+      "SELECT * FROM media WHERE user_id=$1 AND contact_id=$2 AND attachment_scope='contact'",
+      [userId, contactId],
+    ).then((result) => result.rows);
+  }
   ready(userId: string, id: string) {
     return this.db.query<MediaRow>("UPDATE media SET status='ready' WHERE id=$1 AND user_id=$2 RETURNING *", [id, userId])
       .then((result) => result.rows[0] ?? null);
@@ -84,6 +103,13 @@ export class MediaRepository {
         `INSERT INTO profiles(user_id,data) VALUES($1,jsonb_build_object($2::text,$3::text))
          ON CONFLICT(user_id) DO UPDATE SET data=profiles.data || jsonb_build_object($2::text,$3::text),updated_at=now()`,
         [row.user_id, field, value],
+      );
+    }
+    if (row.attachment_scope === 'contact') {
+      return this.db.query(
+        `UPDATE contacts SET data=data || jsonb_build_object($3::text,$4::text),updated_at=now()
+         WHERE id=$1 AND user_id=$2`,
+        [row.contact_id, row.user_id, field, value],
       );
     }
     return this.db.query(
@@ -101,6 +127,13 @@ export class MediaRepository {
         [row.user_id, field, value],
       );
     }
+    if (row.attachment_scope === 'contact') {
+      return this.db.query(
+        `UPDATE contacts SET data=data || jsonb_build_object($3::text,''),updated_at=now()
+         WHERE id=$1 AND user_id=$2 AND (data ->> $3::text)=$4`,
+        [row.contact_id, row.user_id, field, value],
+      );
+    }
     return this.db.query(
       `UPDATE cards SET data=jsonb_set(data,'{sectionOverrides}',COALESCE(data->'sectionOverrides','{}'::jsonb) || jsonb_build_object($3::text,''),true),updated_at=now()
        WHERE id=$1 AND user_id=$2 AND (data->'sectionOverrides'->>$3::text)=$4`,
@@ -109,6 +142,9 @@ export class MediaRepository {
   }
   clearCardId(userId: string, id: string) {
     return this.db.query('UPDATE media SET card_id=NULL WHERE id=$1 AND user_id=$2', [id, userId]);
+  }
+  clearContactId(userId: string, id: string) {
+    return this.db.query('UPDATE media SET contact_id=NULL WHERE id=$1 AND user_id=$2', [id, userId]);
   }
   delete(userId: string, id: string) {
     return this.db.query<MediaRow>('DELETE FROM media WHERE id=$1 AND user_id=$2 RETURNING *', [id, userId])

@@ -1,6 +1,6 @@
 import { ActivityIndicator, Pressable, useWindowDimensions } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { LayoutTemplate, ListPlus, Save, type LucideIcon } from 'lucide-react-native';
+import { ArrowRight, Check, LayoutTemplate, ListPlus, Save, type LucideIcon } from 'lucide-react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { Text } from './Text';
 
@@ -11,7 +11,7 @@ const ITEMS: { id: EditHomeTab; label: string; icon: LucideIcon }[] = [
   { id: 'content', label: 'Content', icon: ListPlus },
 ];
 
-export function EditHomeBar({ activeTab, isSaving = false, onChange, onSave, saveDisabled = false }: { activeTab: EditHomeTab; isSaving?: boolean; onChange: (tab: EditHomeTab) => void; onSave: () => void; saveDisabled?: boolean }) {
+export function EditHomeBar({ activeTab, actionLabel = 'Save', isSaving = false, onChange, onSave, saveDisabled = false }: { activeTab: EditHomeTab; actionLabel?: string; isSaving?: boolean; onChange: (tab: EditHomeTab) => void; onSave: () => void; saveDisabled?: boolean }) {
   const { width } = useWindowDimensions();
   const compact = width < 380;
   const select = (tab: EditHomeTab) => {
@@ -24,6 +24,7 @@ export function EditHomeBar({ activeTab, isSaving = false, onChange, onSave, sav
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     onSave();
   };
+  const ActionIcon = actionLabel === 'Next' ? ArrowRight : actionLabel === 'Create' ? Check : Save;
 
   return (
     <Animated.View
@@ -52,7 +53,7 @@ export function EditHomeBar({ activeTab, isSaving = false, onChange, onSave, sav
         );
       })}
       <Pressable
-        accessibilityLabel="Save section changes"
+        accessibilityLabel={actionLabel === 'Save' ? 'Save section changes' : `${actionLabel} card setup step`}
         accessibilityRole="button"
         accessibilityState={{ busy: isSaving, disabled: isSaving || saveDisabled }}
         className="min-w-0 flex-1 items-center justify-center px-1 active:opacity-70"
@@ -61,8 +62,8 @@ export function EditHomeBar({ activeTab, isSaving = false, onChange, onSave, sav
         style={{ minHeight: compact ? 46 : 50, paddingVertical: 4 }}
       >
         {!saveDisabled ? <Animated.View entering={FadeIn.duration(260)} className="absolute top-0 h-0.5 w-8 rounded-full bg-emerald-500" /> : null}
-        {isSaving ? <ActivityIndicator color="#10b981" size="small" /> : <Save color={saveDisabled ? '#94a3b8' : '#10b981'} size={compact ? 17 : 18} />}
-        <Text numberOfLines={1} className={`mt-0.5 font-semibold ${saveDisabled ? 'text-slate-500 dark:text-slate-400' : 'text-emerald-500'} ${compact ? 'text-[10px]' : 'text-[11px]'}`}>{isSaving ? 'Saving' : 'Save'}</Text>
+        {isSaving ? <ActivityIndicator color="#10b981" size="small" /> : <ActionIcon color={saveDisabled ? '#94a3b8' : '#10b981'} size={compact ? 17 : 18} />}
+        <Text numberOfLines={1} className={`mt-0.5 font-semibold ${saveDisabled ? 'text-slate-500 dark:text-slate-400' : 'text-emerald-500'} ${compact ? 'text-[10px]' : 'text-[11px]'}`}>{isSaving ? 'Saving' : actionLabel}</Text>
       </Pressable>
     </Animated.View>
   );

@@ -43,7 +43,11 @@ const schema = z.object({
   OCI_PRIVATE_KEY_PATH: z.string().transform(localKeyPath),
   OCI_PRIVATE_KEY_PASSPHRASE: z.string().default(''),
   OCI_DOWNLOAD_URL_EXPIRES_SECONDS: z.coerce.number().int().positive().default(900),
-  OCI_UPLOAD_URL_EXPIRES_SECONDS: z.coerce.number().int().positive().default(900)
+  OCI_UPLOAD_URL_EXPIRES_SECONDS: z.coerce.number().int().positive().default(900),
+  // OpenAI key used to read business-card photos; card reading is disabled when it is empty.
+  LLM_API: z.string().default(''),
+  LLM_TIMEOUT_MS: z.coerce.number().int().positive().default(30000),
+  SCANNER_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(20)
 });
 
 export type AppConfig = z.infer<typeof schema>;

@@ -75,8 +75,10 @@ export function OnboardingFlowHeader({
               letterSpacing: -0.3,
             }}
           >
-            Pros
-            <Text style={{ color: tint, fontSize: 18, fontWeight: '700' }}>Card</Text>
+            <Text style={{ color: tint, fontSize: 18, fontWeight: '700' }}>P</Text>
+            ros
+            <Text style={{ color: tint, fontSize: 18, fontWeight: '700' }}>C</Text>
+            ard
           </Text>
         </View>
 

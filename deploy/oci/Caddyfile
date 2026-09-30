@@ -1,0 +1,8 @@
+150.136.12.178.nip.io {
+  encode zstd gzip
+  reverse_proxy 127.0.0.1:8050
+}
+
+metro.150.136.12.178.nip.io {
+  reverse_proxy 127.0.0.1:8081
+}

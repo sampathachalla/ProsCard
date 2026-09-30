@@ -9,6 +9,7 @@ APP_DIRECTORY="${SCRIPT_DIRECTORY:h}"
 TUNNEL_HOST="idu1omw-sampath2001-8081.exp.direct"
 TUNNEL_URL="https://${TUNNEL_HOST}"
 EXPO_URL="exp://${TUNNEL_HOST}"
+API_TUNNEL_URL="${EXPO_PUBLIC_TUNNEL_API_URL:-}"
 NGROK_BINARY="${APP_DIRECTORY}/node_modules/@expo/ngrok-bin-darwin-arm64/ngrok"
 NGROK_LOG="/tmp/proscard-ngrok.log"
 
@@ -55,10 +56,17 @@ if [[ "${TUNNEL_RESPONSE}" != *"${TUNNEL_URL}"* ]]; then
   exit 1
 fi
 
+if [[ "${API_TUNNEL_URL}" != https://* ]]; then
+  print -u2 "Set EXPO_PUBLIC_TUNNEL_API_URL to the backend's public HTTPS tunnel URL."
+  exit 1
+fi
+
 print "\nProsCard Expo Go tunnel QR:\n"
 npx -y qrcode --small "${EXPO_URL}"
 print "Tunnel URL: ${EXPO_URL}\n"
+print "Backend API URL: ${API_TUNNEL_URL}\n"
 
 cd "${APP_DIRECTORY}"
+EXPO_PUBLIC_TUNNEL_API_URL="${API_TUNNEL_URL}" \
 EXPO_PACKAGER_PROXY_URL="${TUNNEL_URL}" \
   npx -y node@22 ./node_modules/expo/bin/cli start --lan

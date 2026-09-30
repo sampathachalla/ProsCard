@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { BrandLogo } from '@/components/uiComponents/BrandLogo';
 import { ProsCardTitle } from '@/components/uiComponents/ProsCardTitle';
 import { Button } from '@/components/uiComponents/Button';
@@ -9,6 +9,7 @@ import { AuthScreenShell } from '@/components/authComponents/Components/AuthScre
 import { AuthSoftInput } from '@/components/authComponents/Components/AuthSoftInput';
 import { AuthFooterSwitch } from '@/components/authComponents/Components/AuthFooterSwitch';
 import { useSignup } from '@/components/authComponents/Hooks/useSignup';
+import { useGoogleAuth } from '@/components/authComponents/Hooks/useGoogleAuth';
 
 export default function SignupScreen() {
   const router = useRouter();
@@ -23,6 +24,7 @@ export default function SignupScreen() {
     isSubmitting,
     handleSignup,
   } = useSignup();
+  const { handleGoogleAuth, isGoogleSubmitting } = useGoogleAuth('signup');
 
   return (
     <AuthScreenShell
@@ -91,6 +93,24 @@ export default function SignupScreen() {
         <Text className="mt-4 text-center text-[12px] leading-4 text-[#8e8e8e] dark:text-slate-500">
           By signing up, you agree to ProsCard’s Terms and Privacy Policy.
         </Text>
+
+        <View className="my-6 flex-row items-center">
+          <View className="h-px flex-1 bg-black/10 dark:bg-white/10" />
+          <Text className="mx-4 text-xs font-semibold uppercase tracking-wide text-[#8e8e8e]">Or</Text>
+          <View className="h-px flex-1 bg-black/10 dark:bg-white/10" />
+        </View>
+
+        <Pressable
+          onPress={handleGoogleAuth}
+          disabled={isSubmitting || isGoogleSubmitting}
+          accessibilityRole="button"
+          accessibilityLabel="Sign up with Google"
+          className="items-center py-2 active:opacity-70"
+        >
+          <Text className="text-[14px] font-semibold text-sky-700 dark:text-sky-400">
+            {isGoogleSubmitting ? 'Connecting to Google…' : 'Sign up with Google'}
+          </Text>
+        </Pressable>
         </Animated.View>
       </View>
     </AuthScreenShell>

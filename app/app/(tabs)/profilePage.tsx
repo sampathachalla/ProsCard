@@ -6,13 +6,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import { Colors } from '@/constants/Colors';
 import { useThemeContext } from '../../context/ThemeContext';
-import { Bell, CreditCard, Focus, HelpCircle, Info, Layers3, LogOut, Moon, Sparkles, Trash2, User } from 'lucide-react-native';
+import { Bell, ChevronRight, CreditCard, Focus, HelpCircle, Info, Layers3, LogOut, Moon, Sparkles, Trash2, User } from 'lucide-react-native';
 import { useCardViewPreference } from '@/components/homepageComponents/Hooks/useCardViewPreference';
 import { SettingsRow } from '../../components/profileComponents/Components/SettingsRow';
 import { useProfile } from '../../components/profileComponents/Hooks/useProfile';
-import { useProfileSnapshot } from '../../components/profileComponents/Hooks/useProfileSnapshot';
 import { useNotificationPreference } from '../../components/profileComponents/Hooks/useNotificationPreference';
-import { ProfileDetails } from '../../components/profileComponents/Components/ProfileDetails';
 import { PageHeader } from '@/components/uiComponents/PageHeader';
 import { useFloatingTools } from '@/components/toolsButton';
 import { QuickToolsSection } from '../../components/profileComponents/Components/QuickToolsSection';
@@ -27,7 +25,6 @@ export default function ProfileScreen() {
   const { theme, toggleTheme } = useThemeContext();
   const { logout, deleteAccount } = useProfile();
   const [accountAction, setAccountAction] = useState<'logout' | 'delete' | null>(null);
-  const { profile } = useProfileSnapshot();
   const {
     enabled: toolsEnabled,
     enabledTools,
@@ -114,37 +111,51 @@ export default function ProfileScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-      <View className="mb-4 flex-row gap-3 px-4">
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel="Log out"
-          disabled={accountAction !== null}
-          onPress={handleLogout}
-          className={`flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-slate-200 dark:border-slate-700 bg-card dark:bg-dark-card py-3.5 ${accountAction ? 'opacity-60' : ''}`}
-        >
-          {accountAction === 'logout' ? <ActivityIndicator color={Colors.light.tint} /> : <LogOut color={Colors.light.tint} size={18} strokeWidth={2.2} />}
-          <Text className="font-semibold text-textPrimary dark:text-dark-textPrimary">Log out</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel="Delete account"
-          disabled={accountAction !== null}
-          onPress={handleDeleteAccount}
-          className={`flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-error dark:border-dark-error py-3.5 ${accountAction ? 'opacity-60' : ''}`}
-        >
-          {accountAction === 'delete' ? <ActivityIndicator color="#ef4444" /> : <Trash2 color="#ef4444" size={18} strokeWidth={2.2} />}
-          <Text className="font-semibold text-error dark:text-dark-error">Delete account</Text>
-        </TouchableOpacity>
-      </View>
-
-      <SettingsRow icon={User} label="Account" onPress={() => router.push('/(tabs)/accountPage')} />
-
-      <ProfileDetails profile={profile} />
-
-      <Text className="text-textMuted dark:text-dark-textMuted text-xs font-semibold uppercase mb-2 mt-4 px-4">
+      <Text className="text-textMuted dark:text-dark-textMuted text-xs font-semibold uppercase mb-2 mt-2 px-4">
         Account
       </Text>
-      <SettingsRow icon={CreditCard} label="Manage my cards" onPress={() => router.push('/(tabs)/cardsPage')} />
+      <View className="mb-3 flex-row gap-3 px-4">
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Account"
+          onPress={() => router.push('/(tabs)/accountPage')}
+          className="flex-1 flex-row items-center rounded-2xl bg-card p-3.5 dark:bg-dark-card active:opacity-75"
+        >
+          <View className="mr-2.5 h-9 w-9 items-center justify-center rounded-full bg-background dark:bg-dark-background">
+            <User color={Colors.light.tint} size={18} strokeWidth={2.2} />
+          </View>
+          <Text className="flex-1 text-sm font-medium text-textPrimary dark:text-dark-textPrimary" numberOfLines={1}>
+            Account
+          </Text>
+          <ChevronRight color={Colors.light.mutedText} size={16} strokeWidth={2} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Manage my cards"
+          onPress={() => router.push('/(tabs)/cardsPage')}
+          className="flex-1 flex-row items-center rounded-2xl bg-card p-3.5 dark:bg-dark-card active:opacity-75"
+        >
+          <View className="mr-2.5 h-9 w-9 items-center justify-center rounded-full bg-background dark:bg-dark-background">
+            <CreditCard color={Colors.light.tint} size={18} strokeWidth={2.2} />
+          </View>
+          <Text className="flex-1 text-sm font-medium text-textPrimary dark:text-dark-textPrimary" numberOfLines={1}>
+            Manage cards
+          </Text>
+          <ChevronRight color={Colors.light.mutedText} size={16} strokeWidth={2} />
+        </TouchableOpacity>
+      </View>
+      <QuickToolsSection
+        toolsEnabled={toolsEnabled}
+        setToolsEnabled={setToolsEnabled}
+        enabledTools={enabledTools}
+        hydrated={toolsHydrated}
+        toggleTool={toggleTool}
+      />
+
+      <Text className="text-textMuted dark:text-dark-textMuted text-xs font-semibold uppercase mb-2 mt-4 px-4">
+        Preferences
+      </Text>
       <SettingsRow
         icon={Bell}
         label="Notifications"
@@ -158,10 +169,6 @@ export default function ProfileScreen() {
           />
         }
       />
-
-      <Text className="text-textMuted dark:text-dark-textMuted text-xs font-semibold uppercase mb-2 mt-4 px-4">
-        Preferences
-      </Text>
       <SettingsRow
         icon={Layers3}
         label="Wallet stack on homepage"
@@ -213,19 +220,35 @@ export default function ProfileScreen() {
           />
         }
       />
-      <QuickToolsSection
-        toolsEnabled={toolsEnabled}
-        setToolsEnabled={setToolsEnabled}
-        enabledTools={enabledTools}
-        hydrated={toolsHydrated}
-        toggleTool={toggleTool}
-      />
 
       <Text className="text-textMuted dark:text-dark-textMuted text-xs font-semibold uppercase mb-2 mt-4 px-4">
         Support
       </Text>
       <SettingsRow icon={HelpCircle} label="Help & support" onPress={handleHelpAndSupport} />
       <SettingsRow icon={Info} label="About ProsCard" onPress={handleAbout} />
+
+      <View className="mb-2 mt-6 flex-row gap-3 px-4">
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Log out"
+          disabled={accountAction !== null}
+          onPress={handleLogout}
+          className={`flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-card py-3.5 dark:border-slate-700 dark:bg-dark-card ${accountAction ? 'opacity-60' : ''}`}
+        >
+          {accountAction === 'logout' ? <ActivityIndicator color={Colors.light.tint} /> : <LogOut color={Colors.light.tint} size={18} strokeWidth={2.2} />}
+          <Text className="font-semibold text-textPrimary dark:text-dark-textPrimary">Log out</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Delete account"
+          disabled={accountAction !== null}
+          onPress={handleDeleteAccount}
+          className={`flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-error py-3.5 dark:border-dark-error ${accountAction ? 'opacity-60' : ''}`}
+        >
+          {accountAction === 'delete' ? <ActivityIndicator color="#ef4444" /> : <Trash2 color="#ef4444" size={18} strokeWidth={2.2} />}
+          <Text className="font-semibold text-error dark:text-dark-error">Delete account</Text>
+        </TouchableOpacity>
+      </View>
       </ScrollView>
     </View>
   );

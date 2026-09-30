@@ -54,7 +54,10 @@ export default function CardDetailPage() {
 
   const share = useShareUrl(showQr ? cardId : null);
 
-  const goToHomepage = () => router.replace('/(tabs)/homepage');
+  const goBackToCaller = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace('/(tabs)/homepage');
+  };
 
   if (!card && cardQuery.isLoading) {
     return <SafeAreaView className="flex-1 items-center justify-center bg-background dark:bg-dark-background"><Text>Loading card…</Text></SafeAreaView>;
@@ -62,13 +65,13 @@ export default function CardDetailPage() {
   if (!card) {
     return (
       <SafeAreaView className="flex-1 bg-background dark:bg-dark-background" edges={['top', 'bottom', 'left', 'right']}>
-        <CardTapGesture containerClassName="flex-1" onDoubleTap={goToHomepage}>
+        <CardTapGesture containerClassName="flex-1" onDoubleTap={goBackToCaller}>
           <View className="flex-1 items-center justify-center px-8">
             <Text variant="heading" className="text-center">
               Card not found
             </Text>
             <Text variant="muted" className="mt-2 text-center">
-              {cardQuery.error instanceof Error ? cardQuery.error.message : 'This card is no longer available.'} Double-tap to return home.
+              {cardQuery.error instanceof Error ? cardQuery.error.message : 'This card is no longer available.'} Double-tap to go back.
             </Text>
           </View>
         </CardTapGesture>
@@ -118,7 +121,7 @@ export default function CardDetailPage() {
   return (
     <CardTapGesture
       containerClassName="flex-1 bg-background dark:bg-dark-background"
-      onDoubleTap={goToHomepage}
+      onDoubleTap={goBackToCaller}
       onSwipeDown={() => setShowQr(true)}
       simultaneousWithNative
     >
