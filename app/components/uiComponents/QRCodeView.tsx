@@ -20,14 +20,11 @@ export function QRCodeView({
   padding = 16,
   style,
 }: QRCodeViewProps) {
-  const content = (
-    <QRCode
-      value={value || 'https://proscard.app'}
-      size={size}
-      color={foregroundColor}
-      backgroundColor={backgroundColor}
-      quietZone={0}
-    />
+  const content = value ? (
+    <QRCode value={value} size={size} color={foregroundColor} backgroundColor={backgroundColor} quietZone={0} />
+  ) : (
+    // No link yet: a blank tile, never a QR to a placeholder address.
+    <View style={{ width: size, height: size, backgroundColor, opacity: 0.6 }} />
   );
 
   if (!framed) {

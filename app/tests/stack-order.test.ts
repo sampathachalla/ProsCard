@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/components/cardsComponents/Wallet', () => ({}));
+vi.mock('@/components/homepageComponents/Components/BusinessCard', () => ({ BusinessCard: () => null }));
 vi.mock('@/components/uiComponents/Text', () => ({}));
 vi.mock('lucide-react-native', () => ({}));
 vi.mock('react-native', () => ({}));

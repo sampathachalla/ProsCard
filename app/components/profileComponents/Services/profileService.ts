@@ -86,7 +86,7 @@ export async function getProfile(): Promise<Profile> {
   return normalizeProfile(JSON.parse(raw) as Partial<Profile>);
 }
 
-function normalizeProfile(parsed: Partial<Profile>): Profile {
+export function normalizeProfile(parsed: Partial<Profile>): Profile {
   const legacyNameParts = (parsed.fullName ?? '').trim().split(/\s+/).filter(Boolean);
   return {
     ...DEFAULT_PROFILE,

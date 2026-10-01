@@ -47,7 +47,21 @@ const schema = z.object({
   // OpenAI key used to read business-card photos; card reading is disabled when it is empty.
   LLM_API: z.string().default(''),
   LLM_TIMEOUT_MS: z.coerce.number().int().positive().default(30000),
-  SCANNER_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(20)
+  SCANNER_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(20),
+  // Public address used in wallet-pass QR codes (the share page). Empty: taken from the incoming request.
+  PUBLIC_WEB_URL: z.string().default(''),
+  // Apple Wallet: a Pass Type ID certificate from the Apple Developer account. Empty disables Apple passes.
+  APPLE_WALLET_PASS_TYPE_ID: z.string().default(''),
+  APPLE_WALLET_TEAM_ID: z.string().default(''),
+  APPLE_WALLET_CERT_PATH: z.string().default(''),
+  APPLE_WALLET_KEY_PATH: z.string().default(''),
+  APPLE_WALLET_KEY_PASSPHRASE: z.string().default(''),
+  APPLE_WALLET_WWDR_PATH: z.string().default(''),
+  // Google Wallet: issuer ID and a service-account key from the Google Pay & Wallet Console. Empty disables it.
+  GOOGLE_WALLET_ISSUER_ID: z.string().default(''),
+  GOOGLE_WALLET_SERVICE_ACCOUNT_PATH: z.string().default(''),
+  // Signs the short-lived Apple pass download links; a random per-process value is used when empty.
+  WALLET_LINK_SECRET: z.string().default('')
 });
 
 export type AppConfig = z.infer<typeof schema>;

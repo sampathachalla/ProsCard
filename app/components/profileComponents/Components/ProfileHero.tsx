@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { PencilLine } from 'lucide-react-native';
 import { Colors } from '@/constants/Colors';
 import { MediaImage } from '@/components/uiComponents/MediaImage';
+import { DefaultCover } from '@/components/cardsComponents/Templates/sections/SectionSharedComponents';
 import type { Profile } from '../types/profile.types';
 import { getInitials } from '../Utils/initials';
 
@@ -18,7 +19,11 @@ export function ProfileHero({
   return (
     <View className="items-center mb-6">
       <View className="h-32 w-full overflow-hidden rounded-3xl bg-slate-200 dark:bg-slate-800">
-        {profile.coverPhotoUrl ? <MediaImage sourceUrl={profile.coverPhotoUrl} style={{ width: '100%', height: '100%' }} contentFit="cover" /> : null}
+        {profile.coverPhotoUrl ? (
+          <MediaImage sourceUrl={profile.coverPhotoUrl} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+        ) : (
+          <DefaultCover style={{ width: '100%', height: '100%' }} />
+        )}
       </View>
       <View className="-mt-12 w-24 h-24 rounded-full border-4 border-background dark:border-dark-background bg-primary dark:bg-dark-primary items-center justify-center mb-3 overflow-hidden">
         {profile.photoUrl ? (

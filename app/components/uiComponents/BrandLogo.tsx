@@ -1,6 +1,6 @@
 import { Image, View, type ImageSourcePropType } from 'react-native';
-import mindProsLogoLight from '@/assets/mindpros-logo-light.png';
-import mindProsLogoDark from '@/assets/mindpros-logo-dark.png';
+import mindProsLogoForLightTheme from '@/assets/mindpros-logo-light.png'; // Dark navy text
+import mindProsLogoForDarkTheme from '@/assets/mindpros-logo-dark.png'; // White text
 import { useThemeContext } from '@/context/ThemeContext';
 import { Text } from './Text';
 
@@ -36,17 +36,17 @@ const badgeDimensions: Record<BrandLogoSize, { width: number; height: number; bo
   xxl: { width: 320, height: 128, borderRadius: 28 },
 };
 
-/** Theme-aware MindPros mark: light asset on light UI, dark asset on dark UI. */
+/** Theme-aware MindPros mark: white text (mindpros-logo-dark) on dark UI, dark text (mindpros-logo-light) on light UI. */
 export function getMindProsLogoSource(theme: 'light' | 'dark'): ImageSourcePropType {
-  return theme === 'dark' ? mindProsLogoDark : mindProsLogoLight;
+  return theme === 'dark' ? mindProsLogoForDarkTheme : mindProsLogoForLightTheme;
 }
 
 export function BrandLogo({
   size = 'md',
   variant = 'wordmark',
   source,
-  sourceLight = mindProsLogoLight,
-  sourceDark = mindProsLogoDark,
+  sourceLight = mindProsLogoForLightTheme,
+  sourceDark = mindProsLogoForDarkTheme,
   accessibilityLabel = 'MindPROS logo',
   className = '',
 }: BrandLogoProps) {

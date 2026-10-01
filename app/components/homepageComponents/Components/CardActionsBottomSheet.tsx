@@ -11,6 +11,7 @@ import { SheetHeader } from '@/components/uiComponents/SheetHeader';
 import { ThemedBottomSheet } from '@/components/uiComponents/ThemedBottomSheet';
 import { getShareUrl } from '@/components/sharingComponents/Services/sharingService';
 import { queryClient, queryKeys } from '@/services/api/queryClient';
+import { useAddToWallet } from '@/components/walletCardComponents/Hooks/useAddToWallet';
 
 type CardActionsBottomSheetProps = {
   card?: BusinessCard;
@@ -20,6 +21,7 @@ type CardActionsBottomSheetProps = {
 export const CardActionsBottomSheet = forwardRef<BottomSheet, CardActionsBottomSheetProps>(
   ({ card, onEdit }, ref) => {
     const router = useRouter();
+    const wallet = useAddToWallet();
     const snapPoints = useMemo(() => ['54%'], []);
 
     const closeSheet = () => {
@@ -84,12 +86,12 @@ export const CardActionsBottomSheet = forwardRef<BottomSheet, CardActionsBottomS
       },
       {
         id: 'wallet',
-        label: 'Add to Apple Wallet',
-        description: 'Save digital pass to Apple Wallet',
+        label: wallet.label,
+        description: 'Save this card as a pass in your phone’s wallet',
         icon: Wallet,
         color: '#059669',
         onPress: () => {
-          Alert.alert('Apple Wallet', 'Card pass generated and ready to add.');
+          void wallet.addToWallet(card?.id);
         },
       },
     ];

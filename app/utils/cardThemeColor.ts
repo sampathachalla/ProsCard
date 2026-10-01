@@ -53,6 +53,12 @@ export function rgbToHex(rgb: Rgb): string {
   return toHex(rgb);
 }
 
+export function hexToRgbaString(hex: string, alpha: number): string {
+  const rgb = parseHexColor(hex);
+  if (!rgb) return `rgba(255, 255, 255, ${alpha})`;
+  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
+}
+
 export function hexToHsv(hex: string): { h: number; s: number; v: number } {
   const rgb = parseHexColor(hex);
   if (!rgb) return { h: 210, s: 0.72, v: 0.92 };
@@ -301,9 +307,15 @@ export function resolveLayoutColorSlots({
   const textSecondary = isPrimaryDark ? '#cbd5e1' : '#334155';
   const textMuted = isPrimaryDark ? '#94a3b8' : '#64748b';
 
-  // Logo backdrop ensures dark or light logos are never swallowed by the background
-  const logoBackdrop = isSurfaceLight ? 'rgba(15, 23, 42, 0.88)' : 'rgba(255, 255, 255, 0.94)';
-  const logoBorder = isSurfaceLight ? 'rgba(255, 255, 255, 0.18)' : 'rgba(15, 23, 42, 0.12)';
+  // Tone-on-tone glass badge colors: seamlessly adapts to card base & accent palette
+  const cleanAccent = normalizeHexColor(accentColor) ?? '#2563eb';
+  const cleanBase = normalizeHexColor(baseColor) ?? '#0a1128';
+  const lightLogoGlass = hexToRgbaString(mixHexColors('#ffffff', cleanAccent, 0.06), 0.94);
+  const darkLogoGlass = hexToRgbaString(mixHexColors(mixHexColors(cleanBase, cleanAccent, 0.14), '#030712', 0.65), 0.88);
+  const logoBackdrop = isSurfaceLight ? darkLogoGlass : lightLogoGlass;
+  const logoBorder = isSurfaceLight
+    ? hexToRgbaString(cleanAccent, 0.30)
+    : hexToRgbaString(mixHexColors(cleanAccent, '#0f172a', 0.25), 0.18);
   const borderColor = isDark ? mixHexColors(accentColor, '#ffffff', 0.15) : mixHexColors(accentColor, '#020617', 0.12);
 
   return {
@@ -350,18 +362,22 @@ export type ResolvedLogoBoxStyle = {
   elevation: number;
 };
 
+export type LogoTone = 'light' | 'dark' | 'auto';
+
 /**
  * Engine-driven styling for company logo containers. Computes dynamic background, border,
- * glass/frosted contrast, and glow/shadow based on the selected theme, color slots, and layout context.
+ * glass/frosted contrast, and glow/shadow based on the detected logo tone, theme, color slots, and layout context.
  */
 export function resolveLogoBoxStyle({
   compact = false,
+  logoTone = 'auto',
   placement,
   slots,
   templateId,
   theme,
 }: {
   compact?: boolean;
+  logoTone?: LogoTone;
   placement?: LogoPlacementContext;
   slots?: ResolvedLayoutSlots;
   templateId?: CardTemplateId;
@@ -370,8 +386,6 @@ export function resolveLogoBoxStyle({
   const effectiveSlots = slots ?? (theme && templateId ? resolveLayoutColorSlots({ templateId, theme }) : undefined);
   const accent = effectiveSlots?.accent ?? theme?.accentColor ?? '#2563eb';
   const surface = effectiveSlots?.surface ?? theme?.surfaceColor ?? '#ffffff';
-  const background = effectiveSlots?.background ?? theme?.backgroundColor ?? '#eff6ff';
-  const isDark = effectiveSlots?.isDark ?? (theme ? getCardThemeColorMode(theme) === 'dark' : false);
   const isSurfaceLight = isColorLight(surface);
 
   let effectivePlacement = placement;
@@ -402,10 +416,45 @@ export function resolveLogoBoxStyle({
   }
 
   const radius = compact ? 12 : 16;
+  const isLogoDark = logoTone === 'dark';
+  const isLogoLight = logoTone === 'light';
+
+  const cardBase = slots?.background ?? theme?.gradient?.[0] ?? theme?.backgroundColor ?? '#0a1128';
+  const cleanAccent = normalizeHexColor(accent) ?? '#2563eb';
+  const cleanBase = normalizeHexColor(cardBase) ?? '#0a1128';
+
+  // Tone-on-tone light ceramic glass (frosted white subtly infused with card accent/base)
+  const lightTintedHex = mixHexColors('#ffffff', cleanAccent, 0.06);
+  const lightGlassBg = hexToRgbaString(lightTintedHex, 0.94);
+  const lightGlassBorder = hexToRgbaString(mixHexColors(cleanAccent, '#0f172a', 0.25), 0.18);
+
+  // Tone-on-tone dark obsidian glass (deep midnight glass infused with card base/accent)
+  const darkTintedHex = mixHexColors(cleanBase, cleanAccent, 0.14);
+  const darkDeepBase = mixHexColors(darkTintedHex, '#030712', 0.65);
+  const darkGlassBg = hexToRgbaString(darkDeepBase, 0.88);
+  const darkGlassBorder = hexToRgbaString(cleanAccent, 0.32);
+
+  const containerBg = isLogoDark
+    ? lightGlassBg
+    : isLogoLight
+      ? darkGlassBg
+      : isSurfaceLight
+        ? darkGlassBg
+        : lightGlassBg;
+
+  const containerBorder = isLogoDark
+    ? lightGlassBorder
+    : isLogoLight
+      ? darkGlassBorder
+      : isSurfaceLight
+        ? darkGlassBorder
+        : lightGlassBorder;
+
+  const ambientShadowColor = isRgbaOrHexLight(containerBg) ? '#000000' : cleanAccent;
 
   if (effectivePlacement === 'neon') {
     return {
-      backgroundColor: 'rgba(9, 13, 22, 0.94)',
+      backgroundColor: isLogoDark ? lightGlassBg : darkGlassBg,
       borderColor: accent,
       borderWidth: 1.5,
       borderRadius: compact ? 8 : 12,
@@ -419,11 +468,11 @@ export function resolveLogoBoxStyle({
 
   if (effectivePlacement === 'glass') {
     return {
-      backgroundColor: 'rgba(15, 23, 42, 0.85)',
-      borderColor: 'rgba(255, 255, 255, 0.24)',
+      backgroundColor: isLogoDark ? hexToRgbaString(lightTintedHex, 0.86) : hexToRgbaString(darkDeepBase, 0.80),
+      borderColor: isLogoDark ? hexToRgbaString(cleanAccent, 0.22) : hexToRgbaString(cleanAccent, 0.35),
       borderWidth: 1,
       borderRadius: radius,
-      shadowColor: '#000000',
+      shadowColor: ambientShadowColor,
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.22,
       shadowRadius: 6,
@@ -433,11 +482,11 @@ export function resolveLogoBoxStyle({
 
   if (effectivePlacement === 'banner') {
     return {
-      backgroundColor: 'rgba(15, 23, 42, 0.88)',
-      borderColor: 'rgba(255, 255, 255, 0.25)',
+      backgroundColor: isLogoDark ? hexToRgbaString(lightTintedHex, 0.92) : hexToRgbaString(darkDeepBase, 0.90),
+      borderColor: isLogoDark ? hexToRgbaString(cleanAccent, 0.18) : hexToRgbaString(cleanAccent, 0.30),
       borderWidth: 1,
       borderRadius: radius,
-      shadowColor: '#000000',
+      shadowColor: ambientShadowColor,
       shadowOffset: { width: 0, height: 1 },
       shadowOpacity: 0.25,
       shadowRadius: 4,
@@ -447,13 +496,13 @@ export function resolveLogoBoxStyle({
 
   if (effectivePlacement === 'on-cover') {
     return {
-      backgroundColor: 'rgba(15, 23, 42, 0.86)',
-      borderColor: 'rgba(255, 255, 255, 0.22)',
+      backgroundColor: containerBg,
+      borderColor: containerBorder,
       borderWidth: 1,
       borderRadius: radius,
-      shadowColor: '#000000',
+      shadowColor: ambientShadowColor,
       shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.32,
+      shadowOpacity: isRgbaOrHexLight(containerBg) ? 0.14 : 0.32,
       shadowRadius: 6,
       elevation: 3,
     };
@@ -461,11 +510,11 @@ export function resolveLogoBoxStyle({
 
   if (effectivePlacement === 'badge') {
     return {
-      backgroundColor: 'rgba(15, 23, 42, 0.88)',
-      borderColor: isSurfaceLight ? 'rgba(15, 23, 42, 0.22)' : 'rgba(255, 255, 255, 0.18)',
+      backgroundColor: containerBg,
+      borderColor: containerBorder,
       borderWidth: 1,
       borderRadius: radius,
-      shadowColor: '#000000',
+      shadowColor: ambientShadowColor,
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.25,
       shadowRadius: 5,
@@ -473,15 +522,15 @@ export function resolveLogoBoxStyle({
     };
   }
 
-  // Standard 'on-surface' or 'floating': dark high-contrast container with outline matching surrounding surface
+  // Standard 'on-surface' or 'floating'
   return {
-    backgroundColor: 'rgba(15, 23, 42, 0.88)',
-    borderColor: isSurfaceLight ? 'rgba(15, 23, 42, 0.18)' : 'rgba(255, 255, 255, 0.16)',
+    backgroundColor: containerBg,
+    borderColor: containerBorder,
     borderWidth: 1,
     borderRadius: radius,
-    shadowColor: '#000000',
+    shadowColor: ambientShadowColor,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
+    shadowOpacity: isRgbaOrHexLight(containerBg) ? 0.12 : 0.25,
     shadowRadius: 5,
     elevation: 3,
   };

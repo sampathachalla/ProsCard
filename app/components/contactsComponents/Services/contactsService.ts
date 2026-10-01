@@ -23,6 +23,15 @@ export async function listContacts(): Promise<Contact[]> {
   return apiRequest<Contact[]>('/contacts');
 }
 
+export async function getContact(id: string): Promise<Contact> {
+  if (AUTH_TEST_MODE) {
+    const contact = TEST_CONTACTS.find((item) => item.id === id);
+    if (!contact) throw new Error('Contact not found.');
+    return contact;
+  }
+  return apiRequest<Contact>(`/contacts/${encodeURIComponent(id)}`);
+}
+
 /** Creates a contact; saving the same source card again updates the existing contact. */
 export async function saveContact(input: ContactInput): Promise<Contact> {
   if (AUTH_TEST_MODE) return { ...input, id: `local-${Date.now()}` };
@@ -55,6 +64,26 @@ export async function createContactWithCard(
   if (!image) return { contact };
   try {
     return { contact: { ...contact, cardImageUrl: await uploadContactCardImage(contact.id, image) } };
+  } catch (reason) {
+    return { contact, imageError: reason instanceof Error ? reason : new Error('Card photo upload failed.') };
+  }
+}
+
+/**
+ * Saves edits to a contact and, when given a new card photo, replaces the stored one.
+ * The edits are kept even if the photo upload fails.
+ */
+export async function updateContactWithCard(
+  id: string,
+  input: ContactInput,
+  image?: Pick<CapturedCard, 'uri' | 'mimeType' | 'fileName'> | null,
+): Promise<{ contact: Contact; imageError?: Error }> {
+  const contact = AUTH_TEST_MODE
+    ? { ...input, id }
+    : await apiRequest<Contact>(`/contacts/${encodeURIComponent(id)}`, { method: 'PUT', body: input });
+  if (!image) return { contact };
+  try {
+    return { contact: { ...contact, cardImageUrl: await uploadContactCardImage(id, image) } };
   } catch (reason) {
     return { contact, imageError: reason instanceof Error ? reason : new Error('Card photo upload failed.') };
   }

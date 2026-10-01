@@ -1,6 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { MediaImage } from '@/components/uiComponents/MediaImage';
 import {
   AtSign,
@@ -23,8 +24,9 @@ import {
   type LucideIcon,
 } from 'lucide-react-native';
 import { Text } from '@/components/uiComponents/Text';
-import mindProsLogoDark from '@/assets/mindpros-logo-dark.png';
-import mindProsLogoLight from '@/assets/mindpros-logo-light.png';
+import { Colors } from '@/constants/Colors';
+import mindProsLogoForDarkTheme from '@/assets/mindpros-logo-dark.png'; // White text (for dark backgrounds)
+import mindProsLogoForLightTheme from '@/assets/mindpros-logo-light.png'; // Dark navy text (for light backgrounds)
 import type { CardDetailField } from '../cardDetailTemplate';
 import type { CardTemplateId, CardVisualTheme, ResolvedLayoutSlots } from '../../types/card.types';
 import { getCardFontFamily, getCardLetterSpacing } from '../cardTheme';
@@ -143,6 +145,25 @@ export function getFieldIcon(fieldId: string, fieldType?: string): LucideIcon {
   return ExternalLink;
 }
 
+/** Branded backdrop shown when the user has not uploaded a cover photo. */
+export function DefaultCover({ style }: { style: object }) {
+  return (
+    <View style={[style, { overflow: 'hidden' }]} accessibilityLabel="Default cover">
+      <LinearGradient
+        colors={[Colors.palette.navyGradient, Colors.palette.primaryCta, Colors.palette.brandCyan]}
+        locations={[0, 0.6, 1]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
+      />
+      {/* Soft shapes keep the default from looking like a flat fill at any card size. */}
+      <View style={{ position: 'absolute', width: '70%', aspectRatio: 1, borderRadius: 9999, right: '-22%', top: '-55%', backgroundColor: 'rgba(255,255,255,0.10)' }} />
+      <View style={{ position: 'absolute', width: '45%', aspectRatio: 1, borderRadius: 9999, left: '-12%', bottom: '-50%', backgroundColor: 'rgba(56,189,248,0.22)' }} />
+      <View style={{ position: 'absolute', width: '28%', aspectRatio: 1, borderRadius: 9999, right: '18%', bottom: '-30%', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.18)' }} />
+    </View>
+  );
+}
+
 export function IdentityImage({
   field,
   fit = 'cover',
@@ -157,6 +178,7 @@ export function IdentityImage({
   style: object;
 }) {
   if (!field?.value) {
+    if (field?.id === 'coverPhoto') return <DefaultCover style={style} />;
     return (
       <View style={[style, { backgroundColor: placeholderColor }]} className="items-center justify-center">
         <ImageIcon color={iconColor} size={22} />
@@ -190,8 +212,20 @@ export function UniversalLogoBadge({
   const logoWidth = compact ? 80 : 128;
   const logoHeight = compact ? 30 : 48;
 
+  // Uploaded logos are protected backend paths; MediaImage resolves them to a signed URL.
+  const customLogo = typeof field?.value === 'string' ? field.value.trim() : '';
+
+  // Determine container and brand logo based on surrounding surface & backdrop contrast
+  const surroundingIsLight = slots ? isRgbaOrHexLight(slots.surface) : false;
+  const isBackdropExplicitlyLight = backdropColor ? isRgbaOrHexLight(backdropColor) : undefined;
+
+  // If a backdrop is explicitly given, logo adapts to it.
+  // Otherwise, the container adapts to provide high-contrast for the logo against the card.
+  const isLightLogo = isBackdropExplicitlyLight !== undefined ? !isBackdropExplicitlyLight : !surroundingIsLight;
+
   const engineStyle = resolveLogoBoxStyle({
     compact,
+    logoTone: isLightLogo ? 'light' : 'dark',
     placement,
     slots,
     templateId,
@@ -199,12 +233,10 @@ export function UniversalLogoBadge({
   });
 
   const effectiveBg = backdropColor || engineStyle.backgroundColor;
-  const isBackdropLight = isRgbaOrHexLight(effectiveBg);
+  const isEffectiveBgLight = isRgbaOrHexLight(effectiveBg);
 
-  const defaultBrandLogo = isBackdropLight ? mindProsLogoLight : mindProsLogoDark;
-
-  // Uploaded logos are protected backend paths; MediaImage resolves them to a signed URL.
-  const customLogo = typeof field?.value === 'string' ? field.value.trim() : '';
+  // Dark text on light backdrop; White text on dark backdrop
+  const defaultBrandLogo = isEffectiveBgLight ? mindProsLogoForLightTheme : mindProsLogoForDarkTheme;
 
   return (
     <View

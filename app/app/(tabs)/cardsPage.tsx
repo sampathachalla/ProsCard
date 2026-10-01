@@ -6,7 +6,7 @@ import { Edit3, Plus, Star, Trash2, X } from 'lucide-react-native';
 import { useCards } from '@/components/cardsComponents/Hooks/useCards';
 import type { BusinessCard } from '@/components/cardsComponents/types/card.types';
 import { useProfileSnapshot } from '@/components/profileComponents/Hooks/useProfileSnapshot';
-import { WalletStackView } from '@/components/homepageComponents/Components/StackedCardView';
+import { WalletStackView } from '@/components/walletCardComponents';
 import { PageHeader } from '@/components/uiComponents/PageHeader';
 import { Text } from '@/components/uiComponents/Text';
 import { deleteCard, setPrimaryCard } from '@/components/cardsComponents/Services/cardsService';

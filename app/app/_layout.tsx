@@ -31,6 +31,8 @@ function ThemedLayoutWrapper() {
           <Stack.Screen name="auth" />
           <Stack.Screen name="cards/[cardId]" />
           <Stack.Screen name="contacts/new" />
+          <Stack.Screen name="contacts/[contactId]" />
+          <Stack.Screen name="share/[slug]" />
           <Stack.Screen
             name="scanner"
             options={{

@@ -1,69 +1,17 @@
-import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { CreditCard, ScanLine } from 'lucide-react-native';
-import Animated, {
-  Easing,
-  FadeIn,
-  interpolate,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { Colors } from '@/constants/Colors';
 import { CaptureTipCaption, CaptureTipIcon, useCaptureTipCycle } from './CaptureTips';
-
-/** Size of the orbit ring; the animation scales down when the panel is shorter than this. */
-const STAGE_SIZE = 176;
 
 type ScannerTopPanelProps = {
   stage: 'camera' | 'processing' | 'result';
   hasScanData: boolean;
+  /** Replaces the default heading, e.g. to explain why a photo could not be used. */
+  copy?: { eyebrow: string; title: string; subtitle: string };
 };
 
-export function ScannerTopPanel({ stage, hasScanData }: ScannerTopPanelProps) {
-  const scanY = useSharedValue(0);
-  const pulse = useSharedValue(0);
-  const orbit = useSharedValue(0);
-  const [stageScale, setStageScale] = useState(1);
+export function ScannerTopPanel({ stage, hasScanData, copy }: ScannerTopPanelProps) {
   const tips = useCaptureTipCycle(stage === 'camera');
-
-  useEffect(() => {
-    scanY.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: stage === 'processing' ? 900 : 1600, easing: Easing.inOut(Easing.quad) }),
-        withTiming(0, { duration: stage === 'processing' ? 900 : 1600, easing: Easing.inOut(Easing.quad) })
-      ),
-      -1,
-      false
-    );
-
-    pulse.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: 1100, easing: Easing.out(Easing.cubic) }),
-        withTiming(0, { duration: 1100, easing: Easing.in(Easing.cubic) })
-      ),
-      -1,
-      false
-    );
-
-    orbit.value = withRepeat(withTiming(1, { duration: 4200, easing: Easing.linear }), -1, false);
-  }, [orbit, pulse, scanY, stage]);
-
-  const scanLineStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(scanY.value, [0, 0.12, 0.88, 1], [0.2, 1, 1, 0.2]),
-    transform: [{ translateY: interpolate(scanY.value, [0, 1], [-54, 54]) }],
-  }));
-
-  const ringStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(pulse.value, [0, 1], [0.35, 0.85]),
-    transform: [{ scale: interpolate(pulse.value, [0, 1], [0.92, 1.08]) }],
-  }));
-
-  const orbitStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${interpolate(orbit.value, [0, 1], [0, 360])}deg` }],
-  }));
 
   const title =
     stage === 'processing'
@@ -87,46 +35,27 @@ export function ScannerTopPanel({ stage, hasScanData }: ScannerTopPanelProps) {
     <View style={styles.panel}>
       <Animated.View entering={FadeIn.duration(280)} style={styles.copy}>
         <Text style={styles.eyebrow}>
-          {stage === 'processing' ? 'PROCESSING' : stage === 'result' ? 'SCAN COMPLETE' : 'SMART CARD SCAN'}
+          {copy?.eyebrow ?? (stage === 'processing' ? 'PROCESSING' : stage === 'result' ? 'SCAN COMPLETE' : 'SMART CARD SCAN')}
         </Text>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.subtitle}>{subtitle}</Text>
+        <Text style={styles.title}>{copy?.title ?? title}</Text>
+        <Text style={styles.subtitle}>{copy?.subtitle ?? subtitle}</Text>
       </Animated.View>
 
-      <View
-        style={styles.stage}
-        onLayout={({ nativeEvent }) => setStageScale(Math.min(1, nativeEvent.layout.height / STAGE_SIZE))}
-      >
-        <View style={[styles.stageArt, { transform: [{ scale: stageScale }] }]}>
-          <Animated.View style={[styles.orbitRing, orbitStyle]}>
-            <View style={styles.orbitDot} />
-          </Animated.View>
-
-          <Animated.View style={[styles.pulseRing, ringStyle]} />
-
-          <View style={styles.cardFrame}>
-            {stage === 'camera' ? (
-              <CaptureTipIcon tip={tips.tip} />
-            ) : (
-              <CreditCard
-                color={stage === 'processing' ? Colors.palette.brandCyanLight : '#E2E8F0'}
-                size={34}
-                strokeWidth={1.8}
-              />
-            )}
-            <Animated.View style={[styles.scanLine, scanLineStyle]} />
+      <View style={styles.body}>
+        {stage === 'camera' ? (
+          <>
+            <View style={styles.tipIcon}>
+              <CaptureTipIcon tip={tips.tip} size={26} />
+            </View>
+            <CaptureTipCaption index={tips.index} onSelect={tips.select} />
+          </>
+        ) : stage === 'processing' ? (
+          <View style={styles.processing}>
+            <ActivityIndicator color={Colors.palette.brandCyanLight} />
+            <Text style={styles.processingText}>Analyzing image</Text>
           </View>
-        </View>
-
-        {stage === 'processing' && (
-          <Animated.View entering={FadeIn.delay(120)} style={styles.processingBadge}>
-            <ScanLine color={Colors.palette.brandCyanLight} size={16} />
-            <Text style={styles.processingBadgeText}>Analyzing image</Text>
-          </Animated.View>
-        )}
+        ) : null}
       </View>
-
-      {stage === 'camera' && <CaptureTipCaption index={tips.index} onSelect={tips.select} />}
     </View>
   );
 }
@@ -137,7 +66,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.palette.midnightBase,
     paddingHorizontal: 24,
     paddingBottom: 18,
-    justifyContent: 'space-between',
   },
   copy: {
     alignItems: 'center',
@@ -165,81 +93,33 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     maxWidth: 280,
   },
-  stage: {
+  body: {
     flex: 1,
-    minHeight: 0,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 14,
   },
-  stageArt: {
-    width: STAGE_SIZE,
-    height: STAGE_SIZE,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  orbitRing: {
-    position: 'absolute',
-    width: 168,
-    height: 168,
-    borderRadius: 84,
-    borderWidth: 1,
-    borderColor: 'rgba(56,189,248,0.18)',
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-  },
-  orbitDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginLeft: -4,
-    backgroundColor: Colors.palette.brandCyanLight,
-  },
-  pulseRing: {
-    position: 'absolute',
-    width: 128,
-    height: 128,
-    borderRadius: 64,
-    borderWidth: 1.5,
-    borderColor: 'rgba(56,189,248,0.35)',
-    backgroundColor: 'rgba(56,189,248,0.06)',
-  },
-  cardFrame: {
-    width: 118,
-    height: 76,
+  tipIcon: {
+    width: 56,
+    height: 56,
     borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: 'rgba(148,163,184,0.35)',
-    backgroundColor: 'rgba(15,23,42,0.9)',
-    alignItems: 'center',
-    justifyContent: 'center',
     overflow: 'hidden',
+    backgroundColor: 'rgba(56,189,248,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(56,189,248,0.24)',
   },
-  scanLine: {
-    position: 'absolute',
-    left: 10,
-    right: 10,
-    height: 2,
-    borderRadius: 2,
-    backgroundColor: Colors.palette.brandCyanLight,
-    shadowColor: Colors.palette.brandCyan,
-    shadowOpacity: 0.9,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 0 },
-  },
-  processingBadge: {
-    position: 'absolute',
-    bottom: 18,
+  processing: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderRadius: 999,
     backgroundColor: 'rgba(15,23,42,0.92)',
     borderWidth: 1,
     borderColor: 'rgba(56,189,248,0.28)',
   },
-  processingBadgeText: {
+  processingText: {
     color: '#E2E8F0',
     fontSize: 13,
     fontWeight: '600',

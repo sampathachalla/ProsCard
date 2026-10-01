@@ -10,6 +10,7 @@ import { CardTapGesture } from '@/components/gestures';
 import { Text } from '@/components/uiComponents/Text';
 import { QRCodeModal } from '@/components/uiComponents/QRCodeModal';
 import { useShareUrl } from '@/components/sharingComponents/Hooks/useShareUrl';
+import { useAddToWallet } from '@/components/walletCardComponents/Hooks/useAddToWallet';
 import { getShareUrl } from '@/components/sharingComponents/Services/sharingService';
 import { queryClient, queryKeys } from '@/services/api/queryClient';
 import { useProfileSnapshot } from '@/components/profileComponents/Hooks/useProfileSnapshot';
@@ -51,6 +52,7 @@ export default function CardDetailPage() {
   const card = cardQuery.data;
   const { profile } = useProfileSnapshot();
   const [showQr, setShowQr] = useState(false);
+  const { addToWallet } = useAddToWallet();
 
   const share = useShareUrl(showQr ? cardId : null);
 
@@ -100,10 +102,7 @@ export default function CardDetailPage() {
           }
           break;
         case 'wallet':
-          Alert.alert(
-            'Add to Wallet',
-            'Wallet support is not implemented yet. This shortcut is ready for a future Apple or Google Wallet integration.',
-          );
+          await addToWallet(card.id);
           break;
         case 'edit':
           router.push({

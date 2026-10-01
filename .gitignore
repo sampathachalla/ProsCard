@@ -16,3 +16,6 @@
 
 # Root .env is a symlink to api/.env for docker compose variable interpolation
 /.env
+
+# Exported share web app (built by app: npm run build:share)
+/api/web/

@@ -41,7 +41,9 @@
     "express-rate-limit": "^8.7.0",
     "helmet": "^8.3.0",
     "oci-sdk": "^2.142.0",
+    "passkit-generator": "^3.6.1",
     "pg": "^8.23.0",
+    "sharp": "^0.35.5",
     "zod": "^4.6.5"
   },
   "devDependencies": {

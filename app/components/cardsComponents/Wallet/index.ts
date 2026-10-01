@@ -19,6 +19,11 @@ export {
   WALLET_SECTIONS,
 } from './WalletCardRenderEngine';
 export {
+  WalletStackView,
+  walletStackRankFor,
+  type WalletStackViewProps,
+} from './WalletStackView';
+export {
   getWalletCardDimensions,
   getWalletSectionHeights,
   resolveWalletCardWidth,

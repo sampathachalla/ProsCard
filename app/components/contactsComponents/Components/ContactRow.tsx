@@ -5,9 +5,14 @@ import { Colors } from '@/constants/Colors';
 import { MediaImage } from '@/components/uiComponents/MediaImage';
 import type { Contact } from '../types/contact.types';
 
-export function ContactRow({ contact, onDelete }: { contact: Contact; onDelete?: (contact: Contact) => void }) {
+type ContactRowProps = {
+  contact: Contact;
+  onPress?: (contact: Contact) => void;
+  onDelete?: (contact: Contact) => void;
+};
+
+export function ContactRow({ contact, onPress, onDelete }: ContactRowProps) {
   const subtitle = [contact.title, contact.company].filter(Boolean).join(' · ');
-  const details = [subtitle, contact.phone, contact.email, contact.website, contact.address, contact.notes].filter(Boolean).join('\n');
 
   const call = () => {
     if (!contact.phone) {
@@ -33,9 +38,9 @@ export function ContactRow({ contact, onDelete }: { contact: Contact; onDelete?:
       <TouchableOpacity
         accessibilityRole="button"
         accessibilityLabel={subtitle ? `${contact.name}, ${subtitle}` : contact.name}
-        accessibilityHint={onDelete ? 'Long press to remove' : undefined}
         className="flex-1 flex-row items-center"
-        onPress={() => Alert.alert(contact.name, details || undefined)}
+        accessibilityHint={onDelete ? 'Opens the contact. Long press to remove' : 'Opens the contact'}
+        onPress={() => onPress?.(contact)}
         onLongPress={confirmDelete}
       >
         {contact.cardImageUrl ? (

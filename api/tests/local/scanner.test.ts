@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CARD_READER_MODEL, OpenAiCardReader } from '../../scanner/services/openai-card-reader.service.js';
-import { normalizeBounds, ScannerService } from '../../scanner/services/scanner.service.js';
+import { isPlaceholder, normalizeBounds, ScannerService } from '../../scanner/services/scanner.service.js';
 import type { CardReading } from '../../scanner/utils/scanner.schemas.js';
 
 const reading: CardReading = {
@@ -25,6 +25,27 @@ describe('business card scanner', () => {
     expect(normalizeBounds({ x: 0.5, y: 0.5, width: 0.02, height: 0.3 })).toBeNull();
     expect(normalizeBounds({ x: 0, y: 0, width: 1, height: 1 })).toBeNull();
     expect(normalizeBounds(null)).toBeNull();
+  });
+
+  it('treats business-card template filler as missing', () => {
+    for (const filler of ['YOUR CITY ADDRESS STREET LOCATION, NY CITY, USA', 'INFO@COMPANYNAME.COM', 'WWW.COMPANY-NAME.COM',
+      'www.yourwebsite.com', 'Company Name', 'Your Name', 'john@example.com', 'Lorem ipsum dolor', '123-456-7890', 'Slogan goes here']) {
+      expect(isPlaceholder(filler), filler).toBe(true);
+    }
+    for (const real of ['500 Market St, San Francisco', 'priya.raman@northwind.io', 'www.northwind.io', 'Northwind Analytics',
+      'Priya Raman', '+1 (415) 555-0199', 'Head of Product Design', 'Your Dental Care Ltd']) {
+      expect(isPlaceholder(real), real).toBe(false);
+    }
+  });
+
+  it('blanks placeholder fields and never fills notes', async () => {
+    const result = await new ScannerService({
+      read: async () => ({ ...reading, contact: { ...reading.contact, address: 'YOUR CITY ADDRESS, NY', website: 'www.company-name.com', notes: 'extra' } }),
+    }).readCard({ image: 'abc', mimeType: 'image/jpeg' });
+    expect(result.contact.address).toBe('');
+    expect(result.contact.website).toBe('');
+    expect(result.contact.notes).toBe('');
+    expect(result.contact.name).toBe('Ada Lovelace');
   });
 
   it('reports a clear error when no LLM key is configured', async () => {

@@ -4,7 +4,10 @@ import BottomSheet, { BottomSheetFooter, type BottomSheetFooterProps } from '@go
 import { useThemedBottomSheet } from './useThemedBottomSheet';
 
 type ThemedBottomSheetProps = {
-  snapPoints: (string | number)[];
+  /** Omit together with `fitContent` to size the sheet to its content. */
+  snapPoints?: (string | number)[];
+  /** Sizes the sheet to its content (children must be a BottomSheetView) instead of fixed snap points. */
+  fitContent?: boolean;
   children: ReactNode;
   containerStyle?: StyleProp<ViewStyle>;
   backdropEnabled?: boolean;
@@ -17,7 +20,7 @@ type ThemedBottomSheetProps = {
 };
 
 export const ThemedBottomSheet = forwardRef<BottomSheet, ThemedBottomSheetProps>(
-  ({ snapPoints, children, backdropEnabled = true, containerStyle, enablePanDownToClose = true, footer, glassmorphic = false, onChange, showHandle = true, topInset = 0 }, ref) => {
+  ({ snapPoints, fitContent = false, children, backdropEnabled = true, containerStyle, enablePanDownToClose = true, footer, glassmorphic = false, onChange, showHandle = true, topInset = 0 }, ref) => {
     const { isDark, renderBackdrop, handleIndicatorStyle, backgroundStyle } = useThemedBottomSheet();
     const renderTransparentBackdrop = useCallback(() => null, []);
     // Keep the handle's reserved space so nothing shifts when it (re)appears;
@@ -34,10 +37,10 @@ export const ThemedBottomSheet = forwardRef<BottomSheet, ThemedBottomSheetProps>
       <BottomSheet
         ref={ref}
         index={-1}
-        snapPoints={snapPoints}
+        snapPoints={fitContent ? undefined : snapPoints}
         containerStyle={containerStyle}
         topInset={topInset}
-        enableDynamicSizing={false}
+        enableDynamicSizing={fitContent}
         enablePanDownToClose={enablePanDownToClose}
         keyboardBehavior="interactive"
         keyboardBlurBehavior="restore"

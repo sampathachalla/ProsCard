@@ -55,10 +55,11 @@ const RESPONSE_SCHEMA = {
     contact: {
       type: 'object',
       additionalProperties: false,
-      required: ['name', 'title', 'company', 'phone', 'email', 'website', 'address', 'notes'],
+      // Notes are the user's own; the reader never fills them.
+      required: ['name', 'title', 'company', 'phone', 'email', 'website', 'address'],
       properties: {
         name: contactField, title: contactField, company: contactField, phone: contactField,
-        email: contactField, website: contactField, address: contactField, notes: contactField,
+        email: contactField, website: contactField, address: contactField,
       },
     },
   },
@@ -73,10 +74,12 @@ Rules:
   "upright" (left to right, normal), "upside_down", "top_to_bottom" (lines run downward, letters' tops face right),
   or "bottom_to_top" (lines run upward, letters' tops face left).
 - contact: copy text exactly as printed. name is the person's full name; title their job title; company the organisation.
-  phone: the main phone number including country code if printed; put any other numbers in notes.
+  phone: the first (main) phone number, including country code if printed. Ignore any other numbers.
   email and website without extra words; address as one line.
-  notes: other useful printed details (extra phones, fax, social handles, taglines), separated by "; ".
-- Use "" for anything that is not printed on the card. Never invent details.`;
+- Use "" for anything that is not printed on the card. Never invent, guess or move details into another field.
+- Template placeholder text is not a real detail: use "" for fields that only contain generic filler such as
+  "Company Name", "Your Name", "Your City Address", "Street Location", "info@companyname.com",
+  "www.company-name.com", "www.yourwebsite.com", "123 Street", "Lorem ipsum" or "Slogan goes here".`;
 
 export class OpenAiCardReader implements CardReaderGateway {
   private readonly baseUrl: string;

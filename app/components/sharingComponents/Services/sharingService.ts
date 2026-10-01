@@ -1,8 +1,15 @@
+import { Platform } from 'react-native';
 import { apiRequest } from '@/services/api/client';
+import { API_BASE_URL } from '@/services/api/config';
 import { AUTH_TEST_MODE } from '@/components/authComponents/Config/authMode';
 import type { BusinessCard } from '@/components/cardsComponents/types/card.types';
+import type { Profile } from '@/components/profileComponents/types/profile.types';
 
-export const PUBLIC_WEB_URL = (process.env.EXPO_PUBLIC_WEB_URL ?? 'https://proscard.app').trim().replace(/\/$/, '');
+/**
+ * Where QR codes and share links point. The API serves the public share page, so by default this is
+ * the API's own address; set EXPO_PUBLIC_WEB_URL once a dedicated domain exists.
+ */
+export const PUBLIC_WEB_URL = (process.env.EXPO_PUBLIC_WEB_URL || API_BASE_URL || 'http://localhost:8050').trim().replace(/\/$/, '');
 
 type ShareRecord = { id: string; slug: string };
 export type SharedCard = Pick<BusinessCard, 'id' | 'name'> & Partial<Pick<BusinessCard, 'title' | 'company' | 'phone' | 'email' | 'gradient'>>;
@@ -21,6 +28,26 @@ export async function getShareUrl(cardId: string): Promise<string> {
   if (AUTH_TEST_MODE) return `${PUBLIC_WEB_URL}/cards/${cardId}`;
   const share = await apiRequest<ShareRecord>(`/sharing/cards/${encodeURIComponent(cardId)}`, { method: 'POST', body: {} });
   return shareUrlForSlug(share.slug);
+}
+
+type SharedCardView = { card: BusinessCard; profile: Partial<Profile> };
+
+/**
+ * Card plus owner profile for the public share page; image links are already share-scoped.
+ * On the web the page is served by the API itself, so it talks to (and loads images from) the origin
+ * it was opened on — whatever domain the QR code used — rather than the address baked into the build.
+ */
+export async function getSharedCardView(slug: string): Promise<SharedCardView> {
+  const path = `/sharing/public/${encodeURIComponent(slug)}/view`;
+  const origin = Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.origin : null;
+  if (!origin) return apiRequest<SharedCardView>(path, { authenticated: false });
+
+  const response = await fetch(`${origin}/api/v1${path}`, { headers: { Accept: 'application/json' } });
+  if (!response.ok) throw new Error(response.status === 404 ? 'Shared card not found or expired.' : `Request failed (${response.status}).`);
+  const view = await response.json() as SharedCardView;
+  // Absolute same-origin image links, so they are not re-pointed at the build's API address.
+  const absolute = JSON.stringify(view).replace(/"\/api\/v1\/sharing\/public\//g, `"${origin}/api/v1/sharing/public/`);
+  return JSON.parse(absolute) as SharedCardView;
 }
 
 export async function resolveSharedCard(slug: string): Promise<SharedCard> {

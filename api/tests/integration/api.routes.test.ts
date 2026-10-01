@@ -1,5 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import request from 'supertest';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createApp } from '../../src/app.js';
 import { loadConfig } from '../../src/config.js';
@@ -76,6 +79,54 @@ describe('ProsCard API routes',()=>{
     expect((await request(app).get('/api/v1/cards').set(auth)).body).toHaveLength(1);
     expect((await request(app).get(`/api/v1/cards/${cardId}`).set(auth)).body.name).toBe('Ada Lovelace');
     expect((await request(app).put(`/api/v1/cards/${cardId}`).set(auth).send({title:'Programmer'})).body.title).toBe('Programmer');
+  });
+  it('serves a shared card with its profile and only the images it shows',async()=>{
+    const logo=await request(app).post('/api/v1/media/upload-url').set(auth).send({kind:'companyLogo',scope:'card',cardId,fileName:'logo.png',contentType:'image/png'});
+    await request(app).post(`/api/v1/media/${logo.body.mediaId}/confirm`).set(auth);
+    const privateContact=await request(app).post('/api/v1/contacts').set(auth).send({name:'Private'});
+    const unrelated=await request(app).post('/api/v1/media/upload-url').set(auth).send({kind:'contactCard',scope:'contact',contactId:privateContact.body.id,fileName:'c.jpg',contentType:'image/jpeg'});
+    await request(app).post(`/api/v1/media/${unrelated.body.mediaId}/confirm`).set(auth);
+    const share=await request(app).post(`/api/v1/sharing/cards/${cardId}`).set(auth).send({});const slug=share.body.slug as string;
+    const view=await request(app).get(`/api/v1/sharing/public/${slug}/view`);expect(view.status).toBe(200);
+    expect(view.body.profile.firstName).toBe('Ada');
+    expect(view.body.card.sectionOverrides.logo).toBe(`/api/v1/sharing/public/${slug}/media/${logo.body.mediaId}`);
+    expect(JSON.stringify(view.body)).not.toContain('/api/v1/media/');
+    const image=await request(app).get(`/api/v1/sharing/public/${slug}/media/${logo.body.mediaId}`);expect(image.status).toBe(302);expect(image.headers.location).toContain(`oci.test/download/${logo.body.objectName}`);
+    expect((await request(app).get(`/api/v1/sharing/public/${slug}/media/${unrelated.body.mediaId}`)).status).toBe(404);
+    expect((await request(app).get(`/api/v1/sharing/public/${slug}/media/not-a-uuid`)).status).toBe(404);
+    await request(app).delete(`/api/v1/sharing/${share.body.id}`).set(auth);
+    expect((await request(app).get(`/api/v1/sharing/public/${slug}/view`)).status).toBe(404);
+    expect((await request(app).get(`/api/v1/sharing/public/${slug}/media/${logo.body.mediaId}`)).status).toBe(404);
+    await request(app).delete(`/api/v1/contacts/${privateContact.body.id}`).set(auth);
+  });
+  it('serves the public share page from the exported web app',async()=>{
+    const webDir=mkdtempSync(path.join(tmpdir(),'share-web-'));writeFileSync(path.join(webDir,'index.html'),'<div id="root"></div>');
+    const withWeb=createApp({db:pool,supabase,storage,shareWebDir:webDir});
+    const page=await request(withWeb).get('/share/abc123');expect(page.status).toBe(200);expect(page.text).toContain('id="root"');
+    expect(page.headers['content-security-policy']).toContain('https://*.oraclecloud.com');
+    expect((await request(withWeb).get('/_expo/static/missing.js')).status).toBe(404);
+    expect((await request(app).get('/share/abc123')).status).toBe(404);
+  });
+  it('creates wallet passes only for the owner\'s cards',async()=>{
+    expect((await request(app).get('/api/v1/wallet/status')).body).toEqual({apple:false,google:false});
+    expect((await request(app).post(`/api/v1/wallet/cards/${cardId}/apple`).set(auth)).status).toBe(503);
+    const passes:{card:string;share:string}[]=[];
+    const walletApp=createApp({db:pool,supabase,storage,wallet:{
+      apple:{create:async(card:{cardId:string},share:string)=>{passes.push({card:card.cardId,share});return Buffer.from('PKPASS')}} as never,
+      google:{createSaveUrl:(_card:unknown,share:string)=>`https://pay.google.com/gp/v/save/jwt?share=${encodeURIComponent(share)}`} as never,
+      linkSecret:'test-secret',publicBaseUrl:'https://cards.test',
+    }});
+    expect((await request(walletApp).post('/api/v1/wallet/cards/00000000-0000-4000-8000-000000000000/apple').set(auth)).status).toBe(404);
+    expect((await request(walletApp).post(`/api/v1/wallet/cards/${cardId}/apple`)).status).toBe(401);
+    const link=await request(walletApp).post(`/api/v1/wallet/cards/${cardId}/apple`).set(auth);expect(link.status).toBe(200);
+    const passPath=new URL(link.body.url).pathname;expect(link.body.url.startsWith('https://cards.test/api/v1/wallet/apple/')).toBe(true);
+    const pass=await request(walletApp).get(passPath);expect(pass.status).toBe(200);expect(pass.headers['content-type']).toContain('application/vnd.apple.pkpass');
+    expect(passes[0]?.card).toBe(cardId);expect(passes[0]?.share).toMatch(/^https:\/\/cards\.test\/share\/[\w-]+$/);
+    const [payload,signature]=passPath.split('/').pop()!.replace(/\.pkpass$/,'').split('.');
+    const forged=Buffer.from(JSON.stringify({u:userId,c:cardId,e:Math.floor(Date.now()/1000)+600})).toString('base64url');
+    expect((await request(walletApp).get(`/api/v1/wallet/apple/${forged}.${signature}.pkpass`)).status).toBe(404);
+    expect((await request(walletApp).get(`/api/v1/wallet/apple/${payload}.tampered.pkpass`)).status).toBe(404);
+    const google=await request(walletApp).post(`/api/v1/wallet/cards/${cardId}/google`).set(auth);expect(google.status).toBe(200);expect(google.body.url).toContain('pay.google.com');
   });
   it('creates, resolves, and revokes a public share',async()=>{
     const created=await request(app).post(`/api/v1/sharing/cards/${cardId}`).set(auth).send({});expect(created.status).toBe(201);shareId=created.body.id;shareSlug=created.body.slug;

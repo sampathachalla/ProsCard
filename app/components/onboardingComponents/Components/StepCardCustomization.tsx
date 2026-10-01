@@ -24,7 +24,8 @@ import {
   type LucideIcon,
 } from 'lucide-react-native';
 
-import mindProsLogoDark from '@/assets/mindpros-logo-dark.png';
+import { getMindProsLogoSource } from '@/components/uiComponents/BrandLogo';
+import { isRgbaOrHexLight } from '@/utils/cardThemeColor';
 import { FlippableCard } from '@/components/gestures/FlippableCard';
 import {
   StandardWalletCard,
@@ -40,6 +41,7 @@ import {
   CARD_GRADIENT_PRESETS,
   DEFAULT_CARD_CATEGORIES,
 } from '../types/onboardingStepper.types';
+import { PUBLIC_WEB_URL } from '@/components/sharingComponents/Services/sharingService';
 
 export const CARD_ASPECT_RATIO = 1.586;
 
@@ -86,9 +88,8 @@ export function StepCardCustomization({
       ? draft.cardGradient
       : ['#2563eb', '#00a8e8'];
 
-  const qrUrl = `https://proscard.mindpros.com/p/${encodeURIComponent(
-    draft.firstName?.trim() || draft.fullName?.trim() || 'user'
-  )}`;
+  // Preview only: the card does not exist yet, so its share link is created later.
+  const qrUrl = PUBLIC_WEB_URL;
 
   // Handle Preset Gradient Selection
   const handleSelectPreset = (preset: CardGradientPreset) => {
@@ -206,7 +207,7 @@ export function StepCardCustomization({
                 category={safeCategory}
                 company={safeCompany}
                 gradient={safeGradient}
-                logoSource={mindProsLogoDark}
+                logoSource={getMindProsLogoSource(isRgbaOrHexLight(safeGradient[0]) ? 'light' : 'dark')}
                 name={safeName}
                 title={safeTitle}
                 width={cardWidth}

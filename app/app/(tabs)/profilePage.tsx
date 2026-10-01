@@ -102,6 +102,7 @@ export default function ProfileScreen() {
         className="px-0"
         title="Profile"
         subtitle="Your info, contact, and app preferences"
+        onBackPress={() => router.replace('/(tabs)/homepage')}
       />
       <ScrollView
         className="flex-1"
