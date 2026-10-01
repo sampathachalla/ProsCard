@@ -9,21 +9,30 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mindpros.proscard",
-      "buildNumber": "1"
+      "buildNumber": "1",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.mindpros.proscard",
       "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#ffffff"
-      }
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#020617"
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "runtimeVersion": {
       "policy": "appVersion"
     },
     "web": {
       "bundler": "metro",
-      "output": "single"
+      "output": "single",
+      "favicon": "./assets/favicon.png"
     },
     "plugins": [
       [
@@ -35,8 +44,10 @@
       [
         "expo-splash-screen",
         {
+          "image": "./assets/mindpros-logo.png",
+          "imageWidth": 240,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#020617"
         }
       ],
       [
@@ -60,6 +71,16 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "icon": "./assets/icon.png",
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "8f1f8353-f1c7-4cde-9268-e88e954c727e"
+      }
+    },
+    "owner": "sampath2001"
   }
 }

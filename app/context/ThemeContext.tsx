@@ -16,19 +16,17 @@ const ThemeContext = createContext<ThemeContextProps>({
 });
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
-  const [theme, setTheme] = useState<Theme>('light');
+  // Start from the phone's light/dark setting instead of correcting it after the first render.
+  const [theme, setTheme] = useState<Theme>(() => (Appearance.getColorScheme() === 'dark' ? 'dark' : 'light'));
   const { setColorScheme } = useColorScheme();
 
+  // Keep NativeWind's `dark:` classes in step with the theme.
   useEffect(() => {
-    const systemColor = Appearance.getColorScheme() === 'dark' ? 'dark' : 'light';
-    setTheme(systemColor);
-    setColorScheme(systemColor);
-  }, []);
+    setColorScheme(theme);
+  }, [theme, setColorScheme]);
 
   const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    setColorScheme(newTheme);
+    setTheme((current) => (current === 'light' ? 'dark' : 'light'));
   };
 
   return (

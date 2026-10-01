@@ -1,8 +1,13 @@
+# Public HTTPS for the ProsCard backend on the OCI instance (installed as /etc/caddy/Caddyfile).
+
+# API + public share pages: the backend running on this server (deploy/oci/docker-compose.yml).
+# To serve the API from a laptop through `npm run tunnel:oci` instead, point this back to 127.0.0.1:8050.
 150.136.12.178.nip.io {
   encode zstd gzip
-  reverse_proxy 127.0.0.1:8050
+  reverse_proxy 127.0.0.1:8060
 }
 
+# Metro dev server, reverse-tunnelled from the developer's Mac (npm run tunnel:oci).
 metro.150.136.12.178.nip.io {
   reverse_proxy 127.0.0.1:8081
 }

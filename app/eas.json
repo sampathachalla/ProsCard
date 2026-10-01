@@ -4,14 +4,27 @@
     "appVersionSource": "remote"
   },
   "build": {
+    "base": {
+      "env": {
+        "EXPO_PUBLIC_TUNNEL_API_URL": "https://150.136.12.178.nip.io",
+        "EXPO_PUBLIC_AUTH_TEST_MODE": "false",
+        "EXPO_PUBLIC_OCI_API_URL": "https://150.136.12.178.nip.io"
+      }
+    },
     "development": {
+      "extends": "base",
       "developmentClient": true,
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal"
+      "extends": "base",
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
     },
     "production": {
+      "extends": "base",
       "autoIncrement": true
     }
   },

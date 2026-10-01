@@ -1,11 +1,12 @@
 #!/bin/zsh
-# Serves the local Docker API and Metro through the OCI instance's fixed HTTPS hostnames.
+# Serves Metro (and optionally the local API) through the OCI instance's fixed HTTPS hostnames.
 #
-#   phone ──https──> Caddy on OCI (150.136.12.178.nip.io / metro.…) ──reverse SSH──> this Mac (:8050 / :8081)
+#   phone ──https──> Caddy on OCI metro.150.136.12.178.nip.io ──reverse SSH──> this Mac (:8081)
 #
+# The API now runs on the OCI instance itself (deploy/oci), so by default only Metro is tunnelled.
+# TUNNEL_API=1 also forwards this Mac's API on :8050 — only useful if Caddy is pointed back at 8050.
 # The hostnames never change, so the Expo URL / QR code stays the same between runs.
-# Prerequisites: the API is running locally (cd api && npm run docker:up) and SSH works
-# to the instance. Override the defaults with OCI_HOST, OCI_USER and OCI_SSH_KEY.
+# Override the defaults with OCI_HOST, OCI_USER and OCI_SSH_KEY.
 
 set -euo pipefail
 
@@ -21,6 +22,7 @@ METRO_PORT=8081
 API_URL="https://${OCI_HOST}.nip.io"
 METRO_URL="https://metro.${OCI_HOST}.nip.io"
 EXPO_URL="exp://metro.${OCI_HOST}.nip.io"
+TUNNEL_API="${TUNNEL_API:-0}"
 RUNTIME_DIRECTORY="/tmp/proscard-oci-tunnel"
 TUNNEL_LOG="${RUNTIME_DIRECTORY}/tunnel.log"
 
@@ -36,9 +38,17 @@ SSH_OPTIONS=(
   -o StrictHostKeyChecking=accept-new
 )
 
-if ! curl -fsS -m 5 "http://127.0.0.1:${API_PORT}/health" >/dev/null 2>&1; then
+if [[ "${TUNNEL_API}" == 1 ]] && ! curl -fsS -m 5 "http://127.0.0.1:${API_PORT}/health" >/dev/null 2>&1; then
   print -u2 "The API is not running on localhost:${API_PORT}. Start it first: cd ../api && npm run docker:up"
   exit 1
+fi
+
+# Ports forwarded to this Mac: always Metro; the API only with TUNNEL_API=1.
+FORWARDS=(-R "127.0.0.1:${METRO_PORT}:127.0.0.1:${METRO_PORT}")
+REMOTE_PORTS="${METRO_PORT}/tcp"
+if [[ "${TUNNEL_API}" == 1 ]]; then
+  FORWARDS+=(-R "127.0.0.1:${API_PORT}:127.0.0.1:${API_PORT}")
+  REMOTE_PORTS="${REMOTE_PORTS} ${API_PORT}/tcp"
 fi
 
 if curl -fsS -m 2 "http://127.0.0.1:${METRO_PORT}/status" >/dev/null 2>&1; then
@@ -55,7 +65,7 @@ fi
 # holding the ports. Free them before every connect so the new tunnel can bind.
 free_remote_ports() {
   ssh "${SSH_OPTIONS[@]}" "${OCI_USER}@${OCI_HOST}" \
-    "sudo -n fuser -k ${API_PORT}/tcp ${METRO_PORT}/tcp >/dev/null 2>&1 || true" >>"${TUNNEL_LOG}" 2>&1 || true
+    "sudo -n fuser -k ${REMOTE_PORTS} >/dev/null 2>&1 || true" >>"${TUNNEL_LOG}" 2>&1 || true
 }
 
 # Keeps the reverse tunnel up: reconnects whenever ssh exits (network change, sleep, server restart).
@@ -65,26 +75,30 @@ tunnel_loop() {
     print "[$(date +%T)] connecting tunnel" >>"${TUNNEL_LOG}"
     ssh "${SSH_OPTIONS[@]}" -N \
       -o ExitOnForwardFailure=yes \
-      -R "127.0.0.1:${API_PORT}:127.0.0.1:${API_PORT}" \
-      -R "127.0.0.1:${METRO_PORT}:127.0.0.1:${METRO_PORT}" \
+      "${FORWARDS[@]}" \
       "${OCI_USER}@${OCI_HOST}" >>"${TUNNEL_LOG}" 2>&1 || true
     print "[$(date +%T)] tunnel closed; reconnecting in 3s" >>"${TUNNEL_LOG}"
     sleep 3
   done
 }
 
-# If the public API stops answering while it is healthy locally, drop the ssh session so the loop reconnects.
+# If the tunnelled service stops answering publicly while it is healthy locally, drop the ssh session so
+# the loop reconnects. It watches Metro, or the API when that is tunnelled too.
 watchdog_loop() {
   local failures=0
+  local public_check="${METRO_URL}/status" local_check="http://127.0.0.1:${METRO_PORT}/status"
+  if [[ "${TUNNEL_API}" == 1 ]]; then
+    public_check="${API_URL}/health" local_check="http://127.0.0.1:${API_PORT}/health"
+  fi
   while true; do
     sleep 30
-    if curl -fsS -m 10 "${API_URL}/health" >/dev/null 2>&1; then
+    if curl -fsS -m 10 "${public_check}" >/dev/null 2>&1; then
       failures=0
-    elif curl -fsS -m 5 "http://127.0.0.1:${API_PORT}/health" >/dev/null 2>&1; then
+    elif curl -fsS -m 5 "${local_check}" >/dev/null 2>&1; then
       failures=$((failures + 1))
       if (( failures >= 2 )); then
-        print "[$(date +%T)] public API unreachable; restarting tunnel" >>"${TUNNEL_LOG}"
-        pkill -f -- "-R 127.0.0.1:${API_PORT}:127.0.0.1:${API_PORT}" 2>/dev/null || true
+        print "[$(date +%T)] tunnel unreachable publicly; restarting it" >>"${TUNNEL_LOG}"
+        pkill -f -- "-R 127.0.0.1:${METRO_PORT}:127.0.0.1:${METRO_PORT}" 2>/dev/null || true
         failures=0
       fi
     fi
@@ -98,16 +112,17 @@ WATCHDOG_PID=$!
 
 cleanup() {
   kill "${WATCHDOG_PID}" "${TUNNEL_LOOP_PID}" 2>/dev/null || true
-  pkill -f -- "-R 127.0.0.1:${API_PORT}:127.0.0.1:${API_PORT}" 2>/dev/null || true
+  pkill -f -- "-R 127.0.0.1:${METRO_PORT}:127.0.0.1:${METRO_PORT}" 2>/dev/null || true
 }
 trap cleanup EXIT INT TERM
 
+# The API must answer publicly: from this Mac when tunnelled, otherwise from the OCI instance.
 for attempt in {1..30}; do
   curl -fsS -m 5 "${API_URL}/health" >/dev/null 2>&1 && break
   sleep 1
 done
 if ! curl -fsS -m 5 "${API_URL}/health" >/dev/null 2>&1; then
-  print -u2 "The tunnel did not come up. See ${TUNNEL_LOG}."
+  print -u2 "The API at ${API_URL} is not answering. See ${TUNNEL_LOG}, or check the OCI containers."
   exit 1
 fi
 

@@ -9,3 +9,4 @@ api/secrets
 api/secrets_oci
 api/tests
 **/.DS_Store
+api/web
