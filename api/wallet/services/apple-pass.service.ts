@@ -1,3 +1,4 @@
+import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -13,6 +14,9 @@ export type AppleWalletConfig = {
   keyPassphrase: string;
   wwdrPath: string;
 };
+
+/** Apple's pass web service: Wallet calls it when the pass is added to or removed from a device. */
+export type PassWebService = { url: string; token: string };
 
 /** Images shown on the pass; any can be missing. */
 export type PassImages = { photo?: Buffer | null; logo?: Buffer | null };
@@ -43,6 +47,8 @@ async function variants(source: Buffer, name: string, width: number, height: num
  */
 export class AppleWalletPassGenerator {
   private readonly certificates;
+  /** Derived from the signing key, so pass tokens stay valid across restarts without another secret. */
+  private readonly tokenKey: Buffer;
 
   constructor(private readonly config: AppleWalletConfig) {
     this.certificates = {
@@ -51,9 +57,25 @@ export class AppleWalletPassGenerator {
       signerKey: readFileSync(config.keyPath),
       signerKeyPassphrase: config.keyPassphrase || undefined,
     };
+    this.tokenKey = createHash('sha256').update(this.certificates.signerKey).digest();
   }
 
-  async create(card: WalletCard, shareUrl: string, images: PassImages): Promise<Buffer> {
+  get passTypeId() {
+    return this.config.passTypeId;
+  }
+
+  /** Per-pass secret Wallet sends back as `Authorization: ApplePass <token>`. */
+  authToken(serialNumber: string): string {
+    return createHmac('sha256', this.tokenKey).update(`pass-auth:${serialNumber}`).digest('base64url');
+  }
+
+  verifyAuth(serialNumber: string, header: string | undefined): boolean {
+    const given = Buffer.from((header ?? '').replace(/^ApplePass\s+/i, ''));
+    const expected = Buffer.from(this.authToken(serialNumber));
+    return given.length === expected.length && timingSafeEqual(given, expected);
+  }
+
+  async create(card: WalletCard, shareUrl: string, images: PassImages, webService?: PassWebService): Promise<Buffer> {
     const files: Record<string, Buffer> = {
       ...(await variants(readFileSync(DEFAULT_ICON), 'icon', 29, 29, 'contain')),
       ...(images.logo ? await variants(images.logo, 'logo', 160, 50, 'contain') : {}),
@@ -72,6 +94,7 @@ export class AppleWalletPassGenerator {
       labelColor: card.colors.label,
       ...(images.logo ? {} : { logoText: card.company || 'ProsCard' }),
       sharingProhibited: false,
+      ...(webService ? { webServiceURL: webService.url, authenticationToken: webService.token } : {}),
     });
     pass.type = 'generic';
 

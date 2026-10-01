@@ -102,7 +102,7 @@ export default function CardDetailPage() {
           }
           break;
         case 'wallet':
-          await addToWallet(card.id);
+          await addToWallet(card.id, card.name);
           break;
         case 'edit':
           router.push({

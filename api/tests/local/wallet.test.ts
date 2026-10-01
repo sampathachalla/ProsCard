@@ -67,6 +67,14 @@ describe('wallet passes', () => {
     expect(zip).toContain('Ada Lovelace');
     expect(zip).toContain('https://example.test/share/abc');
     expect(zip).toContain('PKBarcodeFormatQR');
+    // Web service token: stable for a serial, different per serial, and checked from the Authorization header.
+    const token = generator.authToken('card-1');
+    expect(generator.authToken('card-1')).toBe(token);
+    expect(generator.authToken('card-2')).not.toBe(token);
+    expect(generator.verifyAuth('card-1', `ApplePass ${token}`)).toBe(true);
+    expect(generator.verifyAuth('card-1', 'ApplePass nope')).toBe(false);
+    const withService = await generator.create(toWalletCard('card-1', card, profile), 'https://example.test/share/abc', {}, { url: 'https://example.test/api/v1/wallet/apple/ws', token });
+    expect(withService.toString('latin1')).toContain('"webServiceURL":"https://example.test/api/v1/wallet/apple/ws"');
   });
 
   it('creates a signed "Save to Google Wallet" link carrying the generic pass', () => {

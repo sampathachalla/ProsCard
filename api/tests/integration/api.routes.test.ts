@@ -110,9 +110,10 @@ describe('ProsCard API routes',()=>{
   it('creates wallet passes only for the owner\'s cards',async()=>{
     expect((await request(app).get('/api/v1/wallet/status')).body).toEqual({apple:false,google:false});
     expect((await request(app).post(`/api/v1/wallet/cards/${cardId}/apple`).set(auth)).status).toBe(503);
-    const passes:{card:string;share:string}[]=[];
+    const passes:{card:string;share:string;webService?:{url:string;token:string}}[]=[];
     const walletApp=createApp({db:pool,supabase,storage,wallet:{
-      apple:{create:async(card:{cardId:string},share:string)=>{passes.push({card:card.cardId,share});return Buffer.from('PKPASS')}} as never,
+      apple:{passTypeId:'pass.test.proscard',authToken:(serial:string)=>`tok-${serial}`,verifyAuth:(serial:string,header?:string)=>header===`ApplePass tok-${serial}`,
+        create:async(card:{cardId:string},share:string,_images:unknown,webService?:{url:string;token:string})=>{passes.push({card:card.cardId,share,webService});return Buffer.from('PKPASS')}} as never,
       google:{createSaveUrl:(_card:unknown,share:string)=>`https://pay.google.com/gp/v/save/jwt?share=${encodeURIComponent(share)}`} as never,
       linkSecret:'test-secret',publicBaseUrl:'https://cards.test',
     }});
@@ -127,6 +128,20 @@ describe('ProsCard API routes',()=>{
     expect((await request(walletApp).get(`/api/v1/wallet/apple/${forged}.${signature}.pkpass`)).status).toBe(404);
     expect((await request(walletApp).get(`/api/v1/wallet/apple/${payload}.tampered.pkpass`)).status).toBe(404);
     const google=await request(walletApp).post(`/api/v1/wallet/cards/${cardId}/google`).set(auth);expect(google.status).toBe(200);expect(google.body.url).toContain('pay.google.com');
+    // Apple's web service: Wallet registers the device when the pass is added, which the app reads as "added".
+    expect(passes[0]?.webService).toEqual({url:'https://cards.test/api/v1/wallet/apple/ws',token:`tok-${cardId}`});
+    const ws=`/api/v1/wallet/apple/ws/v1/devices/device-1/registrations/pass.test.proscard/${cardId}`;
+    expect((await request(walletApp).get(`/api/v1/wallet/cards/${cardId}/status`).set(auth)).body.apple).toEqual({enabled:true,inWallet:false,addedAt:null});
+    expect((await request(walletApp).post(ws).set('Authorization','ApplePass wrong').send({pushToken:'push-1'})).status).toBe(401);
+    expect((await request(walletApp).post(ws.replace('pass.test.proscard','pass.other')).set('Authorization',`ApplePass tok-${cardId}`).send({pushToken:'push-1'})).status).toBe(401);
+    expect((await request(walletApp).post(ws).set('Authorization',`ApplePass tok-${cardId}`).send({pushToken:'push-1'})).status).toBe(201);
+    expect((await request(walletApp).post(ws).set('Authorization',`ApplePass tok-${cardId}`).send({pushToken:'push-2'})).status).toBe(200);
+    const added=(await request(walletApp).get(`/api/v1/wallet/cards/${cardId}/status`).set(auth)).body.apple;expect(added.inWallet).toBe(true);expect(added.addedAt).toBeTruthy();
+    expect((await request(walletApp).get(`/api/v1/wallet/apple/ws/v1/devices/device-1/registrations/pass.test.proscard`)).status).toBe(204);
+    const latest=await request(walletApp).get(`/api/v1/wallet/apple/ws/v1/passes/pass.test.proscard/${cardId}`).set('Authorization',`ApplePass tok-${cardId}`);expect(latest.status).toBe(200);expect(latest.headers['content-type']).toContain('pkpass');
+    expect((await request(walletApp).post('/api/v1/wallet/apple/ws/v1/log').send({logs:['test']})).status).toBe(200);
+    expect((await request(walletApp).delete(ws).set('Authorization',`ApplePass tok-${cardId}`)).status).toBe(200);
+    expect((await request(walletApp).get(`/api/v1/wallet/cards/${cardId}/status`).set(auth)).body.apple.inWallet).toBe(false);
   });
   it('creates, resolves, and revokes a public share',async()=>{
     const created=await request(app).post(`/api/v1/sharing/cards/${cardId}`).set(auth).send({});expect(created.status).toBe(201);shareId=created.body.id;shareSlug=created.body.slug;

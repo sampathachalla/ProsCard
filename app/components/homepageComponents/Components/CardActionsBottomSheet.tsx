@@ -91,7 +91,7 @@ export const CardActionsBottomSheet = forwardRef<BottomSheet, CardActionsBottomS
         icon: Wallet,
         color: '#059669',
         onPress: () => {
-          void wallet.addToWallet(card?.id);
+          void wallet.addToWallet(card?.id, card?.name);
         },
       },
     ];

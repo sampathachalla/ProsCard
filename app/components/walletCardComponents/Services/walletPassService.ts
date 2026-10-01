@@ -16,6 +16,13 @@ export function walletLabel(kind: WalletKind | null = walletForPlatform()): stri
   return kind === 'google' ? 'Add to Google Wallet' : kind === 'apple' ? 'Add to Apple Wallet' : 'Add to Wallet';
 }
 
+export type WalletStatus = { apple: { enabled: boolean; inWallet: boolean; addedAt: string | null } };
+
+/** Whether the card's Apple pass is in a Wallet; Wallet reports this to the API when the pass is added or removed. */
+export async function getWalletStatus(cardId: string): Promise<WalletStatus> {
+  return apiRequest<WalletStatus>(`/wallet/cards/${encodeURIComponent(cardId)}/status`);
+}
+
 /**
  * Adds a card to the phone's wallet. The API builds the pass from the card exactly as My Cards shows it
  * (photo, logo, name, title, company, colours, share QR):

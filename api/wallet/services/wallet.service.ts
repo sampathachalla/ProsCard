@@ -54,13 +54,62 @@ export class WalletService {
     const { u: userId, c: cardId, e: expires } = JSON.parse(Buffer.from(payload, 'base64url').toString()) as { u: string; c: string; e: number };
     if (expires < Date.now() / 1000) throw new HttpError(410, 'This wallet link has expired. Tap Add to Wallet again.');
 
+    return this.buildApplePass(userId, cardId, base);
+  }
+
+  private async buildApplePass(userId: string, cardId: string, base: string) {
+    const apple = this.deps.apple!;
     const { card, slug, userId: owner } = await this.load(userId, cardId);
     const images: PassImages = {
       photo: card.photoMediaId ? await this.image(owner, card.photoMediaId) : null,
       logo: card.logoMediaId ? await this.image(owner, card.logoMediaId) : null,
     };
-    const buffer = await this.deps.apple.create(card, `${base}/share/${slug}`, images);
+    // Apple only calls an HTTPS web service, so local http runs simply skip the "added" confirmation.
+    const webService = base.startsWith('https://')
+      ? { url: `${base}/api/v1/wallet/apple/ws`, token: apple.authToken(cardId) }
+      : undefined;
+    const buffer = await apple.create(card, `${base}/share/${slug}`, images, webService);
     return { buffer, fileName: `${card.name.replace(/[^\w-]+/g, '-').replace(/^-|-$/g, '') || 'card'}.pkpass` };
+  }
+
+  // ---- Apple pass web service (called by Wallet on the user's iPhone) ----
+
+  private requireApplePass(passTypeId: string, serial: string, authorization: string | undefined) {
+    const apple = this.deps.apple;
+    if (!apple || passTypeId !== apple.passTypeId || !apple.verifyAuth(serial, authorization)) {
+      throw new HttpError(401, 'Unauthorized pass.');
+    }
+  }
+
+  /** Wallet added the pass on a device; returns true when that device is new for this pass. */
+  async registerDevice(deviceId: string, passTypeId: string, serial: string, authorization: string | undefined, pushToken: unknown) {
+    this.requireApplePass(passTypeId, serial, authorization);
+    if (typeof pushToken !== 'string' || !pushToken) throw new HttpError(400, 'pushToken is required.');
+    const created = await this.deps.repo.register(deviceId, passTypeId, serial, pushToken);
+    log('info', 'wallet_pass_added', { cardId: serial, newDevice: created });
+    return created;
+  }
+
+  async unregisterDevice(deviceId: string, passTypeId: string, serial: string, authorization: string | undefined) {
+    this.requireApplePass(passTypeId, serial, authorization);
+    await this.deps.repo.unregister(deviceId, passTypeId, serial);
+    log('info', 'wallet_pass_removed', { cardId: serial });
+  }
+
+  /** Latest version of a pass, requested by Wallet with the pass's own token. */
+  async latestApplePass(passTypeId: string, serial: string, authorization: string | undefined, base: string) {
+    this.requireApplePass(passTypeId, serial, authorization);
+    const owner = await this.deps.repo.cardOwner(serial);
+    if (!owner) throw new HttpError(404, 'Pass not found.');
+    return this.buildApplePass(owner, serial, base);
+  }
+
+  /** Whether the user's card is currently in an Apple Wallet, for the app's "added" confirmation. */
+  async cardStatus(userId: string, cardId: string) {
+    if (!await this.deps.repo.cardWithProfile(userId, cardId)) throw new HttpError(404, 'Card not found.');
+    if (!this.deps.apple) return { apple: { enabled: false, inWallet: false, addedAt: null } };
+    const { devices, addedAt } = await this.deps.repo.registrations(this.deps.apple.passTypeId, cardId);
+    return { apple: { enabled: true, inWallet: devices > 0, addedAt: addedAt?.toISOString() ?? null } };
   }
 
   /** "Save to Google Wallet" link for one of the user's cards. */
