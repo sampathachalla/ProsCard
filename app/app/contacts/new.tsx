@@ -1,6 +1,6 @@
 // app/contacts/new.tsx
 import { useState } from 'react';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { PageHeader } from '@/components/uiComponents/PageHeader';
@@ -14,7 +14,6 @@ import {
 import { createContactWithCard, initialsFor } from '@/components/contactsComponents/Services/contactsService';
 import { clearScanResult, getScanResult } from '@/components/scannerComponents/Services/scanHandoff';
 import type { ProcessedCard } from '@/components/scannerComponents/types/scanner.types';
-import { queryClient, queryKeys } from '@/services/api/queryClient';
 
 /** Review a scanned card (or enter details by hand) before saving it as a new contact. */
 export default function NewContactScreen() {
@@ -26,13 +25,12 @@ export default function NewContactScreen() {
   );
 
   const save = async (values: ContactFormValues, card: ProcessedCard | null) => {
-    const { imageError } = await createContactWithCard(
+    // Returns once the contact exists; its card photo finishes uploading in the background.
+    await createContactWithCard(
       { ...values, initials: initialsFor(values.name), color: Colors.light.tint, sourceCardId: null },
       card,
     );
-    await queryClient.invalidateQueries({ queryKey: queryKeys.contacts });
     clearScanResult(scanId);
-    if (imageError) Alert.alert('Contact saved', `The card photo could not be uploaded: ${imageError.message}`);
     router.dismissTo('/(tabs)/contactsPage');
   };
 

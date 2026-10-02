@@ -4,9 +4,11 @@ import { apiRequest } from '@/services/api/client';
 import type { CapturedCard, CardBounds, CardReading, ProcessedCard } from '../types/scanner.types';
 
 /** Longest edge kept for the stored card photo. */
-const WORKING_MAX_EDGE = 2000;
+const WORKING_MAX_EDGE = 1600;
 /** Longest edge sent to the card reader; enough for small print, small enough to upload quickly. */
 const READER_MAX_EDGE = 1280;
+/** JPEG quality for stored card photos: sharp for reading, small enough to upload quickly on mobile. */
+const STORED_QUALITY = 0.8;
 /** Extra margin around the detected card so the crop never clips its edges. */
 const CROP_PADDING = 0.02;
 
@@ -62,7 +64,7 @@ async function cropToCard(uri: string, size: Size, bounds: CardBounds, rotation:
     if (rotation === 180) context.rotate(180);
     if (resize) context.resize(resize);
   });
-  return (await cropped.saveAsync({ format: SaveFormat.JPEG, compress: 0.9 })).uri;
+  return (await cropped.saveAsync({ format: SaveFormat.JPEG, compress: STORED_QUALITY })).uri;
 }
 
 /**
@@ -80,8 +82,26 @@ export async function readCardPhoto(card: CapturedCard): Promise<{ card: Process
   };
 }
 
+/**
+ * Shrinks a card photo to the stored size before upload. Camera-sized photos (native scanner output,
+ * photos that were never cropped) are often several MB; ones already at the stored size are sent as is.
+ */
+export async function prepareCardPhotoForUpload<T extends { uri: string; mimeType?: string; fileName?: string }>(photo: T): Promise<T> {
+  try {
+    const size = await orientedSize(photo.uri);
+    const resize = resizeFor(size, WORKING_MAX_EDGE);
+    if (!resize) return photo;
+    const small = await render(photo.uri, (context) => context.resize(resize));
+    const { uri } = await small.saveAsync({ format: SaveFormat.JPEG, compress: STORED_QUALITY });
+    return { ...photo, uri, mimeType: 'image/jpeg', fileName: undefined };
+  } catch {
+    // Unreadable by the manipulator (unusual format): upload the original rather than failing.
+    return photo;
+  }
+}
+
 /** Turns the card photo 90° clockwise, for sideways photos. */
 export async function rotateCardPhoto(uri: string): Promise<string> {
   const rotated = await render(uri, (context) => context.rotate(90));
-  return (await rotated.saveAsync({ format: SaveFormat.JPEG, compress: 0.9 })).uri;
+  return (await rotated.saveAsync({ format: SaveFormat.JPEG, compress: STORED_QUALITY })).uri;
 }

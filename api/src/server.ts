@@ -4,7 +4,7 @@ import { createPool } from './database.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createApp } from './app.js';
-import { OciObjectStorageGateway } from '../media/services/oci-storage.service.js';
+import { CachedDownloadUrlStorage, OciObjectStorageGateway } from '../media/services/oci-storage.service.js';
 import { MediaRepository } from '../media/repository/media.repository.js';
 import { MediaService } from '../media/services/media.service.js';
 import { startMediaCleanupJob } from '../jobs/mediaCleanupJob.js';
@@ -17,7 +17,8 @@ const config=loadConfig();
 configureLogger({environment:config.NODE_ENV,minimum:config.LOG_LEVEL,sinkUrl:config.LOG_SINK_URL,sinkToken:config.LOG_SINK_TOKEN});
 const pool=createPool(config);
 const supabase=createClient(config.SUPABASE_URL,config.SUPABASE_SECRET_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
-const storage=new OciObjectStorageGateway(config);
+// Signed download URLs are reused while fresh, so repeat image views skip an OCI API call.
+const storage=new CachedDownloadUrlStorage(new OciObjectStorageGateway(config));
 const cardReader=config.LLM_API?new OpenAiCardReader({apiKey:config.LLM_API,timeoutMs:config.LLM_TIMEOUT_MS}):undefined;
 if(!cardReader)log('warn','card_reader_disabled',{reason:'LLM_API is not set'});
 const appleWallet={passTypeId:config.APPLE_WALLET_PASS_TYPE_ID,teamId:config.APPLE_WALLET_TEAM_ID,certPath:config.APPLE_WALLET_CERT_PATH,keyPath:config.APPLE_WALLET_KEY_PATH,keyPassphrase:config.APPLE_WALLET_KEY_PASSPHRASE,wwdrPath:config.APPLE_WALLET_WWDR_PATH};

@@ -27,3 +27,46 @@ export class OciObjectStorageGateway implements ObjectStorageGateway {
   async objectExists(name:string){try{await this.client.headObject({namespaceName:this.config.OCI_NAMESPACE,bucketName:this.config.OCI_BUCKET_NAME,objectName:name});return true}catch(error){const status=(error as {statusCode?:number}).statusCode;if(status===404)return false;throw error;}}
   async deleteObject(name:string){try{await this.client.deleteObject({namespaceName:this.config.OCI_NAMESPACE,bucketName:this.config.OCI_BUCKET_NAME,objectName:name});}catch(error){if((error as {statusCode?:number}).statusCode!==404)throw error;}}
 }
+
+/**
+ * Reuses signed download URLs instead of creating a new OCI pre-authenticated request for every image
+ * view (each one is an OCI API call, ~0.2 s and up to seconds). A URL is reused while it has more than
+ * `minRemainingMs` left, so clients always get one that stays valid for a while.
+ */
+export class CachedDownloadUrlStorage implements ObjectStorageGateway {
+  private readonly cache = new Map<string, { url: string; expiresAt: Date }>();
+
+  constructor(private readonly inner: ObjectStorageGateway, private readonly minRemainingMs = 2 * 60 * 1000, private readonly maxEntries = 5000) {}
+
+  createUploadUrl(objectName: string) {
+    return this.inner.createUploadUrl(objectName);
+  }
+
+  async createDownloadUrl(objectName: string) {
+    const cached = this.cache.get(objectName);
+    if (cached && cached.expiresAt.getTime() - Date.now() > this.minRemainingMs) return cached;
+    const signed = await this.inner.createDownloadUrl(objectName);
+    if (this.cache.size >= this.maxEntries) this.prune();
+    this.cache.set(objectName, signed);
+    return signed;
+  }
+
+  objectExists(objectName: string) {
+    return this.inner.objectExists(objectName);
+  }
+
+  async deleteObject(objectName: string) {
+    this.cache.delete(objectName);
+    await this.inner.deleteObject(objectName);
+  }
+
+  private prune() {
+    const now = Date.now();
+    for (const [name, entry] of this.cache) if (entry.expiresAt.getTime() <= now + this.minRemainingMs) this.cache.delete(name);
+    // Still full (all fresh): drop the oldest entries; Map iteration follows insertion order.
+    for (const name of this.cache.keys()) {
+      if (this.cache.size < this.maxEntries) break;
+      this.cache.delete(name);
+    }
+  }
+}

@@ -92,6 +92,7 @@ export class OpenAiCardReader implements CardReaderGateway {
 
   async read(input: ReadCardRequest): Promise<CardReading> {
     let response: Response;
+    const started = Date.now();
     try {
       response = await this.fetchImpl(`${this.baseUrl}/chat/completions`, {
         method: 'POST',
@@ -124,6 +125,8 @@ export class OpenAiCardReader implements CardReaderGateway {
       throw new HttpError(502, 'The card reader could not process this photo.');
     }
 
+    // Separates OpenAI time from the photo upload, which the request log's duration includes.
+    log('info', 'card_reader_openai', { ms: Date.now() - started, imageKb: Math.round(input.image.length * 0.75 / 1024) });
     const payload = await response.json() as { choices?: { message?: { content?: string | null; refusal?: string | null } }[] };
     const message = payload.choices?.[0]?.message;
     if (!message?.content || message.refusal) {

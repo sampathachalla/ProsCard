@@ -1,6 +1,6 @@
 // app/contacts/[contactId].tsx
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Text, View } from 'react-native';
+import { ActivityIndicator, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pencil, X } from 'lucide-react-native';
 import { IconButton } from '@/components/uiComponents/IconButton';
@@ -42,20 +42,14 @@ export default function ContactDetailScreen() {
 
   const close = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)/contactsPage'));
 
-  const refresh = () => Promise.all([
-    queryClient.invalidateQueries({ queryKey: queryKeys.contacts }),
-    queryClient.invalidateQueries({ queryKey: queryKeys.contact(contactId) }),
-  ]);
-
   const save = async (values: ContactFormValues, card: ProcessedCard | null) => {
     if (!contact) return;
-    const { imageError } = await updateContactWithCard(
+    // Returns once the edits are saved; a new card photo finishes uploading in the background.
+    await updateContactWithCard(
       contact.id,
       { ...values, initials: initialsFor(values.name), color: contact.color, sourceCardId: contact.sourceCardId ?? null },
       card,
     );
-    await refresh();
-    if (imageError) Alert.alert('Changes saved', `The new card photo could not be uploaded: ${imageError.message}`);
     stopEditing();
   };
 

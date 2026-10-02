@@ -1,7 +1,10 @@
 import { Colors } from '@/constants/Colors';
 import { apiRequest } from '@/services/api/client';
 import { AUTH_TEST_MODE } from '@/components/authComponents/Config/authMode';
-import { confirmMedia, requestMediaUpload, uploadToObjectStorage } from '@/components/profileComponents/Services/mediaService';
+import { Alert } from 'react-native';
+import { cacheMediaFileFromUri, confirmMedia, requestMediaUpload, uploadToObjectStorage } from '@/components/profileComponents/Services/mediaService';
+import { prepareCardPhotoForUpload } from '@/components/scannerComponents/Services/cardReaderService';
+import { queryClient, queryKeys } from '@/services/api/queryClient';
 import type { CapturedCard } from '@/components/scannerComponents/types/scanner.types';
 import type { Contact, ContactInput } from '../types/contact.types';
 
@@ -38,55 +41,75 @@ export async function saveContact(input: ContactInput): Promise<Contact> {
   return apiRequest<Contact>('/contacts', { method: 'POST', body: input });
 }
 
+type CardPhoto = Pick<CapturedCard, 'uri' | 'mimeType' | 'fileName'>;
+
 /** Uploads a business-card photo to OCI object storage and attaches it to the contact. Returns its content URL. */
-export async function uploadContactCardImage(contactId: string, image: Pick<CapturedCard, 'uri' | 'mimeType' | 'fileName'>): Promise<string> {
+export async function uploadContactCardImage(contactId: string, image: CardPhoto): Promise<string> {
   if (AUTH_TEST_MODE) return image.uri;
-  const blob = await (await fetch(image.uri)).blob();
-  const contentType = image.mimeType || blob.type || 'image/jpeg';
-  const fileName = image.fileName || `business-card-${Date.now()}.${contentType.split('/')[1] || 'jpg'}`;
+  // Camera-sized photos (native scanner, unread photos) are shrunk first; already-small ones are sent as is.
+  const photo = await prepareCardPhotoForUpload(image);
+  const blob = await (await fetch(photo.uri)).blob();
+  const contentType = photo.mimeType || blob.type || 'image/jpeg';
+  const fileName = photo.fileName || `business-card-${Date.now()}.${contentType.split('/')[1] || 'jpg'}`;
   const ticket = await requestMediaUpload({
     kind: 'contactCard', scope: 'contact', contactId, fileName, contentType, sizeBytes: blob.size,
   });
   await uploadToObjectStorage(ticket, blob);
   const confirmed = await confirmMedia(ticket.mediaId);
+  // The photo is already on the phone: seed the media cache so screens never download it again.
+  await cacheMediaFileFromUri(ticket.mediaId, photo.uri);
   return confirmed.contentUrl;
 }
 
-/**
- * Creates a contact and, when given, stores its business-card photo.
- * The contact is kept even if the photo upload fails, so typed details are never lost.
- */
-export async function createContactWithCard(
-  input: ContactInput,
-  image?: Pick<CapturedCard, 'uri' | 'mimeType' | 'fileName'> | null,
-): Promise<{ contact: Contact; imageError?: Error }> {
-  const contact = await saveContact(input);
-  if (!image) return { contact };
-  try {
-    return { contact: { ...contact, cardImageUrl: await uploadContactCardImage(contact.id, image) } };
-  } catch (reason) {
-    return { contact, imageError: reason instanceof Error ? reason : new Error('Card photo upload failed.') };
-  }
+/** Puts a contact into the cached list and detail queries so screens show it straight away. */
+function cacheContact(contact: Contact, position: 'top' | 'inPlace') {
+  queryClient.setQueryData<Contact[]>(queryKeys.contacts, (list) => {
+    if (!list) return list;
+    if (list.some((item) => item.id === contact.id)) return list.map((item) => (item.id === contact.id ? { ...item, ...contact } : item));
+    return position === 'top' ? [contact, ...list] : [...list, contact];
+  });
+  queryClient.setQueryData<Contact>(queryKeys.contact(contact.id), (current) => ({ ...current, ...contact }));
 }
 
 /**
- * Saves edits to a contact and, when given a new card photo, replaces the stored one.
- * The edits are kept even if the photo upload fails.
+ * Uploads the card photo after the contact is saved, so saving never waits on the network transfer.
+ * Until it finishes, screens show the photo from the phone; afterwards the stored copy takes over.
  */
-export async function updateContactWithCard(
-  id: string,
-  input: ContactInput,
-  image?: Pick<CapturedCard, 'uri' | 'mimeType' | 'fileName'> | null,
-): Promise<{ contact: Contact; imageError?: Error }> {
+function uploadCardPhotoInBackground(contact: Contact, image: CardPhoto) {
+  void uploadContactCardImage(contact.id, image)
+    .then((cardImageUrl) => cacheContact({ ...contact, cardImageUrl }, 'inPlace'))
+    .catch((reason) => {
+      Alert.alert(
+        'Card photo not uploaded',
+        `${contact.name} was saved, but the card photo could not be uploaded${reason instanceof Error ? `: ${reason.message}` : ''}. Open the contact and add the photo again.`,
+      );
+    })
+    .finally(() => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.contacts });
+    });
+}
+
+/**
+ * Creates a contact and stores its business-card photo. Resolves as soon as the contact exists; the
+ * photo uploads in the background (typed details are never lost if that upload fails).
+ */
+export async function createContactWithCard(input: ContactInput, image?: CardPhoto | null): Promise<Contact> {
+  const contact = await saveContact(input);
+  cacheContact(image ? { ...contact, cardImageUrl: image.uri } : contact, 'top');
+  if (image) uploadCardPhotoInBackground(contact, image);
+  else void queryClient.invalidateQueries({ queryKey: queryKeys.contacts });
+  return contact;
+}
+
+/** Saves edits to a contact; a new card photo replaces the stored one in the background. */
+export async function updateContactWithCard(id: string, input: ContactInput, image?: CardPhoto | null): Promise<Contact> {
   const contact = AUTH_TEST_MODE
     ? { ...input, id }
     : await apiRequest<Contact>(`/contacts/${encodeURIComponent(id)}`, { method: 'PUT', body: input });
-  if (!image) return { contact };
-  try {
-    return { contact: { ...contact, cardImageUrl: await uploadContactCardImage(id, image) } };
-  } catch (reason) {
-    return { contact, imageError: reason instanceof Error ? reason : new Error('Card photo upload failed.') };
-  }
+  cacheContact(image ? { ...contact, cardImageUrl: image.uri } : contact, 'inPlace');
+  if (image) uploadCardPhotoInBackground(contact, image);
+  else void queryClient.invalidateQueries({ queryKey: queryKeys.contacts });
+  return contact;
 }
 
 export async function deleteContact(id: string): Promise<void> {
