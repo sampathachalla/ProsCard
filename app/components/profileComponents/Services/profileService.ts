@@ -5,7 +5,7 @@ import { apiRequest, ApiError } from '@/services/api/client';
 import { AUTH_TEST_MODE } from '@/components/authComponents/Config/authMode';
 import { logout } from '@/components/authComponents/Services/authService';
 import { commitPendingMedia, mediaIdFromContentUrl } from './pendingMedia';
-import { deleteMedia } from './mediaService';
+import { deleteMedia, prefetchMedia } from './mediaService';
 import { getSession } from '@/services/api/session';
 
 const PROFILE_STORAGE_KEY = 'userProfile';
@@ -70,13 +70,16 @@ export async function getProfile(): Promise<Profile> {
       lastProfileSyncFailed = false;
       const normalized = normalizeProfile(remote);
       await AsyncStorage.setItem(storageKey, JSON.stringify(normalized));
+      prefetchMedia([normalized.photoUrl, normalized.coverPhotoUrl, normalized.companyLogoUrl]);
       return normalized;
     } catch (error) {
       if (error instanceof ApiError && error.status === 404) return DEFAULT_PROFILE;
       const cached = await AsyncStorage.getItem(storageKey);
       if (cached) {
         lastProfileSyncFailed = true;
-        return normalizeProfile(JSON.parse(cached) as Partial<Profile>);
+        const normalized = normalizeProfile(JSON.parse(cached) as Partial<Profile>);
+        prefetchMedia([normalized.photoUrl, normalized.coverPhotoUrl, normalized.companyLogoUrl]);
+        return normalized;
       }
       throw error;
     }
@@ -132,6 +135,7 @@ export async function saveProfile(profile: Profile): Promise<Profile> {
     ? normalizeProfile(prepared)
     : normalizeProfile(await apiRequest<Profile>('/profiles/me', { method: 'PUT', body: payload }));
   await AsyncStorage.setItem(await profileStorageKey(), JSON.stringify(saved));
+  prefetchMedia([saved.photoUrl, saved.coverPhotoUrl, saved.companyLogoUrl]);
   listeners.forEach((listener) => listener(saved));
   return saved;
 }

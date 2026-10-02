@@ -6,9 +6,12 @@ import type {
   MediaUploadTicket,
 } from '@/services/api/types';
 import {
+  cacheMediaFileFromUri,
+  getCachedMediaFileUrl,
   getCachedMediaDownloadUrl,
   invalidateCachedMedia,
   mediaImageCacheKey,
+  peekCachedMediaFileUrl,
   peekCachedMediaDownloadUrl,
 } from './mediaCache';
 
@@ -53,18 +56,30 @@ export function resolveProtectedMediaUrl(contentUrl: string): string {
 
 export async function getDisplayMediaUrl(storedUrl: string): Promise<string> {
   const match = storedUrl.match(PROTECTED_MEDIA_PATTERN);
-  return match ? getMediaDownloadUrl(match[1]) : resolveProtectedMediaUrl(storedUrl);
+  return match
+    ? getCachedMediaFileUrl(match[1], () => getMediaDownloadUrl(match[1]))
+    : resolveProtectedMediaUrl(storedUrl);
 }
 
 export function getImmediateDisplayMediaUrl(storedUrl: string): string {
   const match = storedUrl.match(PROTECTED_MEDIA_PATTERN);
-  return match ? (peekCachedMediaDownloadUrl(match[1]) ?? '') : resolveProtectedMediaUrl(storedUrl);
+  return match
+    ? (peekCachedMediaFileUrl(match[1]) ?? peekCachedMediaDownloadUrl(match[1]) ?? '')
+    : resolveProtectedMediaUrl(storedUrl);
 }
 
 export function getMediaImageCacheKey(storedUrl: string): string | undefined {
   const match = storedUrl.match(PROTECTED_MEDIA_PATTERN);
   return match ? mediaImageCacheKey(match[1]) : undefined;
 }
+
+/** Warms protected media in the background as soon as profile/card data arrives. */
+export function prefetchMedia(storedUrls: (string | undefined)[]): void {
+  const unique = [...new Set(storedUrls.filter((url): url is string => Boolean(url)))];
+  unique.forEach((url) => { void getDisplayMediaUrl(url).catch(() => {}); });
+}
+
+export { cacheMediaFileFromUri };
 
 export async function retryMediaCleanup(): Promise<{ examined: number; cleaned: number; failed: number }> {
   return apiRequest('/media/cleanup/retry', { method: 'POST' });

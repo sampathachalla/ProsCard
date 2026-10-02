@@ -48,18 +48,7 @@ export const PROFILE_SECTIONS: ProfileSection[] = [
   },
 ];
 
-function sectionSummary(section: ProfileSection, profile: Profile): string {
-  if (section.media) {
-    const count = [profile.photoUrl, profile.coverPhotoUrl, profile.companyLogoUrl].filter(Boolean).length;
-    return count ? `${count} of 3 images added` : 'Add your images';
-  }
-  const values = section.fields
-    ? section.fields.map(({ key }) => profile[key])
-    : section.socialFields?.map(({ key }) => profile.social[key] ?? '') ?? [];
-  return values.map((value) => value.trim()).filter(Boolean).slice(0, 2).join(' · ') || section.description;
-}
-
-export function ProfileSectionGrid({ profile, onSelect }: { profile: Profile; onSelect: (id: ProfileSectionId) => void }) {
+export function ProfileSectionGrid({ onSelect }: { profile: Profile; onSelect: (id: ProfileSectionId) => void }) {
   const { theme } = useThemeContext();
   const tint = theme === 'dark' ? Colors.dark.tint : Colors.light.tint;
 

@@ -5,6 +5,7 @@ import { getSession, setSession } from '@/services/api/session';
 import type { AuthSession } from '@/services/api/types';
 import { queryClient } from '@/services/api/queryClient';
 import { clearCardState } from '@/components/cardsComponents/Services/cardsService';
+import { clearMediaCache } from '@/components/profileComponents/Services/mediaCache';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 
@@ -104,6 +105,7 @@ export async function establishRecoverySession(accessToken: string, refreshToken
 
 async function clearLocalSession(): Promise<void> {
   await setSession(null);
+  await clearMediaCache();
   clearCardState();
   queryClient.clear();
 }

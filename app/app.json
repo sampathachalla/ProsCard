@@ -76,6 +76,15 @@
         "projectId": "8f1f8353-f1c7-4cde-9268-e88e954c727e"
       }
     },
-    "owner": "sampath2001"
+    "owner": "sampath2001",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/8f1f8353-f1c7-4cde-9268-e88e954c727e",
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    }
   }
 }

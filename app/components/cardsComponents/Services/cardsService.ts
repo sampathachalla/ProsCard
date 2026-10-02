@@ -6,7 +6,7 @@ import { CARD_THEME_PRESETS, createDefaultCardSectionThemes, DEFAULT_CARD_SECTIO
 import { apiRequest } from '@/services/api/client';
 import { AUTH_TEST_MODE } from '@/components/authComponents/Config/authMode';
 import { commitPendingMedia, isPendingMediaUrl, mediaIdFromContentUrl } from '@/components/profileComponents/Services/pendingMedia';
-import { deleteMedia } from '@/components/profileComponents/Services/mediaService';
+import { deleteMedia, prefetchMedia } from '@/components/profileComponents/Services/mediaService';
 import { getSession } from '@/services/api/session';
 import { queryClient, queryKeys } from '@/services/api/queryClient';
 import type { Profile } from '@/components/profileComponents/types/profile.types';
@@ -224,6 +224,14 @@ export function notifyCardListeners(): void {
 export function getCards(): BusinessCard[] {
   return CARDS;
 }
+
+function prefetchCardMedia(cards: BusinessCard[]) {
+  prefetchMedia(cards.flatMap((card) => [
+    card.sectionOverrides.profilePhoto,
+    card.sectionOverrides.coverPhoto,
+    card.sectionOverrides.logo,
+  ]));
+}
 export function clearCardState(): void {
   CARDS.splice(0, CARDS.length);
   lastCardsSyncFailed = false;
@@ -277,6 +285,7 @@ export async function fetchCardById(cardId: string): Promise<BusinessCard> {
   const index = CARDS.findIndex((item) => item.id === card.id);
   if (index >= 0) CARDS[index] = card; else CARDS.push(card);
   notifyCardListeners();
+  prefetchCardMedia([card]);
   return card;
 }
 
@@ -292,6 +301,7 @@ export async function hydrateCards(): Promise<BusinessCard[]> {
         CARDS.splice(0, CARDS.length, ...normalizedCards);
         await AsyncStorage.setItem(userCardsKey, JSON.stringify(normalizedCards));
         notifyCardListeners();
+        prefetchCardMedia(normalizedCards);
         return CARDS;
       } catch (error) {
         lastCardsSyncFailed = true;
@@ -306,6 +316,7 @@ export async function hydrateCards(): Promise<BusinessCard[]> {
         CARDS.splice(0, CARDS.length, ...normalizedCards);
         await AsyncStorage.setItem(userCardsKey, JSON.stringify(normalizedCards));
         notifyCardListeners();
+        prefetchCardMedia(normalizedCards);
         return CARDS;
       }
     }
@@ -317,6 +328,7 @@ export async function hydrateCards(): Promise<BusinessCard[]> {
         CARDS[0] = normalizeCard({ ...CARDS[0], ...parsedPrimary });
         await AsyncStorage.setItem(primaryCardKey, JSON.stringify(CARDS[0]));
         notifyCardListeners();
+        prefetchCardMedia([CARDS[0]]);
         return CARDS;
       }
     }
@@ -365,6 +377,7 @@ export async function savePrimaryCard(profileData: Partial<BusinessCard>): Promi
 
   // 1. Immediately notify active in-memory listeners
   notifyCardListeners();
+  prefetchCardMedia([CARDS[0]]);
 
   // 2. Persist to AsyncStorage asynchronously
   try {
@@ -398,6 +411,7 @@ export async function saveCard(updated: BusinessCard): Promise<BusinessCard> {
   if (index >= 0) CARDS[index] = normalized;
   else CARDS.push(normalized);
   notifyCardListeners();
+  prefetchCardMedia([normalized]);
   await AsyncStorage.setItem(await scopedCardKey(USER_CARDS_KEY), JSON.stringify(CARDS));
   if (normalized.id === CARDS[0]?.id) {
     await AsyncStorage.setItem(await scopedCardKey(PRIMARY_CARD_KEY), JSON.stringify(normalized));

@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Pressable, View, type LayoutChangeEvent } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { InteractionManager, Pressable, View, type LayoutChangeEvent } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Wrench } from 'lucide-react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -146,6 +147,7 @@ export function FloatingToolsButton({ actions }: FloatingToolsButtonProps) {
   const { theme } = useThemeContext();
   const { enabled, enabledTools, hydrated, position, setPosition } = useFloatingTools();
   const [bounds, setBounds] = useState({ height: 0, width: 0 });
+  const [positionReady, setPositionReady] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const x = useSharedValue(0);
@@ -173,14 +175,40 @@ export function FloatingToolsButton({ actions }: FloatingToolsButtonProps) {
     [arcDirection, bounds, buttonPosition, visibleActions.length],
   );
 
-  useEffect(() => {
-    if (!bounds.width || !bounds.height) return;
-    const next = toScreenPosition(position, bounds.width, bounds.height);
+  const hasUsableBounds =
+    bounds.width >= FLOATING_TOOL_SIZE + FLOATING_TOOL_EDGE_GAP * 2 &&
+    bounds.height >= FLOATING_TOOL_SIZE + FLOATING_TOOL_EDGE_GAP * 2;
+
+  const restorePosition = useCallback((width = bounds.width, height = bounds.height) => {
+    if (
+      width < FLOATING_TOOL_SIZE + FLOATING_TOOL_EDGE_GAP * 2 ||
+      height < FLOATING_TOOL_SIZE + FLOATING_TOOL_EDGE_GAP * 2
+    ) return false;
+    const next = toScreenPosition(position, width, height);
     x.set(next.x);
     y.set(next.y);
+    setPositionReady(true);
+    return true;
   }, [bounds.height, bounds.width, position, x, y]);
 
+  // Native navigation can detach and reattach this screen without changing its React layout state.
+  // Re-emit the transform both immediately and after the transition so Reanimated never leaves the
+  // absolute view at its raw left: 0 / top: 0 origin when returning from the card editor.
+  useFocusEffect(useCallback(() => {
+    setMenuOpen(false);
+    setSelectedIndex(-1);
+    restorePosition();
+    const task = InteractionManager.runAfterInteractions(() => { restorePosition(); });
+    return () => {
+      task.cancel();
+      setMenuOpen(false);
+      setSelectedIndex(-1);
+      setPositionReady(false);
+    };
+  }, [restorePosition]));
+
   const savePosition = (nextX: number, nextY: number) => {
+    if (!hasUsableBounds) return;
     setPosition(toNormalizedPosition(nextX, nextY, bounds.width, bounds.height));
   };
 
@@ -219,7 +247,7 @@ export function FloatingToolsButton({ actions }: FloatingToolsButtonProps) {
   };
 
   const moveGesture = Gesture.Pan()
-    .enabled(enabled && hydrated && !menuOpen)
+    .enabled(enabled && hydrated && positionReady && hasUsableBounds && !menuOpen)
     .minDistance(8)
     .onBegin(() => {
       startX.set(x.get());
@@ -263,6 +291,9 @@ export function FloatingToolsButton({ actions }: FloatingToolsButtonProps) {
 
   const handleLayout = (event: LayoutChangeEvent) => {
     const { height, width } = event.nativeEvent.layout;
+    // Set the shared values before exposing the measured overlay to the render tree. This avoids a
+    // single frame at the absolute origin and also repairs transforms reset during native reattach.
+    restorePosition(width, height);
     setBounds({ height, width });
   };
 
@@ -279,7 +310,7 @@ export function FloatingToolsButton({ actions }: FloatingToolsButtonProps) {
       onLayout={handleLayout}
       style={{ pointerEvents: 'box-none', zIndex: 50 }}
     >
-      {bounds.width > 0 && bounds.height > 0 ? (
+      {hasUsableBounds && positionReady ? (
         <>
           {menuOpen && visibleActions.length > 0 ? (
             <View className="absolute inset-0" style={{ pointerEvents: 'box-none' }}>
