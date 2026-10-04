@@ -138,4 +138,4 @@ cd "${APP_DIRECTORY}"
 # Runs in the foreground so Expo's keys (r = reload, j = debugger) keep working. Ctrl+C stops everything.
 EXPO_PUBLIC_TUNNEL_API_URL="${API_URL}" \
 EXPO_PACKAGER_PROXY_URL="${METRO_URL}" \
-  npx -y node@22 ./node_modules/expo/bin/cli start --lan --clear
+  npx -y node@22 ./node_modules/expo/bin/cli start --go --lan --clear
