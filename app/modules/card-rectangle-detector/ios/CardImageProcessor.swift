@@ -72,27 +72,37 @@ enum CardImageProcessor {
     return request.results?.first.map(CardQuad.init)
   }
 
-  /// Crops the image to the quad and flattens it into a rectangle.
-  static func straighten(_ image: CIImage, to quad: CardQuad) -> CIImage {
+  /// Crops the image to the quad and flattens it into a rectangle. Nil when the quad is degenerate
+  /// (corners collapsed or out of range), which would otherwise produce an empty or unbounded image.
+  static func straighten(_ image: CIImage, to quad: CardQuad) -> CIImage? {
+    guard quad.points.allSatisfy({ $0.x.isFinite && $0.y.isFinite && (-0.05...1.05).contains($0.x) && (-0.05...1.05).contains($0.y) }) else {
+      return nil
+    }
     let extent = image.extent
     // Vision and Core Image both put the origin at the bottom left, so the corners map directly.
     func point(_ normalized: CGPoint) -> CIVector {
       CIVector(x: extent.origin.x + normalized.x * extent.width, y: extent.origin.y + normalized.y * extent.height)
     }
-    return image.applyingFilter("CIPerspectiveCorrection", parameters: [
+    let straightened = image.applyingFilter("CIPerspectiveCorrection", parameters: [
       "inputTopLeft": point(quad.topLeft),
       "inputTopRight": point(quad.topRight),
       "inputBottomLeft": point(quad.bottomLeft),
       "inputBottomRight": point(quad.bottomRight),
     ])
+    let size = straightened.extent.size
+    guard !straightened.extent.isInfinite, size.width >= 32, size.height >= 32,
+          size.width <= extent.width * 2, size.height <= extent.height * 2 else {
+      return nil
+    }
+    return straightened
   }
 
   /// Saves the image as a JPEG in the temporary directory and describes it for JavaScript.
   static func save(_ image: CIImage, quality: Double, quad: CardQuad?) throws -> [String: Any] {
     // Rendered as 8-bit sRGB so later passes in expo-image-manipulator can read it.
-    let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
+    let colorSpace = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
     let compression = CIImageRepresentationOption(rawValue: kCGImageDestinationLossyCompressionQuality as String)
-    guard let data = context.jpegRepresentation(of: image, colorSpace: colorSpace, options: [compression: quality]) else {
+    guard let data = context.jpegRepresentation(of: image, colorSpace: colorSpace, options: [compression: min(max(quality, 0.1), 1)]) else {
       throw ImageNotWritableException()
     }
     let url = FileManager.default.temporaryDirectory

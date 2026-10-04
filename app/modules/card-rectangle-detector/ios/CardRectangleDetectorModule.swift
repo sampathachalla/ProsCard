@@ -34,7 +34,10 @@ public class CardRectangleDetectorModule: Module {
       ) else {
         return nil
       }
-      return try CardImageProcessor.save(CardImageProcessor.straighten(image, to: quad), quality: options.quality, quad: quad)
+      guard let straightened = CardImageProcessor.straighten(image, to: quad) else {
+        return nil
+      }
+      return try CardImageProcessor.save(straightened, quality: options.quality, quad: quad)
     }
 
     View(CardScannerView.self) {

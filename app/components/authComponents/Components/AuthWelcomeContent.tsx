@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react';
-import { View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
@@ -23,8 +23,14 @@ export function AuthWelcomeContent({ onGetStarted, footer }: AuthWelcomeContentP
 
   return (
     <View className="flex-1 px-7 pb-7 pt-4">
-      {/* Branding + carousel share one stack so the gap stays small and visible. */}
-      <View className="min-h-0 w-full flex-1 justify-center">
+      {/* Branding + carousel share one stack so the gap stays small and visible. It stays centred and
+          only scrolls on short screens (e.g. iPhone SE) or with large text, where it would be cut off. */}
+      <ScrollView
+        className="min-h-0 w-full flex-1"
+        contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
+        showsVerticalScrollIndicator={false}
+        alwaysBounceVertical={false}
+      >
         <Animated.View entering={FadeIn.duration(500)} className="shrink-0 items-center">
           <BrandLogo accessibilityLabel="MindPROS company logo" size="xxl" variant="wordmark" />
           <View className="-mt-1">
@@ -44,7 +50,7 @@ export function AuthWelcomeContent({ onGetStarted, footer }: AuthWelcomeContentP
         >
           <AuthWelcomeFeatureCarousel />
         </Animated.View>
-      </View>
+      </ScrollView>
 
       <Animated.View
         entering={FadeInDown.delay(200).duration(450)}

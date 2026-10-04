@@ -49,12 +49,21 @@ export async function signup(credentials: SignupCredentials): Promise<StoredUser
     : authenticate('/auth/signup', { email: credentials.email, password: credentials.password });
 }
 
+/** URLSearchParams has already decoded once; a stray "%" in the message must not throw a URIError. */
+function safeDecode(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 function oauthTokens(callbackUrl: string): { accessToken: string; refreshToken?: string } {
   const fragment = callbackUrl.includes('#') ? callbackUrl.slice(callbackUrl.indexOf('#') + 1) : '';
   const query = callbackUrl.includes('?') ? callbackUrl.slice(callbackUrl.indexOf('?') + 1).split('#')[0] : '';
   const parameters = new URLSearchParams(fragment || query);
   const error = parameters.get('error_description') || parameters.get('error');
-  if (error) throw new Error(decodeURIComponent(error.replace(/\+/g, ' ')));
+  if (error) throw new Error(safeDecode(error.replace(/\+/g, ' ')));
   const accessToken = parameters.get('access_token');
   if (!accessToken) throw new Error('Google sign-in completed without an access token. Please try again.');
   return { accessToken, refreshToken: parameters.get('refresh_token') ?? undefined };

@@ -15,6 +15,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AlertCircle, Check, ChevronLeft, ImagePlus, PencilLine, RefreshCw, RotateCcw, ScanLine, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/Colors';
+import { MAX_FONT_SCALE } from '@/components/uiComponents/Text';
 import {
   CardScannerView,
   isCardRectangleDetectorAvailable,
@@ -252,7 +253,7 @@ export default function ScannerScreen() {
             onCameraError={({ nativeEvent }) => Alert.alert('Camera unavailable', nativeEvent.message)}
           />
           <View pointerEvents="none" style={[styles.hintPill, { bottom: controlsBottom + 96 }]}>
-            <Text style={styles.hintText}>{shooting ? 'Capturing…' : CARD_HINTS[cardState]}</Text>
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.hintText}>{shooting ? 'Capturing…' : CARD_HINTS[cardState]}</Text>
           </View>
         </>
       ) : stage === 'camera' ? (
@@ -279,7 +280,7 @@ export default function ScannerScreen() {
       ) : (
         <View style={styles.detectedPlaceholder}>
           <ScanLine color={Colors.palette.brandCyanLight} size={52} strokeWidth={1.4} />
-          <Text style={styles.detectedText}>ProsCard QR detected</Text>
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.detectedText}>ProsCard QR detected</Text>
         </View>
       )}
 
@@ -296,29 +297,29 @@ export default function ScannerScreen() {
           <View style={[styles.resultBadge, styles.warningBadge]}>
             <AlertCircle color={Colors.palette.toggleYellow} size={22} strokeWidth={2.6} />
           </View>
-          <Text style={styles.resultTitle}>{photoIssue.title}</Text>
-          <Text style={styles.resultValue} numberOfLines={3}>{photoIssue.message}</Text>
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.resultTitle}>{photoIssue.title}</Text>
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.resultValue} numberOfLines={3}>{photoIssue.message}</Text>
           <View style={styles.resultActions}>
             <Pressable onPress={resetScanner} style={styles.secondaryAction}>
               <RotateCcw color="#FFFFFF" size={18} />
-              <Text style={styles.secondaryActionText}>Retake</Text>
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.secondaryActionText}>Retake</Text>
             </Pressable>
             {photoIssue.kind === 'notACard' ? (
               <Pressable onPress={openLibrary} disabled={capturing} style={styles.primaryAction}>
                 <ImagePlus color="#FFFFFF" size={18} />
-                <Text style={styles.primaryActionText}>Upload</Text>
+                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.primaryActionText}>Upload</Text>
               </Pressable>
             ) : (
-              <Pressable onPress={() => processPhoto(photo!)} style={styles.primaryAction}>
+              <Pressable onPress={() => photo && processPhoto(photo)} style={styles.primaryAction}>
                 <RefreshCw color="#FFFFFF" size={18} />
-                <Text style={styles.primaryActionText}>Retry</Text>
+                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.primaryActionText}>Retry</Text>
               </Pressable>
             )}
           </View>
           {photoIssue.kind === 'failed' ? (
-            <Pressable onPress={() => openReview({ card: photo!, reading: null })} style={styles.textAction}>
+            <Pressable onPress={() => photo && openReview({ card: photo, reading: null })} style={styles.textAction}>
               <PencilLine color="#CBD5E1" size={15} />
-              <Text style={styles.textActionText}>Enter details manually</Text>
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.textActionText}>Enter details manually</Text>
             </Pressable>
           ) : null}
         </View>
@@ -329,16 +330,16 @@ export default function ScannerScreen() {
           <View style={styles.resultBadge}>
             <Check color={Colors.palette.successLight} size={22} strokeWidth={3} />
           </View>
-          <Text style={styles.resultTitle}>
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.resultTitle}>
             {lookupError ? 'Card not recognized' : scannedCard ? scannedCard.name : 'Looking up card…'}
           </Text>
-          <Text style={styles.resultValue} numberOfLines={3}>
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.resultValue} numberOfLines={3}>
             {lookupError ?? (scannedCard ? [scannedCard.title, scannedCard.company].filter(Boolean).join(' · ') : ' ')}
           </Text>
           <View style={styles.resultActions}>
             <Pressable onPress={resetScanner} style={styles.secondaryAction}>
               <RotateCcw color="#FFFFFF" size={18} />
-              <Text style={styles.secondaryActionText}>Retake</Text>
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.secondaryActionText}>Retake</Text>
             </Pressable>
             <Pressable
               onPress={confirmResult}
@@ -346,7 +347,7 @@ export default function ScannerScreen() {
               style={[styles.primaryAction, (!scannedCard || saving) && { opacity: 0.5 }]}
             >
               <Check color="#FFFFFF" size={18} strokeWidth={2.6} />
-              <Text style={styles.primaryActionText}>{saving ? 'Saving…' : 'Save card'}</Text>
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.primaryActionText}>{saving ? 'Saving…' : 'Save card'}</Text>
             </Pressable>
           </View>
         </View>

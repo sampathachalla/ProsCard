@@ -436,7 +436,8 @@ export function CardSectionEditor({
 }) {
   const { width } = useWindowDimensions();
   const sections = useMemo(() => createCardDetailTemplate(card, profile), [card, profile]);
-  const section = sections.find((item) => item.id === activeSection)!;
+  // Falls back to the first section if the active one no longer exists.
+  const section = sections.find((item) => item.id === activeSection) ?? sections[0]!;
   const editorPaneWidth = Math.min(720, Math.max(260, width - 40));
   const taglineCharacterLimit = getResponsiveTaglineLimit(width);
   const accreditationCharacterLimit = getResponsiveAccreditationLimit(width);

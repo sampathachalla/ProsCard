@@ -28,7 +28,15 @@ const variantClasses: Record<TextVariant, string> = {
   tiny: 'text-xs font-medium text-textMuted dark:text-dark-textMuted',
 };
 
-export function Text({ variant = 'body', className = '', ...props }: TextProps) {
-  return <NativeText className={`${variantClasses[variant]} ${className}`} {...props} />;
+/**
+ * Largest growth allowed from the phone's text-size setting. Text still gets bigger for users who need
+ * it, but stops before it overflows fixed-size areas like business-card faces and buttons.
+ */
+export const MAX_FONT_SCALE = 1.35;
+
+export function Text({ variant = 'body', className = '', maxFontSizeMultiplier = MAX_FONT_SCALE, ...props }: TextProps) {
+  return (
+    <NativeText className={`${variantClasses[variant]} ${className}`} maxFontSizeMultiplier={maxFontSizeMultiplier} {...props} />
+  );
 }
 

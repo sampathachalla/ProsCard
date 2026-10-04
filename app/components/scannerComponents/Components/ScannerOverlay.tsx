@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Animated, Easing, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import { Colors } from '@/constants/Colors';
+import { MAX_FONT_SCALE } from '@/components/uiComponents/Text';
 
 type ScannerOverlayProps = {
   isActive: boolean;
@@ -91,7 +92,7 @@ export function ScannerOverlay({ isActive, isProcessing = false, imageAspectRati
         <View style={[styles.corner, styles.bottomRight]} />
         {(isActive || isProcessing) && <Animated.View style={[styles.scanLine, scanLineStyle]} />}
       </View>
-      <Text style={[styles.hint, hintBottom != null && { position: 'absolute', bottom: hintBottom }]}>
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.hint, hintBottom != null && { position: 'absolute', bottom: hintBottom }]}>
         {isProcessing ? 'Reading card details…' : 'Fit the whole card inside the guides'}
       </Text>
     </View>

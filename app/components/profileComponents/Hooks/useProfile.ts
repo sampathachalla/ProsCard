@@ -10,7 +10,9 @@ export function useProfile() {
   const [user, setUser] = useState<StoredUser | null>(null);
 
   useEffect(() => {
-    getStoredUser().then(setUser);
+    getStoredUser()
+      .then(setUser)
+      .catch(() => setUser(null));
   }, []);
 
   const logout = async () => {

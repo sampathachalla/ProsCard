@@ -7,6 +7,7 @@ import { logout } from '@/components/authComponents/Services/authService';
 import { commitPendingMedia, mediaIdFromContentUrl } from './pendingMedia';
 import { deleteMedia, prefetchMedia } from './mediaService';
 import { getSession } from '@/services/api/session';
+import { parseStoredJson } from '@/utils/safeJson';
 
 const PROFILE_STORAGE_KEY = 'userProfile';
 let lastProfileSyncFailed = false;
@@ -54,8 +55,7 @@ export const DEFAULT_PROFILE: Profile = {
 };
 
 export async function getStoredUser(): Promise<StoredUser | null> {
-  const raw = await AsyncStorage.getItem('userInfo');
-  return raw ? (JSON.parse(raw) as StoredUser) : null;
+  return parseStoredJson<StoredUser>(await AsyncStorage.getItem('userInfo'));
 }
 
 export async function logoutUser(): Promise<void> {
@@ -74,23 +74,29 @@ export async function getProfile(): Promise<Profile> {
       return normalized;
     } catch (error) {
       if (error instanceof ApiError && error.status === 404) return DEFAULT_PROFILE;
-      const cached = await AsyncStorage.getItem(storageKey);
+      const cached = parseStoredJson<Partial<Profile>>(await AsyncStorage.getItem(storageKey));
       if (cached) {
         lastProfileSyncFailed = true;
-        const normalized = normalizeProfile(JSON.parse(cached) as Partial<Profile>);
+        const normalized = normalizeProfile(cached);
         prefetchMedia([normalized.photoUrl, normalized.coverPhotoUrl, normalized.companyLogoUrl]);
         return normalized;
       }
       throw error;
     }
   }
-  const raw = await AsyncStorage.getItem(storageKey);
-  if (!raw) return DEFAULT_PROFILE;
-  return normalizeProfile(JSON.parse(raw) as Partial<Profile>);
+  const stored = parseStoredJson<Partial<Profile>>(await AsyncStorage.getItem(storageKey));
+  return stored ? normalizeProfile(stored) : DEFAULT_PROFILE;
 }
 
-export function normalizeProfile(parsed: Partial<Profile>): Profile {
-  const legacyNameParts = (parsed.fullName ?? '').trim().split(/\s+/).filter(Boolean);
+/** Drops null/undefined entries so a field the backend left empty keeps its default instead of becoming null. */
+function withoutMissing<T extends object>(value: T | null | undefined): Partial<T> {
+  if (!value || typeof value !== 'object') return {};
+  return Object.fromEntries(Object.entries(value).filter(([, entry]) => entry !== null && entry !== undefined)) as Partial<T>;
+}
+
+export function normalizeProfile(raw: Partial<Profile>): Profile {
+  const parsed = withoutMissing(raw);
+  const legacyNameParts = (typeof parsed.fullName === 'string' ? parsed.fullName : '').trim().split(/\s+/).filter(Boolean);
   return {
     ...DEFAULT_PROFILE,
     ...parsed,
@@ -98,7 +104,7 @@ export function normalizeProfile(parsed: Partial<Profile>): Profile {
     lastName: parsed.lastName || (legacyNameParts.length > 1 ? legacyNameParts.slice(1).join(' ') : DEFAULT_PROFILE.lastName),
     social: {
       ...DEFAULT_PROFILE.social,
-      ...(parsed.social ?? {}),
+      ...withoutMissing(parsed.social),
     },
   };
 }

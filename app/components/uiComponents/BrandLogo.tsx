@@ -1,4 +1,4 @@
-import { Image, View, type ImageSourcePropType } from 'react-native';
+import { Image, View, useWindowDimensions, type ImageSourcePropType } from 'react-native';
 import mindProsLogoForLightTheme from '@/assets/mindpros-logo-light.png'; // Dark navy text
 import mindProsLogoForDarkTheme from '@/assets/mindpros-logo-dark.png'; // White text
 import { useThemeContext } from '@/context/ThemeContext';
@@ -36,6 +36,9 @@ const badgeDimensions: Record<BrandLogoSize, { width: number; height: number; bo
   xxl: { width: 320, height: 128, borderRadius: 28 },
 };
 
+/** Space kept free beside the logo: the screen's padding on both sides. */
+const LOGO_SIDE_MARGIN = 64;
+
 /** Theme-aware MindPros mark: white text (mindpros-logo-dark) on dark UI, dark text (mindpros-logo-light) on light UI. */
 export function getMindProsLogoSource(theme: 'light' | 'dark'): ImageSourcePropType {
   return theme === 'dark' ? mindProsLogoForDarkTheme : mindProsLogoForLightTheme;
@@ -53,7 +56,16 @@ export function BrandLogo({
   const { theme } = useThemeContext();
   const textSize = textSizeClasses[size];
   const isBadge = variant === 'badge';
-  const dimensions = badgeDimensions[size];
+  const { width: windowWidth } = useWindowDimensions();
+  // Large logos shrink proportionally on narrow phones (e.g. 360pt Android) so they never overflow
+  // the screen's side padding.
+  const fixed = badgeDimensions[size];
+  const scale = Math.min(1, Math.max(0, windowWidth - LOGO_SIDE_MARGIN) / fixed.width);
+  const dimensions = {
+    width: Math.round(fixed.width * scale),
+    height: Math.round(fixed.height * scale),
+    borderRadius: Math.round(fixed.borderRadius * scale),
+  };
 
   const resolvedSource =
     source ?? (theme === 'dark' ? sourceDark : sourceLight);

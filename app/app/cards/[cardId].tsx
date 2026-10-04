@@ -92,27 +92,31 @@ export default function CardDetailPage() {
         : '';
       if ((tool.id === 'copy' || tool.id === 'open') && !url) return;
 
-      switch (tool.id) {
-        case 'copy':
-          if (Platform.OS === 'web' && navigator.clipboard) {
-            await navigator.clipboard.writeText(url);
-            Alert.alert('Link copied', 'The card URL was copied to your clipboard.');
-          } else {
-            await Share.share({ message: url, title: `${card.name} | ProsCard`, url });
-          }
-          break;
-        case 'wallet':
-          await addToWallet(card.id, card.name);
-          break;
-        case 'edit':
-          router.push({
-            pathname: '/(tabs)/editViewPage',
-            params: { cardId: card.id, edit: '1' },
-          });
-          break;
-        case 'open':
-          await Linking.openURL(url);
-          break;
+      try {
+        switch (tool.id) {
+          case 'copy':
+            if (Platform.OS === 'web' && navigator.clipboard) {
+              await navigator.clipboard.writeText(url);
+              Alert.alert('Link copied', 'The card URL was copied to your clipboard.');
+            } else {
+              await Share.share({ message: url, title: `${card.name} | ProsCard`, url });
+            }
+            break;
+          case 'wallet':
+            await addToWallet(card.id, card.name);
+            break;
+          case 'edit':
+            router.push({
+              pathname: '/(tabs)/editViewPage',
+              params: { cardId: card.id, edit: '1' },
+            });
+            break;
+          case 'open':
+            await Linking.openURL(url);
+            break;
+        }
+      } catch (reason) {
+        Alert.alert('Something went wrong', reason instanceof Error ? reason.message : 'Please try again.');
       }
     },
   }));

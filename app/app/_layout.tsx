@@ -7,6 +7,7 @@ import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { ThemeProvider, useThemeContext } from '../context/ThemeContext';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/services/api/queryClient';
+import { AppErrorBoundary } from '@/components/uiComponents/AppErrorBoundary';
 
 // Load Tailwind styles only on web (for NativeWind)
 if (typeof window !== 'undefined') {
@@ -46,6 +47,9 @@ function ThemedLayoutWrapper() {
     </View>
   );
 }
+
+// Catches render errors in every screen so one failure shows a recovery screen instead of closing the app.
+export { AppErrorBoundary as ErrorBoundary };
 
 export default function Layout() {
   return (

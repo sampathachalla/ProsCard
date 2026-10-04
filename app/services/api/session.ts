@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { parseStoredJson } from '@/utils/safeJson';
 import type { AuthSession } from './types';
 
 export const AUTH_SESSION_KEY = 'authSession';
@@ -11,7 +12,13 @@ const listeners = new Set<(session: AuthSession | null) => void>();
 export async function getSession(): Promise<AuthSession | null> {
   if (memorySession !== undefined) return memorySession;
   const raw = await AsyncStorage.getItem(AUTH_SESSION_KEY);
-  memorySession = raw ? (JSON.parse(raw) as AuthSession) : null;
+  const session = parseStoredJson<AuthSession>(raw);
+  // A corrupted session would fail every launch; drop it so the user just signs in again.
+  const valid = session && typeof session === 'object' && session.user ? session : null;
+  if (raw && !valid) {
+    await AsyncStorage.removeItem(AUTH_SESSION_KEY).catch(() => undefined);
+  }
+  memorySession = valid;
   return memorySession;
 }
 

@@ -1,5 +1,5 @@
 // components/profileComponents/Components/ProfileDetails.tsx
-import { View, Text, TouchableOpacity, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, Linking, Alert } from 'react-native';
 import { Mail, Phone, Globe, MapPin, type LucideIcon } from 'lucide-react-native';
 import { Colors } from '@/constants/Colors';
 import type { Profile } from '../types/profile.types';
@@ -27,17 +27,27 @@ function DetailRow({
   );
 }
 
+/** Opens a link, telling the user instead of failing silently when no app can handle it. */
+function openLink(url: string) {
+  Linking.openURL(url).catch(() => Alert.alert('Could not open', url));
+}
+
+/** Websites are often saved without a scheme ("example.com"), which openURL rejects. */
+function websiteUrl(website: string) {
+  return /^[a-z][a-z0-9+.-]*:/i.test(website) ? website : `https://${website}`;
+}
+
 export function ProfileDetails({ profile }: { profile: Profile }) {
   return (
     <View>
       {profile.email ? (
-        <DetailRow icon={Mail} value={profile.email} onPress={() => Linking.openURL(`mailto:${profile.email}`)} />
+        <DetailRow icon={Mail} value={profile.email} onPress={() => openLink(`mailto:${profile.email}`)} />
       ) : null}
       {profile.phone ? (
-        <DetailRow icon={Phone} value={profile.phone} onPress={() => Linking.openURL(`tel:${profile.phone}`)} />
+        <DetailRow icon={Phone} value={profile.phone} onPress={() => openLink(`tel:${profile.phone.replace(/[^\d+]/g, '')}`)} />
       ) : null}
       {profile.website ? (
-        <DetailRow icon={Globe} value={profile.website} onPress={() => Linking.openURL(profile.website)} />
+        <DetailRow icon={Globe} value={profile.website} onPress={() => openLink(websiteUrl(profile.website))} />
       ) : null}
       {profile.businessAddress ? (
         <DetailRow icon={MapPin} value={profile.businessAddress} />

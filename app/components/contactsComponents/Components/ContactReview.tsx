@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   AlertCircle,
   Briefcase,
+  Building2,
   Camera,
   Check,
   Crop,
@@ -285,7 +286,6 @@ export function ContactReview({
       : `https://${cleanedWebsite}`
     : '';
 
-  const subtitle = [form.title.trim(), form.company.trim()].filter(Boolean).join(' · ');
 
   return (
     <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -359,11 +359,6 @@ export function ContactReview({
               <Text className="text-2xl font-bold text-textPrimary dark:text-dark-textPrimary text-center">
                 {form.name || 'Unnamed Contact'}
               </Text>
-              {subtitle ? (
-                <Text className="text-sm font-medium text-textMuted dark:text-dark-textMuted text-center mt-1">
-                  {subtitle}
-                </Text>
-              ) : null}
             </View>
           )}
         </View>
@@ -509,22 +504,28 @@ export function ContactReview({
           {!editing && (form.title.trim() || form.company.trim()) && (
             <View className="rounded-2xl bg-card dark:bg-[#1c1c1e] border border-black/5 dark:border-white/10 overflow-hidden shadow-sm mb-3">
               {form.title.trim() && (
-                <View className="px-4 py-3">
-                  <Text className="text-xs font-medium text-textMuted dark:text-dark-textMuted">job title</Text>
-                  <Text className="text-base text-textPrimary dark:text-dark-textPrimary mt-0.5 font-normal">
-                    {form.title}
-                  </Text>
+                <View className="px-4 py-3 flex-row items-center justify-between">
+                  <View className="flex-1 pr-2">
+                    <Text className="text-xs font-medium text-textMuted dark:text-dark-textMuted">job title</Text>
+                    <Text className="text-base text-textPrimary dark:text-dark-textPrimary mt-0.5 font-normal">
+                      {form.title}
+                    </Text>
+                  </View>
+                  <Briefcase color={Colors.light.tint} size={16} strokeWidth={2} />
                 </View>
               )}
               {form.title.trim() && form.company.trim() && (
                 <View className="h-[1px] bg-slate-100 dark:bg-slate-800/80 ml-4" />
               )}
               {form.company.trim() && (
-                <View className="px-4 py-3">
-                  <Text className="text-xs font-medium text-textMuted dark:text-dark-textMuted">company</Text>
-                  <Text className="text-base text-textPrimary dark:text-dark-textPrimary mt-0.5 font-normal">
-                    {form.company}
-                  </Text>
+                <View className="px-4 py-3 flex-row items-center justify-between">
+                  <View className="flex-1 pr-2">
+                    <Text className="text-xs font-medium text-textMuted dark:text-dark-textMuted">company</Text>
+                    <Text className="text-base text-textPrimary dark:text-dark-textPrimary mt-0.5 font-normal">
+                      {form.company}
+                    </Text>
+                  </View>
+                  <Building2 color={Colors.light.tint} size={16} strokeWidth={2} />
                 </View>
               )}
             </View>

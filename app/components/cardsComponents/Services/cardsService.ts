@@ -20,7 +20,13 @@ async function scopedCardKey(key: string) {
   return session?.user.id ? `${key}:${session.user.id}` : key;
 }
 
-function themeForGradient(gradient: [string, string]): CardVisualTheme {
+function isGradient(value: unknown): value is [string, string] {
+  return Array.isArray(value) && typeof value[0] === 'string' && typeof value[1] === 'string';
+}
+
+function themeForGradient(input: [string, string] | undefined): CardVisualTheme {
+  // Cards from older builds or the server can lack a valid gradient; fall back to the default colors.
+  const gradient: [string, string] = isGradient(input) ? input : DEFAULT_CARD_THEME.gradient;
   const preset = Object.values(CARD_THEME_PRESETS).find(
     (item) =>
       item.gradient[0].toLowerCase() === gradient[0].toLowerCase() &&
@@ -58,13 +64,16 @@ export function normalizeCard(card: BusinessCard | (Omit<BusinessCard, 'sectionL
     sectionThemes: Object.fromEntries(
       Object.entries(defaultThemes).map(([section, theme]) => {
         const savedTheme = card.sectionThemes?.[section as keyof typeof defaultThemes];
-        return [section, savedTheme ? { ...theme, ...savedTheme, gradient: [...savedTheme.gradient] } : theme];
+        // Incomplete saved themes (missing colors) keep the default colors rather than crashing.
+        return [section, savedTheme ? { ...theme, ...savedTheme, gradient: isGradient(savedTheme.gradient) ? [...savedTheme.gradient] : theme.gradient } : theme];
       }),
     ) as BusinessCard['sectionThemes'],
-    customThemes: (card.customThemes ?? []).map((item) => ({
-      ...item,
-      gradient: [item.gradient[0], item.gradient[1]] as [string, string],
-    })),
+    customThemes: (Array.isArray(card.customThemes) ? card.customThemes : [])
+      .filter((item) => item && isGradient(item.gradient))
+      .map((item) => ({
+        ...item,
+        gradient: [item.gradient[0], item.gradient[1]] as [string, string],
+      })),
   };
 }
 

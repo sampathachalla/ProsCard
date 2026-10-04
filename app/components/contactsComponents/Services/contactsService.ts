@@ -16,14 +16,37 @@ const TEST_CONTACTS: Contact[] = [
   { id: '4', name: 'Marcus Lee', title: 'Sales Director', company: 'Bright Path', phone: '+1 (555) 992-0034', initials: 'ML', color: Colors.palette.brandCyan },
 ];
 
-export function initialsFor(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
+export function initialsFor(name: string | null | undefined): string {
+  const parts = (name ?? '').trim().split(/\s+/).filter(Boolean);
   return ((parts[0]?.[0] ?? '') + (parts.length > 1 ? parts[parts.length - 1]![0] : '')).toUpperCase() || '?';
+}
+
+/**
+ * The backend can return null for fields a card did not have; screens call string methods on them,
+ * so every text field is made a string here, once, where contacts enter the app.
+ */
+function normalizeContact(raw: Contact): Contact {
+  const text = (value: unknown) => (typeof value === 'string' ? value : '');
+  return {
+    ...raw,
+    name: text(raw.name),
+    title: text(raw.title),
+    company: text(raw.company),
+    phone: text(raw.phone),
+    email: text(raw.email),
+    website: text(raw.website),
+    address: text(raw.address),
+    notes: text(raw.notes),
+    cardImageUrl: text(raw.cardImageUrl) || undefined,
+    initials: text(raw.initials) || initialsFor(raw.name),
+    color: text(raw.color) || Colors.light.tint,
+  };
 }
 
 export async function listContacts(): Promise<Contact[]> {
   if (AUTH_TEST_MODE) return TEST_CONTACTS;
-  return apiRequest<Contact[]>('/contacts');
+  const contacts = await apiRequest<Contact[]>('/contacts');
+  return Array.isArray(contacts) ? contacts.filter((item) => item && typeof item.id === 'string').map(normalizeContact) : [];
 }
 
 export async function getContact(id: string): Promise<Contact> {
@@ -32,13 +55,13 @@ export async function getContact(id: string): Promise<Contact> {
     if (!contact) throw new Error('Contact not found.');
     return contact;
   }
-  return apiRequest<Contact>(`/contacts/${encodeURIComponent(id)}`);
+  return normalizeContact(await apiRequest<Contact>(`/contacts/${encodeURIComponent(id)}`));
 }
 
 /** Creates a contact; saving the same source card again updates the existing contact. */
 export async function saveContact(input: ContactInput): Promise<Contact> {
   if (AUTH_TEST_MODE) return { ...input, id: `local-${Date.now()}` };
-  return apiRequest<Contact>('/contacts', { method: 'POST', body: input });
+  return normalizeContact(await apiRequest<Contact>('/contacts', { method: 'POST', body: input }));
 }
 
 type CardPhoto = Pick<CapturedCard, 'uri' | 'mimeType' | 'fileName'>;
@@ -105,7 +128,7 @@ export async function createContactWithCard(input: ContactInput, image?: CardPho
 export async function updateContactWithCard(id: string, input: ContactInput, image?: CardPhoto | null): Promise<Contact> {
   const contact = AUTH_TEST_MODE
     ? { ...input, id }
-    : await apiRequest<Contact>(`/contacts/${encodeURIComponent(id)}`, { method: 'PUT', body: input });
+    : normalizeContact(await apiRequest<Contact>(`/contacts/${encodeURIComponent(id)}`, { method: 'PUT', body: input }));
   cacheContact(image ? { ...contact, cardImageUrl: image.uri } : contact, 'inPlace');
   if (image) uploadCardPhotoInBackground(contact, image);
   else void queryClient.invalidateQueries({ queryKey: queryKeys.contacts });

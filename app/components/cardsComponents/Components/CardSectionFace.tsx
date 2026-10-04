@@ -21,8 +21,10 @@ export function CardSectionFace({
   walletPass?: boolean;
   width: number;
 }) {
-  const section = createCardDetailTemplate(card, profile).find((item) => item.id === sectionId)!;
-  const theme = card.sectionThemes[sectionId];
+  const section = createCardDetailTemplate(card, profile).find((item) => item.id === sectionId);
+  const theme = card.sectionThemes?.[sectionId];
+  // An unknown section id (e.g. from an older build) renders nothing rather than crashing the card.
+  if (!section || !theme) return null;
   return (
     <View
       className={`overflow-hidden ${seamless ? '' : 'rounded-[24px]'}`}

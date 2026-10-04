@@ -184,7 +184,10 @@ final class CardScannerView: ExpoView, AVCaptureVideoDataOutputSampleBufferDeleg
     guard !configured else { return }
     session.beginConfiguration()
     defer { session.commitConfiguration() }
-    session.sessionPreset = .photo
+    // AVFoundation raises an uncatchable exception for unsupported settings, so each one is checked first.
+    if session.canSetSessionPreset(.photo) {
+      session.sessionPreset = .photo
+    }
 
     guard
       let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
@@ -202,7 +205,10 @@ final class CardScannerView: ExpoView, AVCaptureVideoDataOutputSampleBufferDeleg
     session.addOutput(photoOutput)
 
     videoOutput.alwaysDiscardsLateVideoFrames = true
-    videoOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_420YpCbCr8BiPlanarFullRange]
+    let pixelFormat = kCVPixelFormatType_420YpCbCr8BiPlanarFullRange
+    if videoOutput.availableVideoPixelFormatTypes.contains(pixelFormat) {
+      videoOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: pixelFormat]
+    }
     videoOutput.setSampleBufferDelegate(self, queue: analysisQueue)
     session.addOutput(videoOutput)
 
@@ -351,7 +357,17 @@ final class CardScannerView: ExpoView, AVCaptureVideoDataOutputSampleBufferDeleg
         }
         return
       }
-      let settings = AVCapturePhotoSettings(format: [AVVideoCodecKey: AVVideoCodecType.jpeg])
+      // capturePhoto raises an uncatchable exception without an active video connection.
+      guard let connection = self.photoOutput.connection(with: .video), connection.isActive, connection.isEnabled else {
+        DispatchQueue.main.async {
+          self.pendingCapture = nil
+          promise.reject(CameraNotReadyException())
+        }
+        return
+      }
+      let settings = self.photoOutput.availablePhotoCodecTypes.contains(.jpeg)
+        ? AVCapturePhotoSettings(format: [AVVideoCodecKey: AVVideoCodecType.jpeg])
+        : AVCapturePhotoSettings()
       self.photoOutput.capturePhoto(with: settings, delegate: self)
     }
   }
@@ -385,7 +401,10 @@ final class CardScannerView: ExpoView, AVCaptureVideoDataOutputSampleBufferDeleg
       throw CaptureFailedException("unreadable image")
     }
     let quad = (try? CardImageProcessor.detectCard(in: image, minimumSize: 0.15, minimumConfidence: 0.6)) ?? previewQuad
-    let output = quad.map { CardImageProcessor.straighten(image, to: $0) } ?? image
-    return try CardImageProcessor.save(output, quality: 0.85, quad: quad)
+    // A degenerate outline cannot be straightened; the full photo is used instead.
+    if let quad, let straightened = CardImageProcessor.straighten(image, to: quad) {
+      return try CardImageProcessor.save(straightened, quality: 0.85, quad: quad)
+    }
+    return try CardImageProcessor.save(image, quality: 0.85, quad: nil)
   }
 }

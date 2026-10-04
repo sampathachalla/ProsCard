@@ -1,10 +1,10 @@
-import { View, Text, Dimensions } from 'react-native';
+import { View, Text, useWindowDimensions } from 'react-native';
 import type { OnboardingSlide as OnboardingSlideType } from '../types/onboarding.types';
-
-const { width } = Dimensions.get('window');
 
 export function OnboardingSlide({ slide }: { slide: OnboardingSlideType }) {
   const Icon = slide.icon;
+  // Read on every render so the slide follows size changes (iPad split view, window resizes).
+  const { width } = useWindowDimensions();
 
   return (
     <View style={{ width }} className="items-center justify-center px-10">

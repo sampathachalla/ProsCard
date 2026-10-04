@@ -44,7 +44,8 @@ async function requestReading(uri: string, size: Size): Promise<CardReading> {
   });
   const { base64 } = await small.saveAsync({ format: SaveFormat.JPEG, compress: 0.7, base64: true });
   if (!base64) throw new Error('Could not prepare the photo.');
-  return apiRequest<CardReading>('/scanner/read', { method: 'POST', body: { image: base64, mimeType: 'image/jpeg' } });
+  // Uploading the photo and reading it with the model can take longer than an ordinary request.
+  return apiRequest<CardReading>('/scanner/read', { method: 'POST', body: { image: base64, mimeType: 'image/jpeg' }, timeoutMs: 90_000 });
 }
 
 async function cropToCard(uri: string, size: Size, bounds: CardBounds, rotation: CardReading['rotation']): Promise<string> {

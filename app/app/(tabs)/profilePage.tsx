@@ -85,7 +85,7 @@ export default function ProfileScreen() {
     const mailUrl = `mailto:${SUPPORT_EMAIL}?subject=ProsCard%20Support`;
     const canOpen = await Linking.canOpenURL(mailUrl);
     if (canOpen) {
-      Linking.openURL(mailUrl);
+      Linking.openURL(mailUrl).catch(() => showMessage('Help & support', `Reach us at ${SUPPORT_EMAIL}.`));
       return;
     }
     showMessage('Help & support', `No email app is set up on this device. Reach us at ${SUPPORT_EMAIL}.`);

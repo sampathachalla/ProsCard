@@ -1,9 +1,7 @@
 // app/contacts/[contactId].tsx
 import { useState } from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Pencil, X } from 'lucide-react-native';
-import { IconButton } from '@/components/uiComponents/IconButton';
 import { PageHeader } from '@/components/uiComponents/PageHeader';
 import { ContactReview, type ContactFormValues } from '@/components/contactsComponents/Components/ContactReview';
 import { useContact } from '@/components/contactsComponents/Hooks/useContact';
@@ -67,12 +65,18 @@ export default function ContactDetailScreen() {
         title={editing ? 'Edit Contact' : 'Contact'}
         right={
           contact ? (
-            <IconButton
-              icon={editing ? X : Pencil}
+            // Plain text button, like Apple Contacts: "Edit", then "Cancel" while editing.
+            <Pressable
+              accessibilityRole="button"
               accessibilityLabel={editing ? 'Cancel editing' : 'Edit contact'}
-              variant={editing ? 'surface' : 'primary'}
+              hitSlop={12}
               onPress={editing ? stopEditing : () => setEditing(true)}
-            />
+              className="px-1 py-2 active:opacity-50"
+            >
+              <Text className="text-[17px] font-normal text-primary dark:text-dark-primary">
+                {editing ? 'Cancel' : 'Edit'}
+              </Text>
+            </Pressable>
           ) : null
         }
       />

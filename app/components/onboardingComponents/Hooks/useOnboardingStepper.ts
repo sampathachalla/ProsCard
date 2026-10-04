@@ -106,6 +106,9 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
         draftRef.current = next;
         return next;
       });
+    }).catch((error) => {
+      // Offline with nothing cached: the form simply starts empty.
+      console.warn('Could not prefill onboarding:', error);
     });
     return () => {
       isMounted = false;
