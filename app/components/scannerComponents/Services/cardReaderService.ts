@@ -1,5 +1,6 @@
 // components/scannerComponents/Services/cardReaderService.ts
 import { ImageManipulator, SaveFormat, type ImageRef } from 'expo-image-manipulator';
+import { detectCardAsync } from '@/modules/card-rectangle-detector';
 import { apiRequest } from '@/services/api/client';
 import type { CapturedCard, CardBounds, CardReading, ProcessedCard } from '../types/scanner.types';
 
@@ -68,10 +69,26 @@ async function cropToCard(uri: string, size: Size, bounds: CardBounds, rotation:
 }
 
 /**
- * Reads the contact details on a card photo and, unless the native scanner already cropped it,
- * crops the photo to the card.
+ * Finds the card on the device with Apple Vision (iOS dev builds only) and straightens it, which also
+ * fixes photos taken at an angle. Null when the detector is unavailable or finds no card.
  */
-export async function readCardPhoto(card: CapturedCard): Promise<{ card: ProcessedCard; reading: CardReading }> {
+async function straightenOnDevice(card: CapturedCard): Promise<ProcessedCard | null> {
+  try {
+    const detected = await detectCardAsync(card.uri, { quality: STORED_QUALITY });
+    if (!detected) return null;
+    return { ...card, uri: detected.uri, edgeDetected: true, originalUri: card.uri, autoCropped: true, mimeType: 'image/jpeg', fileName: undefined };
+  } catch {
+    // Fall back to the reader's crop rather than failing the scan.
+    return null;
+  }
+}
+
+/**
+ * Reads the contact details on a card photo and, unless the native scanner already cropped it,
+ * crops the photo to the card: on the device with Apple Vision when it can, otherwise from the reader's bounds.
+ */
+export async function readCardPhoto(captured: CapturedCard): Promise<{ card: ProcessedCard; reading: CardReading }> {
+  const card: ProcessedCard = (!captured.edgeDetected && (await straightenOnDevice(captured))) || captured;
   const size = await orientedSize(card.uri);
   const reading = await requestReading(card.uri, size);
   if (card.edgeDetected || !reading.isBusinessCard || !reading.cardBounds) return { card, reading };
