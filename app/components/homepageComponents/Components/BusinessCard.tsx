@@ -3,10 +3,7 @@ import type { BusinessCard as BusinessCardData } from '@/components/cardsCompone
 import type { Profile } from '@/components/profileComponents/types/profile.types';
 import { CardTapGesture } from '@/components/gestures';
 import { CardSectionFace } from '@/components/cardsComponents/Components/CardSectionFace';
-import {
-  IDENTITY_SECTION_HEIGHT_RATIO,
-  PROFESSIONAL_SECTION_HEIGHT_RATIO,
-} from '@/components/cardsComponents/cardSectionLayout';
+import { HOMEPAGE_CARD_SECTION_HEIGHT_RATIOS } from '@/components/cardsComponents/cardSectionLayout';
 
 type Props = {
   card: BusinessCardData;
@@ -18,8 +15,10 @@ type Props = {
 };
 
 export function BusinessCard({ card, height, onDoubleTap, onSwipeDown, profile, width }: Props) {
-  const identitySectionHeight = height * IDENTITY_SECTION_HEIGHT_RATIO;
-  const professionalSectionHeight = height * PROFESSIONAL_SECTION_HEIGHT_RATIO;
+  const identitySectionHeight = height * HOMEPAGE_CARD_SECTION_HEIGHT_RATIOS.identity;
+  const professionalSectionHeight = height * HOMEPAGE_CARD_SECTION_HEIGHT_RATIOS.professional;
+  const bioSectionHeight = height * HOMEPAGE_CARD_SECTION_HEIGHT_RATIOS.bio;
+  const connectionsSectionHeight = height * HOMEPAGE_CARD_SECTION_HEIGHT_RATIOS.connections;
   const identityTheme = card.sectionThemes.identity;
   const view = (
     <View
@@ -46,6 +45,22 @@ export function BusinessCard({ card, height, onDoubleTap, onSwipeDown, profile, 
         profile={profile}
         seamless
         sectionId="professional"
+        width={width}
+      />
+      <CardSectionFace
+        card={card}
+        height={bioSectionHeight}
+        profile={profile}
+        seamless
+        sectionId="bio"
+        width={width}
+      />
+      <CardSectionFace
+        card={card}
+        height={connectionsSectionHeight}
+        profile={profile}
+        seamless
+        sectionId="connections"
         width={width}
       />
     </View>

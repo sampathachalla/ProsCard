@@ -300,20 +300,21 @@ export function ConnectionsSectionRenderer({
               accessibilityLabel={`${presentation.label}: ${presentation.value}`}
               disabled={!resolveActionUrl(field)}
               onPress={() => handlePress(field)}
-              className="flex-row items-center rounded-full border px-3 py-1.5 active:opacity-70"
+              className="min-w-0 flex-row items-center rounded-full border px-3 py-1.5 active:opacity-70"
               style={{
                 backgroundColor: slots.background,
                 borderColor: slots.highlight,
+                width: '48.5%',
               }}
             >
               <ConnectionIcon color={slots.accent} field={field} size={14} />
-              <View className="ml-2">
+              <View className="ml-2 min-w-0 flex-1">
                 <Text
                   numberOfLines={1}
                   className="text-xs font-semibold"
                   style={{ color: slots.textPrimary, fontFamily, letterSpacing }}
                 >
-                  {presentation.value}
+                  {presentation.label}
                 </Text>
               </View>
             </Pressable>
@@ -523,19 +524,20 @@ export function ConnectionsSectionRenderer({
     );
   }
 
-  // Icon Dock (badge): labeled app-icon style dock
+  // Icon Dock (badge): enterprise command dock with compact channel tiles
   if (section.templateId === 'badge') {
+    const dockItemWidth = compact ? '23.5%' : width >= 600 ? '23.5%' : '31.5%';
     return (
       <View
-        className={`overflow-hidden p-4 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
+        className={`overflow-hidden ${compact ? 'p-3' : 'p-4'} ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
         style={[{
-          backgroundColor: slots.surface,
+          backgroundColor: slots.background,
           borderColor: boxed ? slots.accent : undefined,
           height: compact ? '100%' : undefined,
           minHeight: compact ? undefined : CONNECTIONS_MIN_HEIGHT,
-        }, boxed ? BOXED_SHADOW_SM : null]}
+        }, boxed ? BOXED_SHADOW_MD : null]}
       >
-        <View className="flex-row flex-wrap items-start justify-center gap-3">
+        <View className="flex-row flex-wrap items-stretch justify-between gap-y-2.5">
           {fields.map((field) => {
             const presentation = getConnectionPresentation(field, showEmpty);
             return (
@@ -545,25 +547,29 @@ export function ConnectionsSectionRenderer({
                 accessibilityLabel={`${presentation.label}: ${presentation.value}`}
                 disabled={!resolveActionUrl(field)}
                 onPress={() => handlePress(field)}
-                className="items-center active:opacity-70"
-                style={{ width: compact ? 56 : 68 }}
+                className={`${compact ? 'px-1.5 py-2' : 'px-2 py-3'} items-center justify-center rounded-2xl border active:opacity-70`}
+                style={{
+                  width: dockItemWidth,
+                  backgroundColor: slots.surface,
+                  borderColor: slots.highlight,
+                  minHeight: compact ? 62 : 76,
+                  ...BOXED_SHADOW_SM,
+                }}
               >
                 <View
-                  className="items-center justify-center border"
+                  className="items-center justify-center rounded-xl"
                   style={{
-                    backgroundColor: slots.background,
-                    borderColor: slots.accent,
-                    borderRadius: compact ? 14 : 18,
-                    width: compact ? 46 : 56,
-                    height: compact ? 46 : 56,
+                    backgroundColor: `${slots.accent}14`,
+                    width: compact ? 30 : 38,
+                    height: compact ? 30 : 38,
                   }}
                 >
-                  <ConnectionIcon color={slots.accent} field={field} size={compact ? 18 : 22} />
+                  <ConnectionIcon color={slots.accent} field={field} size={compact ? 14 : 18} />
                 </View>
                 <Text
                   numberOfLines={1}
-                  className={compact ? 'mt-1 text-[8px] font-bold' : 'mt-1.5 text-[10px] font-bold'}
-                  style={{ color: slots.textSecondary, fontFamily, letterSpacing }}
+                  className={compact ? 'mt-1.5 text-[9px] font-extrabold' : 'mt-2 text-[11px] font-extrabold'}
+                  style={{ color: slots.textPrimary, fontFamily, letterSpacing, textAlign: 'center' }}
                 >
                   {presentation.label}
                 </Text>
@@ -688,7 +694,7 @@ export function ConnectionsSectionRenderer({
               className="mr-4 items-center justify-center rounded-full"
               style={{ backgroundColor: slots.accent, height: compact ? 38 : 52, width: compact ? 38 : 52 }}
             >
-              <ConnectionIcon color={slots.background} field={field} size={compact ? 18 : 23} />
+              <ConnectionIcon color={slots.background} field={field} size={compact ? 14 : 18} />
             </View>
             {renderCopy(presentation, slots.textPrimary, slots.textSecondary)}
           </Pressable>

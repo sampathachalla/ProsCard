@@ -4,6 +4,7 @@ import { Alert } from 'react-native';
 import type { CardFieldKey, EditableCard } from '../types/editView.types';
 import {
   resolveIdentityLayoutId,
+  resolveProfessionalLayoutId,
   type CardLayoutId,
   type CardSectionFieldId,
   type CardSectionId,
@@ -101,8 +102,11 @@ export function useEditView(cardId?: string, startInEditMode = false, initialCar
   };
 
   const updateSectionLayout = (section: CardSectionId, template: CardLayoutId) => {
-    // Section 1 stores its layout id (layout-1 … layout-6), never the style name.
-    const resolved = section === 'identity' ? resolveIdentityLayoutId(template) : template;
+    const resolved = section === 'identity'
+      ? resolveIdentityLayoutId(template)
+      : section === 'professional'
+        ? resolveProfessionalLayoutId(template)
+        : template;
     setDraft((prev) => ({ ...prev, sectionLayouts: { ...prev.sectionLayouts, [section]: resolved } }));
   };
 

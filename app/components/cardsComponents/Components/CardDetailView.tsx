@@ -3,7 +3,7 @@ import type { BusinessCard, CardSectionId } from '../types/card.types';
 import type { Profile } from '@/components/profileComponents/types/profile.types';
 import { Text } from '@/components/uiComponents/Text';
 import { CardDetailSection } from './CardDetailSection';
-import { identitySectionHeight } from '../cardSectionLayout';
+import { identitySectionHeight, professionalSectionHeight } from '../cardSectionLayout';
 import { createCardDetailTemplate } from '../Templates/cardDetailTemplate';
 import { SectionTemplateRenderer } from '../Templates/SectionTemplateRenderer';
 import { getCardFontFamily, getCardLetterSpacing } from '../Templates/cardTheme';
@@ -27,6 +27,7 @@ export function CardDetailView({
   const { height: windowHeight } = useWindowDimensions();
   const sections = createCardDetailTemplate(card, profile);
   const identityHeight = identitySectionHeight(windowHeight);
+  const professionalHeight = professionalSectionHeight(windowHeight);
 
   const firstTheme = card.sectionThemes[sections[0]?.id];
 
@@ -48,8 +49,14 @@ export function CardDetailView({
         const letterSpacing = getCardLetterSpacing(theme.fontStyle);
         const handleLayout = (event: LayoutChangeEvent) => onSectionLayout?.(section.id, event.nativeEvent.layout.y);
         return <View key={section.id} onLayout={handleLayout} style={{ position: 'relative' }}>
-          {section.id === 'identity' ? (
-            <View style={{ height: identityHeight, width: '100%', overflow: 'hidden' }}>
+          {section.id === 'identity' || section.id === 'professional' ? (
+            <View
+              style={{
+                height: section.id === 'identity' ? identityHeight : professionalHeight,
+                width: '100%',
+                overflow: 'hidden',
+              }}
+            >
               <SectionTemplateRenderer
                 compact
                 cardTheme={theme}

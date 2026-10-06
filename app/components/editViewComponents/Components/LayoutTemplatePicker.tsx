@@ -12,7 +12,10 @@ import {
   IDENTITY_LAYOUT_IDS,
   IDENTITY_LAYOUT_STYLES,
   IDENTITY_SECTION_TEMPLATE_IDS,
+  PROFESSIONAL_LAYOUT_IDS,
+  PROFESSIONAL_LAYOUT_STYLES,
   resolveIdentityLayoutId,
+  resolveProfessionalLayoutId,
   resolveLayoutStyle,
   type CardLayoutId,
   type CardSectionId,
@@ -55,8 +58,53 @@ const IDENTITY_TEMPLATES: { id: CardLayoutId; label: string }[] = IDENTITY_LAYOU
   label: IDENTITY_TEMPLATE_LABELS[IDENTITY_LAYOUT_STYLES[id]],
 }));
 
+const PROFESSIONAL_TEMPLATE_LABELS: Record<(typeof PROFESSIONAL_LAYOUT_STYLES)[keyof typeof PROFESSIONAL_LAYOUT_STYLES], string> = {
+  classic: 'Corporate Card',
+  bold: 'Hero Credential',
+  spotlight: 'Company Hero',
+  banner: 'Stripe Card',
+  badge: 'Officer Badge',
+  split: 'Role Split',
+  neon: 'Cyber Wire',
+};
+
+const HIDDEN_PROFESSIONAL_LAYOUT_IDS = new Set<CardLayoutId>(['layout-2', 'layout-6', 'layout-7']);
+
+const PROFESSIONAL_TEMPLATES: { id: CardLayoutId; label: string }[] = PROFESSIONAL_LAYOUT_IDS
+  .filter((id) => !HIDDEN_PROFESSIONAL_LAYOUT_IDS.has(id))
+  .map((id) => ({
+    id,
+    label: PROFESSIONAL_TEMPLATE_LABELS[PROFESSIONAL_LAYOUT_STYLES[id]],
+  }));
+
+const HIDDEN_CONNECTION_TEMPLATE_IDS = new Set<CardTemplateId>([
+  'classic',
+  'minimal',
+  'bold',
+  'glass',
+  'spotlight',
+  'cards',
+  'badge',
+  'neon',
+]);
+
+const CONNECTION_TEMPLATE_ORDER: CardTemplateId[] = [
+  'banner',
+  'editorial',
+  'compact',
+  'split',
+];
+
+const CONNECTION_TEMPLATES = CONNECTION_TEMPLATE_ORDER
+  .filter((id) => !HIDDEN_CONNECTION_TEMPLATE_IDS.has(id))
+  .map((id) => TEMPLATES.find((template) => template.id === id)!)
+  .filter(Boolean);
+
 function templatesForSection(section: CardSectionId): { id: CardLayoutId; label: string }[] {
-  return section === 'identity' ? IDENTITY_TEMPLATES : TEMPLATES;
+  if (section === 'identity') return IDENTITY_TEMPLATES;
+  if (section === 'professional') return PROFESSIONAL_TEMPLATES;
+  if (section === 'connections') return CONNECTION_TEMPLATES;
+  return TEMPLATES;
 }
 
 const SECTION_TEMPLATE_NAMES: Record<CardSectionId, Record<CardTemplateId, string>> = {
@@ -286,11 +334,19 @@ function LayoutThumbnail({ section, template, theme }: { section: CardSectionId;
     }
     if (template === 'bold') {
       return (
-        <LinearGradient colors={theme.gradient} className="relative mb-2 h-12 overflow-hidden rounded-xl p-2">
-          <View className="h-2 w-16 rounded" style={{ backgroundColor: slots.surface }} />
-          <View className="mt-1 h-1.5 w-10 rounded" style={{ backgroundColor: slots.accent }} />
-          <View className="mt-1.5 h-2 w-full rounded" style={{ backgroundColor: slots.background }} />
-        </LinearGradient>
+        <View className="relative mb-2 h-12 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 justify-between">
+          <View className="flex-row justify-between items-center">
+            <View className="h-1 w-9 rounded" style={{ backgroundColor: '#0f172a' }} />
+            <View className="h-1.5 w-6 rounded-full" style={{ backgroundColor: slots.accent }} />
+          </View>
+          <View className="items-center">
+            <View className="h-2 w-16 rounded" style={{ backgroundColor: slots.accent }} />
+            <View className="mt-0.5 h-1 w-10 rounded" style={{ backgroundColor: '#0f172a' }} />
+          </View>
+          <View className="border-t border-slate-100 pt-0.5 items-center">
+            <View className="h-1 w-14 rounded" style={{ backgroundColor: '#64748b' }} />
+          </View>
+        </View>
       );
     }
     if (template === 'glass') {
@@ -453,7 +509,11 @@ export function LayoutTemplatePicker({
 
   const sectionTemplates = useMemo(() => templatesForSection(section), [section]);
   const activeTemplateId =
-    section === 'identity' ? resolveIdentityLayoutId(selectedTemplateId) : selectedTemplateId;
+    section === 'identity'
+      ? resolveIdentityLayoutId(selectedTemplateId)
+      : section === 'professional'
+        ? resolveProfessionalLayoutId(selectedTemplateId)
+        : selectedTemplateId;
 
   // Chunk templates into pages of 4 items (2x2 grid per slide)
   const templatePages = useMemo(() => {
@@ -494,7 +554,7 @@ export function LayoutTemplatePicker({
 
   const renderTemplateCard = (templateId: CardLayoutId, cardWidth: number, compactHeight = true) => {
     // Display name, palette and thumbnail come from the layout's drawing style.
-    const style = resolveLayoutStyle(templateId);
+    const style = resolveLayoutStyle(templateId, section);
     const label = SECTION_TEMPLATE_NAMES[section][style] || templateId;
     const selected = activeTemplateId === templateId;
     const tier = getTemplatePaletteTier(style);

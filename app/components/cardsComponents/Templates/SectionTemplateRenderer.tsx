@@ -60,6 +60,7 @@ export function SectionTemplateRenderer({
         <ProfessionalSectionRenderer
           compact={compact}
           cardTheme={cardTheme}
+          fullCardView={fullCardView}
           gradient={gradient}
           section={section}
           seamless={seamless}

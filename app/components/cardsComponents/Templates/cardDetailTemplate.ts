@@ -99,7 +99,7 @@ export function createCardDetailTemplate(
     {
       id: 'professional',
       title: 'Professional identity',
-      templateId: resolveLayoutStyle(card.sectionLayouts.professional),
+      templateId: resolveLayoutStyle(card.sectionLayouts.professional, 'professional'),
       fields: [
         {
           id: 'title',
@@ -160,7 +160,7 @@ export function createCardDetailTemplate(
     {
       id: 'bio',
       title: 'About',
-      templateId: resolveLayoutStyle(card.sectionLayouts.bio),
+      templateId: resolveLayoutStyle(card.sectionLayouts.bio, 'bio'),
       fields: [
         {
           id: 'bio',
@@ -173,7 +173,7 @@ export function createCardDetailTemplate(
     {
       id: 'connections',
       title: 'Contact & links',
-      templateId: resolveLayoutStyle(card.sectionLayouts.connections),
+      templateId: resolveLayoutStyle(card.sectionLayouts.connections, 'connections'),
       fields: (card.connectionFieldsCustomized ? card.connectionFields : defaultConnections(card, profile)).map((field) => ({ ...field })),
     },
   ];

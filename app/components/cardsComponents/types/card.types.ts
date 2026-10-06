@@ -37,11 +37,37 @@ export const IDENTITY_SECTION_TEMPLATE_IDS = IDENTITY_LAYOUT_IDS.map((id) => IDE
 
 export type IdentitySectionTemplateId = (typeof IDENTITY_LAYOUT_STYLES)[IdentityLayoutId];
 
-/** A section's saved layout: identity uses layout ids; older cards and other sections use style ids. */
-export type CardLayoutId = CardTemplateId | IdentityLayoutId;
+/** Section 2 (professional) stable ids for its seven active designs. */
+export const PROFESSIONAL_LAYOUT_IDS = [
+  'layout-1',
+  'layout-2',
+  'layout-3',
+  'layout-4',
+  'layout-5',
+  'layout-6',
+  'layout-7',
+] as const;
+
+export type ProfessionalLayoutId = (typeof PROFESSIONAL_LAYOUT_IDS)[number];
+
+export const PROFESSIONAL_LAYOUT_STYLES = {
+  'layout-1': 'classic',
+  'layout-2': 'bold',
+  'layout-3': 'spotlight',
+  'layout-4': 'banner',
+  'layout-5': 'badge',
+  'layout-6': 'split',
+  'layout-7': 'neon',
+} as const satisfies Record<ProfessionalLayoutId, CardTemplateId>;
+
+export type CardLayoutId = CardTemplateId | IdentityLayoutId | ProfessionalLayoutId;
 
 export function isIdentityLayoutId(id: unknown): id is IdentityLayoutId {
   return (IDENTITY_LAYOUT_IDS as readonly unknown[]).includes(id);
+}
+
+export function isProfessionalLayoutId(id: unknown): id is ProfessionalLayoutId {
+  return (PROFESSIONAL_LAYOUT_IDS as readonly unknown[]).includes(id);
 }
 
 /**
@@ -59,9 +85,18 @@ export function resolveIdentityTemplateId(id: CardLayoutId | string | undefined)
   return IDENTITY_LAYOUT_STYLES[resolveIdentityLayoutId(id)];
 }
 
-/** The drawing style for any section's saved layout (identity layout ids become their style). */
-export function resolveLayoutStyle(id: CardLayoutId): CardTemplateId {
-  return isIdentityLayoutId(id) ? IDENTITY_LAYOUT_STYLES[id] : id;
+/** Converts legacy Section 2 style names to stable layout ids. */
+export function resolveProfessionalLayoutId(id: CardLayoutId | string | undefined): ProfessionalLayoutId {
+  if (isProfessionalLayoutId(id)) return id;
+  const legacy = PROFESSIONAL_LAYOUT_IDS.find((layoutId) => PROFESSIONAL_LAYOUT_STYLES[layoutId] === id);
+  return legacy ?? 'layout-1';
+}
+
+/** Resolves a saved layout id within its section; layout ids intentionally repeat across sections. */
+export function resolveLayoutStyle(id: CardLayoutId, section?: CardSectionId): CardTemplateId {
+  if (section === 'professional' && isProfessionalLayoutId(id)) return PROFESSIONAL_LAYOUT_STYLES[id];
+  if (section === 'identity' && isIdentityLayoutId(id)) return IDENTITY_LAYOUT_STYLES[id];
+  return id as CardTemplateId;
 }
 
 /** Default card title when no personal name is set — not shown on the identity face. */
@@ -214,7 +249,7 @@ export type CardSectionOverrides = Partial<Record<CardSectionFieldId, string>>;
 
 export const DEFAULT_CARD_SECTION_LAYOUTS: CardSectionLayouts = {
   identity: 'layout-1',
-  professional: 'classic',
+  professional: 'layout-1',
   bio: 'classic',
   connections: 'classic',
 };

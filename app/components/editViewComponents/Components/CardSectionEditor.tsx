@@ -755,7 +755,17 @@ export function CardSectionEditor({
         </View>
       </View>
 
-      {/* Row 3: Tagline */}
+      {/* Row 3: Accreditations */}
+      <EditorInput
+        label="Accreditations"
+        maxLength={accreditationCharacterLimit}
+        value={accreditationValue}
+        onChangeText={(val) => onFieldChange('accreditations', val)}
+        onFocus={onProfessionalFieldFocus}
+        placeholder="e.g. MS, BTech, CPA"
+      />
+
+      {/* Row 4: Tagline */}
       <EditorInput
         label="Tagline"
         maxLength={taglineCharacterLimit}
@@ -1183,7 +1193,7 @@ export function CardSectionEditor({
       {stylingOpen ? (
         <View>
           <CardStylingCustomizer
-            activeTemplateId={resolveLayoutStyle(card.sectionLayouts[activeSection])}
+            activeTemplateId={resolveLayoutStyle(card.sectionLayouts[activeSection], activeSection)}
             backLabel={`Back to ${activeEditTab === 'layout' ? 'Layout' : 'Content'}`}
             customThemes={card.customThemes ?? []}
             editBarCollapsed={editBarCollapsed}

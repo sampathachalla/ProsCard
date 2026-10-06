@@ -20,7 +20,7 @@ export type WalletPassLayouts = {
 export function resolveWalletPassLayouts(card: BusinessCard): WalletPassLayouts {
   return {
     identity: resolveIdentityTemplateId(card.sectionLayouts.identity),
-    professional: resolveLayoutStyle(card.sectionLayouts.professional),
+    professional: resolveLayoutStyle(card.sectionLayouts.professional, 'professional'),
   };
 }
 
