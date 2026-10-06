@@ -1,9 +1,13 @@
 import React from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Text } from '@/components/uiComponents/Text';
 import type { CardDetailSection } from '../cardDetailTemplate';
-import type { CardVisualTheme } from '../../types/card.types';
+import {
+  DEFAULT_CARD_DISPLAY_NAME,
+  resolveIdentityTemplateId,
+  type CardVisualTheme,
+} from '../../types/card.types';
 import { getCardFontFamily, getCardLetterSpacing } from '../cardTheme';
 import {
   BOXED_SHADOW_LG,
@@ -14,6 +18,7 @@ import {
   UniversalLogoBadge,
 } from './SectionSharedComponents';
 import { resolveLayoutColorSlots } from '@/utils/cardThemeColor';
+import { identitySectionHeight } from '../../cardSectionLayout';
 
 type Props = {
   compact?: boolean;
@@ -23,6 +28,8 @@ type Props = {
   seamless?: boolean;
   showEmpty?: boolean;
   walletPass?: boolean;
+  /** Edit / scrollable full card (not home carousel face). */
+  fullCardView?: boolean;
 };
 
 function IdentityName({
@@ -32,20 +39,32 @@ function IdentityName({
   compact,
   name,
   shadow = false,
+  size = 'default',
 }: {
-  align?: 'left' | 'center';
+  align?: 'left' | 'center' | 'right';
   cardTheme: CardVisualTheme;
   color: string;
   compact: boolean;
   name: string;
   shadow?: boolean;
+  size?: 'default' | 'display' | 'headline';
 }) {
+  const sizeClassName =
+    size === 'display'
+      ? 'text-3xl font-black leading-tight'
+      : size === 'headline'
+        ? 'text-3xl font-black leading-tight'
+      : compact
+        ? 'text-base font-black leading-tight'
+        : 'text-2xl font-black leading-tight';
+
   return (
     <Text
+      variant="none"
       adjustsFontSizeToFit
-      minimumFontScale={0.72}
+      minimumFontScale={size === 'display' ? 0.68 : size === 'headline' ? 0.7 : 0.72}
       numberOfLines={2}
-      className={compact ? 'text-base font-black leading-tight' : 'text-2xl font-black leading-tight'}
+      className={sizeClassName}
       style={{
         color,
         fontFamily: getCardFontFamily(cardTheme.fontStyle),
@@ -75,17 +94,34 @@ export function IdentitySectionRenderer({
   seamless = false,
   showEmpty = false,
   walletPass = false,
+  fullCardView = false,
 }: Props) {
+  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const boxed = compact && !seamless;
   const field = (id: string) => section.fields.find((item) => item.id === id);
   const cover = field('coverPhoto');
   const profile = field('profilePhoto');
   const logo = field('logo');
-  const name = field('preferredName')?.value || (showEmpty ? 'Preferred Name' : 'No Name Added');
-  const slots = resolveLayoutColorSlots({ templateId: section.templateId, theme: cardTheme });
-  const profileSize = walletPass ? 40 : compact ? 52 : 96;
+  const rawPreferredName = field('preferredName')?.value?.trim() || '';
+  const name =
+    rawPreferredName && rawPreferredName !== DEFAULT_CARD_DISPLAY_NAME
+      ? rawPreferredName
+      : showEmpty
+        ? 'Preferred Name'
+        : 'No Name Added';
+  const layoutId = resolveIdentityTemplateId(section.templateId);
+  const slots = resolveLayoutColorSlots({ templateId: layoutId, theme: cardTheme });
+  const fullCardIdentityHeight = identitySectionHeight(windowHeight);
+  // Layout 1 keeps enough room below the portrait for a two-line preferred name.
+  // The bounds prevent the portrait from becoming tiny on short phones or oversized on tablets.
+  const classicProfileSize = walletPass
+    ? 56
+    : fullCardView
+      ? Math.max(88, Math.min(132, Math.round(fullCardIdentityHeight * 0.42)))
+      : compact
+        ? 108
+        : 132;
   const homePreview = compact && seamless;
-  const coverBandRatio = walletPass ? '36%' : compact ? '48%' : undefined;
   const shellStyle = {
     backgroundColor: slots.background,
     borderColor: boxed ? slots.accent : undefined,
@@ -99,26 +135,70 @@ export function IdentitySectionRenderer({
     placeholderColor: slots.surface,
   };
 
-  // 1. Split profile (minimal): 40/60 horizontal split
-  if (section.templateId === 'minimal') {
+  // 1. Split profile (minimal): 50/50 horizontal split (Cover + Avatar on left, Logo + Name on right)
+  if (layoutId === 'minimal') {
+    const minimalProfileSize = walletPass ? 48 : fullCardView ? 104 : compact ? 84 : 104;
+    const displayName = name ? name.replace(/\b\w/g, (c) => c.toUpperCase()) : name;
     return (
-      <View className={`flex-row overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`} style={[shellStyle, boxed ? BOXED_SHADOW_SM : null]}>
-        <View className="w-[40%] items-center justify-center overflow-hidden p-2" style={{ backgroundColor: slots.background }}>
-          <IdentityImage field={cover} {...imageColors} style={{ position: 'absolute', inset: 0 }} />
-          <View className="absolute inset-0 bg-black/20" />
-          <IdentityImage
-            field={profile}
-            {...imageColors}
-            style={{
-              width: profileSize,
-              height: profileSize,
-              borderRadius: profileSize / 2,
-              borderWidth: compact ? 2.5 : 3.5,
-              borderColor: slots.accent,
-            }}
+      <View
+        className={`flex-row overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
+        style={[shellStyle, boxed ? BOXED_SHADOW_SM : null]}
+      >
+        {/* Left: Full-bleed Cover Backdrop + Elevated Avatar with Specular Ring & Shadow */}
+        <View
+          className="w-1/2 items-center justify-center overflow-hidden p-2"
+          style={{
+            backgroundColor: slots.background,
+            borderRightWidth: StyleSheet.hairlineWidth,
+            borderRightColor: slots.highlight || 'rgba(255,255,255,0.2)',
+          }}
+        >
+          <IdentityImage field={cover} {...imageColors} style={StyleSheet.absoluteFill} />
+          {/* Ambient Lighting Vignette */}
+          <LinearGradient
+            colors={['rgba(0,0,0,0.08)', 'rgba(0,0,0,0.38)']}
+            style={StyleSheet.absoluteFill}
           />
+          {/* Dual-ring elevated avatar frame */}
+          <View
+            style={{
+              shadowColor: '#000000',
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.35,
+              shadowRadius: 10,
+              elevation: 8,
+            }}
+          >
+            <View
+              style={{
+                backgroundColor: 'rgba(255,255,255,0.22)',
+                borderColor: 'rgba(255,255,255,0.45)',
+                borderRadius: (minimalProfileSize + 8) / 2,
+                borderWidth: 1.5,
+                padding: 3,
+              }}
+            >
+              <IdentityImage
+                field={profile}
+                {...imageColors}
+                style={{
+                  width: minimalProfileSize,
+                  height: minimalProfileSize,
+                  borderRadius: minimalProfileSize / 2,
+                  borderWidth: 2,
+                  borderColor: '#ffffff',
+                }}
+              />
+            </View>
+          </View>
         </View>
-        <View className="flex-1 justify-between p-3.5" style={{ backgroundColor: slots.surface }}>
+
+        {/* Right: Clean Identity Pane */}
+        <View
+          className="w-1/2 justify-between p-4"
+          style={{ backgroundColor: slots.surface }}
+        >
+          {/* Top: Logo Badge */}
           <View className="items-start">
             <UniversalLogoBadge
               cardTheme={cardTheme}
@@ -126,465 +206,330 @@ export function IdentitySectionRenderer({
               field={logo}
               placement="on-surface"
               slots={slots}
-              templateId={section.templateId}
+              templateId={layoutId}
             />
           </View>
-          <IdentityName cardTheme={cardTheme} color={slots.textPrimary} compact={compact} name={name} />
+
+          {/* Name positioned in lower section with comfortable bottom clearance */}
+          <View className="pb-6">
+            <Text
+              adjustsFontSizeToFit
+              className="text-[26px] font-black leading-[30px]"
+              minimumFontScale={0.68}
+              numberOfLines={2}
+              style={{
+                color: slots.textPrimary,
+                fontFamily: getCardFontFamily(cardTheme.fontStyle),
+                letterSpacing: getCardLetterSpacing(cardTheme.fontStyle),
+                textTransform: 'capitalize',
+              }}
+              variant="none"
+            >
+              {displayName}
+            </Text>
+          </View>
         </View>
       </View>
     );
   }
 
   // 2. Hero banner (bold): full-bleed media
-  if (section.templateId === 'bold') {
+  if (layoutId === 'bold') {
+    const boldProfileSize = fullCardView
+      ? fullCardIdentityHeight < 220
+        ? Math.max(72, Math.min(88, Math.round(fullCardIdentityHeight * 0.4)))
+        : Math.max(88, Math.min(112, Math.round(fullCardIdentityHeight * 0.42)))
+      : compact
+        ? 64
+        : 104;
+    const boldEdgeInset = fullCardView ? 20 : 12;
+    const boldBottomInset = fullCardView ? 20 : 12;
     return (
       <View className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`} style={[shellStyle, boxed ? BOXED_SHADOW_LG : null]}>
         <IdentityImage field={cover} {...imageColors} style={{ bottom: 0, left: 0, position: 'absolute', right: 0, top: 0 }} />
         <LinearGradient
-          colors={['rgba(0,0,0,0.15)', 'rgba(0,0,0,0.85)']}
+          colors={['rgba(2,6,23,0.08)', 'rgba(2,6,23,0.34)', 'rgba(2,6,23,0.88)']}
+          locations={[0, 0.52, 1]}
           style={StyleSheet.absoluteFill}
         />
-        <View className="absolute right-3 top-3">
+        <View className="absolute" style={{ right: boldEdgeInset, top: boldEdgeInset }}>
           <UniversalLogoBadge
             cardTheme={cardTheme}
-            compact={compact}
+            compact
             field={logo}
             placement="on-cover"
             slots={slots}
-            templateId={section.templateId}
+            style={fullCardView ? { borderRadius: 10, height: 46, width: 114 } : undefined}
+            templateId={layoutId}
           />
         </View>
-        <View className="absolute bottom-0 left-0 right-0 flex-row items-end px-4 pb-4">
+        <View
+          className="absolute flex-row items-center"
+          style={{ bottom: boldBottomInset, left: boldEdgeInset, right: boldEdgeInset }}
+        >
           <IdentityImage
             field={profile}
             {...imageColors}
             style={{
-              width: profileSize,
-              height: profileSize,
-              borderRadius: compact ? 16 : 22,
-              borderWidth: compact ? 2.5 : 3.5,
-              borderColor: slots.accent,
-            }}
-          />
-          <View className="ml-3 min-w-0 flex-1 pb-1">
-            <IdentityName cardTheme={cardTheme} color="#ffffff" compact={compact} name={name} shadow />
-          </View>
-        </View>
-      </View>
-    );
-  }
-
-  // 3. Layered profile (glass): cover photo backdrop with floating frosted glass card
-  if (section.templateId === 'glass') {
-    return (
-      <View className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`} style={[shellStyle, boxed ? BOXED_SHADOW_MD : null]}>
-        <IdentityImage field={cover} {...imageColors} style={{ position: 'absolute', inset: 0 }} />
-        <LinearGradient
-          colors={['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.65)']}
-          style={StyleSheet.absoluteFill}
-        />
-        <View className="flex-1 items-center justify-end p-4">
-          <View
-            className="w-full items-center rounded-2xl border p-4 backdrop-blur-md"
-            style={[{ backgroundColor: 'rgba(15, 23, 42, 0.85)', borderColor: slots.accent }, BOXED_SHADOW_XL]}
-          >
-            <View style={{ marginTop: -(profileSize / 2) }}>
-              <IdentityImage
-                field={profile}
-                {...imageColors}
-                style={{
-                  width: profileSize,
-                  height: profileSize,
-                  borderRadius: profileSize / 2,
-                  borderWidth: compact ? 2.5 : 3.5,
-                  borderColor: slots.accent,
-                }}
-              />
-            </View>
-            <View className="mt-2 items-center">
-              <UniversalLogoBadge
-                cardTheme={cardTheme}
-                compact={compact}
-                field={logo}
-                placement="glass"
-                slots={slots}
-                templateId={section.templateId}
-              />
-            </View>
-            <View className="mt-2 w-full">
-              <IdentityName align="center" cardTheme={cardTheme} color="#ffffff" compact={compact} name={name} shadow />
-            </View>
-          </View>
-        </View>
-      </View>
-    );
-  }
-
-  // 4. Pocket Pass (compact): dense horizontal single-row flow with cover background accent
-  if (section.templateId === 'compact') {
-    return (
-      <View
-        className={`flex-row items-center justify-between overflow-hidden px-4 py-3 ${boxed ? 'mb-5 rounded-[24px] border' : ''}`}
-        style={[{ backgroundColor: slots.surface, borderColor: slots.highlight, minHeight: compact ? 64 : 84 }, boxed ? BOXED_SHADOW_SM : null]}
-      >
-        <View className="flex-row items-center min-w-0 flex-1 mr-3">
-          <IdentityImage
-            field={profile}
-            {...imageColors}
-            style={{
-              width: compact ? 40 : 54,
-              height: compact ? 40 : 54,
-              borderRadius: compact ? 20 : 27,
+              width: boldProfileSize,
+              height: boldProfileSize,
+              borderRadius: fullCardView ? 16 : compact ? 14 : 18,
               borderWidth: 2,
-              borderColor: slots.accent,
+              borderColor: 'rgba(255,255,255,0.72)',
             }}
           />
-          <View className="ml-3 min-w-0 flex-1">
-            <IdentityName cardTheme={cardTheme} color={slots.textPrimary} compact name={name} />
-          </View>
-        </View>
-        <UniversalLogoBadge
-          cardTheme={cardTheme}
-          compact
-          field={logo}
-          placement="on-surface"
-          slots={slots}
-          templateId={section.templateId}
-        />
-      </View>
-    );
-  }
-
-  // 5. Magazine Monograph (editorial): top cover band with offset square avatar and serif title
-  if (section.templateId === 'editorial') {
-    return (
-      <View className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`} style={[shellStyle, boxed ? BOXED_SHADOW_SM : null]}>
-        <View style={{ height: compact ? 90 : 130 }}>
-          <IdentityImage field={cover} {...imageColors} style={{ width: '100%', height: '100%' }} />
-        </View>
-        <View className="flex-1 px-4 pb-4 pt-2" style={{ backgroundColor: slots.surface }}>
-          <View className="flex-row items-end justify-between" style={{ marginTop: -(profileSize * 0.45) }}>
-            <IdentityImage
-              field={profile}
-              {...imageColors}
-              style={{
-                width: profileSize,
-                height: profileSize,
-                borderRadius: 14,
-                borderWidth: 3,
-                borderColor: slots.surface,
-              }}
-            />
-            <UniversalLogoBadge
+          <View className="ml-3 min-w-0 flex-1 pr-1">
+            <IdentityName
+              align="right"
               cardTheme={cardTheme}
+              color="#ffffff"
               compact={compact}
-              field={logo}
-              placement="on-surface"
-              slots={slots}
-              templateId={section.templateId}
+              name={name}
+              shadow
+              size={fullCardView && fullCardIdentityHeight >= 220 ? 'headline' : 'default'}
             />
           </View>
-          <View className="mt-3">
-            <IdentityName cardTheme={cardTheme} color={slots.textPrimary} compact={compact} name={name} />
-          </View>
         </View>
       </View>
     );
   }
 
-  // 6. Avatar & Halo Focus (spotlight): Full cover photo backdrop with glowing halo ring
-  if (section.templateId === 'spotlight') {
-    return (
-      <View
-        className={`items-center justify-center overflow-hidden p-5 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
-        style={[{ minHeight: compact ? 180 : 260, borderColor: slots.accent }, boxed ? BOXED_SHADOW_MD : null]}
-      >
-        {/* Full Cover Photo Background */}
-        <IdentityImage field={cover} {...imageColors} style={{ position: 'absolute', inset: 0 }} />
-        {/* Atmospheric Dark Gradient Overlay */}
-        <LinearGradient
-          colors={['rgba(2, 6, 23, 0.45)', 'rgba(2, 6, 23, 0.88)']}
-          style={StyleSheet.absoluteFill}
-        />
-
-        <View className="mb-2">
-          <UniversalLogoBadge
-            cardTheme={cardTheme}
-            compact
-            field={logo}
-            placement="on-cover"
-            slots={slots}
-            templateId={section.templateId}
-          />
-        </View>
-
-        {/* Halo Spotlight Center Avatar */}
-        <View
-          className="my-2 items-center justify-center rounded-full p-2"
-          style={{ backgroundColor: `${slots.accent}33`, borderWidth: 2.5, borderColor: slots.accent }}
-        >
-          <IdentityImage
-            field={profile}
-            {...imageColors}
-            style={{
-              width: profileSize,
-              height: profileSize,
-              borderRadius: profileSize / 2,
-              borderWidth: 2,
-              borderColor: '#ffffff',
-            }}
-          />
-        </View>
-
-        <View className="mt-2 w-full items-center">
-          <IdentityName align="center" cardTheme={cardTheme} color="#ffffff" compact={compact} name={name} shadow />
-        </View>
-      </View>
-    );
-  }
-
-  // 7. Ribbon Header (banner): dedicated top ribbon containing logo, cover band and avatar
-  if (section.templateId === 'banner') {
+  // 3. Magazine Monograph (editorial): full cover, bare logo, then portrait/name row.
+  if (layoutId === 'editorial') {
+    const editorialProfileSize = fullCardView
+      ? Math.max(80, Math.min(108, Math.round(fullCardIdentityHeight * 0.4)))
+      : compact
+        ? 72
+        : 96;
+    const editorialLogoWidth = fullCardView
+      ? Math.max(220, Math.min(300, Math.round(windowWidth * 0.7)))
+      : compact
+        ? 180
+        : 240;
+    const editorialLogoHeight = Math.round(editorialLogoWidth * (56 / 152));
     return (
       <View className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`} style={[shellStyle, boxed ? BOXED_SHADOW_SM : null]}>
-        <View className="flex-row items-center justify-between px-4 py-3" style={{ backgroundColor: slots.accent }}>
-          <Text className="text-xs font-black uppercase tracking-wider" style={{ color: slots.accentText }}>Identity Pass</Text>
-          <UniversalLogoBadge
-            cardTheme={cardTheme}
-            compact
-            field={logo}
-            placement="banner"
-            slots={slots}
-            templateId={section.templateId}
-          />
-        </View>
-        <View style={{ height: compact ? 64 : 88 }}>
-          <IdentityImage field={cover} {...imageColors} style={{ width: '100%', height: '100%' }} />
-        </View>
-        <View className="flex-1 flex-row items-center px-4 py-4" style={{ backgroundColor: slots.surface }}>
-          <IdentityImage
-            field={profile}
-            {...imageColors}
-            style={{
-              width: profileSize,
-              height: profileSize,
-              borderRadius: 16,
-              borderWidth: 2,
-              borderColor: slots.highlight,
-            }}
-          />
-          <View className="ml-3.5 min-w-0 flex-1">
-            <IdentityName cardTheme={cardTheme} color={slots.surfaceTextPrimary} compact={compact} name={name} />
-          </View>
-        </View>
-      </View>
-    );
-  }
-
-  // 8. Modular Bento (cards): floating identity cardlet over cover photo background
-  if (section.templateId === 'cards') {
-    return (
-      <View className={`overflow-hidden p-3 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`} style={[shellStyle, boxed ? BOXED_SHADOW_SM : null]}>
-        <IdentityImage field={cover} {...imageColors} style={{ position: 'absolute', inset: 0 }} />
+        <IdentityImage field={cover} {...imageColors} style={StyleSheet.absoluteFill} />
         <LinearGradient
-          colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.75)']}
+          colors={['rgba(2,6,23,0.18)', 'rgba(2,6,23,0.78)']}
           style={StyleSheet.absoluteFill}
         />
-        <View
-          className="flex-1 rounded-2xl border p-4"
-          style={[{ backgroundColor: 'rgba(15, 23, 42, 0.88)', borderColor: slots.accent }, BOXED_SHADOW_XL]}
-        >
-          <View className="flex-row items-center justify-between">
+        <View className="h-full w-full px-4 pb-3 pt-2">
+          <View className="w-full items-center justify-center" style={{ height: '44%' }}>
+            <UniversalLogoBadge
+              bare
+              cardTheme={cardTheme}
+              field={logo}
+              logoSize={{ width: editorialLogoWidth, height: editorialLogoHeight }}
+              placement="on-cover"
+              slots={slots}
+              templateId={layoutId}
+            />
+          </View>
+          <View className="w-full flex-1 flex-row items-center">
             <IdentityImage
               field={profile}
               {...imageColors}
               style={{
-                width: profileSize,
-                height: profileSize,
-                borderRadius: 20,
+                width: editorialProfileSize,
+                height: editorialProfileSize,
+                borderRadius: 16,
                 borderWidth: 2,
-                borderColor: slots.accent,
+                borderColor: 'rgba(255,255,255,0.78)',
               }}
             />
-            <UniversalLogoBadge
-              cardTheme={cardTheme}
-              compact={compact}
-              field={logo}
-              placement="floating"
-              slots={slots}
-              templateId={section.templateId}
-            />
-          </View>
-          <View className="mt-4">
-            <IdentityName cardTheme={cardTheme} color="#ffffff" compact={compact} name={name} shadow />
+            <View className="ml-4 min-w-0 flex-1">
+              <IdentityName
+                cardTheme={cardTheme}
+                color="#ffffff"
+                compact={compact}
+                name={name}
+                shadow
+                size={fullCardView && fullCardIdentityHeight >= 220 ? 'headline' : 'default'}
+              />
+            </View>
           </View>
         </View>
       </View>
     );
   }
 
-  // 9. Conference ID Pass (badge): vertical lanyard badge simulation with cover photo ribbon
-  if (section.templateId === 'badge') {
+  // 4. Brand Spotlight (spotlight): full cover photo with a large bare logo and name.
+  if (layoutId === 'spotlight') {
+    const spotlightLogoWidth = fullCardView
+      ? Math.max(220, Math.min(360, Math.round(windowWidth * 0.72)))
+      : compact
+        ? 220
+        : 260;
+    const spotlightLogoHeight = Math.round(spotlightLogoWidth * (56 / 152));
+    const spotlightLogoNameGap = fullCardView
+      ? Math.max(16, Math.min(28, Math.round(fullCardIdentityHeight * 0.08)))
+      : 16;
     return (
       <View
-        className={`overflow-hidden p-4 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
-        style={[{ backgroundColor: slots.surface, borderColor: slots.accent, minHeight: compact ? 200 : 270 }, boxed ? BOXED_SHADOW_MD : null]}
+        className={`items-center justify-center overflow-hidden px-5 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
+        style={[shellStyle, { borderColor: slots.accent }, boxed ? BOXED_SHADOW_MD : null]}
       >
-        <View className="mb-3 items-center">
-          <View className="h-1.5 w-14 rounded-full" style={{ backgroundColor: slots.highlight }} />
-        </View>
-        <View className="flex-row items-center justify-between">
-          <UniversalLogoBadge
-            cardTheme={cardTheme}
-            compact={compact}
-            field={logo}
-            placement="badge"
-            slots={slots}
-            templateId={section.templateId}
-          />
-          <View className="rounded-full px-2.5 py-0.5" style={{ backgroundColor: `${slots.accent}20` }}>
-            <Text className="text-[10px] font-bold" style={{ color: slots.isDark ? slots.highlight : slots.accent }}>OFFICIAL PASS</Text>
+        <IdentityImage field={cover} {...imageColors} style={StyleSheet.absoluteFill} />
+        <LinearGradient
+          colors={['rgba(2,6,23,0.25)', 'rgba(2,6,23,0.72)']}
+          style={StyleSheet.absoluteFill}
+        />
+        <View className="h-full w-full">
+          <View
+            className="w-full items-center justify-end px-4"
+            style={{ height: '70%', paddingBottom: spotlightLogoNameGap / 2 }}
+          >
+            <UniversalLogoBadge
+              bare
+              cardTheme={cardTheme}
+              field={logo}
+              logoSize={{ width: spotlightLogoWidth, height: spotlightLogoHeight }}
+              placement="on-cover"
+              slots={slots}
+              templateId={layoutId}
+            />
           </View>
-        </View>
-        <View className="my-3 items-center">
-          <IdentityImage
-            field={profile}
-            {...imageColors}
-            style={{
-              width: profileSize + 8,
-              height: profileSize + 8,
-              borderRadius: 18,
-              borderWidth: 3,
-              borderColor: slots.accent,
-            }}
-          />
-        </View>
-        <View className="items-center">
-          <IdentityName align="center" cardTheme={cardTheme} color={slots.surfaceTextPrimary} compact={compact} name={name} />
+          <View
+            className="w-full items-center justify-start px-4"
+            style={{ height: '30%', paddingTop: spotlightLogoNameGap / 2 }}
+          >
+            <IdentityName
+              align="center"
+              cardTheme={cardTheme}
+              color="#ffffff"
+              compact={compact}
+              name={name}
+              shadow
+              size={fullCardView ? 'headline' : 'default'}
+            />
+          </View>
         </View>
       </View>
     );
   }
 
-  // 10. 50/50 Dual Column (split): left pane for cover photo with avatar & logo, right for preferred name
-  if (section.templateId === 'split') {
+  // 5. Dual Column (split): 30% full-height cover with identity content in the 70% right pane.
+  if (layoutId === 'split') {
+    const splitProfileSize = fullCardView
+      ? fullCardIdentityHeight < 220
+        ? Math.max(60, Math.min(76, Math.round(fullCardIdentityHeight * 0.35)))
+        : Math.max(76, Math.min(96, Math.round(fullCardIdentityHeight * 0.34)))
+      : compact
+        ? 64
+        : 96;
+    const splitContentTopPadding = fullCardView
+      ? fullCardIdentityHeight < 220
+        ? 36
+        : 48
+      : 12;
     return (
       <View className={`flex-row overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`} style={[shellStyle, boxed ? BOXED_SHADOW_SM : null]}>
-        <View className="w-1/2 items-center justify-center p-4 overflow-hidden" style={{ backgroundColor: slots.background, borderRightWidth: 1, borderRightColor: slots.highlight }}>
-          <IdentityImage field={cover} {...imageColors} style={{ position: 'absolute', inset: 0 }} />
-          <View className="absolute inset-0 bg-black/35" />
-          <IdentityImage
-            field={profile}
-            {...imageColors}
-            style={{
-              width: profileSize,
-              height: profileSize,
-              borderRadius: profileSize / 2,
-              borderWidth: 3,
-              borderColor: slots.accent,
-            }}
-          />
-          <View className="mt-3">
+        <View
+          className="h-full w-[30%] overflow-hidden"
+          style={{ backgroundColor: slots.background, borderRightWidth: 1, borderRightColor: slots.highlight }}
+        >
+          <IdentityImage field={cover} {...imageColors} style={StyleSheet.absoluteFill} />
+        </View>
+        <View
+          className="relative flex-1 justify-start px-4 pb-3"
+          style={{ backgroundColor: slots.surface, paddingTop: splitContentTopPadding }}
+        >
+          <View className="absolute right-3 top-3 z-10">
             <UniversalLogoBadge
               cardTheme={cardTheme}
               compact
               field={logo}
-              placement="on-cover"
+              placement="on-surface"
               slots={slots}
-              templateId={section.templateId}
+              templateId={layoutId}
             />
           </View>
-        </View>
-        <View className="w-1/2 justify-center p-4" style={{ backgroundColor: slots.surface }}>
-          <IdentityName cardTheme={cardTheme} color={slots.surfaceTextPrimary} compact={compact} name={name} />
-        </View>
-      </View>
-    );
-  }
-
-  // 11. Framed Outline (neon): cyber wireframe with cover backdrop
-  if (section.templateId === 'neon') {
-    return (
-      <View
-        className={`overflow-hidden p-4 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
-        style={[{ backgroundColor: '#090d16', borderColor: slots.accent, borderWidth: 2, minHeight: compact ? 180 : 250 }, boxed ? BOXED_SHADOW_SM : null]}
-      >
-        <IdentityImage field={cover} {...imageColors} style={StyleSheet.absoluteFill} />
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(9, 13, 22, 0.78)' }]} />
-        <View className="flex-row items-center justify-between border-b pb-3" style={{ borderBottomColor: slots.accent }}>
-          <UniversalLogoBadge
-            cardTheme={cardTheme}
-            compact={compact}
-            field={logo}
-            placement="neon"
-            slots={slots}
-            templateId={section.templateId}
-          />
-          <View className="h-2.5 w-2.5 rounded-full" style={[{ backgroundColor: slots.accent }, BOXED_SHADOW_SM]} />
-        </View>
-        <View className="my-4 flex-row items-center">
-          <IdentityImage
-            field={profile}
-            {...imageColors}
-            style={{
-              width: profileSize,
-              height: profileSize,
-              borderRadius: 10,
-              borderWidth: 2,
-              borderColor: slots.accent,
-            }}
-          />
-          <View className="ml-4 min-w-0 flex-1">
-            <IdentityName cardTheme={cardTheme} color="#ffffff" compact={compact} name={name} shadow />
+          <View className="w-full items-start">
+            <IdentityImage
+              field={profile}
+              {...imageColors}
+              style={{
+                width: splitProfileSize,
+                height: splitProfileSize,
+                borderRadius: splitProfileSize / 2,
+                borderWidth: fullCardView ? 3.5 : 2.5,
+                borderColor: slots.accent,
+              }}
+            />
+            <View className="mt-3 w-full min-w-0">
+              <IdentityName
+                cardTheme={cardTheme}
+                color={slots.surfaceTextPrimary}
+                compact={compact}
+                name={name}
+                size={fullCardView && fullCardIdentityHeight >= 220 ? 'display' : 'default'}
+              />
+            </View>
           </View>
         </View>
       </View>
     );
   }
 
-  // 12. Editorial cover (classic): cover first, then clean identity row with overlapping avatar
+  const classicTopHeight = fullCardView ? '48%' : '60%';
+  const classicNameGap = 8;
+  const classicNamePaddingTop = classicProfileSize / 2 + classicNameGap;
+
+  // 1. Classic (layout-1): 60% cover / 40% name; identity section height is 30% of viewport on the card shell.
   return (
     <View className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`} style={[shellStyle, boxed ? BOXED_SHADOW_SM : null]}>
       <View
-        className="relative"
+        className="relative h-full w-full"
         style={{
-          height: coverBandRatio ?? (compact ? '48%' : 150),
+          flex: homePreview ? 1 : undefined,
+          height: compact && !homePreview ? ('100%' as const) : undefined,
+          minHeight: compact ? undefined : 260,
         }}
       >
-        <IdentityImage field={cover} {...imageColors} style={{ width: '100%', height: '100%' }} />
-        <View className={`absolute ${walletPass ? 'left-2 top-2' : 'left-3 top-3'}`}>
-          <UniversalLogoBadge
-            cardTheme={cardTheme}
-            compact={compact || walletPass}
-            field={logo}
-            placement="on-cover"
-            slots={slots}
-            templateId={section.templateId}
-          />
+        <View className="w-full overflow-hidden" style={{ height: classicTopHeight }}>
+          <IdentityImage field={cover} {...imageColors} style={StyleSheet.absoluteFill} />
+          <View className={`absolute ${walletPass ? 'right-2 top-2' : 'right-3 top-3'}`}>
+            <UniversalLogoBadge
+              cardTheme={cardTheme}
+              compact={compact || walletPass}
+              field={logo}
+              placement="on-cover"
+              slots={slots}
+              templateId={layoutId}
+            />
+          </View>
         </View>
-      </View>
-      <View
-        className={`flex-1 flex-row items-center ${walletPass ? 'px-2.5 py-0.5' : 'px-3.5'}`}
-        style={{ backgroundColor: slots.surface }}
-      >
-        <IdentityImage
-          field={profile}
-          {...imageColors}
+        <View
+          className={`w-full flex-1 items-center ${fullCardView ? 'justify-start px-4' : `justify-center ${walletPass ? 'px-2.5 py-1' : compact ? 'px-3 pb-2' : 'px-4 py-3'}`}`}
           style={{
-            width: profileSize,
-            height: profileSize,
-            marginTop: walletPass ? -14 : compact ? -18 : -36,
-            borderRadius: profileSize / 2,
-            borderWidth: walletPass ? 2 : compact ? 2.5 : 3.5,
-            borderColor: slots.accent,
+            backgroundColor: slots.surface,
+            paddingTop: fullCardView ? classicProfileSize / 2 + 6 : classicNamePaddingTop,
           }}
-        />
-        <View className="ml-2.5 min-w-0 flex-1">
+        >
           <IdentityName
+            align="center"
             cardTheme={cardTheme}
             color={slots.surfaceTextPrimary}
             compact={compact || walletPass}
             name={name}
+            size={fullCardView && !walletPass ? 'display' : 'default'}
+          />
+        </View>
+        <View
+          className="absolute left-0 right-0 z-10 items-center"
+          style={{ top: classicTopHeight, transform: [{ translateY: -classicProfileSize / 2 }] }}
+        >
+          <IdentityImage
+            field={profile}
+            {...imageColors}
+            style={{
+              width: classicProfileSize,
+              height: classicProfileSize,
+              borderRadius: classicProfileSize / 2,
+              borderWidth: walletPass ? 2.5 : compact ? 3 : 4,
+              borderColor: slots.accent,
+            }}
           />
         </View>
       </View>

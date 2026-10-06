@@ -8,9 +8,11 @@ export {
 export {
   resolveWalletPassLayouts,
   resolveWalletPassTemplateId,
-  WALLET_PASS_TEMPLATE_IDS,
+  WALLET_IDENTITY_TEMPLATE_IDS,
+  WALLET_IDENTITY_TEMPLATE_IDS as WALLET_PASS_TEMPLATE_IDS,
+  type WalletIdentityTemplateId,
+  type WalletIdentityTemplateId as WalletPassTemplateId,
   type WalletPassLayouts,
-  type WalletPassTemplateId,
 } from './resolveWalletPassTemplateId';
 export { WALLET_PASS_DESIGN_LABELS } from './walletPassLabels';
 export {

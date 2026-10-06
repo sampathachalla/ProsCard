@@ -2,7 +2,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '@/constants/Colors';
 import { buildCustomSectionTheme } from '@/utils/cardThemeColor';
-import { CARD_THEME_PRESETS, createDefaultCardSectionThemes, DEFAULT_CARD_SECTION_LAYOUTS, DEFAULT_CARD_THEME, type BusinessCard, type CardVisualTheme } from '../types/card.types';
+import { CARD_THEME_PRESETS, createDefaultCardSectionThemes, DEFAULT_CARD_SECTION_LAYOUTS, DEFAULT_CARD_THEME, resolveIdentityLayoutId, type BusinessCard, type CardVisualTheme } from '../types/card.types';
 import { apiRequest } from '@/services/api/client';
 import { AUTH_TEST_MODE } from '@/components/authComponents/Config/authMode';
 import { commitPendingMedia, isPendingMediaUrl, mediaIdFromContentUrl } from '@/components/profileComponents/Services/pendingMedia';
@@ -56,7 +56,12 @@ export function normalizeCard(card: BusinessCard | (Omit<BusinessCard, 'sectionL
   return {
     ...card,
     isPrimary: card.isPrimary ?? false,
-    sectionLayouts: { ...DEFAULT_CARD_SECTION_LAYOUTS, ...(card.sectionLayouts ?? {}) },
+    sectionLayouts: {
+      ...DEFAULT_CARD_SECTION_LAYOUTS,
+      ...(card.sectionLayouts ?? {}),
+      // Older cards saved the identity style name ('minimal'); convert it to its layout id.
+      identity: resolveIdentityLayoutId(card.sectionLayouts?.identity),
+    },
     sectionOverrides: { ...(card.sectionOverrides ?? {}) },
     connectionFields: Array.isArray(card.connectionFields) ? card.connectionFields : [],
     connectionFieldsCustomized: card.connectionFieldsCustomized ?? false,

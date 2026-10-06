@@ -2,7 +2,15 @@
 import { useState } from 'react';
 import { Alert } from 'react-native';
 import type { CardFieldKey, EditableCard } from '../types/editView.types';
-import type { CardSectionFieldId, CardSectionId, CardTemplateId, CardVisualTheme, DynamicCardField, SavedSectionTheme } from '@/components/cardsComponents/types/card.types';
+import {
+  resolveIdentityLayoutId,
+  type CardLayoutId,
+  type CardSectionFieldId,
+  type CardSectionId,
+  type CardVisualTheme,
+  type DynamicCardField,
+  type SavedSectionTheme,
+} from '@/components/cardsComponents/types/card.types';
 import { themeFromSavedSectionTheme } from '@/utils/cardThemeColor';
 import { getEditableCard, saveCard } from '../Services/editViewService';
 import { validateCard } from '../Utils/validateCard';
@@ -92,8 +100,10 @@ export function useEditView(cardId?: string, startInEditMode = false, initialCar
     setDraft((prev) => ({ ...prev, [field]: value }));
   };
 
-  const updateSectionLayout = (section: CardSectionId, template: CardTemplateId) => {
-    setDraft((prev) => ({ ...prev, sectionLayouts: { ...prev.sectionLayouts, [section]: template } }));
+  const updateSectionLayout = (section: CardSectionId, template: CardLayoutId) => {
+    // Section 1 stores its layout id (layout-1 … layout-6), never the style name.
+    const resolved = section === 'identity' ? resolveIdentityLayoutId(template) : template;
+    setDraft((prev) => ({ ...prev, sectionLayouts: { ...prev.sectionLayouts, [section]: resolved } }));
   };
 
   const updateSectionField = (field: CardSectionFieldId, value: string) => {

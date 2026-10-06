@@ -2,7 +2,12 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { CardDetailSection } from '../Templates/cardDetailTemplate';
-import type { CardTemplateId, CardVisualTheme } from '../types/card.types';
+import {
+  resolveIdentityTemplateId,
+  type CardTemplateId,
+  type CardVisualTheme,
+  type IdentitySectionTemplateId,
+} from '../types/card.types';
 import { IdentityImage, UniversalLogoBadge } from '../Templates/sections/SectionSharedComponents';
 import { resolveLayoutColorSlots } from '@/utils/cardThemeColor';
 import { walletIdentityFields } from './walletPassFields';
@@ -15,6 +20,8 @@ export type WalletPassSectionProps = {
 };
 
 const AVATAR = 36;
+const CLASSIC_AVATAR = 52;
+const CLASSIC_TOP_HEIGHT = '60%' as const;
 const imageColors = { iconColor: '#94a3b8', placeholderColor: '#e2e8f0' };
 
 function WalletIdentityRoot({ children, backgroundColor }: { backgroundColor: string; children: React.ReactNode }) {
@@ -60,137 +67,90 @@ function CoverBand({
   );
 }
 
-/** Wallet section 1 — cover + dark identity row (reference wallet header). */
-function WalletCoverIdentityBar({
-  barColor,
-  cardTheme,
-  name,
-  nameColor = '#ffffff',
-  profile,
-  slots,
-}: {
-  barColor: string;
-  cardTheme: CardVisualTheme;
-  name: string;
-  nameColor?: string;
-  profile: ReturnType<typeof walletIdentityFields>['profile'];
-  slots: ReturnType<typeof resolveLayoutColorSlots>;
-}) {
-  return (
-    <View
-      className="flex-1 flex-row items-center px-2.5"
-      style={{ backgroundColor: barColor }}
-    >
-      <IdentityImage
-        field={profile}
-        {...imageColors}
-        style={{
-          width: AVATAR,
-          height: AVATAR,
-          marginTop: -12,
-          borderRadius: AVATAR / 2,
-          borderWidth: 2,
-          borderColor: slots.accent,
-        }}
-      />
-      <View className="ml-2.5 min-w-0 flex-1">
-        <WalletPassText cardTheme={cardTheme} color={nameColor} lines={2} size="sm">
-          {name}
-        </WalletPassText>
-      </View>
-    </View>
-  );
-}
-
-function AvatarNameRow({
-  name,
-  cardTheme,
-  profile,
-  slots,
-  textColor,
-  overlap = -12,
-  align = 'left',
-}: {
-  align?: 'left' | 'center';
-  cardTheme: CardVisualTheme;
-  name: string;
-  overlap?: number;
-  profile: ReturnType<typeof walletIdentityFields>['profile'];
-  slots: ReturnType<typeof resolveLayoutColorSlots>;
-  textColor: string;
-}) {
-  return (
-    <View
-      className={`flex-1 flex-row items-center px-2.5 ${align === 'center' ? 'justify-center' : ''}`}
-      style={{ backgroundColor: slots.surface }}
-    >
-      <IdentityImage
-        field={profile}
-        {...imageColors}
-        style={{
-          width: AVATAR,
-          height: AVATAR,
-          marginTop: overlap,
-          borderRadius: AVATAR / 2,
-          borderWidth: 2,
-          borderColor: slots.accent,
-        }}
-      />
-      <View className={`min-w-0 flex-1 ${align === 'center' ? 'items-center' : 'ml-2'}`}>
-        <WalletPassText align={align} cardTheme={cardTheme} color={textColor} lines={2} size="sm">
-          {name}
-        </WalletPassText>
-      </View>
-    </View>
-  );
-}
-
-function ClassicIdentity({ section, cardTheme, templateId }: WalletPassSectionProps & { templateId: CardTemplateId }) {
-  const slots = resolveLayoutColorSlots({ templateId, theme: cardTheme });
-  const { cover, logo, name, profile } = walletIdentityFields(section);
-  const identityBarColor = slots.isDark ? slots.background : '#0a1221';
-  return (
-    <WalletIdentityRoot backgroundColor={identityBarColor}>
-      <CoverBand
-        cover={cover}
-        dimOverlay
-        height="48%"
-        logo={logo}
-        cardTheme={cardTheme}
-        slots={slots}
-        templateId={templateId}
-      />
-      <WalletCoverIdentityBar
-        barColor={identityBarColor}
-        cardTheme={cardTheme}
-        name={name}
-        profile={profile}
-        slots={slots}
-      />
-    </WalletIdentityRoot>
-  );
-}
-
-function MinimalIdentity({ section, cardTheme, templateId }: WalletPassSectionProps & { templateId: CardTemplateId }) {
+function ClassicIdentity({ section, cardTheme, templateId }: WalletPassSectionProps & { templateId: IdentitySectionTemplateId }) {
   const slots = resolveLayoutColorSlots({ templateId, theme: cardTheme });
   const { cover, logo, name, profile } = walletIdentityFields(section);
   return (
     <WalletIdentityRoot backgroundColor={slots.surface}>
-      <View className="h-full flex-row overflow-hidden">
-        <View className="w-[34%] items-center justify-center overflow-hidden" style={{ backgroundColor: slots.background }}>
-          <IdentityImage field={cover} {...imageColors} style={StyleSheet.absoluteFill} />
-          <View className="absolute inset-0 bg-black/25" />
+      <View className="relative h-full w-full">
+        <View className="w-full overflow-hidden" style={{ height: CLASSIC_TOP_HEIGHT }}>
+          <IdentityImage field={cover} {...imageColors} style={{ position: 'absolute', inset: 0 }} />
+          <View className="absolute right-2 top-2">
+            <UniversalLogoBadge
+              cardTheme={cardTheme}
+              compact
+              field={logo}
+              placement="on-cover"
+              slots={slots}
+              templateId={templateId}
+            />
+          </View>
+        </View>
+        <View className="flex-1 items-center justify-center px-2.5" style={{ backgroundColor: slots.surface }}>
+          <WalletPassText align="center" cardTheme={cardTheme} color={slots.textPrimary} lines={2} size="sm">
+            {name}
+          </WalletPassText>
+        </View>
+        <View className="absolute left-0 right-0 items-center" style={{ top: CLASSIC_TOP_HEIGHT, marginTop: -CLASSIC_AVATAR / 2 }}>
           <IdentityImage
             field={profile}
             {...imageColors}
-            style={{ width: AVATAR, height: AVATAR, borderRadius: AVATAR / 2, borderWidth: 2, borderColor: slots.accent }}
+            style={{
+              width: CLASSIC_AVATAR,
+              height: CLASSIC_AVATAR,
+              borderRadius: CLASSIC_AVATAR / 2,
+              borderWidth: 2.5,
+              borderColor: slots.accent,
+            }}
           />
         </View>
-        <View className="flex-1 justify-center px-2.5" style={{ backgroundColor: slots.surface }}>
+      </View>
+    </WalletIdentityRoot>
+  );
+}
+
+function MinimalIdentity({ section, cardTheme, templateId }: WalletPassSectionProps & { templateId: IdentitySectionTemplateId }) {
+  const slots = resolveLayoutColorSlots({ templateId, theme: cardTheme });
+  const { cover, logo, name, profile } = walletIdentityFields(section);
+  const avatarSize = 44;
+  const displayName = name ? name.replace(/\b\w/g, (c) => c.toUpperCase()) : name;
+  return (
+    <WalletIdentityRoot backgroundColor={slots.surface}>
+      <View className="h-full flex-row overflow-hidden">
+        {/* Left: Cover & Elevated Profile Avatar */}
+        <View
+          className="w-1/2 items-center justify-center overflow-hidden"
+          style={{
+            backgroundColor: slots.background,
+            borderRightWidth: StyleSheet.hairlineWidth,
+            borderRightColor: slots.highlight || 'rgba(255,255,255,0.2)',
+          }}
+        >
+          <IdentityImage field={cover} {...imageColors} style={StyleSheet.absoluteFill} />
+          <View className="absolute inset-0 bg-black/25" />
+          <View
+            style={{
+              padding: 2,
+              borderRadius: (avatarSize + 4) / 2,
+              backgroundColor: 'rgba(255,255,255,0.22)',
+              borderWidth: 1,
+              borderColor: 'rgba(255,255,255,0.45)',
+            }}
+          >
+            <IdentityImage
+              field={profile}
+              {...imageColors}
+              style={{ width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2, borderWidth: 1.5, borderColor: '#ffffff' }}
+            />
+          </View>
+        </View>
+
+        {/* Right: Logo & Formatted Name */}
+        <View className="w-1/2 justify-center px-2.5" style={{ backgroundColor: slots.surface }}>
           <UniversalLogoBadge cardTheme={cardTheme} compact field={logo} placement="on-surface" slots={slots} templateId={templateId} />
           <View className="mt-1">
-            <WalletPassText cardTheme={cardTheme} color={slots.textPrimary} lines={2} size="sm">
-              {name}
+            <WalletPassText cardTheme={cardTheme} color={slots.textPrimary} lines={2} size="md">
+              {displayName}
             </WalletPassText>
           </View>
         </View>
@@ -199,7 +159,7 @@ function MinimalIdentity({ section, cardTheme, templateId }: WalletPassSectionPr
   );
 }
 
-function BoldIdentity({ section, cardTheme, templateId }: WalletPassSectionProps & { templateId: CardTemplateId }) {
+function BoldIdentity({ section, cardTheme, templateId }: WalletPassSectionProps & { templateId: IdentitySectionTemplateId }) {
   const slots = resolveLayoutColorSlots({ templateId, theme: cardTheme });
   const { cover, logo, name, profile } = walletIdentityFields(section);
   return (
@@ -225,60 +185,7 @@ function BoldIdentity({ section, cardTheme, templateId }: WalletPassSectionProps
   );
 }
 
-function GlassIdentity({ section, cardTheme, templateId }: WalletPassSectionProps & { templateId: CardTemplateId }) {
-  const slots = resolveLayoutColorSlots({ templateId, theme: cardTheme });
-  const { cover, logo, name, profile } = walletIdentityFields(section);
-  return (
-    <WalletIdentityRoot backgroundColor={slots.background}>
-      <IdentityImage field={cover} {...imageColors} style={StyleSheet.absoluteFill} />
-      <LinearGradient colors={['rgba(0,0,0,0.15)', 'rgba(0,0,0,0.7)']} style={StyleSheet.absoluteFill} />
-      <View className="flex-1 items-center justify-end px-2 pb-2">
-        <View
-          className="w-full flex-row items-center rounded-xl border px-2 py-1.5"
-          style={{ backgroundColor: 'rgba(15,23,42,0.82)', borderColor: slots.highlight }}
-        >
-          <IdentityImage
-            field={profile}
-            {...imageColors}
-            style={{ width: 30, height: 30, borderRadius: 15, borderWidth: 1.5, borderColor: slots.accent }}
-          />
-          <View className="ml-2 min-w-0 flex-1">
-            <WalletPassText cardTheme={cardTheme} color="#fff" lines={1} size="xs">
-              {name}
-            </WalletPassText>
-          </View>
-          <UniversalLogoBadge cardTheme={cardTheme} compact field={logo} placement="glass" slots={slots} templateId={templateId} />
-        </View>
-      </View>
-    </WalletIdentityRoot>
-  );
-}
-
-function CompactIdentity({ section, cardTheme, templateId }: WalletPassSectionProps & { templateId: CardTemplateId }) {
-  const slots = resolveLayoutColorSlots({ templateId, theme: cardTheme });
-  const { logo, name, profile } = walletIdentityFields(section);
-  return (
-    <WalletIdentityRoot backgroundColor={slots.surface}>
-      <View className="h-full flex-row items-center justify-between px-2.5" style={{ borderBottomWidth: 1, borderBottomColor: slots.highlight }}>
-        <View className="min-w-0 flex-1 flex-row items-center">
-          <IdentityImage
-            field={profile}
-            {...imageColors}
-            style={{ width: 28, height: 28, borderRadius: 8, borderWidth: 1.5, borderColor: slots.accent }}
-          />
-          <View className="ml-2 min-w-0 flex-1">
-            <WalletPassText cardTheme={cardTheme} color={slots.textPrimary} lines={1} size="xs">
-              {name}
-            </WalletPassText>
-          </View>
-        </View>
-        <UniversalLogoBadge cardTheme={cardTheme} compact field={logo} placement="on-surface" slots={slots} templateId={templateId} />
-      </View>
-    </WalletIdentityRoot>
-  );
-}
-
-function EditorialIdentity({ section, cardTheme, templateId }: WalletPassSectionProps & { templateId: CardTemplateId }) {
+function EditorialIdentity({ section, cardTheme, templateId }: WalletPassSectionProps & { templateId: IdentitySectionTemplateId }) {
   const slots = resolveLayoutColorSlots({ templateId, theme: cardTheme });
   const { cover, logo, name, profile } = walletIdentityFields(section);
   return (
@@ -300,7 +207,7 @@ function EditorialIdentity({ section, cardTheme, templateId }: WalletPassSection
   );
 }
 
-function SpotlightIdentity({ section, cardTheme, templateId }: WalletPassSectionProps & { templateId: CardTemplateId }) {
+function SpotlightIdentity({ section, cardTheme, templateId }: WalletPassSectionProps & { templateId: IdentitySectionTemplateId }) {
   const slots = resolveLayoutColorSlots({ templateId, theme: cardTheme });
   const { cover, logo, name, profile } = walletIdentityFields(section);
   return (
@@ -327,79 +234,7 @@ function SpotlightIdentity({ section, cardTheme, templateId }: WalletPassSection
   );
 }
 
-function BannerIdentity({ section, cardTheme, templateId }: WalletPassSectionProps & { templateId: CardTemplateId }) {
-  const slots = resolveLayoutColorSlots({ templateId, theme: cardTheme });
-  const { cover, logo, name, profile } = walletIdentityFields(section);
-  return (
-    <WalletIdentityRoot backgroundColor={slots.surface}>
-      <View className="px-2 py-1" style={{ backgroundColor: slots.accent }}>
-        <WalletPassText align="center" cardTheme={cardTheme} color="#fff" lines={1} size="xs" weight="bold">
-          {name}
-        </WalletPassText>
-      </View>
-      <CoverBand cover={cover} height="42%" logo={logo} cardTheme={cardTheme} slots={slots} templateId={templateId} />
-      <View className="flex-1 flex-row items-center px-2">
-        <IdentityImage
-          field={profile}
-          {...imageColors}
-          style={{ width: 28, height: 28, borderRadius: 14, borderWidth: 1.5, borderColor: slots.accent }}
-        />
-        <View className="ml-2">
-          <UniversalLogoBadge cardTheme={cardTheme} compact field={logo} placement="on-surface" slots={slots} templateId={templateId} />
-        </View>
-      </View>
-    </WalletIdentityRoot>
-  );
-}
-
-function CardsIdentity({ section, cardTheme, templateId }: WalletPassSectionProps & { templateId: CardTemplateId }) {
-  const slots = resolveLayoutColorSlots({ templateId, theme: cardTheme });
-  const { cover, logo, name, profile } = walletIdentityFields(section);
-  return (
-    <WalletIdentityRoot backgroundColor={slots.background}>
-      <View className="flex-1 p-2">
-        <View className="flex-1 overflow-hidden rounded-xl border" style={{ backgroundColor: slots.surface, borderColor: slots.highlight }}>
-          <CoverBand cover={cover} height="45%" logo={logo} cardTheme={cardTheme} slots={slots} templateId={templateId} />
-          <AvatarNameRow
-            cardTheme={cardTheme}
-            name={name}
-            overlap={0}
-            profile={profile}
-            slots={slots}
-            textColor={slots.textPrimary}
-          />
-        </View>
-      </View>
-    </WalletIdentityRoot>
-  );
-}
-
-function BadgeIdentity({ section, cardTheme, templateId }: WalletPassSectionProps & { templateId: CardTemplateId }) {
-  const slots = resolveLayoutColorSlots({ templateId, theme: cardTheme });
-  const { logo, name, profile } = walletIdentityFields(section);
-  return (
-    <WalletIdentityRoot backgroundColor={slots.surface}>
-      <View className="h-full flex-row items-center border px-2" style={{ borderColor: slots.accent }}>
-        <IdentityImage
-          field={profile}
-          {...imageColors}
-          style={{ width: 38, height: 46, borderRadius: 4, borderWidth: 1, borderColor: slots.highlight }}
-        />
-        <View className="ml-2 min-w-0 flex-1">
-          <WalletPassText cardTheme={cardTheme} color={slots.textSecondary} lines={1} size="xs" weight="bold">
-            IDENTITY
-          </WalletPassText>
-          <WalletPassText cardTheme={cardTheme} color={slots.textPrimary} lines={2} size="sm">
-            {name}
-          </WalletPassText>
-        </View>
-        <UniversalLogoBadge cardTheme={cardTheme} compact field={logo} placement="on-surface" slots={slots} templateId={templateId} />
-      </View>
-    </WalletIdentityRoot>
-  );
-}
-
-function SplitIdentity({ section, cardTheme, templateId }: WalletPassSectionProps & { templateId: CardTemplateId }) {
+function SplitIdentity({ section, cardTheme, templateId }: WalletPassSectionProps & { templateId: IdentitySectionTemplateId }) {
   const slots = resolveLayoutColorSlots({ templateId, theme: cardTheme });
   const { cover, name, profile } = walletIdentityFields(section);
   return (
@@ -425,35 +260,17 @@ function SplitIdentity({ section, cardTheme, templateId }: WalletPassSectionProp
   );
 }
 
-function NeonIdentity({ section, cardTheme, templateId }: WalletPassSectionProps & { templateId: CardTemplateId }) {
-  const slots = resolveLayoutColorSlots({ templateId, theme: cardTheme });
-  const { cover, logo, name, profile } = walletIdentityFields(section);
-  return (
-    <WalletIdentityRoot backgroundColor={slots.background}>
-      <View className="m-1.5 flex-1 overflow-hidden rounded-lg border-2" style={{ borderColor: slots.accent }}>
-        <CoverBand cover={cover} height="42%" logo={logo} cardTheme={cardTheme} slots={slots} templateId={templateId} />
-        <AvatarNameRow cardTheme={cardTheme} name={name} profile={profile} slots={slots} textColor={slots.textPrimary} overlap={0} />
-      </View>
-    </WalletIdentityRoot>
-  );
-}
-
-const IDENTITY_WALLET: Record<CardTemplateId, React.ComponentType<WalletPassSectionProps>> = {
+const IDENTITY_WALLET: Record<IdentitySectionTemplateId, React.ComponentType<WalletPassSectionProps>> = {
   classic: (p) => <ClassicIdentity {...p} templateId="classic" />,
   minimal: (p) => <MinimalIdentity {...p} templateId="minimal" />,
-  bold: (p) => <BoldIdentity {...p} templateId="bold" />,
-  glass: (p) => <GlassIdentity {...p} templateId="glass" />,
-  compact: (p) => <CompactIdentity {...p} templateId="compact" />,
-  editorial: (p) => <EditorialIdentity {...p} templateId="editorial" />,
-  spotlight: (p) => <SpotlightIdentity {...p} templateId="spotlight" />,
-  banner: (p) => <BannerIdentity {...p} templateId="banner" />,
-  cards: (p) => <CardsIdentity {...p} templateId="cards" />,
-  badge: (p) => <BadgeIdentity {...p} templateId="badge" />,
   split: (p) => <SplitIdentity {...p} templateId="split" />,
-  neon: (p) => <NeonIdentity {...p} templateId="neon" />,
+  bold: (p) => <BoldIdentity {...p} templateId="bold" />,
+  spotlight: (p) => <SpotlightIdentity {...p} templateId="spotlight" />,
+  editorial: (p) => <EditorialIdentity {...p} templateId="editorial" />,
 };
 
 export function WalletIdentityPassRenderer(props: WalletPassSectionProps) {
-  const Renderer = IDENTITY_WALLET[props.section.templateId] ?? IDENTITY_WALLET.classic;
+  const templateId = resolveIdentityTemplateId(props.section.templateId);
+  const Renderer = IDENTITY_WALLET[templateId];
   return <Renderer {...props} />;
 }

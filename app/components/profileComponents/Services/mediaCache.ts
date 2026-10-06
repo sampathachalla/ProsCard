@@ -14,7 +14,17 @@ const memoryCache = new Map<string, CachedDownloadUrl>();
 const pendingRequests = new Map<string, Promise<string>>();
 const memoryFileCache = new Map<string, string>();
 const pendingFileRequests = new Map<string, Promise<string>>();
-const mediaDirectory = new Directory(Paths.cache, 'proscard-media');
+let mediaDirectoryRef: Directory | undefined;
+
+/**
+ * Created on first use, not when this file loads: if the native file system is missing (an older
+ * build, or web), the error is caught by the caller and images load from their signed URL instead of
+ * the app failing to start.
+ */
+function mediaDirectory(): Directory {
+  mediaDirectoryRef ??= new Directory(Paths.cache, 'proscard-media');
+  return mediaDirectoryRef;
+}
 
 function storageKey(mediaId: string) {
   return `${SIGNED_URL_CACHE_PREFIX}${mediaId}`;
@@ -25,7 +35,7 @@ function fileStorageKey(mediaId: string) {
 }
 
 function mediaFile(mediaId: string) {
-  return new File(mediaDirectory, `${mediaId.replace(/[^a-zA-Z0-9_-]/g, '_')}.image`);
+  return new File(mediaDirectory(), `${mediaId.replace(/[^a-zA-Z0-9_-]/g, '_')}.image`);
 }
 
 function existingFileUri(uri: string | null | undefined): string | undefined {
@@ -38,7 +48,8 @@ function existingFileUri(uri: string | null | undefined): string | undefined {
 }
 
 function ensureMediaDirectory() {
-  if (!mediaDirectory.exists) mediaDirectory.create({ intermediates: true, idempotent: true });
+  const directory = mediaDirectory();
+  if (!directory.exists) directory.create({ intermediates: true, idempotent: true });
 }
 
 function isUsable(entry: CachedDownloadUrl | undefined): entry is CachedDownloadUrl {
@@ -202,7 +213,7 @@ export async function clearMediaCache(): Promise<void> {
   memoryFileCache.clear();
   pendingFileRequests.clear();
   try {
-    if (mediaDirectory.exists) mediaDirectory.delete();
+    if (Platform.OS !== 'web' && mediaDirectory().exists) mediaDirectory().delete();
     const keys = await AsyncStorage.getAllKeys();
     const mediaKeys = keys.filter((key) => key.startsWith(SIGNED_URL_CACHE_PREFIX) || key.startsWith(FILE_CACHE_PREFIX));
     if (mediaKeys.length) await AsyncStorage.multiRemove(mediaKeys);

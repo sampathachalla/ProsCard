@@ -1,4 +1,12 @@
-import type { BusinessCard, CardSectionId, CardTemplateId, DynamicCardField } from '../types/card.types';
+import {
+  resolveIdentityPreferredName,
+  resolveIdentityTemplateId,
+  resolveLayoutStyle,
+  type BusinessCard,
+  type CardSectionId,
+  type CardTemplateId,
+  type DynamicCardField,
+} from '../types/card.types';
 import type { Profile } from '@/components/profileComponents/types/profile.types';
 
 export type CardDetailFieldType = 'text' | 'image' | 'multiline' | 'email' | 'phone' | 'url';
@@ -51,13 +59,22 @@ export function createCardDetailTemplate(
     {
       id: 'identity',
       title: 'Identity',
-      templateId: card.sectionLayouts.identity,
+      templateId: resolveIdentityTemplateId(card.sectionLayouts.identity),
       fields: [
         {
           id: 'preferredName',
           title: 'Preferred name',
           type: 'text',
-          value: override(card, 'preferredName', profile.preferredName || card.name || ''),
+          value:
+            card.sectionOverrides.preferredName !== undefined
+              ? card.sectionOverrides.preferredName
+              : resolveIdentityPreferredName({
+                  profilePreferredName: profile.preferredName,
+                  profileFirstName: profile.firstName,
+                  profileLastName: profile.lastName,
+                  profileFullName: profile.fullName,
+                  cardName: card.name,
+                }),
         },
         {
           id: 'coverPhoto',
@@ -82,7 +99,7 @@ export function createCardDetailTemplate(
     {
       id: 'professional',
       title: 'Professional identity',
-      templateId: card.sectionLayouts.professional,
+      templateId: resolveLayoutStyle(card.sectionLayouts.professional),
       fields: [
         {
           id: 'title',
@@ -143,7 +160,7 @@ export function createCardDetailTemplate(
     {
       id: 'bio',
       title: 'About',
-      templateId: card.sectionLayouts.bio,
+      templateId: resolveLayoutStyle(card.sectionLayouts.bio),
       fields: [
         {
           id: 'bio',
@@ -156,7 +173,7 @@ export function createCardDetailTemplate(
     {
       id: 'connections',
       title: 'Contact & links',
-      templateId: card.sectionLayouts.connections,
+      templateId: resolveLayoutStyle(card.sectionLayouts.connections),
       fields: (card.connectionFieldsCustomized ? card.connectionFields : defaultConnections(card, profile)).map((field) => ({ ...field })),
     },
   ];

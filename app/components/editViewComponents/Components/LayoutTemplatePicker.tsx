@@ -9,6 +9,12 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
+  IDENTITY_LAYOUT_IDS,
+  IDENTITY_LAYOUT_STYLES,
+  IDENTITY_SECTION_TEMPLATE_IDS,
+  resolveIdentityLayoutId,
+  resolveLayoutStyle,
+  type CardLayoutId,
   type CardSectionId,
   type CardTemplateId,
   type CardVisualTheme,
@@ -34,19 +40,38 @@ const TEMPLATES: { id: CardTemplateId; label: string }[] = [
   { id: 'neon', label: 'Neon' },
 ];
 
+const IDENTITY_TEMPLATE_LABELS: Record<(typeof IDENTITY_SECTION_TEMPLATE_IDS)[number], string> = {
+  classic: 'Classic',
+  minimal: 'Minimal',
+  split: 'Split',
+  bold: 'Bold Gradient',
+  spotlight: 'Spotlight',
+  editorial: 'Editorial',
+};
+
+// Section 1 options carry their layout ids (layout-1 … layout-6); the names users see stay the same.
+const IDENTITY_TEMPLATES: { id: CardLayoutId; label: string }[] = IDENTITY_LAYOUT_IDS.map((id) => ({
+  id,
+  label: IDENTITY_TEMPLATE_LABELS[IDENTITY_LAYOUT_STYLES[id]],
+}));
+
+function templatesForSection(section: CardSectionId): { id: CardLayoutId; label: string }[] {
+  return section === 'identity' ? IDENTITY_TEMPLATES : TEMPLATES;
+}
+
 const SECTION_TEMPLATE_NAMES: Record<CardSectionId, Record<CardTemplateId, string>> = {
   identity: {
     classic: 'Cover Overlay',
     minimal: 'Side Profile',
+    split: 'Dual Column',
     bold: 'Hero Banner',
+    spotlight: 'Halo Spotlight',
+    editorial: 'Monograph',
     glass: 'Centered Glass',
     compact: 'Inline Header',
-    editorial: 'Monograph',
-    spotlight: 'Halo Spotlight',
     banner: 'Ribbon Pass',
     cards: 'Floating Card',
     badge: 'ID Pass',
-    split: 'Dual Column',
     neon: 'Cyber Outline',
   },
   professional: {
@@ -200,10 +225,10 @@ function LayoutThumbnail({ section, template, theme }: { section: CardSectionId;
     if (template === 'minimal') {
       return (
         <View className="relative mb-2 h-12 overflow-hidden rounded-xl" style={{ backgroundColor: slots.surface }}>
-          <View className="h-full w-[40%]" style={{ backgroundColor: slots.background }} />
-          <View className="absolute left-3 top-3 h-6 w-6 rounded-full border-2" style={{ backgroundColor: slots.background, borderColor: slots.accent }} />
+          <View className="absolute bottom-0 left-0 top-0 w-1/2" style={{ backgroundColor: slots.background }} />
+          <View className="absolute left-3 top-3 h-6 w-6 rounded-full border-2" style={{ backgroundColor: slots.background, borderColor: '#ffffff' }} />
           <View className="absolute right-2 top-2 h-2 w-7 rounded" style={{ backgroundColor: slots.accent }} />
-          <View className="absolute bottom-2 right-2 h-1.5 w-10 rounded" style={{ backgroundColor: slots.textPrimary }} />
+          <View className="absolute bottom-2.5 right-2 h-1.5 w-10 rounded" style={{ backgroundColor: slots.textPrimary }} />
         </View>
       );
     }
@@ -216,13 +241,26 @@ function LayoutThumbnail({ section, template, theme }: { section: CardSectionId;
         </LinearGradient>
       );
     }
-    if (template === 'glass') {
+    if (template === 'classic') {
       return (
-        <View className="relative mb-2 h-12 overflow-hidden rounded-xl" style={{ backgroundColor: slots.background }}>
-          <View className="absolute inset-x-2 bottom-1 h-7 items-center rounded-lg border" style={{ backgroundColor: slots.surface, borderColor: slots.accent }}>
-            <View className="-mt-2 h-4 w-4 rounded-full border" style={{ backgroundColor: slots.background, borderColor: slots.accent }} />
-            <View className="mt-1 h-1.5 w-9 rounded" style={{ backgroundColor: slots.textPrimary }} />
-          </View>
+        <View className="relative mb-2 h-12 overflow-hidden rounded-xl" style={{ backgroundColor: slots.surface }}>
+          <View className="absolute inset-x-0 top-0 h-[60%]" style={{ backgroundColor: slots.background }} />
+          <View className="absolute right-2 top-2 h-2 w-5 rounded" style={{ backgroundColor: slots.surface }} />
+          <View
+            className="absolute left-1/2 h-6 w-6 rounded-full border-2"
+            style={{
+              top: '60%',
+              marginLeft: -12,
+              marginTop: -12,
+              backgroundColor: slots.background,
+              borderColor: slots.accent,
+            }}
+          />
+          <View className="absolute inset-x-0 bottom-0 h-[40%]" style={{ backgroundColor: slots.surface }} />
+          <View
+            className="absolute bottom-2 h-1.5 w-10 rounded"
+            style={{ left: '50%', marginLeft: -20, backgroundColor: slots.textPrimary }}
+          />
         </View>
       );
     }
@@ -402,9 +440,9 @@ export function LayoutTemplatePicker({
   editBarCollapsed?: boolean;
   showHeader?: boolean;
   section: CardSectionId;
-  selectedTemplateId: CardTemplateId;
+  selectedTemplateId: CardLayoutId;
   theme: CardVisualTheme;
-  onSelect: (templateId: CardTemplateId) => void;
+  onSelect: (templateId: CardLayoutId) => void;
   fullOpen?: boolean;
 }) {
   const { width } = useWindowDimensions();
@@ -413,21 +451,25 @@ export function LayoutTemplatePicker({
   const itemWidth = (editorPaneWidth - gridGap) / 2;
   const cardHeight = editBarCollapsed ? CARD_HEIGHT_EXPANDED : CARD_HEIGHT;
 
-  // Chunk 12 templates into pages of 4 items (2x2 grid per slide)
+  const sectionTemplates = useMemo(() => templatesForSection(section), [section]);
+  const activeTemplateId =
+    section === 'identity' ? resolveIdentityLayoutId(selectedTemplateId) : selectedTemplateId;
+
+  // Chunk templates into pages of 4 items (2x2 grid per slide)
   const templatePages = useMemo(() => {
-    const pages: (typeof TEMPLATES)[] = [];
-    for (let i = 0; i < TEMPLATES.length; i += 4) {
-      pages.push(TEMPLATES.slice(i, i + 4));
+    const pages: typeof sectionTemplates[] = [];
+    for (let i = 0; i < sectionTemplates.length; i += 4) {
+      pages.push(sectionTemplates.slice(i, i + 4));
     }
     return pages;
-  }, []);
+  }, [sectionTemplates]);
 
   const [currentPage, setCurrentPage] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
 
   // Sync scroll position with selected template page
   useEffect(() => {
-    const selectedIdx = TEMPLATES.findIndex((t) => t.id === selectedTemplateId);
+    const selectedIdx = sectionTemplates.findIndex((t) => t.id === activeTemplateId);
     const frame = requestAnimationFrame(() => {
       if (selectedIdx < 0) return;
       const pageIdx = Math.floor(selectedIdx / 4);
@@ -435,7 +477,7 @@ export function LayoutTemplatePicker({
       scrollRef.current?.scrollTo({ x: pageIdx * editorPaneWidth, animated: false });
     });
     return () => cancelAnimationFrame(frame);
-  }, [selectedTemplateId, editorPaneWidth]);
+  }, [activeTemplateId, editorPaneWidth, sectionTemplates]);
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const offsetX = event.nativeEvent.contentOffset.x;
@@ -450,10 +492,12 @@ export function LayoutTemplatePicker({
     scrollRef.current?.scrollTo({ x: pageIndex * editorPaneWidth, animated: true });
   };
 
-  const renderTemplateCard = (templateId: CardTemplateId, cardWidth: number, compactHeight = true) => {
-    const label = SECTION_TEMPLATE_NAMES[section][templateId] || templateId;
-    const selected = selectedTemplateId === templateId;
-    const tier = getTemplatePaletteTier(templateId);
+  const renderTemplateCard = (templateId: CardLayoutId, cardWidth: number, compactHeight = true) => {
+    // Display name, palette and thumbnail come from the layout's drawing style.
+    const style = resolveLayoutStyle(templateId);
+    const label = SECTION_TEMPLATE_NAMES[section][style] || templateId;
+    const selected = activeTemplateId === templateId;
+    const tier = getTemplatePaletteTier(style);
     return (
       <EditorSelectableCard
         label={label}
@@ -462,7 +506,7 @@ export function LayoutTemplatePicker({
         onPress={() => onSelect(templateId)}
         style={compactHeight ? { height: cardHeight, width: cardWidth } : { width: cardWidth, minHeight: cardHeight }}
       >
-        <LayoutThumbnail section={section} template={templateId} theme={theme} />
+        <LayoutThumbnail section={section} template={style} theme={theme} />
       </EditorSelectableCard>
     );
   };
@@ -473,7 +517,7 @@ export function LayoutTemplatePicker({
 
       {fullOpen ? (
         <EditorOptionGrid
-          items={TEMPLATES}
+          items={sectionTemplates}
           keyExtractor={(t) => t.id}
           containerWidth={editorPaneWidth}
           columns={2}

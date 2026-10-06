@@ -37,14 +37,16 @@ import {
   UserRound,
 } from 'lucide-react-native';
 import type { Profile } from '@/components/profileComponents/types/profile.types';
-import type {
-  CardSectionFieldId,
-  CardSectionId,
-  CardTemplateId,
-  CardVisualTheme,
-  DynamicCardField,
-  DynamicCardFieldType,
-  SavedSectionTheme,
+import {
+  resolveIdentityTemplateId,
+  resolveLayoutStyle,
+  type CardLayoutId,
+  type CardSectionFieldId,
+  type CardSectionId,
+  type CardVisualTheme,
+  type DynamicCardField,
+  type DynamicCardFieldType,
+  type SavedSectionTheme,
 } from '@/components/cardsComponents/types/card.types';
 import { createCardDetailTemplate } from '@/components/cardsComponents/Templates/cardDetailTemplate';
 import { ImageUploadField } from '@/components/uiComponents/ImageUploadField';
@@ -425,7 +427,7 @@ export function CardSectionEditor({
   onActiveSectionChange: (section: CardSectionId) => void;
   onConnectionsChange: (fields: DynamicCardField[]) => void;
   onFieldChange: (field: CardSectionFieldId, value: string) => void;
-  onLayoutChange: (section: CardSectionId, template: CardTemplateId) => void;
+  onLayoutChange: (section: CardSectionId, template: CardLayoutId) => void;
   onThemeChange: (section: CardSectionId, theme: CardVisualTheme) => void;
   onSaveCustomTheme: (section: CardSectionId, entry: SavedSectionTheme) => void;
   onCloseStyling: () => void;
@@ -1181,7 +1183,7 @@ export function CardSectionEditor({
       {stylingOpen ? (
         <View>
           <CardStylingCustomizer
-            activeTemplateId={card.sectionLayouts[activeSection]}
+            activeTemplateId={resolveLayoutStyle(card.sectionLayouts[activeSection])}
             backLabel={`Back to ${activeEditTab === 'layout' ? 'Layout' : 'Content'}`}
             customThemes={card.customThemes ?? []}
             editBarCollapsed={editBarCollapsed}
@@ -1214,6 +1216,11 @@ export function CardSectionEditor({
                 }
               />
               <LayoutTemplatePicker
+                key={
+                  activeSection === 'identity'
+                    ? `identity-${resolveIdentityTemplateId(section.templateId)}`
+                    : activeSection
+                }
                 editBarCollapsed={editBarCollapsed}
                 showHeader={false}
                 section={activeSection}

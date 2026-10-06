@@ -1,22 +1,15 @@
-import type { BusinessCard, CardTemplateId } from '../types/card.types';
+import {
+  IDENTITY_SECTION_TEMPLATE_IDS,
+  resolveIdentityTemplateId,
+  resolveLayoutStyle,
+  type BusinessCard,
+  type CardTemplateId,
+} from '../types/card.types';
 
-/** Same 12 templates as identity / professional / bio / connections in the editor. */
-export const WALLET_PASS_TEMPLATE_IDS = [
-  'classic',
-  'minimal',
-  'bold',
-  'glass',
-  'compact',
-  'editorial',
-  'spotlight',
-  'banner',
-  'cards',
-  'badge',
-  'split',
-  'neon',
-] as const satisfies readonly CardTemplateId[];
+/** Identity wallet header layouts (section 1). */
+export const WALLET_IDENTITY_TEMPLATE_IDS = IDENTITY_SECTION_TEMPLATE_IDS;
 
-export type WalletPassTemplateId = (typeof WALLET_PASS_TEMPLATE_IDS)[number];
+export type WalletIdentityTemplateId = (typeof WALLET_IDENTITY_TEMPLATE_IDS)[number];
 
 export type WalletPassLayouts = {
   identity: CardTemplateId;
@@ -26,8 +19,8 @@ export type WalletPassLayouts = {
 /** Layout templates on the card; wallet stack renders section 1 (identity) only. */
 export function resolveWalletPassLayouts(card: BusinessCard): WalletPassLayouts {
   return {
-    identity: card.sectionLayouts.identity,
-    professional: card.sectionLayouts.professional,
+    identity: resolveIdentityTemplateId(card.sectionLayouts.identity),
+    professional: resolveLayoutStyle(card.sectionLayouts.professional),
   };
 }
 
@@ -35,5 +28,5 @@ export function resolveWalletPassLayouts(card: BusinessCard): WalletPassLayouts 
  * @deprecated Use `resolveWalletPassLayouts(card).identity` — wallet uses per-section layouts.
  */
 export function resolveWalletPassTemplateId(card: BusinessCard): CardTemplateId {
-  return card.sectionLayouts.identity;
+  return resolveIdentityTemplateId(card.sectionLayouts.identity);
 }

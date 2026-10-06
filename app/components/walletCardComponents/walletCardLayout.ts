@@ -3,9 +3,14 @@
  * Conforms to traditional ISO/IEC 7810 ID-1 wallet / credit card proportions (1.586 : 1).
  */
 
+import {
+  IDENTITY_SECTION_HEIGHT_RATIO,
+  PROFESSIONAL_SECTION_HEIGHT_RATIO,
+} from '@/components/cardsComponents/cardSectionLayout';
+
 export const WALLET_PASS_WIDTH_TO_HEIGHT = 1.586;
-export const WALLET_IDENTITY_HEIGHT_RATIO = 0.38;
-export const WALLET_PROFESSIONAL_HEIGHT_RATIO = 0.62;
+export const WALLET_IDENTITY_HEIGHT_RATIO = IDENTITY_SECTION_HEIGHT_RATIO;
+export const WALLET_PROFESSIONAL_HEIGHT_RATIO = PROFESSIONAL_SECTION_HEIGHT_RATIO;
 
 export const MIN_PASS_WIDTH = 270;
 export const MAX_PASS_WIDTH = 370;

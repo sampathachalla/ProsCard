@@ -3,6 +3,10 @@ import type { BusinessCard as BusinessCardData } from '@/components/cardsCompone
 import type { Profile } from '@/components/profileComponents/types/profile.types';
 import { CardTapGesture } from '@/components/gestures';
 import { CardSectionFace } from '@/components/cardsComponents/Components/CardSectionFace';
+import {
+  IDENTITY_SECTION_HEIGHT_RATIO,
+  PROFESSIONAL_SECTION_HEIGHT_RATIO,
+} from '@/components/cardsComponents/cardSectionLayout';
 
 type Props = {
   card: BusinessCardData;
@@ -13,11 +17,9 @@ type Props = {
   width: number;
 };
 
-const IDENTITY_SECTION_HEIGHT_RATIO = 0.46;
-
 export function BusinessCard({ card, height, onDoubleTap, onSwipeDown, profile, width }: Props) {
   const identitySectionHeight = height * IDENTITY_SECTION_HEIGHT_RATIO;
-  const professionalSectionHeight = height * (1 - IDENTITY_SECTION_HEIGHT_RATIO);
+  const professionalSectionHeight = height * PROFESSIONAL_SECTION_HEIGHT_RATIO;
   const identityTheme = card.sectionThemes.identity;
   const view = (
     <View

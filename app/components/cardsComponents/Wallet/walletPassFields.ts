@@ -1,4 +1,5 @@
 import type { CardDetailSection } from '../Templates/cardDetailTemplate';
+import { DEFAULT_CARD_DISPLAY_NAME } from '../types/card.types';
 
 export function walletField(section: CardDetailSection, id: string) {
   return section.fields.find((item) => item.id === id);
@@ -13,7 +14,11 @@ export function walletIdentityFields(section: CardDetailSection) {
     cover: walletField(section, 'coverPhoto'),
     profile: walletField(section, 'profilePhoto'),
     logo: walletField(section, 'logo'),
-    name: walletFieldValue(section, 'preferredName', 'Preferred Name'),
+    name: (() => {
+      const value = walletFieldValue(section, 'preferredName', '');
+      if (value && value !== DEFAULT_CARD_DISPLAY_NAME) return value;
+      return 'Preferred Name';
+    })(),
   };
 }
 

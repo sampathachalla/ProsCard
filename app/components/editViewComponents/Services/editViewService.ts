@@ -1,7 +1,12 @@
 // components/editViewComponents/Services/editViewService.ts
 import { Colors } from '@/constants/Colors';
 import { getCardById, saveCard as persistCard } from '@/components/cardsComponents/Services/cardsService';
-import { createDefaultCardSectionThemes, DEFAULT_CARD_SECTION_LAYOUTS, DEFAULT_CARD_THEME } from '@/components/cardsComponents/types/card.types';
+import {
+  createDefaultCardSectionThemes,
+  DEFAULT_CARD_SECTION_LAYOUTS,
+  DEFAULT_CARD_THEME,
+  resolveIdentityLayoutId,
+} from '@/components/cardsComponents/types/card.types';
 import type { EditableCard } from '../types/editView.types';
 
 const DEFAULT_CARD: EditableCard = {
@@ -39,7 +44,10 @@ export function getEditableCard(cardId?: string): EditableCard {
     phone: card.phone,
     email: card.email,
     gradient: card.gradient,
-    sectionLayouts: { ...card.sectionLayouts },
+    sectionLayouts: {
+      ...card.sectionLayouts,
+      identity: resolveIdentityLayoutId(card.sectionLayouts.identity),
+    },
     sectionOverrides: { ...card.sectionOverrides },
     connectionFields: card.connectionFields.map((field) => ({ ...field })),
     connectionFieldsCustomized: card.connectionFieldsCustomized,
@@ -53,5 +61,11 @@ export function getEditableCard(cardId?: string): EditableCard {
 }
 
 export function saveCard(card: EditableCard): Promise<EditableCard> {
-  return persistCard(card);
+  return persistCard({
+    ...card,
+    sectionLayouts: {
+      ...card.sectionLayouts,
+      identity: resolveIdentityLayoutId(card.sectionLayouts.identity),
+    },
+  });
 }

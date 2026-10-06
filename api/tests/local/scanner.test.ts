@@ -59,8 +59,8 @@ describe('business card scanner', () => {
   });
 
   it('sends the photo to OpenAI with a strict schema and parses the answer', async () => {
-    const { rotation: _rotation, ...answer } = reading;
-    const { impl, calls } = fakeFetch({ choices: [{ message: { content: JSON.stringify({ ...answer, textDirection: 'upside_down' }) } }] });
+    const { rotation: _rotation, isBusinessCard: _isBusinessCard, ...answer } = reading;
+    const { impl, calls } = fakeFetch({ choices: [{ message: { content: JSON.stringify({ ...answer, cardType: 'business_card', textDirection: 'upside_down' }) } }] });
     const reader = new OpenAiCardReader({ apiKey: 'sk-test', timeoutMs: 1000, fetchImpl: impl });
     const result = await reader.read({ image: 'aGVsbG8=', mimeType: 'image/png' });
     expect(result.contact.name).toBe('Ada Lovelace');
@@ -69,8 +69,24 @@ describe('business card scanner', () => {
     expect(sent.model).toBe(CARD_READER_MODEL);
     expect(CARD_READER_MODEL).toBe('gpt-5.4-mini');
     expect(sent.response_format.json_schema.strict).toBe(true);
+    expect(sent.response_format.json_schema.schema.properties.cardType.enum).toEqual(['business_card', 'payment_card', 'other']);
+    expect(sent.messages[0].content).toContain('credit, debit, bank, prepaid, ATM or gift card');
     expect(sent.messages[1].content[1].image_url.url).toBe('data:image/png;base64,aGVsbG8=');
     expect((calls[0]!.headers as Record<string, string>).Authorization).toBe('Bearer sk-test');
+  });
+
+  it('rejects payment cards even when they contain a person name or bank logo', async () => {
+    const { impl } = fakeFetch({ choices: [{ message: { content: JSON.stringify({
+      cardType: 'payment_card',
+      cardBounds: { x: 0.1, y: 0.2, width: 0.8, height: 0.5 },
+      textDirection: 'upright',
+      contact: { name: 'Ada Lovelace', title: '', company: 'Example Bank', phone: '', email: '', website: '', address: '' },
+    }) } }] });
+    const reader = new OpenAiCardReader({ apiKey: 'sk-test', timeoutMs: 1000, fetchImpl: impl });
+
+    const result = await reader.read({ image: 'aGVsbG8=', mimeType: 'image/png' });
+
+    expect(result.isBusinessCard).toBe(false);
   });
 
   it('turns OpenAI failures and refusals into safe API errors', async () => {

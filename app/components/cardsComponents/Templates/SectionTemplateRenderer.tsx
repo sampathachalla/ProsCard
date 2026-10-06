@@ -16,6 +16,7 @@ export type SectionTemplateRendererProps = {
   seamless?: boolean;
   showEmpty?: boolean;
   walletPass?: boolean;
+  fullCardView?: boolean;
 };
 
 export function SectionTemplateRenderer({
@@ -26,6 +27,7 @@ export function SectionTemplateRenderer({
   seamless = false,
   showEmpty = false,
   walletPass = false,
+  fullCardView = false,
 }: SectionTemplateRendererProps) {
   if (!section) return null;
 
@@ -40,6 +42,7 @@ export function SectionTemplateRenderer({
         <IdentitySectionRenderer
           compact={compact}
           cardTheme={cardTheme}
+          fullCardView={fullCardView}
           gradient={gradient}
           section={section}
           seamless={seamless}

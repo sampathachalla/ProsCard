@@ -189,28 +189,32 @@ export function IdentityImage({
 }
 
 export function UniversalLogoBadge({
+  bare = false,
   backdropColor,
   borderColor,
   cardTheme,
   compact = false,
   field,
+  logoSize,
   placement,
   slots,
   style,
   templateId,
 }: {
+  bare?: boolean;
   backdropColor?: string;
   borderColor?: string;
   cardTheme?: CardVisualTheme;
   compact?: boolean;
   field?: CardDetailField;
+  logoSize?: { width: number; height: number };
   placement?: LogoPlacementContext;
   slots?: ResolvedLayoutSlots;
   style?: object;
   templateId?: CardTemplateId;
 }) {
-  const logoWidth = compact ? 80 : 128;
-  const logoHeight = compact ? 30 : 48;
+  const logoWidth = logoSize?.width ?? (compact ? 100 : 152);
+  const logoHeight = logoSize?.height ?? (compact ? 38 : 56);
 
   // Uploaded logos are protected backend paths; MediaImage resolves them to a signed URL.
   const customLogo = typeof field?.value === 'string' ? field.value.trim() : '';
@@ -243,20 +247,20 @@ export function UniversalLogoBadge({
       style={[
         {
           alignItems: 'center',
-          backgroundColor: effectiveBg,
+          backgroundColor: bare ? 'transparent' : effectiveBg,
           borderColor: borderColor || engineStyle.borderColor,
-          borderRadius: engineStyle.borderRadius,
-          borderWidth: engineStyle.borderWidth,
-          height: logoHeight + (compact ? 8 : 12),
+          borderRadius: bare ? 0 : engineStyle.borderRadius,
+          borderWidth: bare ? 0 : engineStyle.borderWidth,
+          height: bare ? logoHeight : logoHeight + (compact ? 8 : 12),
           justifyContent: 'center',
-          paddingHorizontal: compact ? 8 : 12,
-          paddingVertical: compact ? 4 : 6,
+          paddingHorizontal: bare ? 0 : compact ? 8 : 12,
+          paddingVertical: bare ? 0 : compact ? 4 : 6,
           shadowColor: engineStyle.shadowColor,
           shadowOffset: engineStyle.shadowOffset,
-          shadowOpacity: engineStyle.shadowOpacity,
-          shadowRadius: engineStyle.shadowRadius,
-          elevation: engineStyle.elevation,
-          width: logoWidth + (compact ? 14 : 22),
+          shadowOpacity: bare ? 0 : engineStyle.shadowOpacity,
+          shadowRadius: bare ? 0 : engineStyle.shadowRadius,
+          elevation: bare ? 0 : engineStyle.elevation,
+          width: bare ? logoWidth : logoWidth + (compact ? 14 : 22),
         },
         style,
       ]}

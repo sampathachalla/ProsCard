@@ -13,6 +13,86 @@ export type CardTemplateId =
   | 'badge'
   | 'split'
   | 'neon';
+
+/**
+ * Section 1 (identity) layouts. Cards store these stable ids; the names shown to users live in the
+ * layout picker, so renaming a layout never changes saved cards.
+ */
+export const IDENTITY_LAYOUT_IDS = ['layout-1', 'layout-2', 'layout-3', 'layout-4', 'layout-5', 'layout-6'] as const;
+
+export type IdentityLayoutId = (typeof IDENTITY_LAYOUT_IDS)[number];
+
+/** Visual style each identity layout is drawn with (palette and renderer branch). */
+export const IDENTITY_LAYOUT_STYLES = {
+  'layout-1': 'classic',
+  'layout-2': 'minimal',
+  'layout-3': 'split',
+  'layout-4': 'bold',
+  'layout-5': 'spotlight',
+  'layout-6': 'editorial',
+} as const satisfies Record<IdentityLayoutId, CardTemplateId>;
+
+/** Styles the identity renderers can draw. */
+export const IDENTITY_SECTION_TEMPLATE_IDS = IDENTITY_LAYOUT_IDS.map((id) => IDENTITY_LAYOUT_STYLES[id]);
+
+export type IdentitySectionTemplateId = (typeof IDENTITY_LAYOUT_STYLES)[IdentityLayoutId];
+
+/** A section's saved layout: identity uses layout ids; older cards and other sections use style ids. */
+export type CardLayoutId = CardTemplateId | IdentityLayoutId;
+
+export function isIdentityLayoutId(id: unknown): id is IdentityLayoutId {
+  return (IDENTITY_LAYOUT_IDS as readonly unknown[]).includes(id);
+}
+
+/**
+ * The identity layout id for a saved value. Cards saved before layout ids stored the style name
+ * (e.g. 'minimal'); those map to the matching layout. Unknown values fall back to layout 1.
+ */
+export function resolveIdentityLayoutId(id: CardLayoutId | string | undefined): IdentityLayoutId {
+  if (isIdentityLayoutId(id)) return id;
+  const legacy = IDENTITY_LAYOUT_IDS.find((layoutId) => IDENTITY_LAYOUT_STYLES[layoutId] === id);
+  return legacy ?? 'layout-1';
+}
+
+/** The style to draw an identity layout with, from a saved layout id or a legacy style name. */
+export function resolveIdentityTemplateId(id: CardLayoutId | string | undefined): IdentitySectionTemplateId {
+  return IDENTITY_LAYOUT_STYLES[resolveIdentityLayoutId(id)];
+}
+
+/** The drawing style for any section's saved layout (identity layout ids become their style). */
+export function resolveLayoutStyle(id: CardLayoutId): CardTemplateId {
+  return isIdentityLayoutId(id) ? IDENTITY_LAYOUT_STYLES[id] : id;
+}
+
+/** Default card title when no personal name is set — not shown on the identity face. */
+export const DEFAULT_CARD_DISPLAY_NAME = 'My ProsCard';
+
+export function resolveIdentityPreferredName(input: {
+  override?: string;
+  profilePreferredName?: string;
+  profileFirstName?: string;
+  profileLastName?: string;
+  profileFullName?: string;
+  cardName?: string;
+}): string {
+  const override = input.override?.trim();
+  if (override && override !== DEFAULT_CARD_DISPLAY_NAME) return override;
+
+  const preferred = input.profilePreferredName?.trim();
+  if (preferred) return preferred;
+
+  const built = [input.profileFirstName, input.profileLastName].filter(Boolean).join(' ').trim();
+  if (built) return built;
+
+  const full = input.profileFullName?.trim();
+  if (full) return full;
+
+  const cardName = input.cardName?.trim();
+  if (cardName && cardName !== DEFAULT_CARD_DISPLAY_NAME) return cardName;
+
+  return override ?? '';
+}
+
 export type DynamicCardFieldType = 'text' | 'email' | 'phone' | 'url';
 export type CardFontStyle = 'modern' | 'classic' | 'rounded' | 'mono';
 export type CardThemeId = 'ocean' | 'midnight' | 'violet' | 'sand' | 'sunset' | 'aurora' | 'custom';
@@ -128,12 +208,12 @@ export type CardSectionFieldId =
   | 'firstName' | 'middleName' | 'lastName' | 'title' | 'company'
   | 'bio';
 
-export type CardSectionLayouts = Record<CardSectionId, CardTemplateId>;
+export type CardSectionLayouts = Record<CardSectionId, CardLayoutId>;
 export type CardSectionThemes = Record<CardSectionId, CardVisualTheme>;
 export type CardSectionOverrides = Partial<Record<CardSectionFieldId, string>>;
 
 export const DEFAULT_CARD_SECTION_LAYOUTS: CardSectionLayouts = {
-  identity: 'classic',
+  identity: 'layout-1',
   professional: 'classic',
   bio: 'classic',
   connections: 'classic',

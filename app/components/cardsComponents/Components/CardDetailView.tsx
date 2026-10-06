@@ -1,9 +1,11 @@
-import { Pressable, View, type LayoutChangeEvent } from 'react-native';
+import { Pressable, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
 import type { BusinessCard, CardSectionId } from '../types/card.types';
 import type { Profile } from '@/components/profileComponents/types/profile.types';
 import { Text } from '@/components/uiComponents/Text';
 import { CardDetailSection } from './CardDetailSection';
+import { identitySectionHeight } from '../cardSectionLayout';
 import { createCardDetailTemplate } from '../Templates/cardDetailTemplate';
+import { SectionTemplateRenderer } from '../Templates/SectionTemplateRenderer';
 import { getCardFontFamily, getCardLetterSpacing } from '../Templates/cardTheme';
 import { ActiveSectionHighlight } from '@/components/editViewComponents/Components/ActiveSectionHighlight';
 
@@ -22,7 +24,9 @@ export function CardDetailView({
   onSectionLayout?: (section: CardSectionId, y: number) => void;
   profile: Profile;
 }) {
+  const { height: windowHeight } = useWindowDimensions();
   const sections = createCardDetailTemplate(card, profile);
+  const identityHeight = identitySectionHeight(windowHeight);
 
   const firstTheme = card.sectionThemes[sections[0]?.id];
 
@@ -44,7 +48,20 @@ export function CardDetailView({
         const letterSpacing = getCardLetterSpacing(theme.fontStyle);
         const handleLayout = (event: LayoutChangeEvent) => onSectionLayout?.(section.id, event.nativeEvent.layout.y);
         return <View key={section.id} onLayout={handleLayout} style={{ position: 'relative' }}>
-          <CardDetailSection cardTheme={theme} gradient={theme.gradient} section={section} />
+          {section.id === 'identity' ? (
+            <View style={{ height: identityHeight, width: '100%', overflow: 'hidden' }}>
+              <SectionTemplateRenderer
+                compact
+                cardTheme={theme}
+                fullCardView
+                gradient={theme.gradient}
+                section={section}
+                seamless
+              />
+            </View>
+          ) : (
+            <CardDetailSection cardTheme={theme} gradient={theme.gradient} section={section} />
+          )}
           {activeSection === section.id ? <ActiveSectionHighlight /> : null}
           {onEditSection ? <Pressable accessibilityLabel={`Customize ${section.title}`} onPress={() => onEditSection(section.id)} className="mb-2 items-center py-3" style={{ backgroundColor: theme.surfaceColor }}><Text className="font-bold" style={{ color: theme.accentColor, fontFamily, letterSpacing }}>Customize</Text></Pressable> : null}
         </View>;

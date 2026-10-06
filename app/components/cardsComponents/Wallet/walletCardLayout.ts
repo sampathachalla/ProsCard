@@ -1,3 +1,7 @@
+import {
+  IDENTITY_SECTION_HEIGHT_RATIO,
+  PROFESSIONAL_SECTION_HEIGHT_RATIO,
+} from '../cardSectionLayout';
 import type { CardSectionId } from '../types/card.types';
 
 /** ISO/IEC 7810 ID-1 width ÷ height — same proportions as Apple Wallet passes. */
@@ -14,10 +18,9 @@ export const WALLET_SECTIONS: readonly [CardSectionId, CardSectionId] = [
   'professional',
 ];
 
-/** Shorter pass: tighter identity band, more room for professional fields. */
 export const WALLET_SECTION_HEIGHT_RATIOS = {
-  identity: 0.36,
-  professional: 0.64,
+  identity: IDENTITY_SECTION_HEIGHT_RATIO,
+  professional: PROFESSIONAL_SECTION_HEIGHT_RATIO,
 };
 
 export function getWalletCardDimensions(cardWidth: number) {

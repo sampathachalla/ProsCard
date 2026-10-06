@@ -13,6 +13,7 @@ const ROTATION_FOR_DIRECTION = {
   bottom_to_top: 90,
 } as const;
 type TextDirection = keyof typeof ROTATION_FOR_DIRECTION;
+type ScannedCardType = 'business_card' | 'payment_card' | 'other';
 
 export interface CardReaderGateway {
   read(input: ReadCardRequest): Promise<CardReading>;
@@ -37,9 +38,9 @@ const contactField = { type: 'string' };
 const RESPONSE_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['isBusinessCard', 'cardBounds', 'textDirection', 'contact'],
+  required: ['cardType', 'cardBounds', 'textDirection', 'contact'],
   properties: {
-    isBusinessCard: { type: 'boolean' },
+    cardType: { type: 'string', enum: ['business_card', 'payment_card', 'other'] },
     cardBounds: {
       anyOf: [
         {
@@ -68,7 +69,13 @@ const RESPONSE_SCHEMA = {
 const INSTRUCTIONS = `You read photos of business cards and return structured contact details.
 
 Rules:
-- isBusinessCard: true only if the photo clearly shows a business card.
+- cardType must be one of:
+  - "business_card": a card whose purpose is to share a person's or organization's professional contact information.
+  - "payment_card": any credit, debit, bank, prepaid, ATM or gift card, including virtual-card screenshots.
+  - "other": IDs, licenses, membership/loyalty cards, insurance cards, transit cards, hotel key cards, blank cards, and anything else.
+- A person's name, company/bank logo, card-shaped object, or 16-digit number does not make a payment card a business card.
+- Cards showing payment features such as a card number, expiration date, CVV/CVC, EMV chip, magnetic stripe, payment-network logo, or "debit"/"credit" must be "payment_card" and never "business_card".
+- Use "business_card" only when the card clearly contains professional contact information such as a job title, business email, phone number, business address, website, or social/profile link.
 - cardBounds: the card's bounding box as fractions of the image (0 to 1), origin at the top-left of the image exactly as given: x and y are the card's top-left corner, width and height its size. Fit it tightly around the card's physical edges, not just the text. null if there is no card.
 - textDirection: how the card's main text reads in the image as given:
   "upright" (left to right, normal), "upside_down", "top_to_bottom" (lines run downward, letters' tops face right),
@@ -133,8 +140,15 @@ export class OpenAiCardReader implements CardReaderGateway {
       throw new HttpError(422, 'The card reader could not read this photo.');
     }
     try {
-      const { textDirection, ...answer } = JSON.parse(message.content) as { textDirection?: TextDirection };
-      return cardReadingSchema.parse({ ...answer, rotation: ROTATION_FOR_DIRECTION[textDirection ?? 'upright'] ?? 0 });
+      const { textDirection, cardType, ...answer } = JSON.parse(message.content) as {
+        textDirection?: TextDirection;
+        cardType?: ScannedCardType;
+      };
+      return cardReadingSchema.parse({
+        ...answer,
+        isBusinessCard: cardType === 'business_card',
+        rotation: ROTATION_FOR_DIRECTION[textDirection ?? 'upright'] ?? 0,
+      });
     } catch {
       log('error', 'card_reader_invalid_output', { model: CARD_READER_MODEL });
       throw new HttpError(502, 'The card reader returned an unexpected answer.');
