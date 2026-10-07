@@ -1,29 +1,19 @@
-import { useMemo, useRef, useState, type ReactNode } from 'react';
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-  useWindowDimensions,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Check, ChevronLeft, Palette, Plus, Type as TypeIcon } from 'lucide-react-native';
+import { useState } from 'react';
+import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
+import { Check, ChevronDown, ChevronLeft, ChevronUp, Palette, Type as TypeIcon } from 'lucide-react-native';
 import {
   type CardFontStyle,
+  type CardSectionId,
   type CardTemplateId,
   type CardVisualTheme,
   type SavedSectionTheme,
   getTemplatePaletteTier,
 } from '@/components/cardsComponents/types/card.types';
-import { getCardFontFamily, MULTI_TIER_PRESETS, type MultiTierPreset } from '@/components/cardsComponents/Templates/cardTheme';
+import { getCardFontFamily } from '@/components/cardsComponents/Templates/cardTheme';
+import { buildMultiTierSectionTheme, expandPresetColorsForLayoutTier } from '@/utils/cardThemeColor';
 import { Text } from '@/components/uiComponents/Text';
-import { EditorPresentationCrossfade } from '@/components/uiComponents/editor/EditorPresentationCrossfade';
 import { EditorSectionLabel } from '@/components/uiComponents/editor/EditorSectionLabel';
-import { ThemeCreateEditor } from '@/components/uiComponents/ThemeCreateEditor';
-import { buildMultiTierSectionTheme, themeFromSavedSectionTheme } from '@/utils/cardThemeColor';
+import { ColorPickerDropdown } from '@/components/uiComponents/ColorPickerDropdown';
 
 const FONT_NAMES: Record<CardFontStyle, string> = {
   modern: 'Modern',
@@ -33,204 +23,26 @@ const FONT_NAMES: Record<CardFontStyle, string> = {
 };
 
 const FONT_IDS = Object.keys(FONT_NAMES) as CardFontStyle[];
-
-const THEME_CARD_HEIGHT = 96;
-
-type ThemeListItem =
-  | { kind: 'saved'; saved: SavedSectionTheme }
-  | { kind: 'create' }
-  | { kind: 'tier-preset'; preset: MultiTierPreset };
-
-function ThemeMultiColorTile({
-  colors,
-  height = THEME_CARD_HEIGHT,
-  label,
-  onPress,
-  selected,
-  tier,
-  width,
-}: {
-  colors: string[];
-  height?: number;
-  label: string;
-  onPress: () => void;
-  selected: boolean;
-  tier: number;
-  width: number;
-}) {
-  return (
-    <Pressable
-      accessibilityLabel={`${label} style`}
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      onPress={onPress}
-      style={{ width, height }}
-      className={`overflow-hidden rounded-2xl ${selected ? 'border-2 border-primary' : 'border border-slate-600/40'}`}
-    >
-      <View className="flex-1 flex-row">
-        {colors.map((color, idx) => (
-          <View key={idx} className="flex-1 h-full" style={{ backgroundColor: color }} />
-        ))}
-      </View>
-      <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.75)']}
-        style={[StyleSheet.absoluteFill, { top: '35%' }]}
-      />
-      <View className="absolute bottom-2 left-2.5 right-2.5">
-        <Text numberOfLines={1} className="text-xs font-bold text-white">
-          {label}
-        </Text>
-      </View>
-      {selected ? (
-        <View className="absolute right-2 top-2 h-5 w-5 items-center justify-center rounded-full bg-primary">
-          <Check color="#ffffff" size={12} strokeWidth={3} />
-        </View>
-      ) : null}
-    </Pressable>
-  );
-}
-
-function CreateStyleTile({
-  selected,
-  width,
-  height = THEME_CARD_HEIGHT,
-  onPress,
-}: {
-  selected: boolean;
-  width: number;
-  height?: number;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      accessibilityLabel="Create style"
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      onPress={onPress}
-      style={{ width, height }}
-      className={`items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed bg-slate-900/80 ${
-        selected ? 'border-primary' : 'border-slate-500/70'
-      }`}
-    >
-      <View
-        className={`mb-1.5 h-9 w-9 items-center justify-center rounded-full ${
-          selected ? 'bg-primary' : 'bg-slate-700'
-        }`}
-      >
-        <Plus color="#ffffff" size={20} strokeWidth={2.5} />
-      </View>
-      <Text className="text-xs font-bold text-white">Create style</Text>
-    </Pressable>
-  );
-}
-
-/** 2x2 grid of 4 items per page; swipe sideways for the rest, with dot pagination like the layout picker. */
-function ThemeGroupCarousel({
-  editorPaneWidth,
-  gridGap,
-  groupKey,
-  items,
-  renderItem,
-}: {
-  editorPaneWidth: number;
-  gridGap: number;
-  groupKey: string;
-  items: ThemeListItem[];
-  renderItem: (item: ThemeListItem, cardWidth: number) => ReactNode;
-}) {
-  const pages = useMemo(() => {
-    const chunked: ThemeListItem[][] = [];
-    for (let i = 0; i < items.length; i += 4) {
-      chunked.push(items.slice(i, i + 4));
-    }
-    return chunked;
-  }, [items]);
-
-  const [currentPage, setCurrentPage] = useState(0);
-  const scrollRef = useRef<ScrollView>(null);
-  const itemWidth = (editorPaneWidth - gridGap) / 2;
-
-  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const offsetX = event.nativeEvent.contentOffset.x;
-    const nextIdx = Math.round(offsetX / editorPaneWidth);
-    if (nextIdx !== currentPage && nextIdx >= 0 && nextIdx < pages.length) {
-      setCurrentPage(nextIdx);
-    }
-  };
-
-  const scrollToPage = (pageIndex: number) => {
-    setCurrentPage(pageIndex);
-    scrollRef.current?.scrollTo({ x: pageIndex * editorPaneWidth, animated: true });
-  };
-
-  const itemKey = (item: ThemeListItem) =>
-    item.kind === 'saved' ? item.saved.id : item.kind === 'create' ? 'create' : item.preset.id;
-
-  return (
-    <View>
-      <ScrollView
-        ref={scrollRef}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        decelerationRate="fast"
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-        style={{ width: editorPaneWidth }}
-      >
-        {pages.map((page, pageIndex) => (
-          <View
-            key={`${groupKey}-theme-page-${pageIndex}`}
-            className="flex-row flex-wrap"
-            style={{ gap: gridGap, width: editorPaneWidth }}
-          >
-            {page.map((item) => (
-              <View key={itemKey(item)} style={{ width: itemWidth }}>
-                {renderItem(item, itemWidth)}
-              </View>
-            ))}
-          </View>
-        ))}
-      </ScrollView>
-
-      {pages.length > 1 ? (
-        <View className="mt-2 flex-row items-center justify-center gap-1.5">
-          {pages.map((_, idx) => (
-            <Pressable
-              key={idx}
-              onPress={() => scrollToPage(idx)}
-              accessibilityRole="button"
-              accessibilityLabel={`Go to style page ${idx + 1}`}
-              className={`h-1.5 rounded-full ${
-                currentPage === idx
-                  ? 'w-5 bg-primary dark:bg-dark-primary'
-                  : 'w-1.5 bg-slate-300 dark:bg-slate-700'
-              }`}
-            />
-          ))}
-        </View>
-      ) : null}
-    </View>
-  );
-}
+type ColorTarget = 'background' | 'text';
 
 export function CardStylingCustomizer({
   activeTemplateId,
   backLabel,
-  customThemes,
   editBarCollapsed = false,
+  fullOpen = false,
   onBack,
   onChange,
-  onSaveCustomTheme,
   theme,
 }: {
   activeTemplateId?: CardTemplateId;
   backLabel: string;
   customThemes: SavedSectionTheme[];
   editBarCollapsed?: boolean;
+  fullOpen?: boolean;
   onBack: () => void;
   onChange: (theme: CardVisualTheme) => void;
   onSaveCustomTheme: (entry: SavedSectionTheme) => void;
+  sectionId: CardSectionId;
   theme: CardVisualTheme;
 }) {
   const { width } = useWindowDimensions();
@@ -239,234 +51,141 @@ export function CardStylingCustomizer({
   const fontCardHeight = editBarCollapsed
     ? Math.min(176, Math.max(128, editorPaneWidth * 0.34))
     : Math.min(144, Math.max(96, editorPaneWidth * 0.28));
-
-  const [customEditorOpen, setCustomEditorOpen] = useState(false);
-  const [draftThemeName, setDraftThemeName] = useState('');
-  const [activeStylingPanel, setActiveStylingPanel] = useState<'theme' | 'font'>('theme');
+  const [activeStylingPanel, setActiveStylingPanel] = useState<'background' | 'font'>('background');
+  const [colorTarget, setColorTarget] = useState<ColorTarget>('background');
+  const [colorTargetMenuOpen, setColorTargetMenuOpen] = useState(false);
   const layoutTier = activeTemplateId ? getTemplatePaletteTier(activeTemplateId) : theme.paletteTier || 3;
 
-  const themeItems = useMemo<ThemeListItem[]>(() => {
-    const list: ThemeListItem[] = [{ kind: 'create' as const }];
-    customThemes.forEach((saved) => {
-      const tier = saved.paletteTier || 2;
-      if (tier === layoutTier) {
-        list.push({ kind: 'saved' as const, saved });
-      }
-    });
-    MULTI_TIER_PRESETS.forEach((preset) => {
-      if (preset.tier === layoutTier) {
-        list.push({ kind: 'tier-preset' as const, preset });
-      }
-    });
-    return list;
-  }, [customThemes, layoutTier]);
-
-  const themePageCount = Math.ceil(themeItems.length / 4);
-  const themeDotsRowHeight = themePageCount > 1 ? 22 : 0;
-  const themeVisibleRows = Math.min(2, Math.ceil(themeItems.length / 2));
-  const compactThemeGridHeight =
-    gridGap + themeVisibleRows * fontCardHeight + Math.max(0, themeVisibleRows - 1) * gridGap + themeDotsRowHeight;
-  const gridHeight =
-    gridGap + themeVisibleRows * THEME_CARD_HEIGHT + Math.max(0, themeVisibleRows - 1) * gridGap + themeDotsRowHeight;
-
-  const isItemSelected = (item: ThemeListItem) => {
-    if (item.kind === 'create') return customEditorOpen;
-    if (item.kind === 'saved') return theme.customThemeId === item.saved.id && !customEditorOpen;
-    if (item.kind === 'tier-preset') {
-      const currentColors = theme.paletteColors || [theme.backgroundColor, theme.surfaceColor, theme.accentColor];
-      return item.preset.colors.every((c, i) => currentColors[i] === c) && !customEditorOpen;
-    }
-    return false;
-  };
-
-  const openCustomEditor = () => {
-    setCustomEditorOpen(true);
-    if (!draftThemeName) {
-      setDraftThemeName(theme.customThemeName ?? 'My style');
-    }
-  };
-
-  const applyItem = (item: ThemeListItem) => {
-    if (item.kind === 'create') {
-      openCustomEditor();
-      return;
-    }
-    setCustomEditorOpen(false);
-    if (item.kind === 'saved') {
-      onChange(themeFromSavedSectionTheme(item.saved, theme.fontStyle));
-      return;
-    }
-    if (item.kind === 'tier-preset') {
-      onChange(buildMultiTierSectionTheme(item.preset.colors, theme.fontStyle));
-    }
-  };
-
-  const renderThemeItem = (
-    item: ThemeListItem,
-    cardWidth: number,
-    cardHeight = THEME_CARD_HEIGHT,
-  ) => {
-    if (item.kind === 'create') {
-      return (
-        <CreateStyleTile
-          selected={isItemSelected(item)}
-          width={cardWidth}
-          height={cardHeight}
-          onPress={() => applyItem(item)}
-        />
-      );
-    }
-    if (item.kind === 'saved') {
-      const colors = item.saved.paletteColors || item.saved.gradient;
-      return (
-        <ThemeMultiColorTile
-          colors={colors}
-          tier={item.saved.paletteTier || colors.length}
-          label={item.saved.name}
-          selected={isItemSelected(item)}
-          width={cardWidth}
-          height={cardHeight}
-          onPress={() => applyItem(item)}
-        />
-      );
-    }
-    return (
-      <ThemeMultiColorTile
-        colors={item.preset.colors}
-        tier={item.preset.tier}
-        label={item.preset.name}
-        selected={isItemSelected(item)}
-        width={cardWidth}
-        height={cardHeight}
-        onPress={() => applyItem(item)}
-      />
+  const handleBackgroundChange = (backgroundColor: string) => {
+    const currentColors = expandPresetColorsForLayoutTier(
+      theme.paletteColors ?? [theme.backgroundColor, theme.surfaceColor, theme.accentColor],
+      layoutTier,
+      theme.fontStyle,
     );
+    const nextColors = [...currentColors];
+    nextColors[0] = backgroundColor;
+    if (layoutTier >= 3) {
+      nextColors[1] = backgroundColor;
+    }
+
+    const nextTheme = buildMultiTierSectionTheme(nextColors, theme.fontStyle);
+    onChange({
+      ...nextTheme,
+      backgroundColor,
+      surfaceColor: backgroundColor,
+      gradient: [backgroundColor, nextTheme.gradient[1]],
+      textColor: theme.textColorOverride ?? nextTheme.textColor,
+      textColorOverride: theme.textColorOverride,
+    });
   };
 
-  const handleSaveCustomTheme = () => {
-    const trimmed = draftThemeName.trim();
-    if (!trimmed) return;
-
-    const colors = theme.paletteColors || [theme.backgroundColor, theme.surfaceColor, theme.accentColor];
-    const existingByName = customThemes.find(
-      (item) => item.name.toLowerCase() === trimmed.toLowerCase(),
-    );
-    const entry: SavedSectionTheme = existingByName
-      ? {
-          ...existingByName,
-          gradient: [theme.gradient[0], theme.gradient[1]],
-          paletteColors: colors,
-          paletteTier: (colors.length as 2 | 3 | 4) || 3,
-        }
-      : {
-          id: `theme-${Date.now()}`,
-          name: trimmed,
-          gradient: [theme.gradient[0], theme.gradient[1]],
-          paletteColors: colors,
-          paletteTier: (colors.length as 2 | 3 | 4) || 3,
-        };
-
-    onSaveCustomTheme(entry);
-    setCustomEditorOpen(false);
-    setDraftThemeName('');
+  const handleTextColorChange = (textColor: string) => {
+    onChange({ ...theme, textColor, textColorOverride: textColor });
   };
 
   return (
     <View className="mb-5">
-      <View className={`mb-4 flex-row items-center ${customEditorOpen ? 'gap-3' : 'justify-between'}`}>
-        {!customEditorOpen ? (
-          <>
-            <Pressable
-              accessibilityLabel={backLabel}
-              accessibilityRole="button"
-              className="flex-row items-center rounded-full border border-slate-200 bg-card px-3 py-2 active:opacity-70 dark:border-slate-700 dark:bg-dark-card"
-              onPress={onBack}
-            >
-              <ChevronLeft color="#3b82f6" size={18} />
-              <Text className="ml-1.5 text-sm font-bold text-primary dark:text-dark-primary">
-                {backLabel}
-              </Text>
-            </Pressable>
-            <Pressable
-              accessibilityLabel={`Show ${activeStylingPanel === 'theme' ? 'font' : 'theme'} styles`}
-              accessibilityRole="button"
-              className="flex-row items-center rounded-full border border-primary/50 bg-blue-50 px-3 py-2 active:opacity-70 dark:bg-blue-950/30"
-              onPress={() => setActiveStylingPanel((current) => (current === 'theme' ? 'font' : 'theme'))}
-            >
-              {activeStylingPanel === 'theme' ? (
-                <TypeIcon color="#3b82f6" size={17} />
-              ) : (
-                <Palette color="#3b82f6" size={17} />
-              )}
-              <Text className="ml-2 text-sm font-bold text-primary dark:text-dark-primary">
-                {activeStylingPanel === 'theme' ? 'Fonts' : 'Themes'}
-              </Text>
-            </Pressable>
-          </>
-        ) : null}
-        {customEditorOpen ? (
-          <>
-            <TextInput
-              accessibilityLabel="Style name"
-              value={draftThemeName}
-              onChangeText={setDraftThemeName}
-              placeholder="Style name"
-              placeholderTextColor="#64748b"
-              maxLength={32}
-              className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-card px-3 py-2.5 text-sm text-textPrimary dark:border-slate-700 dark:bg-dark-card dark:text-dark-textPrimary"
-            />
-            <Pressable
-              accessibilityLabel="Cancel creating style"
-              accessibilityRole="button"
-              className="px-2 py-2 active:opacity-70"
-              onPress={() => setCustomEditorOpen(false)}
-            >
-              <Text className="text-sm font-bold text-primary dark:text-dark-primary">Cancel</Text>
-            </Pressable>
-          </>
-        ) : null}
+      <View className="mb-4 flex-row items-center justify-between">
+        <Pressable
+          accessibilityLabel={backLabel}
+          accessibilityRole="button"
+          className="flex-row items-center rounded-full border border-slate-200 bg-card px-3 py-2 active:opacity-70 dark:border-slate-700 dark:bg-dark-card"
+          onPress={onBack}
+        >
+          <ChevronLeft color="#3b82f6" size={18} />
+          <Text className="ml-1.5 text-sm font-bold text-primary dark:text-dark-primary">{backLabel}</Text>
+        </Pressable>
+        <Pressable
+          accessibilityLabel={`Show ${activeStylingPanel === 'background' ? 'font' : 'background'} styles`}
+          accessibilityRole="button"
+          className="flex-row items-center rounded-full border border-primary/50 bg-blue-50 px-3 py-2 active:opacity-70 dark:bg-blue-950/30"
+          onPress={() => {
+            setActiveStylingPanel((current) => (current === 'background' ? 'font' : 'background'));
+          }}
+        >
+          {activeStylingPanel === 'background' ? (
+            <TypeIcon color="#3b82f6" size={17} />
+          ) : (
+            <Palette color="#3b82f6" size={17} />
+          )}
+          <Text className="ml-2 text-sm font-bold text-primary dark:text-dark-primary">
+            {activeStylingPanel === 'background' ? 'Fonts' : 'Background'}
+          </Text>
+        </Pressable>
       </View>
-      {customEditorOpen ? (
-        <ThemeCreateEditor
-          gradient={[theme.gradient[0], theme.gradient[1]]}
-          fontStyle={theme.fontStyle}
-          initialTier={layoutTier}
-          onPreviewChange={onChange}
-          onSave={handleSaveCustomTheme}
-          saveDisabled={!draftThemeName.trim()}
-        />
-      ) : activeStylingPanel === 'theme' ? (
+      {activeStylingPanel === 'background' ? (
         <>
-          <EditorSectionLabel title="Section styling" />
-          <EditorPresentationCrossfade
-            compactHeight={compactThemeGridHeight}
-            expandedHeight={gridHeight}
-            compact={
-              <ThemeGroupCarousel
-                editorPaneWidth={editorPaneWidth}
-                gridGap={gridGap}
-                groupKey="theme-compact"
-                items={themeItems}
-                renderItem={(item, cardWidth) => renderThemeItem(item, cardWidth, fontCardHeight)}
-              />
-            }
-            expanded={
-              <ThemeGroupCarousel
-                editorPaneWidth={editorPaneWidth}
-                gridGap={gridGap}
-                groupKey="theme-expanded"
-                items={themeItems}
-                renderItem={(item, cardWidth) => renderThemeItem(item, cardWidth)}
-              />
-            }
+          <View className="mb-2 flex-row items-center justify-between">
+            <Pressable
+              accessibilityLabel={`Editing ${colorTarget === 'background' ? 'background' : 'text'} color`}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: colorTargetMenuOpen }}
+              onPress={() => setColorTargetMenuOpen((open) => !open)}
+              className="flex-row items-center rounded-lg py-2 pr-3 active:opacity-70"
+            >
+              <Text className="text-sm font-bold uppercase tracking-wider text-textPrimary dark:text-dark-textPrimary">
+                {colorTarget === 'background' ? 'Background Color' : 'Text Color'}
+              </Text>
+              {colorTargetMenuOpen ? (
+                <ChevronUp color="#64748b" size={18} style={{ marginLeft: 8 }} />
+              ) : (
+                <ChevronDown color="#64748b" size={18} style={{ marginLeft: 8 }} />
+              )}
+            </Pressable>
+            <Pressable
+              accessibilityLabel="Save color styling"
+              accessibilityRole="button"
+              onPress={onBack}
+              className="min-h-[36px] items-center justify-center rounded-lg bg-primary px-4 active:opacity-70 dark:bg-dark-primary"
+            >
+              <Text className="text-sm font-bold text-white">Save</Text>
+            </Pressable>
+          </View>
+          {colorTargetMenuOpen ? (
+            <View className="mb-3 overflow-hidden rounded-xl border border-slate-200 bg-card dark:border-slate-700 dark:bg-dark-card">
+              {(['background', 'text'] as ColorTarget[]).map((target, index) => {
+                const selected = colorTarget === target;
+                const label = target === 'background' ? 'Background Color' : 'Text Color';
+                return (
+                  <Pressable
+                    key={target}
+                    accessibilityLabel={`Edit ${label}`}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
+                    onPress={() => {
+                      setColorTarget(target);
+                      setColorTargetMenuOpen(false);
+                    }}
+                    className={`min-h-[48px] flex-row items-center px-4 active:opacity-70 ${
+                      index === 0 ? 'border-b border-slate-200 dark:border-slate-700' : ''
+                    } ${selected ? 'bg-blue-50 dark:bg-blue-950/30' : ''}`}
+                  >
+                    <Text className="flex-1 text-sm font-semibold text-textPrimary dark:text-dark-textPrimary">
+                      {label}
+                    </Text>
+                    {selected ? <Check color="#3b82f6" size={18} strokeWidth={3} /> : null}
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : null}
+          <ColorPickerDropdown
+            editorExpanded={fullOpen}
+            label={colorTarget === 'background' ? 'Background color' : 'Text color'}
+            largeExpandedPicker
+            value={colorTarget === 'background' ? theme.backgroundColor : (theme.textColorOverride ?? theme.textColor)}
+            open
+            responsiveToEditorSheet
+            showLabel={false}
+            showPanel
+            showTrigger={false}
+            onOpenChange={() => {}}
+            onChange={colorTarget === 'background' ? handleBackgroundChange : handleTextColorChange}
           />
         </>
       ) : (
         <>
-          <EditorSectionLabel
-            title="Font styles"
-            subtitle="Swipe sideways to browse font style groups."
-          />
+          <EditorSectionLabel title="Font styles" subtitle="Swipe sideways to browse font style groups." />
           <ScrollView
             horizontal
             pagingEnabled

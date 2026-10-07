@@ -33,11 +33,7 @@ export function CardDetailView({
 
   return (
     <View
-      className={
-        fullBleed
-          ? 'overflow-hidden'
-          : 'mb-5 overflow-hidden rounded-[28px] border shadow-sm'
-      }
+      className={fullBleed ? 'overflow-hidden' : 'mb-5 overflow-hidden rounded-[28px] border shadow-sm'}
       style={{
         backgroundColor: firstTheme?.surfaceColor,
         ...(fullBleed ? {} : { borderColor: firstTheme?.accentColor }),
@@ -48,30 +44,44 @@ export function CardDetailView({
         const fontFamily = getCardFontFamily(theme.fontStyle);
         const letterSpacing = getCardLetterSpacing(theme.fontStyle);
         const handleLayout = (event: LayoutChangeEvent) => onSectionLayout?.(section.id, event.nativeEvent.layout.y);
-        return <View key={section.id} onLayout={handleLayout} style={{ position: 'relative' }}>
-          {section.id === 'identity' || section.id === 'professional' ? (
-            <View
-              style={{
-                height: section.id === 'identity' ? identityHeight : professionalHeight,
-                width: '100%',
-                overflow: 'hidden',
-              }}
-            >
-              <SectionTemplateRenderer
-                compact
-                cardTheme={theme}
-                fullCardView
-                gradient={theme.gradient}
-                section={section}
-                seamless
-              />
-            </View>
-          ) : (
-            <CardDetailSection cardTheme={theme} gradient={theme.gradient} section={section} />
-          )}
-          {activeSection === section.id ? <ActiveSectionHighlight /> : null}
-          {onEditSection ? <Pressable accessibilityLabel={`Customize ${section.title}`} onPress={() => onEditSection(section.id)} className="mb-2 items-center py-3" style={{ backgroundColor: theme.surfaceColor }}><Text className="font-bold" style={{ color: theme.accentColor, fontFamily, letterSpacing }}>Customize</Text></Pressable> : null}
-        </View>;
+        return (
+          <View key={section.id} onLayout={handleLayout} style={{ position: 'relative' }}>
+            {section.id === 'identity' || section.id === 'professional' ? (
+              <View
+                style={{
+                  height: section.id === 'identity' ? identityHeight : professionalHeight,
+                  width: '100%',
+                  overflow: 'hidden',
+                }}
+              >
+                <SectionTemplateRenderer
+                  key={`${section.id}-${theme.backgroundColor}-${theme.surfaceColor}-${theme.textColorOverride ?? theme.textColor}-${theme.accentColor}-${theme.customThemeId ?? ''}`}
+                  compact
+                  cardTheme={theme}
+                  fullCardView
+                  gradient={[...theme.gradient]}
+                  section={section}
+                  seamless
+                />
+              </View>
+            ) : (
+              <CardDetailSection cardTheme={theme} gradient={theme.gradient} section={section} />
+            )}
+            {activeSection === section.id ? <ActiveSectionHighlight /> : null}
+            {onEditSection ? (
+              <Pressable
+                accessibilityLabel={`Customize ${section.title}`}
+                onPress={() => onEditSection(section.id)}
+                className="mb-2 items-center py-3"
+                style={{ backgroundColor: theme.surfaceColor }}
+              >
+                <Text className="font-bold" style={{ color: theme.accentColor, fontFamily, letterSpacing }}>
+                  Customize
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
+        );
       })}
     </View>
   );

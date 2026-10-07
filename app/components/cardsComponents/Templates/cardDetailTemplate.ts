@@ -47,10 +47,7 @@ function defaultConnections(card: BusinessCard, profile: Profile): DynamicCardFi
   ];
 }
 
-export function createCardDetailTemplate(
-  card: BusinessCard,
-  profile: Profile,
-): CardDetailSection[] {
+export function createCardDetailTemplate(card: BusinessCard, profile: Profile): CardDetailSection[] {
   // Empty profile fields stay empty (renderers show neutral placeholders), never demo data.
   const fallbackFirstName = card.name?.split(' ')[0] || '';
   const fallbackLastName = card.name?.split(' ').slice(1).join(' ') || '';
@@ -114,12 +111,6 @@ export function createCardDetailTemplate(
           value: override(card, 'company', profile.organization || card.company || ''),
         },
         {
-          id: 'tagline',
-          title: 'Tagline',
-          type: 'text',
-          value: override(card, 'tagline', profile.tagline || ''),
-        },
-        {
           id: 'accreditations',
           title: 'Accreditations',
           type: 'text',
@@ -163,6 +154,12 @@ export function createCardDetailTemplate(
       templateId: resolveLayoutStyle(card.sectionLayouts.bio, 'bio'),
       fields: [
         {
+          id: 'tagline',
+          title: 'Tagline',
+          type: 'text',
+          value: override(card, 'tagline', profile.tagline || ''),
+        },
+        {
           id: 'bio',
           title: 'Bio',
           type: 'multiline',
@@ -174,7 +171,9 @@ export function createCardDetailTemplate(
       id: 'connections',
       title: 'Contact & links',
       templateId: resolveLayoutStyle(card.sectionLayouts.connections, 'connections'),
-      fields: (card.connectionFieldsCustomized ? card.connectionFields : defaultConnections(card, profile)).map((field) => ({ ...field })),
+      fields: (card.connectionFieldsCustomized ? card.connectionFields : defaultConnections(card, profile)).map(
+        (field) => ({ ...field }),
+      ),
     },
   ];
 }

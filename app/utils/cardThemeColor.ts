@@ -3,6 +3,7 @@ import {
   type CardTemplateId,
   type CardVisualTheme,
   type ResolvedLayoutSlots,
+  type ThemePaletteTier,
   getTemplatePaletteTier,
 } from '@/components/cardsComponents/types/card.types';
 
@@ -123,9 +124,7 @@ export function hsvToHex(h: number, s: number, v: number): string {
 
 function toHex({ r, g, b }: Rgb): string {
   const clamp = (value: number) => Math.max(0, Math.min(255, Math.round(value)));
-  return `#${[clamp(r), clamp(g), clamp(b)]
-    .map((channel) => channel.toString(16).padStart(2, '0'))
-    .join('')}`;
+  return `#${[clamp(r), clamp(g), clamp(b)].map((channel) => channel.toString(16).padStart(2, '0')).join('')}`;
 }
 
 export function mixHexColors(colorA: string, colorB: string, weightB: number): string {
@@ -174,9 +173,7 @@ export function getCardThemeContrastPalette(
     : { mode, primary: '#0f172a', secondary: '#334155', subtle: '#64748b' };
 }
 
-export function getGradientContrastPalette(
-  gradient: [string, string],
-): CardThemeContrastPalette {
+export function getGradientContrastPalette(gradient: [string, string]): CardThemeContrastPalette {
   return getCardThemeContrastPalette({ gradient });
 }
 
@@ -225,6 +222,40 @@ export function getContrastMutedColor(bgHex: string): string {
   return isColorLight(bgHex) ? '#64748b' : '#94a3b8';
 }
 
+/** Build a palette long enough for the layout tier, using saved theme fields when needed. */
+export function themePaletteForLayout(theme: CardVisualTheme, templateId: CardTemplateId): string[] {
+  const tier = getTemplatePaletteTier(templateId);
+  if (theme.paletteColors && theme.paletteColors.length >= tier) {
+    return theme.paletteColors.slice(0, tier);
+  }
+  const accent = theme.accentColor;
+  const highlight = theme.gradient?.[1] ?? accent;
+  if (tier === 2) {
+    return [theme.backgroundColor, accent];
+  }
+  if (tier === 3) {
+    return [theme.backgroundColor, theme.surfaceColor, accent];
+  }
+  return [theme.backgroundColor, theme.surfaceColor, accent, highlight];
+}
+
+/** Expand a short preset (e.g. 2 swatches) to the palette length a layout tier expects. */
+export function expandPresetColorsForLayoutTier(
+  colors: string[],
+  layoutTier: ThemePaletteTier,
+  fontStyle: CardFontStyle = 'modern',
+): string[] {
+  if (colors.length >= layoutTier) return colors.slice(0, layoutTier);
+  const built = buildMultiTierSectionTheme(colors, fontStyle);
+  if (layoutTier === 3) {
+    return [built.backgroundColor, built.surfaceColor, built.accentColor];
+  }
+  if (layoutTier === 4) {
+    return [built.backgroundColor, built.surfaceColor, built.accentColor, built.gradient[1] ?? built.accentColor];
+  }
+  return [built.backgroundColor, built.accentColor];
+}
+
 /**
  * Resolves color slots for any section layout template given a theme (2, 3, or 4 colors).
  * Auto-derives missing slots gracefully and computes contrast-safe text and logo backdrops.
@@ -241,13 +272,7 @@ export function resolveLayoutColorSlots({
   // without also picking a new color theme.
   const tier = getTemplatePaletteTier(templateId);
 
-  const palette = theme.paletteColors && theme.paletteColors.length >= tier
-    ? theme.paletteColors
-    : tier === 2
-      ? [theme.backgroundColor, theme.accentColor]
-      : tier === 3
-        ? [theme.backgroundColor, theme.surfaceColor, theme.accentColor]
-        : [theme.backgroundColor, theme.surfaceColor, theme.accentColor, theme.gradient[1] || theme.accentColor];
+  const palette = themePaletteForLayout(theme, templateId);
 
   let baseColor: string;
   let surfaceColor: string;
@@ -258,9 +283,9 @@ export function resolveLayoutColorSlots({
     baseColor = palette[0];
     accentColor = palette[1];
     const isBaseLight = isColorLight(baseColor);
-    surfaceColor = isBaseLight
-      ? mixHexColors(baseColor, '#ffffff', 0.85)
-      : mixHexColors(baseColor, '#0f172a', 0.75);
+    surfaceColor =
+      normalizeHexColor(theme.surfaceColor) ??
+      (isBaseLight ? mixHexColors(baseColor, '#ffffff', 0.85) : mixHexColors(baseColor, '#0f172a', 0.75));
     highlightColor = mixHexColors(accentColor, isBaseLight ? '#ffffff' : '#020617', 0.35);
   } else if (tier === 3) {
     baseColor = palette[0];
@@ -288,12 +313,12 @@ export function resolveLayoutColorSlots({
   const isAccentLight = isColorLight(accentColor);
 
   // Surface-specific contrast text
-  const surfaceTextPrimary = isSurfaceLight ? '#0f172a' : '#f8fafc';
+  let surfaceTextPrimary = isSurfaceLight ? '#0f172a' : '#f8fafc';
   const surfaceTextSecondary = isSurfaceLight ? '#334155' : '#cbd5e1';
   const surfaceTextMuted = isSurfaceLight ? '#64748b' : '#94a3b8';
 
   // Base background-specific contrast text
-  const bgTextPrimary = isBaseLight ? '#0f172a' : '#f8fafc';
+  let bgTextPrimary = isBaseLight ? '#0f172a' : '#f8fafc';
   const bgTextSecondary = isBaseLight ? '#334155' : '#cbd5e1';
   const bgTextMuted = isBaseLight ? '#64748b' : '#94a3b8';
 
@@ -303,18 +328,28 @@ export function resolveLayoutColorSlots({
 
   // Default textPrimary / textSecondary matches the main container (surface for standard layouts, gradient for bold)
   const isPrimaryDark = isBold ? !isGradientLight : !isSurfaceLight;
-  const textPrimary = isPrimaryDark ? '#f8fafc' : '#0f172a';
+  let textPrimary = isPrimaryDark ? '#f8fafc' : '#0f172a';
   const textSecondary = isPrimaryDark ? '#cbd5e1' : '#334155';
   const textMuted = isPrimaryDark ? '#94a3b8' : '#64748b';
+
+  const textColorOverride = normalizeHexColor(theme.textColorOverride ?? '');
+  if (textColorOverride) {
+    surfaceTextPrimary = textColorOverride;
+    bgTextPrimary = textColorOverride;
+    textPrimary = textColorOverride;
+  }
 
   // Tone-on-tone glass badge colors: seamlessly adapts to card base & accent palette
   const cleanAccent = normalizeHexColor(accentColor) ?? '#2563eb';
   const cleanBase = normalizeHexColor(baseColor) ?? '#0a1128';
   const lightLogoGlass = hexToRgbaString(mixHexColors('#ffffff', cleanAccent, 0.06), 0.94);
-  const darkLogoGlass = hexToRgbaString(mixHexColors(mixHexColors(cleanBase, cleanAccent, 0.14), '#030712', 0.65), 0.88);
+  const darkLogoGlass = hexToRgbaString(
+    mixHexColors(mixHexColors(cleanBase, cleanAccent, 0.14), '#030712', 0.65),
+    0.88,
+  );
   const logoBackdrop = isSurfaceLight ? darkLogoGlass : lightLogoGlass;
   const logoBorder = isSurfaceLight
-    ? hexToRgbaString(cleanAccent, 0.30)
+    ? hexToRgbaString(cleanAccent, 0.3)
     : hexToRgbaString(mixHexColors(cleanAccent, '#0f172a', 0.25), 0.18);
   const borderColor = isDark ? mixHexColors(accentColor, '#ffffff', 0.15) : mixHexColors(accentColor, '#020617', 0.12);
 
@@ -341,14 +376,7 @@ export function resolveLayoutColorSlots({
   };
 }
 
-export type LogoPlacementContext =
-  | 'on-cover'
-  | 'on-surface'
-  | 'glass'
-  | 'neon'
-  | 'banner'
-  | 'badge'
-  | 'floating';
+export type LogoPlacementContext = 'on-cover' | 'on-surface' | 'glass' | 'neon' | 'banner' | 'badge' | 'floating';
 
 export type ResolvedLogoBoxStyle = {
   backgroundColor: string;
@@ -468,7 +496,7 @@ export function resolveLogoBoxStyle({
 
   if (effectivePlacement === 'glass') {
     return {
-      backgroundColor: isLogoDark ? hexToRgbaString(lightTintedHex, 0.86) : hexToRgbaString(darkDeepBase, 0.80),
+      backgroundColor: isLogoDark ? hexToRgbaString(lightTintedHex, 0.86) : hexToRgbaString(darkDeepBase, 0.8),
       borderColor: isLogoDark ? hexToRgbaString(cleanAccent, 0.22) : hexToRgbaString(cleanAccent, 0.35),
       borderWidth: 1,
       borderRadius: radius,
@@ -482,8 +510,8 @@ export function resolveLogoBoxStyle({
 
   if (effectivePlacement === 'banner') {
     return {
-      backgroundColor: isLogoDark ? hexToRgbaString(lightTintedHex, 0.92) : hexToRgbaString(darkDeepBase, 0.90),
-      borderColor: isLogoDark ? hexToRgbaString(cleanAccent, 0.18) : hexToRgbaString(cleanAccent, 0.30),
+      backgroundColor: isLogoDark ? hexToRgbaString(lightTintedHex, 0.92) : hexToRgbaString(darkDeepBase, 0.9),
+      borderColor: isLogoDark ? hexToRgbaString(cleanAccent, 0.18) : hexToRgbaString(cleanAccent, 0.3),
       borderWidth: 1,
       borderRadius: radius,
       shadowColor: ambientShadowColor,

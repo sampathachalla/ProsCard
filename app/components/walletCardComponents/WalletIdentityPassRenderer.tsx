@@ -148,7 +148,7 @@ function MinimalIdentity({ section, cardTheme, templateId }: WalletIdentitySecti
 
         {/* Right: Logo & Formatted Name */}
         <View className="w-1/2 justify-center px-3" style={{ backgroundColor: slots.surface }}>
-          <UniversalLogoBadge cardTheme={cardTheme} compact field={logo} placement="on-surface" slots={slots} templateId={templateId} />
+          <UniversalLogoBadge bare cardTheme={cardTheme} compact field={logo} placement="on-surface" slots={slots} templateId={templateId} />
           <View className="mt-1">
             <WalletPassText cardTheme={cardTheme} color={slots.textPrimary} lines={2} size="md">
               {displayName}
@@ -168,7 +168,7 @@ function BoldIdentity({ section, cardTheme, templateId }: WalletIdentitySectionP
       <IdentityImage field={cover} {...imageColors} style={StyleSheet.absoluteFill} />
       <LinearGradient colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.85)']} style={StyleSheet.absoluteFill} />
       <View className="absolute right-3 top-2">
-        <UniversalLogoBadge cardTheme={cardTheme} compact field={logo} placement="on-cover" slots={slots} templateId={templateId} />
+        <UniversalLogoBadge bare cardTheme={cardTheme} compact field={logo} placement="on-cover" slots={slots} templateId={templateId} />
       </View>
       <View className="absolute bottom-0 left-0 right-0 flex-row items-end px-3.5 pb-2">
         <IdentityImage
@@ -223,7 +223,7 @@ function SpotlightIdentity({ section, cardTheme, templateId }: WalletIdentitySec
           />
         </View>
         <View className="absolute left-3 top-2">
-          <UniversalLogoBadge cardTheme={cardTheme} compact field={logo} placement="on-cover" slots={slots} templateId={templateId} />
+          <UniversalLogoBadge bare cardTheme={cardTheme} compact field={logo} placement="on-cover" slots={slots} templateId={templateId} />
         </View>
         <View className="absolute bottom-1 px-3">
           <WalletPassText align="center" cardTheme={cardTheme} color="#fff" lines={2} size="sm">

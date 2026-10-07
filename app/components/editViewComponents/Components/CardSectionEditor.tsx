@@ -13,12 +13,7 @@ import { MediaImage } from '@/components/uiComponents/MediaImage';
 import * as Haptics from 'expo-haptics';
 import { BottomSheetTextInput } from '@gorhom/bottom-sheet';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, {
-  runOnJS,
-  type SharedValue,
-  useAnimatedStyle,
-  useSharedValue,
-} from 'react-native-reanimated';
+import Animated, { runOnJS, type SharedValue, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import {
   AlignLeft,
   Award,
@@ -75,7 +70,10 @@ const SECTIONS: { id: CardSectionId; label: string }[] = [
 
 type IdentityImageField = 'coverPhoto' | 'profilePhoto' | 'logo';
 
-const AVAILABLE_CONNECTION_FIELDS: { title: string; type: DynamicCardFieldType }[] = [
+const AVAILABLE_CONNECTION_FIELDS: {
+  title: string;
+  type: DynamicCardFieldType;
+}[] = [
   { title: 'Email', type: 'email' },
   { title: 'Phone', type: 'phone' },
   { title: 'Website', type: 'url' },
@@ -139,9 +137,7 @@ function CardEditorFieldGroup({
   title: string;
 }) {
   return (
-    <View
-      className="mb-3.5 rounded-2xl border border-slate-200/90 bg-card p-4 shadow-sm dark:border-slate-800/90 dark:bg-[#0c1424]"
-    >
+    <View className="mb-3.5 rounded-2xl border border-slate-200/90 bg-card p-4 shadow-sm dark:border-slate-800/90 dark:bg-[#0c1424]">
       <Pressable
         accessibilityLabel={`${expanded ? 'Collapse' : 'Expand'} ${title}`}
         accessibilityRole={collapsible ? 'button' : undefined}
@@ -233,11 +229,7 @@ function EditorInput({
             ? 'px-0.5 py-1'
             : 'rounded-xl border border-slate-200/90 bg-slate-50/90 px-3.5 py-3 dark:border-slate-700/70 dark:bg-[#070d1a]'
         } ${large ? 'text-lg' : 'text-sm'}`}
-        style={
-          multiline
-            ? { minHeight: minHeight ?? 76, textAlignVertical: 'top' }
-            : { minHeight: 46 }
-        }
+        style={multiline ? { minHeight: minHeight ?? 76, textAlignVertical: 'top' } : { minHeight: 46 }}
       />
     </View>
   );
@@ -292,14 +284,8 @@ function DraggableConnectionRow({
       // Use a deliberate 75% boundary: responsive to the finger without
       // repeatedly swapping around the midpoint.
       const rowProgress = event.translationY / CONNECTION_ROW_DRAG_STEP;
-      const offset =
-        rowProgress >= 0
-          ? Math.floor(rowProgress + 0.25)
-          : Math.ceil(rowProgress - 0.25);
-      const destination = Math.max(
-        0,
-        Math.min(itemCount - 1, dragStartIndex.value + offset),
-      );
+      const offset = rowProgress >= 0 ? Math.floor(rowProgress + 0.25) : Math.ceil(rowProgress - 0.25);
+      const destination = Math.max(0, Math.min(itemCount - 1, dragStartIndex.value + offset));
       if (destination !== lastDestination.value) {
         lastDestination.value = destination;
         runOnJS(triggerPositionHaptic)();
@@ -309,10 +295,7 @@ function DraggableConnectionRow({
     .onFinalize(() => {
       const rowProgress = dragOffsetY.value / CONNECTION_ROW_DRAG_STEP;
       const offset = Math.round(rowProgress);
-      const destination = Math.max(
-        0,
-        Math.min(itemCount - 1, dragStartIndex.value + offset),
-      );
+      const destination = Math.max(0, Math.min(itemCount - 1, dragStartIndex.value + offset));
       if (destination !== dragStartIndex.value) {
         runOnJS(onMove)(dragStartIndex.value, destination);
       }
@@ -346,10 +329,7 @@ function DraggableConnectionRow({
       const distanceFromActive = index - activeIndex - 1;
       const progress = Math.max(
         0,
-        Math.min(
-          CONNECTION_ROW_DRAG_STEP,
-          dragY - distanceFromActive * CONNECTION_ROW_DRAG_STEP,
-        ),
+        Math.min(CONNECTION_ROW_DRAG_STEP, dragY - distanceFromActive * CONNECTION_ROW_DRAG_STEP),
       );
       return { transform: [{ translateY: -progress }] };
     }
@@ -358,10 +338,7 @@ function DraggableConnectionRow({
       const distanceFromActive = activeIndex - index - 1;
       const progress = Math.max(
         0,
-        Math.min(
-          CONNECTION_ROW_DRAG_STEP,
-          -dragY - distanceFromActive * CONNECTION_ROW_DRAG_STEP,
-        ),
+        Math.min(CONNECTION_ROW_DRAG_STEP, -dragY - distanceFromActive * CONNECTION_ROW_DRAG_STEP),
       );
       return { transform: [{ translateY: progress }] };
     }
@@ -370,9 +347,7 @@ function DraggableConnectionRow({
   });
 
   return (
-    <Animated.View
-      style={[{ position: 'relative' }, siblingShiftStyle]}
-    >
+    <Animated.View style={[{ position: 'relative' }, siblingShiftStyle]}>
       <GestureDetector gesture={gesture}>
         <Animated.View style={[{ position: 'relative' }, animatedStyle]}>
           {children}
@@ -460,10 +435,7 @@ export function CardSectionEditor({
   const getFieldValue = (fieldId: CardSectionFieldId) =>
     card.sectionOverrides[fieldId] ?? resolvedValues[fieldId] ?? '';
   const taglineValue = fitTaglineToViewport(getFieldValue('tagline'), width);
-  const accreditationValue = fitAccreditationsToViewport(
-    getFieldValue('accreditations'),
-    width,
-  );
+  const accreditationValue = fitAccreditationsToViewport(getFieldValue('accreditations'), width);
 
   const connectionFields = card.connectionFieldsCustomized
     ? card.connectionFields
@@ -474,7 +446,7 @@ export function CardSectionEditor({
             title: field.title,
             type: field.type === 'image' || field.type === 'multiline' ? 'text' : field.type,
             value: field.value,
-          } as DynamicCardField)
+          }) as DynamicCardField,
       );
   const connectionFieldsRef = useRef(connectionFields);
   useEffect(() => {
@@ -482,9 +454,7 @@ export function CardSectionEditor({
   }, [connectionFields]);
 
   const changeConnection = (index: number, patch: Partial<DynamicCardField>) =>
-    onConnectionsChange(
-      connectionFields.map((field, i) => (i === index ? { ...field, ...patch } : field))
-    );
+    onConnectionsChange(connectionFields.map((field, i) => (i === index ? { ...field, ...patch } : field)));
 
   const setEditingConnection = (fieldId: string | null) => {
     setEditingConnectionId(fieldId);
@@ -505,10 +475,7 @@ export function CardSectionEditor({
         (field) => normalizeConnectionTitle(field.title) === normalizeConnectionTitle(option.title),
       ),
   );
-  const addConnectionField = (
-    option: { title: string; type: DynamicCardFieldType },
-    value: string,
-  ) => {
+  const addConnectionField = (option: { title: string; type: DynamicCardFieldType }, value: string) => {
     const idBase = normalizeConnectionTitle(option.title) || 'custom';
     onConnectionsChange([
       ...connectionFields,
@@ -528,8 +495,7 @@ export function CardSectionEditor({
     setEditingConnectionId(null);
     setCustomFieldPickerOpen((current) => !current);
   };
-  const showExistingConnectionFields =
-    !customFieldPickerOpen && pendingConnectionField === null;
+  const showExistingConnectionFields = !customFieldPickerOpen && pendingConnectionField === null;
 
   // 1. IDENTITY CONTENT ZONE
   const renderIdentityImageField = (fieldId: IdentityImageField) => {
@@ -557,27 +523,12 @@ export function CardSectionEditor({
             className="mb-3 self-start flex-row items-center rounded-full border border-slate-200 bg-card px-3 py-2 active:opacity-70 dark:border-slate-700 dark:bg-dark-card"
           >
             <ChevronLeft color="#3b82f6" size={18} />
-            <Text className="ml-1.5 text-sm font-bold text-primary dark:text-dark-primary">
-              Back to images
-            </Text>
+            <Text className="ml-1.5 text-sm font-bold text-primary dark:text-dark-primary">Back to images</Text>
           </Pressable>
           {renderIdentityImageField(selectedIdentityImage)}
         </>
       ) : (
         <View>
-          <View className="mb-4">
-            <Text className="mb-2 ml-1 text-xs font-bold uppercase tracking-wider text-textMuted dark:text-slate-400">
-              Preferred Name
-            </Text>
-            <TextInput
-              value={getFieldValue('preferredName')}
-              onChangeText={(value) => onFieldChange('preferredName', value)}
-              placeholder="e.g. Dr. Jane Smith"
-              placeholderTextColor="#64748b"
-              className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 text-base font-bold text-textPrimary dark:border-slate-700/80 dark:bg-[#060a14] dark:text-white"
-              style={{ height: editBarCollapsed ? 72 : 52 }}
-            />
-          </View>
           <Pressable
             accessibilityLabel="Edit Cover Photo"
             accessibilityRole="button"
@@ -647,19 +598,6 @@ export function CardSectionEditor({
 
   const identityContent = (
     <View>
-      <View className="mb-4 rounded-[24px] border border-slate-200 bg-card p-4 dark:border-slate-800 dark:bg-[#0b1120]">
-        <Text className="mb-1.5 ml-1 text-xs font-bold uppercase tracking-wider text-textMuted dark:text-slate-400">
-          Preferred Name
-        </Text>
-        <TextInput
-          value={getFieldValue('preferredName')}
-          onChangeText={(val) => onFieldChange('preferredName', val)}
-          placeholder="e.g. Dr. Jane Smith"
-          placeholderTextColor="#64748b"
-          className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3.5 text-base font-bold text-textPrimary dark:border-slate-700/80 dark:bg-[#060a14] dark:text-white"
-        />
-      </View>
-
       <ImageUploadField
         label="Cover Photo"
         description="Hero image shown at the top of your identity section."
@@ -764,26 +702,13 @@ export function CardSectionEditor({
         onFocus={onProfessionalFieldFocus}
         placeholder="e.g. MS, BTech, CPA"
       />
-
-      {/* Row 4: Tagline */}
-      <EditorInput
-        label="Tagline"
-        maxLength={taglineCharacterLimit}
-        value={taglineValue}
-        onChangeText={(val) => onFieldChange('tagline', val)}
-        onFocus={onProfessionalFieldFocus}
-        placeholder="Building next-generation digital networking tools"
-      />
     </View>
   );
 
   const professionalContent = (
     <View>
       {/* 1. Name & Honorifics */}
-      <CardEditorFieldGroup
-        title="Professional Name"
-        icon={UserRound}
-      >
+      <CardEditorFieldGroup title="Professional Name" icon={UserRound}>
         <View className="flex-row gap-2.5">
           <View className="flex-[0.8]">
             <EditorInput
@@ -836,10 +761,7 @@ export function CardSectionEditor({
       </CardEditorFieldGroup>
 
       {/* 2. Role & Organization */}
-      <CardEditorFieldGroup
-        title="Job Title & Company"
-        icon={Briefcase}
-      >
+      <CardEditorFieldGroup title="Job Title & Company" icon={Briefcase}>
         <EditorInput
           label="Job Title"
           value={getFieldValue('title')}
@@ -856,11 +778,8 @@ export function CardSectionEditor({
         />
       </CardEditorFieldGroup>
 
-      {/* 3. Credentials & Headline */}
-      <CardEditorFieldGroup
-        title="Credentials & Headline"
-        icon={Award}
-      >
+      {/* 3. Credentials */}
+      <CardEditorFieldGroup title="Credentials" icon={Award}>
         <EditorInput
           label="Accreditations & Certifications"
           maxLength={accreditationCharacterLimit}
@@ -868,15 +787,6 @@ export function CardSectionEditor({
           onChangeText={(val) => onFieldChange('accreditations', val)}
           onFocus={onProfessionalFieldFocus}
           placeholder="e.g. MBA, AWS Certified Architect, PMP"
-        />
-        <EditorInput
-          label="Tagline & Headline"
-          maxLength={taglineCharacterLimit}
-          multiline
-          value={taglineValue}
-          onChangeText={(val) => onFieldChange('tagline', val)}
-          onFocus={onProfessionalFieldFocus}
-          placeholder="e.g. Building thoughtful digital products"
         />
       </CardEditorFieldGroup>
     </View>
@@ -896,6 +806,13 @@ export function CardSectionEditor({
           </Text>
         }
       >
+        <EditorInput
+          label="Tagline"
+          maxLength={taglineCharacterLimit}
+          value={taglineValue}
+          onChangeText={(val) => onFieldChange('tagline', val)}
+          placeholder="e.g. Building thoughtful digital products"
+        />
         <EditorInput
           borderless
           hideLabel
@@ -989,84 +906,86 @@ export function CardSectionEditor({
       </View>
 
       {/* Connection Fields List */}
-      {showExistingConnectionFields ? connectionFields.map((field, index) => {
-        const Icon = getFieldIcon(field.id, field.type);
-        const editing = editingConnectionId === field.id;
-        const placeholder =
-          field.type === 'email'
-            ? 'name@example.com'
-            : field.type === 'phone'
-              ? '+1 (555) 000-0000'
-              : field.type === 'url'
-                ? 'https://example.com'
-                : `Enter ${field.title.toLowerCase()}`;
-        return (
-          <DraggableConnectionRow
-            key={field.id}
-            activeDragIndex={activeConnectionDragIndex}
-            dragOffsetY={connectionDragOffsetY}
-            index={index}
-            itemCount={connectionFields.length}
-            onMove={moveConnection}
-          >
-            <View
-              className={`mb-2 flex-row items-center border px-3 py-2.5 dark:bg-[#0b1120] ${
-                editing
-                  ? 'rounded-xl border-blue-400 bg-blue-50 dark:border-blue-500/70'
-                  : 'rounded-xl border-slate-200 bg-card dark:border-slate-800'
-              }`}
-            >
-              <View className="h-10 w-10 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800">
-                <Icon color="#3b82f6" size={18} />
-              </View>
-              <View className="ml-3 min-w-0 flex-1">
-                {editing ? (
-                  <BottomSheetTextInput
-                    autoFocus
-                    value={field.value}
-                    onChangeText={(value) => changeConnection(index, { value })}
-                    onSubmitEditing={() => setEditingConnection(null)}
-                    placeholder={placeholder}
-                    placeholderTextColor="#64748b"
-                    className="min-h-[42px] rounded-lg bg-white px-3 text-sm font-semibold text-textPrimary dark:bg-[#060a14] dark:text-white"
-                    returnKeyType="done"
-                  />
-                ) : (
-                  <Text className="text-sm font-bold text-textPrimary dark:text-white" numberOfLines={1}>
-                    {field.title}
-                  </Text>
-                )}
-              </View>
-              <Pressable
-                accessibilityLabel={`${editing ? 'Finish editing' : 'Edit'} ${field.title}`}
-                accessibilityRole="button"
-                onPress={() => setEditingConnection(editing ? null : field.id)}
-                className={`ml-2 h-9 w-9 items-center justify-center rounded-lg ${
-                  editing ? 'bg-blue-500' : 'bg-slate-100 dark:bg-slate-800'
-                }`}
+      {showExistingConnectionFields
+        ? connectionFields.map((field, index) => {
+            const Icon = getFieldIcon(field.id, field.type);
+            const editing = editingConnectionId === field.id;
+            const placeholder =
+              field.type === 'email'
+                ? 'name@example.com'
+                : field.type === 'phone'
+                  ? '+1 (555) 000-0000'
+                  : field.type === 'url'
+                    ? 'https://example.com'
+                    : `Enter ${field.title.toLowerCase()}`;
+            return (
+              <DraggableConnectionRow
+                key={field.id}
+                activeDragIndex={activeConnectionDragIndex}
+                dragOffsetY={connectionDragOffsetY}
+                index={index}
+                itemCount={connectionFields.length}
+                onMove={moveConnection}
               >
-                {editing ? (
-                  <Check color="#ffffff" size={17} strokeWidth={2.7} />
-                ) : (
-                  <Pencil color="#3b82f6" size={16} />
-                )}
-              </Pressable>
-              {!editing ? (
-                <Pressable
-                  accessibilityLabel={`Delete ${field.title}`}
-                  accessibilityRole="button"
-                  onPress={() =>
-                    onConnectionsChange(connectionFields.filter((_, itemIndex) => itemIndex !== index))
-                  }
-                  className="ml-1.5 h-9 w-9 items-center justify-center rounded-lg bg-rose-50 dark:bg-rose-950/40"
+                <View
+                  className={`mb-2 flex-row items-center border px-3 py-2.5 dark:bg-[#0b1120] ${
+                    editing
+                      ? 'rounded-xl border-blue-400 bg-blue-50 dark:border-blue-500/70'
+                      : 'rounded-xl border-slate-200 bg-card dark:border-slate-800'
+                  }`}
                 >
-                  <Trash2 color="#ef4444" size={16} />
-                </Pressable>
-              ) : null}
-            </View>
-          </DraggableConnectionRow>
-        );
-      }) : null}
+                  <View className="h-10 w-10 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800">
+                    <Icon color="#3b82f6" size={18} />
+                  </View>
+                  <View className="ml-3 min-w-0 flex-1">
+                    {editing ? (
+                      <BottomSheetTextInput
+                        autoFocus
+                        value={field.value}
+                        onChangeText={(value) => changeConnection(index, { value })}
+                        onSubmitEditing={() => setEditingConnection(null)}
+                        placeholder={placeholder}
+                        placeholderTextColor="#64748b"
+                        className="min-h-[42px] rounded-lg bg-white px-3 text-sm font-semibold text-textPrimary dark:bg-[#060a14] dark:text-white"
+                        returnKeyType="done"
+                      />
+                    ) : (
+                      <Text className="text-sm font-bold text-textPrimary dark:text-white" numberOfLines={1}>
+                        {field.title}
+                      </Text>
+                    )}
+                  </View>
+                  <Pressable
+                    accessibilityLabel={`${editing ? 'Finish editing' : 'Edit'} ${field.title}`}
+                    accessibilityRole="button"
+                    onPress={() => setEditingConnection(editing ? null : field.id)}
+                    className={`ml-2 h-9 w-9 items-center justify-center rounded-lg ${
+                      editing ? 'bg-blue-500' : 'bg-slate-100 dark:bg-slate-800'
+                    }`}
+                  >
+                    {editing ? (
+                      <Check color="#ffffff" size={17} strokeWidth={2.7} />
+                    ) : (
+                      <Pencil color="#3b82f6" size={16} />
+                    )}
+                  </Pressable>
+                  {!editing ? (
+                    <Pressable
+                      accessibilityLabel={`Delete ${field.title}`}
+                      accessibilityRole="button"
+                      onPress={() =>
+                        onConnectionsChange(connectionFields.filter((_, itemIndex) => itemIndex !== index))
+                      }
+                      className="ml-1.5 h-9 w-9 items-center justify-center rounded-lg bg-rose-50 dark:bg-rose-950/40"
+                    >
+                      <Trash2 color="#ef4444" size={16} />
+                    </Pressable>
+                  ) : null}
+                </View>
+              </DraggableConnectionRow>
+            );
+          })
+        : null}
 
       <Modal
         animationType="fade"
@@ -1085,10 +1004,7 @@ export function CardSectionEditor({
             <View className="w-full max-w-xl self-center rounded-[24px] border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-700 dark:bg-[#0b1120]">
               <View className="mb-4 flex-row items-center">
                 {(() => {
-                  const Icon = getFieldIcon(
-                    pendingConnectionField.title,
-                    pendingConnectionField.type,
-                  );
+                  const Icon = getFieldIcon(pendingConnectionField.title, pendingConnectionField.type);
                   return (
                     <View className="h-11 w-11 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-950/60">
                       <Icon color="#3b82f6" size={20} />
@@ -1166,27 +1082,25 @@ export function CardSectionEditor({
   );
 
   const activeContent =
-    activeSection === 'identity'
-      ? (
-          <EditorPresentationCrossfade
-            compact={compactIdentityContent}
-            expanded={identityContent}
-            compactHeight={selectedIdentityImage ? 470 : editBarCollapsed ? 410 : 330}
-            expandedHeight={1120}
-          />
-        )
-      : activeSection === 'professional'
-      ? (
-          <EditorPresentationCrossfade
-            compact={compactProfessionalContent}
-            expanded={professionalContent}
-            compactHeight={editBarCollapsed ? 370 : 300}
-            expandedHeight={780}
-          />
-        )
-      : activeSection === 'bio'
-      ? bioContent
-      : connectionsContent;
+    activeSection === 'identity' ? (
+      <EditorPresentationCrossfade
+        compact={compactIdentityContent}
+        expanded={identityContent}
+        compactHeight={selectedIdentityImage ? 470 : editBarCollapsed ? 410 : 330}
+        expandedHeight={1120}
+      />
+    ) : activeSection === 'professional' ? (
+      <EditorPresentationCrossfade
+        compact={compactProfessionalContent}
+        expanded={professionalContent}
+        compactHeight={editBarCollapsed ? 370 : 300}
+        expandedHeight={780}
+      />
+    ) : activeSection === 'bio' ? (
+      bioContent
+    ) : (
+      connectionsContent
+    );
 
   const editZone = (
     <View style={{ width: editorPaneWidth, maxWidth: '100%', alignSelf: 'center' }}>
@@ -1197,7 +1111,9 @@ export function CardSectionEditor({
             backLabel={`Back to ${activeEditTab === 'layout' ? 'Layout' : 'Content'}`}
             customThemes={card.customThemes ?? []}
             editBarCollapsed={editBarCollapsed}
+            fullOpen={fullOpen}
             onBack={onCloseStyling}
+            sectionId={activeSection}
             theme={card.sectionThemes[activeSection]}
             onChange={(theme) => onThemeChange(activeSection, theme)}
             onSaveCustomTheme={(entry) => onSaveCustomTheme(activeSection, entry)}
@@ -1241,9 +1157,7 @@ export function CardSectionEditor({
               />
             </>
           ) : (
-            <View>
-              {activeContent}
-            </View>
+            <View>{activeContent}</View>
           )}
         </View>
       )}

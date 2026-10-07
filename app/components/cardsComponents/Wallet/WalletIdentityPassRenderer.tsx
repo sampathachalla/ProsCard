@@ -55,6 +55,7 @@ function CoverBand({
       {dimOverlay ? <View className="absolute inset-0 bg-black/20" /> : null}
       <View className="absolute left-2 top-2">
         <UniversalLogoBadge
+          bare
           cardTheme={cardTheme}
           compact
           field={logo}
@@ -77,6 +78,7 @@ function ClassicIdentity({ section, cardTheme, templateId }: WalletPassSectionPr
           <IdentityImage field={cover} {...imageColors} style={{ position: 'absolute', inset: 0 }} />
           <View className="absolute right-2 top-2">
             <UniversalLogoBadge
+              bare
               cardTheme={cardTheme}
               compact
               field={logo}
@@ -147,7 +149,7 @@ function MinimalIdentity({ section, cardTheme, templateId }: WalletPassSectionPr
 
         {/* Right: Logo & Formatted Name */}
         <View className="w-1/2 justify-center px-2.5" style={{ backgroundColor: slots.surface }}>
-          <UniversalLogoBadge cardTheme={cardTheme} compact field={logo} placement="on-surface" slots={slots} templateId={templateId} />
+          <UniversalLogoBadge bare cardTheme={cardTheme} compact field={logo} placement="on-surface" slots={slots} templateId={templateId} />
           <View className="mt-1">
             <WalletPassText cardTheme={cardTheme} color={slots.textPrimary} lines={2} size="md">
               {displayName}
@@ -167,7 +169,7 @@ function BoldIdentity({ section, cardTheme, templateId }: WalletPassSectionProps
       <IdentityImage field={cover} {...imageColors} style={StyleSheet.absoluteFill} />
       <LinearGradient colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.82)']} style={StyleSheet.absoluteFill} />
       <View className="absolute right-2 top-2">
-        <UniversalLogoBadge cardTheme={cardTheme} compact field={logo} placement="on-cover" slots={slots} templateId={templateId} />
+        <UniversalLogoBadge bare cardTheme={cardTheme} compact field={logo} placement="on-cover" slots={slots} templateId={templateId} />
       </View>
       <View className="absolute bottom-0 left-0 right-0 flex-row items-end px-2.5 pb-2">
         <IdentityImage
@@ -222,7 +224,7 @@ function SpotlightIdentity({ section, cardTheme, templateId }: WalletPassSection
           />
         </View>
         <View className="absolute left-2 top-2">
-          <UniversalLogoBadge cardTheme={cardTheme} compact field={logo} placement="on-cover" slots={slots} templateId={templateId} />
+          <UniversalLogoBadge bare cardTheme={cardTheme} compact field={logo} placement="on-cover" slots={slots} templateId={templateId} />
         </View>
         <View className="absolute bottom-1.5 px-3">
           <WalletPassText align="center" cardTheme={cardTheme} color="#fff" lines={1} size="xs">

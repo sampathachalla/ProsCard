@@ -166,6 +166,8 @@ export type CardVisualTheme = {
   backgroundColor: string;
   surfaceColor: string;
   textColor: string;
+  /** User-selected primary text color for section layouts. */
+  textColorOverride?: string;
   mutedTextColor: string;
   accentColor: string;
   gradient: [string, string];
@@ -204,10 +206,42 @@ export type ResolvedLayoutSlots = {
 export type CardThemePresetId = Exclude<CardThemeId, 'custom'>;
 
 export const CARD_THEME_PRESETS: Record<CardThemePresetId, Omit<CardVisualTheme, 'fontStyle'>> = {
-  ocean: { id: 'ocean', backgroundColor: '#eff6ff', surfaceColor: '#ffffff', textColor: '#0f172a', mutedTextColor: '#64748b', accentColor: '#0284c7', gradient: ['#2563eb', '#00a8e8'] },
-  midnight: { id: 'midnight', backgroundColor: '#020617', surfaceColor: '#0f172a', textColor: '#f8fafc', mutedTextColor: '#94a3b8', accentColor: '#38bdf8', gradient: ['#111827', '#020617'] },
-  violet: { id: 'violet', backgroundColor: '#f5f3ff', surfaceColor: '#ffffff', textColor: '#2e1065', mutedTextColor: '#7c3aed', accentColor: '#7c3aed', gradient: ['#4f46e5', '#7c3aed'] },
-  sand: { id: 'sand', backgroundColor: '#fffbeb', surfaceColor: '#fff7ed', textColor: '#451a03', mutedTextColor: '#92400e', accentColor: '#ea580c', gradient: ['#f59e0b', '#ea580c'] },
+  ocean: {
+    id: 'ocean',
+    backgroundColor: '#eff6ff',
+    surfaceColor: '#ffffff',
+    textColor: '#0f172a',
+    mutedTextColor: '#64748b',
+    accentColor: '#0284c7',
+    gradient: ['#2563eb', '#00a8e8'],
+  },
+  midnight: {
+    id: 'midnight',
+    backgroundColor: '#020617',
+    surfaceColor: '#0f172a',
+    textColor: '#f8fafc',
+    mutedTextColor: '#94a3b8',
+    accentColor: '#38bdf8',
+    gradient: ['#111827', '#020617'],
+  },
+  violet: {
+    id: 'violet',
+    backgroundColor: '#f5f3ff',
+    surfaceColor: '#ffffff',
+    textColor: '#2e1065',
+    mutedTextColor: '#7c3aed',
+    accentColor: '#7c3aed',
+    gradient: ['#4f46e5', '#7c3aed'],
+  },
+  sand: {
+    id: 'sand',
+    backgroundColor: '#fffbeb',
+    surfaceColor: '#fff7ed',
+    textColor: '#451a03',
+    mutedTextColor: '#92400e',
+    accentColor: '#ea580c',
+    gradient: ['#f59e0b', '#ea580c'],
+  },
   sunset: {
     id: 'sunset',
     backgroundColor: '#fff7ed',
@@ -238,9 +272,19 @@ export type DynamicCardField = {
 };
 
 export type CardSectionFieldId =
-  | 'preferredName' | 'coverPhoto' | 'profilePhoto' | 'logo'
-  | 'tagline' | 'accreditations' | 'prefix' | 'suffix'
-  | 'firstName' | 'middleName' | 'lastName' | 'title' | 'company'
+  | 'preferredName'
+  | 'coverPhoto'
+  | 'profilePhoto'
+  | 'logo'
+  | 'tagline'
+  | 'accreditations'
+  | 'prefix'
+  | 'suffix'
+  | 'firstName'
+  | 'middleName'
+  | 'lastName'
+  | 'title'
+  | 'company'
   | 'bio';
 
 export type CardSectionLayouts = Record<CardSectionId, CardLayoutId>;

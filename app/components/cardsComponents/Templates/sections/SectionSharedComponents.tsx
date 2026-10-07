@@ -189,7 +189,7 @@ export function IdentityImage({
 }
 
 export function UniversalLogoBadge({
-  bare = false,
+  bare = true,
   backdropColor,
   borderColor,
   cardTheme,
@@ -236,8 +236,14 @@ export function UniversalLogoBadge({
     theme: cardTheme,
   });
 
-  const effectiveBg = backdropColor || engineStyle.backgroundColor;
-  const isEffectiveBgLight = isRgbaOrHexLight(effectiveBg);
+  const logoContrastSample =
+    bare && placement === 'on-cover' && slots?.background
+      ? slots.background
+      : bare && placement === 'on-surface' && slots?.surface
+        ? slots.surface
+        : backdropColor || (bare ? slots?.background ?? slots?.surface : undefined) || engineStyle.backgroundColor;
+  const effectiveBg = bare ? 'transparent' : backdropColor || engineStyle.backgroundColor;
+  const isEffectiveBgLight = isRgbaOrHexLight(logoContrastSample);
 
   // Dark text on light backdrop; White text on dark backdrop
   const defaultBrandLogo = isEffectiveBgLight ? mindProsLogoForLightTheme : mindProsLogoForDarkTheme;

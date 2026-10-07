@@ -17,9 +17,6 @@ import { BOXED_SHADOW_LG, BOXED_SHADOW_MD, BOXED_SHADOW_SM } from './SectionShar
 /** Shared minimum height across all 12 layouts so switching between them
  * (with or without an optional tagline) never visibly jumps in size. */
 const PROFESSIONAL_MIN_HEIGHT = 160;
-/** Default Corporate Card surface until section-background editing is exposed. */
-const CORPORATE_CARD_DEFAULT_BACKGROUND = '#ffffff';
-
 type Props = {
   compact?: boolean;
   cardTheme: CardVisualTheme;
@@ -57,9 +54,15 @@ function ProfessionalName({
       adjustsFontSizeToFit
       minimumFontScale={0.72}
       numberOfLines={compact ? 2 : 3}
-      className={emphasized
-        ? compact ? 'text-xl font-black leading-tight' : 'text-3xl font-black leading-tight'
-        : compact ? 'text-base font-black leading-tight' : 'text-2xl font-black leading-tight'}
+      className={
+        emphasized
+          ? compact
+            ? 'text-xl font-black leading-tight'
+            : 'text-3xl font-black leading-tight'
+          : compact
+            ? 'text-base font-black leading-tight'
+            : 'text-2xl font-black leading-tight'
+      }
       style={{
         color: slots.textPrimary,
         fontFamily: getCardFontFamily(cardTheme.fontStyle),
@@ -99,7 +102,7 @@ function ProfessionalRole({
         adjustsFontSizeToFit={!titleFontSize}
         minimumFontScale={0.72}
         numberOfLines={compact ? 1 : 2}
-        className={`font-extrabold ${emphasizedTitle ? compact ? 'text-base' : 'text-lg' : compact ? 'text-xs' : 'text-base'}`}
+        className={`font-extrabold ${emphasizedTitle ? (compact ? 'text-base' : 'text-lg') : compact ? 'text-xs' : 'text-base'}`}
         style={{
           color: slots.textPrimary,
           fontSize: titleFontSize,
@@ -119,7 +122,7 @@ function ProfessionalRole({
           adjustsFontSizeToFit={!companyFontSize}
           minimumFontScale={0.72}
           numberOfLines={1}
-          className={`ml-1.5 font-semibold ${emphasizedCompany ? compact ? 'text-sm' : 'text-base' : compact ? 'text-[11px]' : 'text-sm'}`}
+          className={`ml-1.5 font-semibold ${emphasizedCompany ? (compact ? 'text-sm' : 'text-base') : compact ? 'text-[11px]' : 'text-sm'}`}
           style={{
             color: slots.textSecondary,
             fontSize: companyFontSize,
@@ -159,8 +162,12 @@ function ProfessionalTagline({
 }) {
   if (!tagline) return null;
   const textSizeClass = emphasized
-    ? compact ? 'text-lg leading-6' : 'text-xl leading-7'
-    : compact ? 'text-base leading-6' : 'text-lg leading-7';
+    ? compact
+      ? 'text-lg leading-6'
+      : 'text-xl leading-7'
+    : compact
+      ? 'text-base leading-6'
+      : 'text-lg leading-7';
   const lineLimit = numberOfLines ?? (emphasized && compact ? 3 : compact ? 4 : 5);
 
   return (
@@ -224,9 +231,21 @@ export function ProfessionalSectionRenderer({
   const corporateNameText = coreName || (showEmpty ? 'Professional Name' : professionalName);
   const corporateLeftWidth = viewportWidth * 0.64 - (compact ? 24 : 32);
   const corporateRightWidth = viewportWidth * 0.36 - (compact ? 24 : 32);
-  const corporateNameFontSize = getResponsiveSingleLineFontSize(corporateLeftWidth, corporateNameText.length, 20, 34, 0.48);
+  const corporateNameFontSize = getResponsiveSingleLineFontSize(
+    corporateLeftWidth,
+    corporateNameText.length,
+    20,
+    34,
+    0.48,
+  );
   const corporateTitleFontSize = getResponsiveSingleLineFontSize(corporateRightWidth, title.length, 16, 28, 0.68);
-  const corporateCompanyFontSize = getResponsiveSingleLineFontSize(corporateRightWidth - 18, company.length, 14, 24, 0.68);
+  const corporateCompanyFontSize = getResponsiveSingleLineFontSize(
+    corporateRightWidth - 18,
+    company.length,
+    14,
+    24,
+    0.68,
+  );
   const slots = resolveLayoutColorSlots({ templateId: section.templateId, theme: cardTheme });
   const shared = { cardTheme, compact, slots };
   const homePreview = compact && seamless && !fullCardView;
@@ -245,9 +264,7 @@ export function ProfessionalSectionRenderer({
     : compact
       ? sectionBoundsStyle
       : undefined;
-  const homeCenterStyle = homePreview
-    ? ({ justifyContent: 'center', alignItems: 'center' } as const)
-    : undefined;
+  const homeCenterStyle = homePreview ? ({ justifyContent: 'center', alignItems: 'center' } as const) : undefined;
 
   const activeGridLayouts = ['classic', 'bold', 'spotlight', 'banner', 'badge', 'split', 'neon'];
   if (activeGridLayouts.includes(section.templateId)) {
@@ -258,16 +275,21 @@ export function ProfessionalSectionRenderer({
     const isSplit = section.templateId === 'split';
     const isNeon = section.templateId === 'neon';
     const isSpotlight = section.templateId === 'spotlight';
-    const gridBackground = isCorporate ? CORPORATE_CARD_DEFAULT_BACKGROUND : slots.surface;
+    const gridBackground = slots.surface;
     const gridSlots = isCorporate
-      ? { ...slots, surface: gridBackground, textPrimary: '#0f172a', textSecondary: '#475569' }
+      ? { ...slots, surface: gridBackground }
       : isHero
         ? { ...slots, textPrimary: slots.gradientText, textSecondary: slots.isDark ? '#e2e8f0' : '#334155' }
         : slots;
     const topSlots = isBanner ? { ...gridSlots, textPrimary: '#ffffff', textSecondary: '#f8fafc' } : gridSlots;
-    const dividerColor = isHero || isBanner ? 'rgba(255,255,255,0.28)' : isSpotlight ? 'transparent' : `${slots.accent}30`;
+    const dividerColor =
+      isHero || isBanner ? 'rgba(255,255,255,0.28)' : isSpotlight ? 'transparent' : `${slots.accent}30`;
     const leftCellBackground = isSplit ? slots.background : 'transparent';
-    const topCellBackground = isBanner ? slots.accent : section.templateId === 'spotlight' ? `${slots.accent}0D` : 'transparent';
+    const topCellBackground = isBanner
+      ? slots.accent
+      : section.templateId === 'spotlight'
+        ? `${slots.accent}0D`
+        : 'transparent';
     const rootStyle = {
       backgroundColor: gridBackground,
       borderColor: isNeon || isBadge ? slots.accent : boxed ? slots.accent : undefined,
@@ -281,9 +303,7 @@ export function ProfessionalSectionRenderer({
           style={[rootStyle, boxed ? BOXED_SHADOW_SM : null]}
         >
           <View className="flex-row" style={{ flex: 1 }}>
-            <View
-              className={`${compact ? 'p-3' : 'p-4'} w-[64%] justify-start`}
-            >
+            <View className={`${compact ? 'p-3' : 'p-4'} w-[64%] justify-start`}>
               {prefix ? (
                 <Text
                   numberOfLines={1}
@@ -474,9 +494,7 @@ export function ProfessionalSectionRenderer({
 
             {/* ZONE 3: Mission Statement / Tagline Footer */}
             {showTagline ? (
-              <View
-                className="w-full border-t border-slate-100 pt-1.5 items-center justify-center"
-              >
+              <View className="w-full border-t border-slate-100 pt-1.5 items-center justify-center">
                 <Text
                   numberOfLines={2}
                   className={`font-semibold italic text-center ${compact ? 'text-xs leading-5' : 'text-sm leading-5'} text-slate-600`}
@@ -489,9 +507,7 @@ export function ProfessionalSectionRenderer({
                 </Text>
               </View>
             ) : showEmpty ? (
-              <View
-                className="w-full border-t border-slate-100 pt-1.5 items-center justify-center"
-              >
+              <View className="w-full border-t border-slate-100 pt-1.5 items-center justify-center">
                 <Text className="text-xs font-semibold italic text-center text-slate-400">
                   “ Professional tagline ”
                 </Text>
@@ -512,13 +528,7 @@ export function ProfessionalSectionRenderer({
         0.5,
       );
       const spotlightLeftWidth = viewportWidth * 0.38 - (compact ? 24 : 32);
-      const spotlightTitleFontSize = getResponsiveSingleLineFontSize(
-        spotlightLeftWidth,
-        title.length,
-        15,
-        22,
-        0.64,
-      );
+      const spotlightTitleFontSize = getResponsiveSingleLineFontSize(spotlightLeftWidth, title.length, 15, 22, 0.64);
       const spotlightCompanyFontSize = getResponsiveSingleLineFontSize(
         spotlightLeftWidth,
         company.length,
@@ -564,7 +574,10 @@ export function ProfessionalSectionRenderer({
 
             <View className={`${compact ? 'px-4 py-2.5' : 'p-5'} relative flex-1 justify-center`}>
               {prefix ? (
-                <Text className="text-[10px] font-bold uppercase tracking-widest" style={{ color: slots.textSecondary }}>
+                <Text
+                  className="text-[10px] font-bold uppercase tracking-widest"
+                  style={{ color: slots.textSecondary }}
+                >
                   {prefix}
                 </Text>
               ) : null}
@@ -637,13 +650,7 @@ export function ProfessionalSectionRenderer({
         30,
         0.5,
       );
-      const bannerTitleFontSize = getResponsiveSingleLineFontSize(
-        bannerTitleWidth,
-        title.length,
-        15,
-        23,
-        0.64,
-      );
+      const bannerTitleFontSize = getResponsiveSingleLineFontSize(bannerTitleWidth, title.length, 15, 23, 0.64);
       const bannerTaglineFontSize = getResponsiveSingleLineFontSize(
         viewportWidth - (compact ? 32 : 48),
         tagline.length,
@@ -682,7 +689,10 @@ export function ProfessionalSectionRenderer({
           <View className={`${compact ? 'px-3 py-2' : 'px-4 py-3'} flex-row items-center`} style={{ flex: 1.05 }}>
             <View className="w-[72%] justify-center border-r pr-3" style={{ borderRightColor: `${slots.accent}35` }}>
               {prefix ? (
-                <Text className="text-[10px] font-bold uppercase tracking-widest" style={{ color: slots.textSecondary }}>
+                <Text
+                  className="text-[10px] font-bold uppercase tracking-widest"
+                  style={{ color: slots.textSecondary }}
+                >
                   {prefix}
                 </Text>
               ) : null}
@@ -753,13 +763,7 @@ export function ProfessionalSectionRenderer({
         29,
         0.5,
       );
-      const badgeTitleFontSize = getResponsiveSingleLineFontSize(
-        badgeRoleWidth,
-        title.length,
-        15,
-        22,
-        0.64,
-      );
+      const badgeTitleFontSize = getResponsiveSingleLineFontSize(badgeRoleWidth, title.length, 15, 22, 0.64);
       const badgeCompanyFontSize = getResponsiveSingleLineFontSize(
         viewportWidth * 0.58 - (compact ? 24 : 32),
         company.length,
@@ -783,7 +787,11 @@ export function ProfessionalSectionRenderer({
             <Text
               numberOfLines={1}
               className="mr-3 flex-1 font-semibold"
-              style={{ color: '#334155', fontSize: badgeTitleFontSize, lineHeight: Math.ceil(badgeTitleFontSize * 1.16) }}
+              style={{
+                color: '#334155',
+                fontSize: badgeTitleFontSize,
+                lineHeight: Math.ceil(badgeTitleFontSize * 1.16),
+              }}
             >
               {title}
             </Text>
@@ -804,51 +812,54 @@ export function ProfessionalSectionRenderer({
             className={`${compact ? 'px-4' : 'px-5'} items-center justify-center`}
             style={{ flex: 1.66, transform: [{ translateY: compact ? -8 : -12 }] }}
           >
-              {prefix ? (
-                <Text className="text-center text-[9px] font-bold uppercase tracking-widest" style={{ color: slots.textSecondary }}>
-                  {prefix}
-                </Text>
-              ) : null}
+            {prefix ? (
               <Text
-                numberOfLines={1}
-                className="text-center font-black"
-                style={{ color: '#0f172a', fontSize: badgeNameFontSize, lineHeight: Math.ceil(badgeNameFontSize * 1.13) }}
+                className="text-center text-[9px] font-bold uppercase tracking-widest"
+                style={{ color: slots.textSecondary }}
               >
-                {coreName || professionalName}
+                {prefix}
               </Text>
-              {suffix ? (
-                <Text numberOfLines={1} className="text-center text-xs font-bold" style={{ color: slots.accent }}>
-                  {suffix}
-                </Text>
-              ) : null}
-              {accreditations ? (
-                <Text
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.68}
+            ) : null}
+            <Text
+              numberOfLines={1}
+              className="text-center font-black"
+              style={{ color: '#0f172a', fontSize: badgeNameFontSize, lineHeight: Math.ceil(badgeNameFontSize * 1.13) }}
+            >
+              {coreName || professionalName}
+            </Text>
+            {suffix ? (
+              <Text numberOfLines={1} className="text-center text-xs font-bold" style={{ color: slots.accent }}>
+                {suffix}
+              </Text>
+            ) : null}
+            {accreditations ? (
+              <Text
+                adjustsFontSizeToFit
+                minimumFontScale={0.68}
+                numberOfLines={1}
+                className="mt-0.5 text-right text-sm font-semibold"
+                style={{ color: slots.textSecondary, width: '86%' }}
+              >
+                {accreditations}
+              </Text>
+            ) : null}
+            {showTagline ? (
+              <View className="mt-1 w-full items-center">
+                <ProfessionalTagline
+                  {...shared}
+                  centered
+                  emphasized
+                  fontSize={singleLineTaglineFontSize}
                   numberOfLines={1}
-                  className="mt-0.5 text-right text-sm font-semibold"
-                  style={{ color: slots.textSecondary, width: '86%' }}
-                >
-                  {accreditations}
-                </Text>
-              ) : null}
-              {showTagline ? (
-                <View className="mt-1 w-full items-center">
-                  <ProfessionalTagline
-                    {...shared}
-                    centered
-                    emphasized
-                    fontSize={singleLineTaglineFontSize}
-                    numberOfLines={1}
-                    slots={{ ...gridSlots, textPrimary: '#0f172a' }}
-                    tagline={tagline}
-                  />
-                </View>
-              ) : showEmpty ? (
-                <Text className="mt-1.5 text-center text-sm font-semibold italic" style={{ color: '#475569' }}>
-                  Professional tagline
-                </Text>
-              ) : null}
+                  slots={{ ...gridSlots, textPrimary: '#0f172a' }}
+                  tagline={tagline}
+                />
+              </View>
+            ) : showEmpty ? (
+              <Text className="mt-1.5 text-center text-sm font-semibold italic" style={{ color: '#475569' }}>
+                Professional tagline
+              </Text>
+            ) : null}
           </View>
         </View>
       );
@@ -856,7 +867,10 @@ export function ProfessionalSectionRenderer({
 
     const gridContent = (
       <>
-        <View className="flex-1 flex-row border-b" style={{ borderBottomColor: dividerColor, backgroundColor: topCellBackground }}>
+        <View
+          className="flex-1 flex-row border-b"
+          style={{ borderBottomColor: dividerColor, backgroundColor: topCellBackground }}
+        >
           <View
             className={`${compact ? 'p-3' : 'p-4'} w-1/2 justify-center border-r`}
             style={{
@@ -865,14 +879,14 @@ export function ProfessionalSectionRenderer({
             }}
           >
             {isBadge || isNeon ? (
-              <Text
-                className="mb-1 text-[9px] font-black uppercase tracking-widest"
-                style={{ color: slots.accent }}
-              >
+              <Text className="mb-1 text-[9px] font-black uppercase tracking-widest" style={{ color: slots.accent }}>
                 {isBadge ? 'Credential holder' : 'Identity node'}
               </Text>
             ) : null}
-            <View className="mb-1 h-0.5 w-10 rounded-full" style={{ backgroundColor: isBanner ? '#ffffff' : slots.accent }} />
+            <View
+              className="mb-1 h-0.5 w-10 rounded-full"
+              style={{ backgroundColor: isBanner ? '#ffffff' : slots.accent }}
+            />
             <ProfessionalName {...shared} slots={topSlots} name={professionalName} />
           </View>
           <View
@@ -881,7 +895,9 @@ export function ProfessionalSectionRenderer({
           >
             <View
               className={isSpotlight || isBadge ? 'rounded-full border px-3 py-1.5' : ''}
-              style={isSpotlight || isBadge ? { borderColor: slots.accent, backgroundColor: `${slots.accent}10` } : undefined}
+              style={
+                isSpotlight || isBadge ? { borderColor: slots.accent, backgroundColor: `${slots.accent}10` } : undefined
+              }
             >
               <Text
                 adjustsFontSizeToFit
@@ -925,12 +941,7 @@ export function ProfessionalSectionRenderer({
               </Text>
             ) : null}
             {showTagline ? (
-              <ProfessionalTagline
-                {...shared}
-                contrastOnGradient={isHero}
-                slots={gridSlots}
-                tagline={tagline}
-              />
+              <ProfessionalTagline {...shared} contrastOnGradient={isHero} slots={gridSlots} tagline={tagline} />
             ) : showEmpty ? (
               <Text className="text-xs font-semibold italic" style={{ color: gridSlots.textSecondary }}>
                 Professional tagline
@@ -940,7 +951,6 @@ export function ProfessionalSectionRenderer({
         </View>
       </>
     );
-
 
     return (
       <View
@@ -983,13 +993,7 @@ export function ProfessionalSectionRenderer({
             className={`${walletPass ? 'my-1' : 'my-2'} h-0.5 w-10 rounded-full`}
             style={{ backgroundColor: previewSlots.accent }}
           />
-          <ProfessionalRole
-            {...shared}
-            slots={previewSlots}
-            align="center"
-            title={title}
-            company={company}
-          />
+          <ProfessionalRole {...shared} slots={previewSlots} align="center" title={title} company={company} />
           {showTagline ? (
             <View className="mt-3 w-full max-w-[92%] border-t pt-3" style={{ borderColor: `${previewSlots.accent}55` }}>
               <ProfessionalTagline
@@ -1011,13 +1015,16 @@ export function ProfessionalSectionRenderer({
     return (
       <View
         className={`justify-between overflow-hidden p-4 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
-        style={[{
-          backgroundColor: slots.background,
-          borderColor: boxed ? slots.accent : undefined,
-          borderLeftColor: slots.accent,
-          borderLeftWidth: 5,
-          ...sectionBoundsStyle,
-        }, boxed ? BOXED_SHADOW_SM : null]}
+        style={[
+          {
+            backgroundColor: slots.background,
+            borderColor: boxed ? slots.accent : undefined,
+            borderLeftColor: slots.accent,
+            borderLeftWidth: 5,
+            ...sectionBoundsStyle,
+          },
+          boxed ? BOXED_SHADOW_SM : null,
+        ]}
       >
         <View>
           <ProfessionalName {...shared} name={professionalName} accreditations={accreditations} />
@@ -1039,7 +1046,10 @@ export function ProfessionalSectionRenderer({
     return (
       <View
         className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
-        style={[{ backgroundColor: slots.background, borderColor: slots.highlight, ...sectionBoundsStyle }, boxed ? BOXED_SHADOW_MD : null]}
+        style={[
+          { backgroundColor: slots.background, borderColor: slots.highlight, ...sectionBoundsStyle },
+          boxed ? BOXED_SHADOW_MD : null,
+        ]}
       >
         <View
           className={`flex-1 justify-between rounded-2xl border ${compact ? 'p-3.5' : 'p-5'}`}
@@ -1047,10 +1057,7 @@ export function ProfessionalSectionRenderer({
         >
           <View>
             <ProfessionalName {...shared} name={professionalName} accreditations={accreditations} />
-            <View
-              className={compact ? 'my-2 h-px' : 'my-4 h-px'}
-              style={{ backgroundColor: slots.highlight }}
-            />
+            <View className={compact ? 'my-2 h-px' : 'my-4 h-px'} style={{ backgroundColor: slots.highlight }} />
             <ProfessionalRole {...shared} title={title} company={company} />
           </View>
           {showTagline ? (
@@ -1071,7 +1078,10 @@ export function ProfessionalSectionRenderer({
     return (
       <View
         className={`flex-row items-center justify-between overflow-hidden px-4 py-3 ${boxed ? 'mb-5 rounded-[24px] border' : ''}`}
-        style={[{ backgroundColor: slots.surface, borderColor: slots.highlight, ...sectionBoundsStyle }, boxed ? BOXED_SHADOW_SM : null]}
+        style={[
+          { backgroundColor: slots.surface, borderColor: slots.highlight, ...sectionBoundsStyle },
+          boxed ? BOXED_SHADOW_SM : null,
+        ]}
       >
         <View className="min-w-0 flex-1">
           <Text numberOfLines={1} className="font-extrabold text-lg" style={{ color: slots.textPrimary }}>
@@ -1090,7 +1100,10 @@ export function ProfessionalSectionRenderer({
     return (
       <View
         className={`overflow-hidden p-5 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
-        style={[{ backgroundColor: slots.surface, borderColor: slots.highlight, ...sectionBoundsStyle }, boxed ? BOXED_SHADOW_SM : null]}
+        style={[
+          { backgroundColor: slots.surface, borderColor: slots.highlight, ...sectionBoundsStyle },
+          boxed ? BOXED_SHADOW_SM : null,
+        ]}
       >
         <ProfessionalName {...shared} name={professionalName} accreditations={accreditations} />
         <View className="my-3 h-px w-full" style={{ backgroundColor: slots.accent }} />
@@ -1109,13 +1122,23 @@ export function ProfessionalSectionRenderer({
     return (
       <View
         className={`items-center justify-center overflow-hidden p-5 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
-        style={[{ backgroundColor: slots.surface, borderColor: slots.highlight, ...sectionBoundsStyle }, boxed ? BOXED_SHADOW_SM : null]}
+        style={[
+          { backgroundColor: slots.surface, borderColor: slots.highlight, ...sectionBoundsStyle },
+          boxed ? BOXED_SHADOW_SM : null,
+        ]}
       >
         <ProfessionalName {...shared} align="center" name={professionalName} accreditations={accreditations} />
-        <View className="my-3 rounded-full px-4 py-1.5" style={{ backgroundColor: `${slots.accent}18`, borderWidth: 1, borderColor: slots.accent }}>
-          <Text className="text-xs font-black" style={{ color: slots.accent }}>{title}</Text>
+        <View
+          className="my-3 rounded-full px-4 py-1.5"
+          style={{ backgroundColor: `${slots.accent}18`, borderWidth: 1, borderColor: slots.accent }}
+        >
+          <Text className="text-xs font-black" style={{ color: slots.accent }}>
+            {title}
+          </Text>
         </View>
-        <Text className="text-sm font-bold" style={{ color: slots.textSecondary }}>{company}</Text>
+        <Text className="text-sm font-bold" style={{ color: slots.textSecondary }}>
+          {company}
+        </Text>
         {showTagline ? (
           <View
             className={`mt-4 w-full max-w-[94%] border-t ${compact ? 'pt-3' : 'pt-4'}`}
@@ -1131,21 +1154,28 @@ export function ProfessionalSectionRenderer({
   // Ribbon Header (banner): company ribbon at top, personal title in card body
   if (section.templateId === 'banner') {
     return (
-      <View className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`} style={[{ backgroundColor: slots.surface, borderColor: slots.highlight, ...sectionBoundsStyle }, boxed ? BOXED_SHADOW_SM : null]}>
+      <View
+        className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
+        style={[
+          { backgroundColor: slots.surface, borderColor: slots.highlight, ...sectionBoundsStyle },
+          boxed ? BOXED_SHADOW_SM : null,
+        ]}
+      >
         <View className="flex-row items-center justify-between px-4 py-2.5" style={{ backgroundColor: slots.accent }}>
-          <Text numberOfLines={1} className="text-xs font-black uppercase tracking-wider text-white flex-1 mr-2">{company}</Text>
+          <Text numberOfLines={1} className="text-xs font-black uppercase tracking-wider text-white flex-1 mr-2">
+            {company}
+          </Text>
           {accreditations ? <Text className="text-[10px] font-bold text-white/90">{accreditations}</Text> : null}
         </View>
         <View className="flex-1 p-4">
           <ProfessionalName {...shared} name={professionalName} />
           <View className="mt-2">
-            <Text className="text-sm font-extrabold" style={{ color: slots.accent }}>{title}</Text>
+            <Text className="text-sm font-extrabold" style={{ color: slots.accent }}>
+              {title}
+            </Text>
           </View>
           {showTagline ? (
-            <View
-              className={`mt-4 border-t ${compact ? 'pt-3' : 'pt-4'}`}
-              style={{ borderTopColor: slots.highlight }}
-            >
+            <View className={`mt-4 border-t ${compact ? 'pt-3' : 'pt-4'}`} style={{ borderTopColor: slots.highlight }}>
               <ProfessionalTagline {...shared} tagline={tagline} />
             </View>
           ) : null}
@@ -1157,11 +1187,20 @@ export function ProfessionalSectionRenderer({
   // Modular Bento (cards): dual cardlets for role & company
   if (section.templateId === 'cards') {
     return (
-      <View className={`overflow-hidden p-3 gap-2 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`} style={[{ backgroundColor: slots.background, ...sectionBoundsStyle }, boxed ? BOXED_SHADOW_SM : null]}>
-        <View className="rounded-2xl border p-3.5" style={{ backgroundColor: slots.surface, borderColor: slots.highlight }}>
+      <View
+        className={`overflow-hidden p-3 gap-2 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
+        style={[{ backgroundColor: slots.background, ...sectionBoundsStyle }, boxed ? BOXED_SHADOW_SM : null]}
+      >
+        <View
+          className="rounded-2xl border p-3.5"
+          style={{ backgroundColor: slots.surface, borderColor: slots.highlight }}
+        >
           <ProfessionalName {...shared} name={professionalName} accreditations={accreditations} />
         </View>
-        <View className="rounded-2xl border p-3.5" style={{ backgroundColor: slots.surface, borderColor: slots.highlight }}>
+        <View
+          className="rounded-2xl border p-3.5"
+          style={{ backgroundColor: slots.surface, borderColor: slots.highlight }}
+        >
           <ProfessionalRole {...shared} title={title} company={company} />
           {showTagline ? (
             <View className={`mt-3 border-t ${compact ? 'pt-3' : 'pt-4'}`} style={{ borderTopColor: slots.highlight }}>
@@ -1178,16 +1217,33 @@ export function ProfessionalSectionRenderer({
     return (
       <View
         className={`overflow-hidden p-4 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
-        style={[{ backgroundColor: slots.surface, borderColor: slots.accent, ...sectionBoundsStyle }, boxed ? BOXED_SHADOW_MD : null]}
+        style={[
+          { backgroundColor: slots.surface, borderColor: slots.accent, ...sectionBoundsStyle },
+          boxed ? BOXED_SHADOW_MD : null,
+        ]}
       >
-        <View className="flex-row items-center justify-between border-b pb-2 mb-3" style={{ borderBottomColor: slots.highlight }}>
-          <Text className="text-[10px] font-black uppercase tracking-wider" style={{ color: slots.accent }}>CREDENTIAL RECORD</Text>
-          <Text className="text-xs font-bold" style={{ color: slots.textSecondary }}>{company}</Text>
+        <View
+          className="flex-row items-center justify-between border-b pb-2 mb-3"
+          style={{ borderBottomColor: slots.highlight }}
+        >
+          <Text className="text-[10px] font-black uppercase tracking-wider" style={{ color: slots.accent }}>
+            CREDENTIAL RECORD
+          </Text>
+          <Text className="text-xs font-bold" style={{ color: slots.textSecondary }}>
+            {company}
+          </Text>
         </View>
         <ProfessionalName {...shared} name={professionalName} accreditations={accreditations} />
-        <View className="mt-3 rounded-xl border p-2.5" style={{ backgroundColor: slots.background, borderColor: slots.highlight }}>
-          <Text className="text-xs font-black uppercase" style={{ color: slots.accent }}>ROLE / TITLE</Text>
-          <Text className="text-sm font-bold mt-0.5" style={{ color: slots.textPrimary }}>{title}</Text>
+        <View
+          className="mt-3 rounded-xl border p-2.5"
+          style={{ backgroundColor: slots.background, borderColor: slots.highlight }}
+        >
+          <Text className="text-xs font-black uppercase" style={{ color: slots.accent }}>
+            ROLE / TITLE
+          </Text>
+          <Text className="text-sm font-bold mt-0.5" style={{ color: slots.textPrimary }}>
+            {title}
+          </Text>
         </View>
         {showTagline ? (
           <View className={`mt-4 border-t ${compact ? 'pt-3' : 'pt-4'}`} style={{ borderTopColor: slots.highlight }}>
@@ -1201,15 +1257,28 @@ export function ProfessionalSectionRenderer({
   // 50/50 Dual Column (split): left column for role/company, right for accreditations/tagline
   if (section.templateId === 'split') {
     return (
-      <View className={`flex-row overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`} style={[{ backgroundColor: slots.surface, borderColor: slots.highlight, ...sectionBoundsStyle }, boxed ? BOXED_SHADOW_SM : null]}>
-        <View className="w-1/2 p-4 border-r" style={{ borderRightColor: slots.highlight, backgroundColor: slots.background }}>
+      <View
+        className={`flex-row overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
+        style={[
+          { backgroundColor: slots.surface, borderColor: slots.highlight, ...sectionBoundsStyle },
+          boxed ? BOXED_SHADOW_SM : null,
+        ]}
+      >
+        <View
+          className="w-1/2 p-4 border-r"
+          style={{ borderRightColor: slots.highlight, backgroundColor: slots.background }}
+        >
           <ProfessionalName {...shared} name={professionalName} />
           <View className="mt-2">
-            <Text className="text-sm font-extrabold" style={{ color: slots.accent }}>{title}</Text>
+            <Text className="text-sm font-extrabold" style={{ color: slots.accent }}>
+              {title}
+            </Text>
           </View>
         </View>
         <View className="w-1/2 p-4 justify-between" style={{ backgroundColor: slots.surface }}>
-          <Text className="text-sm font-bold" style={{ color: slots.textSecondary }}>{company}</Text>
+          <Text className="text-sm font-bold" style={{ color: slots.textSecondary }}>
+            {company}
+          </Text>
           {showTagline ? (
             <View className="mt-3">
               <ProfessionalTagline {...shared} tagline={tagline} centered />
@@ -1225,7 +1294,10 @@ export function ProfessionalSectionRenderer({
     return (
       <View
         className={`overflow-hidden p-4 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
-        style={[{ backgroundColor: slots.background, borderColor: slots.accent, borderWidth: 2, ...sectionBoundsStyle }, boxed ? BOXED_SHADOW_SM : null]}
+        style={[
+          { backgroundColor: slots.background, borderColor: slots.accent, borderWidth: 2, ...sectionBoundsStyle },
+          boxed ? BOXED_SHADOW_SM : null,
+        ]}
       >
         <ProfessionalName {...shared} name={professionalName} accreditations={accreditations} />
         <View className="my-3 h-0.5 w-full" style={{ backgroundColor: slots.accent }} />
@@ -1242,17 +1314,25 @@ export function ProfessionalSectionRenderer({
   // Corporate Card: a restrained 2x2 information grid on a clean surface.
   const corporateSlots = {
     ...slots,
-    surface: CORPORATE_CARD_DEFAULT_BACKGROUND,
-    textPrimary: '#0f172a',
-    textSecondary: '#475569',
+    surface: slots.surface,
   };
   return (
     <View
       className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
-      style={[{ backgroundColor: CORPORATE_CARD_DEFAULT_BACKGROUND, borderColor: boxed ? slots.accent : undefined, ...sectionBoundsStyle }, boxed ? BOXED_SHADOW_SM : null]}
+      style={[
+        {
+          backgroundColor: slots.surface,
+          borderColor: boxed ? slots.accent : undefined,
+          ...sectionBoundsStyle,
+        },
+        boxed ? BOXED_SHADOW_SM : null,
+      ]}
     >
       <View className="flex-1 flex-row border-b" style={{ borderBottomColor: `${slots.accent}30` }}>
-        <View className={`${compact ? 'p-3' : 'p-4'} w-1/2 justify-center border-r`} style={{ borderRightColor: `${slots.accent}30` }}>
+        <View
+          className={`${compact ? 'p-3' : 'p-4'} w-1/2 justify-center border-r`}
+          style={{ borderRightColor: `${slots.accent}30` }}
+        >
           <View className="mb-1 h-0.5 w-10 rounded-full" style={{ backgroundColor: slots.accent }} />
           <ProfessionalName {...shared} slots={corporateSlots} name={professionalName} />
         </View>
@@ -1274,7 +1354,10 @@ export function ProfessionalSectionRenderer({
         </View>
       </View>
       <View className="flex-1 flex-row">
-        <View className={`${compact ? 'p-3' : 'p-4'} w-1/2 justify-center border-r`} style={{ borderRightColor: `${slots.accent}30` }}>
+        <View
+          className={`${compact ? 'p-3' : 'p-4'} w-1/2 justify-center border-r`}
+          style={{ borderRightColor: `${slots.accent}30` }}
+        >
           <ProfessionalRole {...shared} slots={corporateSlots} title={title} company={company} />
         </View>
         <View className={`${compact ? 'p-3' : 'p-4'} w-1/2 justify-center`}>

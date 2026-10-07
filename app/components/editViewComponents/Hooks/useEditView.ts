@@ -18,8 +18,8 @@ import { validateCard } from '../Utils/validateCard';
 
 const SECTION_FIELD_IDS: Record<Exclude<CardSectionId, 'connections'>, CardSectionFieldId[]> = {
   identity: ['preferredName', 'coverPhoto', 'profilePhoto', 'logo'],
-  professional: ['tagline', 'accreditations', 'prefix', 'suffix', 'firstName', 'middleName', 'lastName', 'title', 'company'],
-  bio: ['bio'],
+  professional: ['accreditations', 'prefix', 'suffix', 'firstName', 'middleName', 'lastName', 'title', 'company'],
+  bio: ['tagline', 'bio'],
 };
 
 /** Server-owned metadata (timestamps, primary state) must not make the editor dirty. */
@@ -54,16 +54,19 @@ export function useEditView(cardId?: string, startInEditMode = false, initialCar
       JSON.stringify(draft.sectionThemes[section]) !== JSON.stringify(card.sectionThemes[section]) ||
       JSON.stringify(draft.customThemes ?? []) !== JSON.stringify(card.customThemes ?? []);
     if (section === 'connections') {
-      return commonChanged ||
+      return (
+        commonChanged ||
         draft.connectionFieldsCustomized !== card.connectionFieldsCustomized ||
-        JSON.stringify(draft.connectionFields) !== JSON.stringify(card.connectionFields);
+        JSON.stringify(draft.connectionFields) !== JSON.stringify(card.connectionFields)
+      );
     }
 
     const fieldsChanged = SECTION_FIELD_IDS[section].some(
       (field) => draft.sectionOverrides[field] !== card.sectionOverrides[field],
     );
     if (section === 'identity') return commonChanged || fieldsChanged || draft.name !== card.name;
-    if (section === 'professional') return commonChanged || fieldsChanged || draft.title !== card.title || draft.company !== card.company;
+    if (section === 'professional')
+      return commonChanged || fieldsChanged || draft.title !== card.title || draft.company !== card.company;
     return commonChanged || fieldsChanged;
   };
 
@@ -72,11 +75,19 @@ export function useEditView(cardId?: string, startInEditMode = false, initialCar
       setDraft({
         ...card,
         cardTheme: { ...card.cardTheme, gradient: [...card.cardTheme.gradient] },
-        sectionThemes: Object.fromEntries(Object.entries(card.sectionThemes).map(([section, theme]) => [section, { ...theme, gradient: [...theme.gradient] }])) as EditableCard['sectionThemes'],
+        sectionThemes: Object.fromEntries(
+          Object.entries(card.sectionThemes).map(([section, theme]) => [
+            section,
+            { ...theme, gradient: [...theme.gradient] },
+          ]),
+        ) as EditableCard['sectionThemes'],
         sectionLayouts: { ...card.sectionLayouts },
         sectionOverrides: { ...card.sectionOverrides },
         connectionFields: card.connectionFields.map((field) => ({ ...field })),
-        customThemes: (card.customThemes ?? []).map((item) => ({ ...item, gradient: [item.gradient[0], item.gradient[1]] as [string, string] })),
+        customThemes: (card.customThemes ?? []).map((item) => ({
+          ...item,
+          gradient: [item.gradient[0], item.gradient[1]] as [string, string],
+        })),
       });
     }
     setIsEditing(true);
@@ -88,11 +99,19 @@ export function useEditView(cardId?: string, startInEditMode = false, initialCar
     setDraft({
       ...card,
       cardTheme: { ...card.cardTheme, gradient: [...card.cardTheme.gradient] },
-      sectionThemes: Object.fromEntries(Object.entries(card.sectionThemes).map(([section, theme]) => [section, { ...theme, gradient: [...theme.gradient] }])) as EditableCard['sectionThemes'],
+      sectionThemes: Object.fromEntries(
+        Object.entries(card.sectionThemes).map(([section, theme]) => [
+          section,
+          { ...theme, gradient: [...theme.gradient] },
+        ]),
+      ) as EditableCard['sectionThemes'],
       sectionLayouts: { ...card.sectionLayouts },
       sectionOverrides: { ...card.sectionOverrides },
       connectionFields: card.connectionFields.map((field) => ({ ...field })),
-      customThemes: (card.customThemes ?? []).map((item) => ({ ...item, gradient: [item.gradient[0], item.gradient[1]] as [string, string] })),
+      customThemes: (card.customThemes ?? []).map((item) => ({
+        ...item,
+        gradient: [item.gradient[0], item.gradient[1]] as [string, string],
+      })),
     });
     setIsEditing(false);
   };
@@ -102,11 +121,12 @@ export function useEditView(cardId?: string, startInEditMode = false, initialCar
   };
 
   const updateSectionLayout = (section: CardSectionId, template: CardLayoutId) => {
-    const resolved = section === 'identity'
-      ? resolveIdentityLayoutId(template)
-      : section === 'professional'
-        ? resolveProfessionalLayoutId(template)
-        : template;
+    const resolved =
+      section === 'identity'
+        ? resolveIdentityLayoutId(template)
+        : section === 'professional'
+          ? resolveProfessionalLayoutId(template)
+          : template;
     setDraft((prev) => ({ ...prev, sectionLayouts: { ...prev.sectionLayouts, [section]: resolved } }));
   };
 
@@ -156,13 +176,9 @@ export function useEditView(cardId?: string, startInEditMode = false, initialCar
         },
         sectionOverrides,
         connectionFields:
-          section === 'connections'
-            ? card.connectionFields.map((field) => ({ ...field }))
-            : current.connectionFields,
+          section === 'connections' ? card.connectionFields.map((field) => ({ ...field })) : current.connectionFields,
         connectionFieldsCustomized:
-          section === 'connections'
-            ? card.connectionFieldsCustomized
-            : current.connectionFieldsCustomized,
+          section === 'connections' ? card.connectionFieldsCustomized : current.connectionFieldsCustomized,
         customThemes: (card.customThemes ?? []).map((item) => ({
           ...item,
           gradient: [item.gradient[0], item.gradient[1]] as [string, string],
@@ -226,8 +242,12 @@ export function useEditView(cardId?: string, startInEditMode = false, initialCar
       },
       sectionLayouts: { ...card.sectionLayouts, [section]: draft.sectionLayouts[section] },
       sectionOverrides,
-      connectionFields: section === 'connections' ? draft.connectionFields.map((field) => ({ ...field })) : card.connectionFields.map((field) => ({ ...field })),
-      connectionFieldsCustomized: section === 'connections' ? draft.connectionFieldsCustomized : card.connectionFieldsCustomized,
+      connectionFields:
+        section === 'connections'
+          ? draft.connectionFields.map((field) => ({ ...field }))
+          : card.connectionFields.map((field) => ({ ...field })),
+      connectionFieldsCustomized:
+        section === 'connections' ? draft.connectionFieldsCustomized : card.connectionFieldsCustomized,
       customThemes: (draft.customThemes ?? []).map((item) => ({
         ...item,
         gradient: [item.gradient[0], item.gradient[1]] as [string, string],
@@ -274,12 +294,12 @@ export function useEditView(cardId?: string, startInEditMode = false, initialCar
             },
           },
           sectionOverrides,
-          connectionFields: section === 'connections'
-            ? saved.connectionFields.map((field) => ({ ...field }))
-            : current.connectionFields,
-          connectionFieldsCustomized: section === 'connections'
-            ? saved.connectionFieldsCustomized
-            : current.connectionFieldsCustomized,
+          connectionFields:
+            section === 'connections'
+              ? saved.connectionFields.map((field) => ({ ...field }))
+              : current.connectionFields,
+          connectionFieldsCustomized:
+            section === 'connections' ? saved.connectionFieldsCustomized : current.connectionFieldsCustomized,
           customThemes: (saved.customThemes ?? []).map((item) => ({
             ...item,
             gradient: [item.gradient[0], item.gradient[1]] as [string, string],

@@ -10,24 +10,20 @@ import { normalizeHexColor } from '@/utils/cardThemeColor';
 /** Rainbow spectrum fallback behind HueSlider — the library's own hue track
  * relies solely on a bundled image with no background-color fallback (unlike
  * Saturation/Brightness), so it can render blank with no visible track. */
-const HUE_SPECTRUM_COLORS = [
-  '#ff0000',
-  '#ffff00',
-  '#00ff00',
-  '#00ffff',
-  '#0000ff',
-  '#ff00ff',
-  '#ff0000',
-] as const;
+const HUE_SPECTRUM_COLORS = ['#ff0000', '#ffff00', '#00ff00', '#00ffff', '#0000ff', '#ff00ff', '#ff0000'] as const;
 
 type ColorPickerDropdownProps = {
   compactTrigger?: boolean;
+  editorExpanded?: boolean;
+  largeExpandedPicker?: boolean;
   label: string;
   value: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onChange: (hex: string) => void;
   responsiveToEditorSheet?: boolean;
+  showLabel?: boolean;
+  showPickerPreview?: boolean;
   showPanel?: boolean;
   showTrigger?: boolean;
 };
@@ -41,16 +37,23 @@ const PICKER_THUMB = {
 
 export function ColorPickerDropdown({
   compactTrigger = false,
+  editorExpanded,
+  largeExpandedPicker = false,
   label,
   value,
   open,
   onOpenChange,
   onChange,
   responsiveToEditorSheet = false,
+  showLabel = true,
+  showPickerPreview = true,
   showPanel = open,
   showTrigger = true,
 }: ColorPickerDropdownProps) {
   const normalizedValue = normalizeHexColor(value) ?? '#2563eb';
+  const expandedPreviewHeight = largeExpandedPicker ? 88 : 52;
+  const expandedPanelHeight = largeExpandedPicker ? 300 : 148;
+  const expandedPickerHeight = largeExpandedPicker ? 492 : 304;
   const [hexDraft, setHexDraft] = useState(normalizedValue.replace('#', '').toUpperCase());
 
   useEffect(() => {
@@ -87,7 +90,12 @@ export function ColorPickerDropdown({
       <TextInput
         value={hexDraft}
         onChangeText={(text) =>
-          setHexDraft(text.replace(/[^0-9a-fA-F]/g, '').slice(0, 6).toUpperCase())
+          setHexDraft(
+            text
+              .replace(/[^0-9a-fA-F]/g, '')
+              .slice(0, 6)
+              .toUpperCase(),
+          )
         }
         onBlur={commitHex}
         onSubmitEditing={commitHex}
@@ -108,7 +116,7 @@ export function ColorPickerDropdown({
       style={{ width: '100%' }}
     >
       <View className="h-[192px] flex-row gap-4">
-        <View className="flex-[1.65] justify-center">
+        <View className={showPickerPreview ? 'flex-[1.65] justify-center' : 'flex-1 justify-center'}>
           <View className="mb-4">
             <Text className="mb-2 text-[10px] font-bold uppercase tracking-wide text-textMuted dark:text-dark-textMuted">
               Hue
@@ -155,26 +163,28 @@ export function ColorPickerDropdown({
             />
           </View>
         </View>
-        <View className="flex-1 justify-center">
-          <Text className="mb-2 text-center text-[10px] font-bold uppercase tracking-wide text-textMuted dark:text-dark-textMuted">
-            Color
-          </Text>
-          <Preview
-            hideText
-            hideInitialColor
-            disableOpacityTexture
-            style={{
-              alignSelf: 'center',
-              width: 58,
-              height: 58,
-              borderRadius: 14,
-              marginBottom: 8,
-              borderWidth: 1,
-              borderColor: 'rgba(148, 163, 184, 0.35)',
-            }}
-          />
-          {hexInput}
-        </View>
+        {showPickerPreview ? (
+          <View className="flex-1 justify-center">
+            <Text className="mb-2 text-center text-[10px] font-bold uppercase tracking-wide text-textMuted dark:text-dark-textMuted">
+              Color
+            </Text>
+            <Preview
+              hideText
+              hideInitialColor
+              disableOpacityTexture
+              style={{
+                alignSelf: 'center',
+                width: 58,
+                height: 58,
+                borderRadius: 14,
+                marginBottom: 8,
+                borderWidth: 1,
+                borderColor: 'rgba(148, 163, 184, 0.35)',
+              }}
+            />
+            {hexInput}
+          </View>
+        ) : null}
       </View>
     </ColorPicker>
   );
@@ -187,25 +197,27 @@ export function ColorPickerDropdown({
       {...PICKER_THUMB}
       style={{ width: '100%' }}
     >
-      <Preview
-        hideText
-        hideInitialColor
-        disableOpacityTexture
-        style={{
-          width: '100%',
-          height: 52,
-          borderRadius: 14,
-          marginBottom: 14,
-          borderWidth: 1,
-          borderColor: 'rgba(148, 163, 184, 0.35)',
-        }}
-      />
+      {showPickerPreview ? (
+        <Preview
+          hideText
+          hideInitialColor
+          disableOpacityTexture
+          style={{
+            width: '100%',
+            height: expandedPreviewHeight,
+            borderRadius: 14,
+            marginBottom: 14,
+            borderWidth: 1,
+            borderColor: 'rgba(148, 163, 184, 0.35)',
+          }}
+        />
+      ) : null}
 
       <Panel1
         {...PICKER_THUMB}
         style={{
           width: '100%',
-          height: 148,
+          height: expandedPanelHeight,
           borderRadius: 16,
           marginBottom: 14,
           borderWidth: 1,
@@ -226,14 +238,10 @@ export function ColorPickerDropdown({
           overflow: 'hidden',
         }}
       >
-        <HueSlider
-          {...PICKER_THUMB}
-          sliderThickness={14}
-          style={{ width: '100%', height: 14, borderRadius: 999 }}
-        />
+        <HueSlider {...PICKER_THUMB} sliderThickness={14} style={{ width: '100%', height: 14, borderRadius: 999 }} />
       </LinearGradient>
 
-      <View className="mt-4">{hexInput}</View>
+      {showPickerPreview ? <View className="mt-4">{hexInput}</View> : null}
     </ColorPicker>
   );
 
@@ -241,7 +249,7 @@ export function ColorPickerDropdown({
     <View className={compactTrigger ? 'mb-0' : 'mb-4'}>
       {showTrigger ? (
         <>
-          {!compactTrigger ? (
+          {!compactTrigger && showLabel ? (
             <Text className="mb-2 text-xs font-bold uppercase tracking-wider text-textMuted dark:text-dark-textMuted">
               {label}
             </Text>
@@ -252,9 +260,7 @@ export function ColorPickerDropdown({
             accessibilityState={{ expanded: open }}
             onPress={() => onOpenChange(!open)}
             className={`${compactTrigger ? 'min-h-[72px] items-center justify-center px-1.5 py-2' : 'flex-row items-center px-3 py-3'} rounded-xl border bg-card dark:bg-dark-card ${
-              open
-                ? 'border-primary dark:border-dark-primary'
-                : 'border-slate-200 dark:border-slate-700'
+              open ? 'border-primary dark:border-dark-primary' : 'border-slate-200 dark:border-slate-700'
             }`}
           >
             <View
@@ -279,15 +285,21 @@ export function ColorPickerDropdown({
       ) : null}
 
       {showPanel ? (
-        <View className={`${showTrigger ? 'mt-3' : ''} rounded-2xl border border-slate-200 bg-card p-4 dark:border-slate-700 dark:bg-dark-card`}>
-          {responsiveToEditorSheet ? (
+        <View
+          className={`${showTrigger ? 'mt-3' : ''} rounded-2xl border border-slate-200 bg-card p-4 dark:border-slate-700 dark:bg-dark-card`}
+        >
+          {responsiveToEditorSheet && editorExpanded === undefined ? (
             <EditorPresentationCrossfade
               compact={compactPicker}
               expanded={expandedPicker}
               compactHeight={192}
-              expandedHeight={304}
+              expandedHeight={expandedPickerHeight}
             />
-          ) : expandedPicker}
+          ) : editorExpanded === false ? (
+            compactPicker
+          ) : (
+            expandedPicker
+          )}
         </View>
       ) : null}
     </View>
