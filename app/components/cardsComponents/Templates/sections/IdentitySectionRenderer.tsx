@@ -46,10 +46,10 @@ export function IdentitySectionRenderer({
   const classicProfileSize = walletPass
     ? 48
     : fullCardView
-      ? Math.max(56, Math.min(88, Math.round(fullCardIdentityHeight * 0.42)))
+      ? Math.max(64, Math.min(104, Math.round(fullCardIdentityHeight * 0.48)))
       : compact
-        ? 72
-        : 88;
+        ? 80
+        : 96;
   const homePreview = compact && seamless;
   const shellStyle = {
     backgroundColor: slots.background,
@@ -66,7 +66,18 @@ export function IdentitySectionRenderer({
 
   // 1. Split profile (minimal): cover/avatar on the left and logo on the right.
   if (layoutId === 'minimal') {
-    const minimalProfileSize = walletPass ? 44 : fullCardView ? 72 : compact ? 64 : 80;
+    const minimalProfileSize = walletPass
+      ? 44
+      : fullCardView
+        ? Math.max(68, Math.min(96, Math.round(fullCardIdentityHeight * 0.45)))
+        : compact
+          ? 70
+          : 88;
+    const minimalLogoWidth = fullCardView
+      ? Math.max(120, Math.min(180, Math.round(windowWidth * 0.3)))
+      : compact
+        ? 112
+        : 144;
     return (
       <View
         className={`flex-row overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
@@ -126,6 +137,7 @@ export function IdentitySectionRenderer({
               cardTheme={cardTheme}
               compact={compact}
               field={logo}
+              logoSize={{ width: minimalLogoWidth, height: Math.round(minimalLogoWidth * (56 / 152)) }}
               placement="on-surface"
               slots={slots}
               templateId={layoutId}
@@ -139,14 +151,17 @@ export function IdentitySectionRenderer({
   // 2. Hero banner (bold): full-bleed media
   if (layoutId === 'bold') {
     const boldProfileSize = fullCardView
-      ? fullCardIdentityHeight < 220
-        ? Math.max(72, Math.min(88, Math.round(fullCardIdentityHeight * 0.4)))
-        : Math.max(88, Math.min(112, Math.round(fullCardIdentityHeight * 0.42)))
+      ? Math.max(76, Math.min(112, Math.round(fullCardIdentityHeight * 0.5)))
       : compact
-        ? 64
+        ? 74
         : 104;
     const boldEdgeInset = fullCardView ? 20 : 12;
     const boldBottomInset = fullCardView ? 20 : 12;
+    const boldLogoWidth = fullCardView
+      ? Math.max(140, Math.min(190, Math.round(windowWidth * 0.34)))
+      : compact
+        ? 132
+        : 172;
     return (
       <View
         className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
@@ -168,6 +183,7 @@ export function IdentitySectionRenderer({
             cardTheme={cardTheme}
             compact
             field={logo}
+            logoSize={{ width: boldLogoWidth, height: Math.round(boldLogoWidth * (56 / 152)) }}
             placement="on-cover"
             slots={slots}
             templateId={layoutId}
@@ -196,15 +212,15 @@ export function IdentitySectionRenderer({
   // 3. Magazine Monograph (editorial): full cover, bare logo, then portrait row.
   if (layoutId === 'editorial') {
     const editorialProfileSize = fullCardView
-      ? Math.max(80, Math.min(108, Math.round(fullCardIdentityHeight * 0.4)))
+      ? Math.max(68, Math.min(92, Math.round(fullCardIdentityHeight * 0.4)))
       : compact
-        ? 72
-        : 96;
+        ? 68
+        : 88;
     const editorialLogoWidth = fullCardView
-      ? Math.max(220, Math.min(300, Math.round(windowWidth * 0.7)))
+      ? Math.max(170, Math.min(240, Math.round(windowWidth * 0.52)))
       : compact
-        ? 180
-        : 240;
+        ? 148
+        : 200;
     const editorialLogoHeight = Math.round(editorialLogoWidth * (56 / 152));
     return (
       <View
@@ -213,8 +229,11 @@ export function IdentitySectionRenderer({
       >
         <IdentityImage field={cover} {...imageColors} style={StyleSheet.absoluteFill} />
         <LinearGradient colors={['rgba(2,6,23,0.18)', 'rgba(2,6,23,0.78)']} style={StyleSheet.absoluteFill} />
-        <View className="h-full w-full px-4 pb-3 pt-2">
-          <View className="w-full items-center justify-center" style={{ height: '44%' }}>
+        <View className="h-full w-full items-center justify-center px-4">
+          <View
+            className="w-full items-center justify-center"
+            style={{ transform: [{ translateY: fullCardView ? -18 : compact ? -12 : -16 }] }}
+          >
             <UniversalLogoBadge
               bare
               cardTheme={cardTheme}
@@ -225,19 +244,19 @@ export function IdentitySectionRenderer({
               templateId={layoutId}
             />
           </View>
-          <View className="w-full flex-1 flex-row items-center">
-            <IdentityImage
-              field={profile}
-              {...imageColors}
-              style={{
-                width: editorialProfileSize,
-                height: editorialProfileSize,
-                borderRadius: 16,
-                borderWidth: 2,
-                borderColor: 'rgba(255,255,255,0.78)',
-              }}
-            />
-          </View>
+        </View>
+        <View className="absolute bottom-3 left-3">
+          <IdentityImage
+            field={profile}
+            {...imageColors}
+            style={{
+              width: editorialProfileSize,
+              height: editorialProfileSize,
+              borderRadius: 16,
+              borderWidth: 2,
+              borderColor: 'rgba(255,255,255,0.78)',
+            }}
+          />
         </View>
       </View>
     );
@@ -246,11 +265,16 @@ export function IdentitySectionRenderer({
   // 4. Brand Spotlight (spotlight): full cover photo with a large bare logo.
   if (layoutId === 'spotlight') {
     const spotlightLogoWidth = fullCardView
-      ? Math.max(220, Math.min(360, Math.round(windowWidth * 0.72)))
+      ? Math.max(180, Math.min(280, Math.round(windowWidth * 0.58)))
       : compact
-        ? 220
-        : 260;
+        ? 170
+        : 230;
     const spotlightLogoHeight = Math.round(spotlightLogoWidth * (56 / 152));
+    const spotlightProfileSize = fullCardView
+      ? Math.max(62, Math.min(88, Math.round(fullCardIdentityHeight * 0.38)))
+      : compact
+        ? 64
+        : 82;
     return (
       <View
         className={`items-center justify-center overflow-hidden px-5 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
@@ -259,7 +283,10 @@ export function IdentitySectionRenderer({
         <IdentityImage field={cover} {...imageColors} style={StyleSheet.absoluteFill} />
         <LinearGradient colors={['rgba(2,6,23,0.25)', 'rgba(2,6,23,0.72)']} style={StyleSheet.absoluteFill} />
         <View className="h-full w-full items-center justify-center px-4">
-          <View className="w-full items-center justify-center">
+          <View
+            className="w-full items-center justify-center"
+            style={{ transform: [{ translateY: fullCardView ? -18 : compact ? -12 : -16 }] }}
+          >
             <UniversalLogoBadge
               bare
               cardTheme={cardTheme}
@@ -271,6 +298,19 @@ export function IdentitySectionRenderer({
             />
           </View>
         </View>
+        <View className="absolute bottom-2 left-3">
+          <IdentityImage
+            field={profile}
+            {...imageColors}
+            style={{
+              width: spotlightProfileSize,
+              height: spotlightProfileSize,
+              borderRadius: spotlightProfileSize / 2,
+              borderWidth: 3,
+              borderColor: slots.accent,
+            }}
+          />
+        </View>
       </View>
     );
   }
@@ -278,28 +318,22 @@ export function IdentitySectionRenderer({
   // 5. Dual Column (split): 30% full-height cover with identity content in the 70% right pane.
   if (layoutId === 'split') {
     const splitProfileSize = fullCardView
-      ? fullCardIdentityHeight < 220
-        ? Math.max(60, Math.min(76, Math.round(fullCardIdentityHeight * 0.35)))
-        : Math.max(76, Math.min(96, Math.round(fullCardIdentityHeight * 0.34)))
+      ? Math.max(72, Math.min(104, Math.round(fullCardIdentityHeight * 0.47)))
       : compact
-        ? 64
+        ? 74
         : 96;
-    const splitContentTopPadding = fullCardView ? (fullCardIdentityHeight < 220 ? 36 : 48) : 12;
     return (
       <View
         className={`flex-row overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
         style={[shellStyle, boxed ? BOXED_SHADOW_SM : null]}
       >
         <View
-          className="h-full w-[30%] overflow-hidden"
+          className="h-full w-[40%] overflow-hidden"
           style={{ backgroundColor: slots.background, borderRightWidth: 1, borderRightColor: slots.highlight }}
         >
           <IdentityImage field={cover} {...imageColors} style={StyleSheet.absoluteFill} />
         </View>
-        <View
-          className="relative flex-1 justify-start px-4 pb-3"
-          style={{ backgroundColor: slots.surface, paddingTop: splitContentTopPadding }}
-        >
+        <View className="relative flex-1 items-center justify-center px-4" style={{ backgroundColor: slots.surface }}>
           <View className="absolute right-3 top-3 z-10">
             <UniversalLogoBadge
               bare
@@ -311,7 +345,7 @@ export function IdentitySectionRenderer({
               templateId={layoutId}
             />
           </View>
-          <View className="w-full items-start">
+          <View className="w-full items-center justify-center">
             <IdentityImage
               field={profile}
               {...imageColors}
@@ -329,7 +363,14 @@ export function IdentitySectionRenderer({
     );
   }
 
-  const classicTopHeight = fullCardView ? '48%' : '60%';
+  const classicTopHeight = fullCardView ? '66%' : '62%';
+  const classicLogoWidth = walletPass
+    ? 116
+    : fullCardView
+      ? Math.max(140, Math.min(190, Math.round(windowWidth * 0.34)))
+      : compact
+        ? 132
+        : 172;
   // 1. Classic (layout-1): cover with an overlapping profile image and no name field.
   return (
     <View
@@ -352,6 +393,7 @@ export function IdentitySectionRenderer({
               cardTheme={cardTheme}
               compact={compact || walletPass}
               field={logo}
+              logoSize={{ width: classicLogoWidth, height: Math.round(classicLogoWidth * (56 / 152)) }}
               placement="on-cover"
               slots={slots}
               templateId={layoutId}
