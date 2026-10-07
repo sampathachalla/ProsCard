@@ -25,6 +25,10 @@ EXPO_URL="exp://metro.${OCI_HOST}.nip.io"
 TUNNEL_API="${TUNNEL_API:-0}"
 RUNTIME_DIRECTORY="/tmp/proscard-oci-tunnel"
 TUNNEL_LOG="${RUNTIME_DIRECTORY}/tunnel.log"
+SSH_KEEPALIVE_SECONDS="${SSH_KEEPALIVE_SECONDS:-5}"
+SSH_KEEPALIVE_FAILURES="${SSH_KEEPALIVE_FAILURES:-3}"
+TUNNEL_RECONNECT_DELAY_SECONDS="${TUNNEL_RECONNECT_DELAY_SECONDS:-1}"
+TUNNEL_WATCHDOG_INTERVAL_SECONDS="${TUNNEL_WATCHDOG_INTERVAL_SECONDS:-10}"
 
 mkdir -p "${RUNTIME_DIRECTORY}"
 : >"${TUNNEL_LOG}"
@@ -33,8 +37,9 @@ SSH_OPTIONS=(
   -i "${OCI_SSH_KEY}"
   -o BatchMode=yes
   -o ConnectTimeout=15
-  -o ServerAliveInterval=15
-  -o ServerAliveCountMax=3
+  -o ServerAliveInterval="${SSH_KEEPALIVE_SECONDS}"
+  -o ServerAliveCountMax="${SSH_KEEPALIVE_FAILURES}"
+  -o TCPKeepAlive=yes
   -o StrictHostKeyChecking=accept-new
 )
 
@@ -77,8 +82,8 @@ tunnel_loop() {
       -o ExitOnForwardFailure=yes \
       "${FORWARDS[@]}" \
       "${OCI_USER}@${OCI_HOST}" >>"${TUNNEL_LOG}" 2>&1 || true
-    print "[$(date +%T)] tunnel closed; reconnecting in 3s" >>"${TUNNEL_LOG}"
-    sleep 3
+    print "[$(date +%T)] tunnel closed; reconnecting in ${TUNNEL_RECONNECT_DELAY_SECONDS}s" >>"${TUNNEL_LOG}"
+    sleep "${TUNNEL_RECONNECT_DELAY_SECONDS}"
   done
 }
 
@@ -91,7 +96,7 @@ watchdog_loop() {
     public_check="${API_URL}/health" local_check="http://127.0.0.1:${API_PORT}/health"
   fi
   while true; do
-    sleep 30
+    sleep "${TUNNEL_WATCHDOG_INTERVAL_SECONDS}"
     if curl -fsS -m 10 "${public_check}" >/dev/null 2>&1; then
       failures=0
     elif curl -fsS -m 5 "${local_check}" >/dev/null 2>&1; then

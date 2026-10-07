@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Award, Building2 } from 'lucide-react-native';
 import { Text } from '@/components/uiComponents/Text';
 import type { CardDetailSection } from '../cardDetailTemplate';
-import type { CardVisualTheme, ResolvedLayoutSlots } from '../../types/card.types';
+import type { CardTemplateId, CardVisualTheme, ResolvedLayoutSlots } from '../../types/card.types';
 import { getCardFontFamily, getCardLetterSpacing } from '../cardTheme';
 import {
   fitAccreditationsToViewport,
@@ -40,20 +40,24 @@ function ProfessionalName({
   cardTheme,
   compact,
   emphasized = false,
+  fontSize,
   name,
+  numberOfLines,
   slots,
 }: SharedPieceProps & {
   accreditations?: string;
   align?: 'left' | 'center' | 'right';
   emphasized?: boolean;
+  fontSize?: number;
   name: string;
+  numberOfLines?: number;
 }) {
   const displayName = [name, accreditations?.trim()].filter(Boolean).join(', ');
   return (
     <Text
       adjustsFontSizeToFit
       minimumFontScale={0.72}
-      numberOfLines={compact ? 2 : 3}
+      numberOfLines={numberOfLines ?? (compact ? 2 : 3)}
       className={
         emphasized
           ? compact
@@ -65,8 +69,10 @@ function ProfessionalName({
       }
       style={{
         color: slots.textPrimary,
+        fontSize,
         fontFamily: getCardFontFamily(cardTheme.fontStyle),
         letterSpacing: getCardLetterSpacing(cardTheme.fontStyle),
+        lineHeight: fontSize ? Math.ceil(fontSize * 1.14) : undefined,
         textAlign: align,
       }}
     >
@@ -265,16 +271,342 @@ export function ProfessionalSectionRenderer({
       ? sectionBoundsStyle
       : undefined;
   const homeCenterStyle = homePreview ? ({ justifyContent: 'center', alignItems: 'center' } as const) : undefined;
+  const responsiveNameFontSize = getResponsiveSingleLineFontSize(
+    viewportWidth - (compact ? 40 : 56),
+    professionalName.length,
+    compact ? 20 : 24,
+    compact ? 30 : 36,
+    0.52,
+  );
+  const executiveNameFontSize = getResponsiveSingleLineFontSize(
+    viewportWidth - (compact ? 40 : 56),
+    professionalName.length,
+    compact ? 30 : 36,
+    compact ? 45 : 54,
+    0.52,
+  );
+  const companyFocusCompanyFontSize = getResponsiveSingleLineFontSize(
+    viewportWidth - (compact ? 92 : 116),
+    company.length,
+    compact ? 20 : 24,
+    compact ? 27 : 36,
+    0.58,
+  );
+  const companyFocusFooterNameFontSize = getResponsiveSingleLineFontSize(
+    viewportWidth * (accreditations ? 0.52 : 1) - (compact ? 40 : 56),
+    professionalName.length,
+    compact ? 20 : 22,
+    compact ? 25 : 30,
+    0.52,
+  );
+  const credentialCompanyFontSize = getResponsiveSingleLineFontSize(
+    viewportWidth - (compact ? 68 : 92),
+    company.length,
+    compact ? 16 : 18,
+    compact ? 20 : 24,
+    0.58,
+  );
 
+  // Layout 1 — Executive Minimal: restrained hierarchy with one accent and generous whitespace.
+  if (section.templateId === 'classic') {
+    return (
+      <View
+        className={`justify-start overflow-hidden ${compact ? 'px-5 pb-[4px] pt-[5px]' : 'px-7 pb-2 pt-1.5'} ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
+        style={[
+          { ...sectionBoundsStyle, backgroundColor: slots.surface, borderColor: slots.highlight },
+          boxed ? BOXED_SHADOW_SM : null,
+        ]}
+      >
+        <Text
+          adjustsFontSizeToFit
+          minimumFontScale={0.7}
+          numberOfLines={1}
+          className="font-black"
+          style={{
+            color: slots.textPrimary,
+            fontSize: executiveNameFontSize,
+            fontFamily: getCardFontFamily(cardTheme.fontStyle),
+            letterSpacing: getCardLetterSpacing(cardTheme.fontStyle),
+            lineHeight: Math.ceil(executiveNameFontSize * 1.14),
+          }}
+        >
+          {professionalName}
+        </Text>
+        <View className="mb-1.5 mt-1.5 flex-row items-center justify-between">
+          <View className="h-1 w-12 rounded-full" style={{ backgroundColor: slots.accent }} />
+          {accreditations ? (
+            <Text
+              adjustsFontSizeToFit
+              minimumFontScale={0.72}
+              numberOfLines={1}
+              className="ml-4 max-w-[70%] text-right text-[11px] font-semibold uppercase tracking-wider"
+              style={{
+                color: slots.textSecondary,
+                fontFamily: getCardFontFamily(cardTheme.fontStyle),
+                textAlign: 'right',
+              }}
+            >
+              {accreditations}
+            </Text>
+          ) : null}
+        </View>
+        <View>
+          <ProfessionalRole {...shared} emphasizedCompany title={title} company={company} />
+        </View>
+      </View>
+    );
+  }
+
+  // Layout 2 — Enterprise Spotlight: a centered credential composition with a bottom detail dock.
+  if (section.templateId === 'spotlight') {
+    return (
+      <View
+        className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
+        style={[
+          { ...sectionBoundsStyle, backgroundColor: slots.surface, borderColor: slots.highlight },
+          boxed ? BOXED_SHADOW_SM : null,
+        ]}
+      >
+        <View className={`${compact ? 'px-5 py-2' : 'px-7 py-3'} flex-1 justify-center`}>
+          <View className="items-center">
+            <ProfessionalName
+              {...shared}
+              align="center"
+              emphasized
+              fontSize={responsiveNameFontSize}
+              name={professionalName}
+              numberOfLines={1}
+            />
+            <View className="mt-0.5 max-w-full flex-row items-center justify-center">
+              <Building2 color={slots.textSecondary} size={14} />
+              <Text
+                adjustsFontSizeToFit
+                minimumFontScale={0.72}
+                numberOfLines={1}
+                className="ml-2 font-semibold"
+                style={{
+                  color: slots.textSecondary,
+                  fontFamily: getCardFontFamily(cardTheme.fontStyle),
+                  fontSize: credentialCompanyFontSize,
+                  lineHeight: Math.ceil(credentialCompanyFontSize * 1.2),
+                  maxWidth: '88%',
+                  textAlign: 'center',
+                }}
+              >
+                {company}
+              </Text>
+            </View>
+          </View>
+          <View className="mt-3 flex-row items-center justify-between">
+            <View
+              className={`${accreditations ? 'max-w-[55%]' : 'max-w-full'} rounded-full border px-3 py-1.5`}
+              style={{ backgroundColor: `${slots.accent}0D`, borderColor: `${slots.accent}35` }}
+            >
+              <Text
+                adjustsFontSizeToFit
+                minimumFontScale={0.72}
+                numberOfLines={1}
+                className="text-xs font-bold"
+                style={{ color: slots.textSecondary, fontFamily: getCardFontFamily(cardTheme.fontStyle) }}
+              >
+                {title}
+              </Text>
+            </View>
+            {accreditations ? (
+              <View
+                className="ml-3 max-w-[42%] rounded-full border px-3 py-1.5"
+                style={{ backgroundColor: `${slots.accent}0D`, borderColor: `${slots.accent}35` }}
+              >
+                <Text
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.72}
+                  numberOfLines={1}
+                  className="text-right text-xs font-bold"
+                  style={{ color: slots.accent }}
+                >
+                  {accreditations}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  // Layout 3 — Company Focus: organization first, followed by role and a quiet identity footer.
+  if (section.templateId === 'banner') {
+    return (
+      <View
+        className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
+        style={[
+          { ...sectionBoundsStyle, backgroundColor: slots.surface, borderColor: slots.highlight },
+          boxed ? BOXED_SHADOW_SM : null,
+        ]}
+      >
+        <View className={`${compact ? 'px-5 py-1.5' : 'px-7 py-2'}`} style={{ backgroundColor: slots.surface }}>
+          <Text
+            adjustsFontSizeToFit
+            minimumFontScale={0.72}
+            numberOfLines={1}
+            className="font-bold"
+            style={{
+              color: slots.textPrimary,
+              fontFamily: getCardFontFamily(cardTheme.fontStyle),
+              fontSize: companyFocusFooterNameFontSize,
+              lineHeight: Math.ceil(companyFocusFooterNameFontSize * 1.14),
+            }}
+          >
+            {professionalName}
+          </Text>
+          {accreditations ? (
+            <Text
+              adjustsFontSizeToFit
+              minimumFontScale={0.72}
+              numberOfLines={1}
+              className="mt-0.5 max-w-full self-end text-right text-xs font-semibold"
+              style={{ color: slots.accent, textAlign: 'right' }}
+            >
+              {accreditations}
+            </Text>
+          ) : null}
+        </View>
+        <View className={`${compact ? 'px-5' : 'px-7'} flex-1 flex-row items-start justify-between pt-1`}>
+          <View className="mr-4 min-w-0 flex-1 flex-row items-center">
+            <View
+              className="mr-3 h-9 w-9 items-center justify-center rounded-xl"
+              style={{ backgroundColor: `${slots.accent}14` }}
+            >
+              <Building2 color={slots.accent} size={18} />
+            </View>
+            <Text
+              adjustsFontSizeToFit
+              minimumFontScale={0.72}
+              numberOfLines={1}
+              className="flex-1 font-black"
+              style={{
+                color: slots.textPrimary,
+                fontFamily: getCardFontFamily(cardTheme.fontStyle),
+                fontSize: companyFocusCompanyFontSize,
+                lineHeight: Math.ceil(companyFocusCompanyFontSize * 1.14),
+              }}
+            >
+              {company}
+            </Text>
+          </View>
+          <Text
+            adjustsFontSizeToFit
+            minimumFontScale={0.72}
+            numberOfLines={1}
+            className={`${compact ? 'text-base' : 'text-lg'} max-w-[42%] pt-3 text-right font-bold`}
+            style={{
+              color: slots.textSecondary,
+              fontFamily: getCardFontFamily(cardTheme.fontStyle),
+              textAlign: 'right',
+            }}
+          >
+            {title}
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  // Layout 4 — Credential Rail: accreditation panel beside an enterprise identity stack.
+  if (section.templateId === 'badge') {
+    return (
+      <View
+        className={`overflow-hidden border ${boxed ? 'mb-5 rounded-[28px]' : ''}`}
+        style={[
+          { ...sectionBoundsStyle, backgroundColor: slots.surface, borderColor: slots.highlight },
+          boxed ? BOXED_SHADOW_SM : null,
+        ]}
+      >
+        <View className="flex-1 flex-row">
+          <View
+            className="w-[30%] items-center justify-center border-r px-2"
+            style={{ backgroundColor: `${slots.accent}0D`, borderRightColor: `${slots.accent}35` }}
+          >
+            <View
+              className={`${compact ? 'h-8 w-8' : 'h-10 w-10'} items-center justify-center rounded-full`}
+              style={{ backgroundColor: `${slots.accent}18` }}
+            >
+              <Award color={slots.accent} size={compact ? 17 : 21} />
+            </View>
+            <Text
+              adjustsFontSizeToFit
+              minimumFontScale={0.72}
+              numberOfLines={2}
+              className="mt-1.5 text-center text-xs font-bold uppercase tracking-wide"
+              style={{
+                color: slots.accent,
+                fontFamily: getCardFontFamily(cardTheme.fontStyle),
+              }}
+            >
+              {accreditations || 'Credentials'}
+            </Text>
+          </View>
+          <View className={`${compact ? 'px-4 py-2' : 'px-6 py-3'} flex-1 justify-center`}>
+            <ProfessionalName
+              {...shared}
+              emphasized
+              fontSize={getResponsiveSingleLineFontSize(
+                viewportWidth * 0.7 - (compact ? 32 : 48),
+                professionalName.length,
+                compact ? 18 : 22,
+                compact ? 27 : 32,
+                0.52,
+              )}
+              name={professionalName}
+              numberOfLines={1}
+            />
+            <View className="mt-1 flex-row items-center">
+              <Building2 color={slots.textSecondary} size={14} />
+              <Text
+                adjustsFontSizeToFit
+                minimumFontScale={0.72}
+                numberOfLines={1}
+                className="ml-2 flex-1 font-semibold"
+                style={{
+                  color: slots.textSecondary,
+                  fontFamily: getCardFontFamily(cardTheme.fontStyle),
+                  fontSize: credentialCompanyFontSize,
+                  lineHeight: Math.ceil(credentialCompanyFontSize * 1.2),
+                }}
+              >
+                {company}
+              </Text>
+            </View>
+            <View
+              className="mt-2 self-start rounded-full border px-3 py-1.5"
+              style={{ backgroundColor: `${slots.accent}0D`, borderColor: `${slots.accent}35` }}
+            >
+              <Text
+                adjustsFontSizeToFit
+                minimumFontScale={0.72}
+                numberOfLines={1}
+                className="text-xs font-bold"
+                style={{ color: slots.textSecondary, fontFamily: getCardFontFamily(cardTheme.fontStyle) }}
+              >
+                {title}
+              </Text>
+            </View>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  const remainingTemplateId = section.templateId as CardTemplateId;
   const activeGridLayouts = ['classic', 'bold', 'spotlight', 'banner', 'badge', 'split', 'neon'];
-  if (activeGridLayouts.includes(section.templateId)) {
-    const isCorporate = section.templateId === 'classic';
-    const isHero = section.templateId === 'bold';
-    const isBanner = section.templateId === 'banner';
-    const isBadge = section.templateId === 'badge';
-    const isSplit = section.templateId === 'split';
-    const isNeon = section.templateId === 'neon';
-    const isSpotlight = section.templateId === 'spotlight';
+  if (activeGridLayouts.includes(remainingTemplateId)) {
+    const isCorporate = remainingTemplateId === 'classic';
+    const isHero = remainingTemplateId === 'bold';
+    const isBanner = remainingTemplateId === 'banner';
+    const isBadge = remainingTemplateId === 'badge';
+    const isSplit = remainingTemplateId === 'split';
+    const isNeon = remainingTemplateId === 'neon';
+    const isSpotlight = remainingTemplateId === 'spotlight';
     const gridBackground = slots.surface;
     const gridSlots = isCorporate
       ? { ...slots, surface: gridBackground }
@@ -287,7 +619,7 @@ export function ProfessionalSectionRenderer({
     const leftCellBackground = isSplit ? slots.background : 'transparent';
     const topCellBackground = isBanner
       ? slots.accent
-      : section.templateId === 'spotlight'
+      : remainingTemplateId === 'spotlight'
         ? `${slots.accent}0D`
         : 'transparent';
     const rootStyle = {
@@ -963,7 +1295,7 @@ export function ProfessionalSectionRenderer({
   }
 
   // Homepage stacked card: one centered block (avoids empty band under content)
-  if (homePreview && (section.templateId === 'classic' || section.templateId === 'minimal')) {
+  if (homePreview && (remainingTemplateId === 'classic' || remainingTemplateId === 'minimal')) {
     const previewSlots = {
       ...slots,
       textPrimary: slots.gradientText ?? slots.textPrimary,
@@ -1011,7 +1343,7 @@ export function ProfessionalSectionRenderer({
   }
 
   // Résumé layout (minimal): vertical editorial hierarchy with thick accent left rail
-  if (section.templateId === 'minimal') {
+  if (remainingTemplateId === 'minimal') {
     return (
       <View
         className={`justify-between overflow-hidden p-4 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
@@ -1042,7 +1374,7 @@ export function ProfessionalSectionRenderer({
   }
 
   // Glass layout: layered vertical hierarchy on surface card with highlight border
-  if (section.templateId === 'glass') {
+  if (remainingTemplateId === 'glass') {
     return (
       <View
         className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
@@ -1074,7 +1406,7 @@ export function ProfessionalSectionRenderer({
   }
 
   // Pocket Pass (compact): dense horizontal layout
-  if (section.templateId === 'compact') {
+  if (remainingTemplateId === 'compact') {
     return (
       <View
         className={`flex-row items-center justify-between overflow-hidden px-4 py-3 ${boxed ? 'mb-5 rounded-[24px] border' : ''}`}
@@ -1096,7 +1428,7 @@ export function ProfessionalSectionRenderer({
   }
 
   // Magazine Monograph (editorial): serif hierarchy with hairline rules
-  if (section.templateId === 'editorial') {
+  if (remainingTemplateId === 'editorial') {
     return (
       <View
         className={`overflow-hidden p-5 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
@@ -1118,7 +1450,7 @@ export function ProfessionalSectionRenderer({
   }
 
   // Avatar & Focus (spotlight): centered role with highlight pill
-  if (section.templateId === 'spotlight') {
+  if (remainingTemplateId === 'spotlight') {
     return (
       <View
         className={`items-center justify-center overflow-hidden p-5 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
@@ -1152,7 +1484,7 @@ export function ProfessionalSectionRenderer({
   }
 
   // Ribbon Header (banner): company ribbon at top, personal title in card body
-  if (section.templateId === 'banner') {
+  if (remainingTemplateId === 'banner') {
     return (
       <View
         className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
@@ -1185,7 +1517,7 @@ export function ProfessionalSectionRenderer({
   }
 
   // Modular Bento (cards): dual cardlets for role & company
-  if (section.templateId === 'cards') {
+  if (remainingTemplateId === 'cards') {
     return (
       <View
         className={`overflow-hidden p-3 gap-2 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
@@ -1213,7 +1545,7 @@ export function ProfessionalSectionRenderer({
   }
 
   // Conference ID Pass (badge): official credential format
-  if (section.templateId === 'badge') {
+  if (remainingTemplateId === 'badge') {
     return (
       <View
         className={`overflow-hidden p-4 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
@@ -1255,7 +1587,7 @@ export function ProfessionalSectionRenderer({
   }
 
   // 50/50 Dual Column (split): left column for role/company, right for accreditations/tagline
-  if (section.templateId === 'split') {
+  if (remainingTemplateId === 'split') {
     return (
       <View
         className={`flex-row overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
@@ -1290,7 +1622,7 @@ export function ProfessionalSectionRenderer({
   }
 
   // Framed Outline (neon): high-contrast wireframe
-  if (section.templateId === 'neon') {
+  if (remainingTemplateId === 'neon') {
     return (
       <View
         className={`overflow-hidden p-4 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}

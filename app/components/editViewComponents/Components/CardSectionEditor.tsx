@@ -69,6 +69,10 @@ const SECTIONS: { id: CardSectionId; label: string }[] = [
 ];
 
 type IdentityImageField = 'coverPhoto' | 'profilePhoto' | 'logo';
+type ProfessionalNameField = 'prefix' | 'firstName' | 'middleName' | 'lastName' | 'suffix';
+
+const PROFESSIONAL_NAME_FIELDS: ProfessionalNameField[] = ['prefix', 'firstName', 'middleName', 'lastName', 'suffix'];
+const PROFESSIONAL_NAME_CHARACTER_LIMIT = 32;
 
 const AVAILABLE_CONNECTION_FIELDS: {
   title: string;
@@ -436,6 +440,23 @@ export function CardSectionEditor({
     card.sectionOverrides[fieldId] ?? resolvedValues[fieldId] ?? '';
   const taglineValue = fitTaglineToViewport(getFieldValue('tagline'), width);
   const accreditationValue = fitAccreditationsToViewport(getFieldValue('accreditations'), width);
+  const professionalNameParts = Object.fromEntries(
+    PROFESSIONAL_NAME_FIELDS.map((fieldId) => [fieldId, getFieldValue(fieldId).trim()]),
+  ) as Record<ProfessionalNameField, string>;
+  const professionalNameCharacterCount = PROFESSIONAL_NAME_FIELDS.map((fieldId) => professionalNameParts[fieldId])
+    .filter(Boolean)
+    .join(' ').length;
+  const getProfessionalNamePartLimit = (fieldId: ProfessionalNameField) => {
+    const otherParts = PROFESSIONAL_NAME_FIELDS.filter((candidate) => candidate !== fieldId)
+      .map((candidate) => professionalNameParts[candidate])
+      .filter(Boolean);
+    const charactersUsedByOtherParts = otherParts.join(' ').length;
+    const separatorLength = otherParts.length > 0 ? 1 : 0;
+    return Math.max(0, PROFESSIONAL_NAME_CHARACTER_LIMIT - charactersUsedByOtherParts - separatorLength);
+  };
+  const changeProfessionalNamePart = (fieldId: ProfessionalNameField, value: string) => {
+    onFieldChange(fieldId, value.slice(0, getProfessionalNamePartLimit(fieldId)));
+  };
 
   const connectionFields = card.connectionFieldsCustomized
     ? card.connectionFields
@@ -645,8 +666,9 @@ export function CardSectionEditor({
         <View className="flex-[0.8]">
           <EditorInput
             label="Prefix"
+            maxLength={getProfessionalNamePartLimit('prefix')}
             value={getFieldValue('prefix')}
-            onChangeText={(val) => onFieldChange('prefix', val)}
+            onChangeText={(val) => changeProfessionalNamePart('prefix', val)}
             onFocus={onProfessionalFieldFocus}
             placeholder="Dr., Prof."
           />
@@ -654,8 +676,9 @@ export function CardSectionEditor({
         <View className="flex-[1.5]">
           <EditorInput
             label="First Name"
+            maxLength={getProfessionalNamePartLimit('firstName')}
             value={getFieldValue('firstName')}
-            onChangeText={(val) => onFieldChange('firstName', val)}
+            onChangeText={(val) => changeProfessionalNamePart('firstName', val)}
             onFocus={onProfessionalFieldFocus}
             placeholder="First name"
           />
@@ -663,8 +686,9 @@ export function CardSectionEditor({
         <View className="flex-[1.5]">
           <EditorInput
             label="Last Name"
+            maxLength={getProfessionalNamePartLimit('lastName')}
             value={getFieldValue('lastName')}
-            onChangeText={(val) => onFieldChange('lastName', val)}
+            onChangeText={(val) => changeProfessionalNamePart('lastName', val)}
             onFocus={onProfessionalFieldFocus}
             placeholder="Last name"
           />
@@ -708,13 +732,17 @@ export function CardSectionEditor({
   const professionalContent = (
     <View>
       {/* 1. Name & Honorifics */}
-      <CardEditorFieldGroup title="Professional Name" icon={UserRound}>
+      <CardEditorFieldGroup
+        title={`Professional Name (${Math.min(professionalNameCharacterCount, PROFESSIONAL_NAME_CHARACTER_LIMIT)}/${PROFESSIONAL_NAME_CHARACTER_LIMIT})`}
+        icon={UserRound}
+      >
         <View className="flex-row gap-2.5">
           <View className="flex-[0.8]">
             <EditorInput
               label="Prefix"
+              maxLength={getProfessionalNamePartLimit('prefix')}
               value={getFieldValue('prefix')}
-              onChangeText={(val) => onFieldChange('prefix', val)}
+              onChangeText={(val) => changeProfessionalNamePart('prefix', val)}
               onFocus={onProfessionalFieldFocus}
               placeholder="Dr., Prof."
             />
@@ -722,8 +750,9 @@ export function CardSectionEditor({
           <View className="flex-[2]">
             <EditorInput
               label="First Name"
+              maxLength={getProfessionalNamePartLimit('firstName')}
               value={getFieldValue('firstName')}
-              onChangeText={(val) => onFieldChange('firstName', val)}
+              onChangeText={(val) => changeProfessionalNamePart('firstName', val)}
               onFocus={onProfessionalFieldFocus}
               placeholder="First name"
             />
@@ -734,8 +763,9 @@ export function CardSectionEditor({
           <View className="flex-[1]">
             <EditorInput
               label="Middle Name"
+              maxLength={getProfessionalNamePartLimit('middleName')}
               value={getFieldValue('middleName')}
-              onChangeText={(val) => onFieldChange('middleName', val)}
+              onChangeText={(val) => changeProfessionalNamePart('middleName', val)}
               onFocus={onProfessionalFieldFocus}
               placeholder="Middle name"
             />
@@ -743,8 +773,9 @@ export function CardSectionEditor({
           <View className="flex-[1.5]">
             <EditorInput
               label="Last Name"
+              maxLength={getProfessionalNamePartLimit('lastName')}
               value={getFieldValue('lastName')}
-              onChangeText={(val) => onFieldChange('lastName', val)}
+              onChangeText={(val) => changeProfessionalNamePart('lastName', val)}
               onFocus={onProfessionalFieldFocus}
               placeholder="Last name"
             />
@@ -753,8 +784,9 @@ export function CardSectionEditor({
 
         <EditorInput
           label="Suffix / Post-nominal"
+          maxLength={getProfessionalNamePartLimit('suffix')}
           value={getFieldValue('suffix')}
-          onChangeText={(val) => onFieldChange('suffix', val)}
+          onChangeText={(val) => changeProfessionalNamePart('suffix', val)}
           onFocus={onProfessionalFieldFocus}
           placeholder="e.g. PhD, Jr., III, MD"
         />
