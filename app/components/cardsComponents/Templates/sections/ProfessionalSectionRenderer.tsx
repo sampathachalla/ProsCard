@@ -693,6 +693,9 @@ export function ProfessionalSectionRenderer({
     const accreditationLineHeight = Math.ceil(companyFocusAccreditationFontSize * (compact ? 1.1 : 1.15));
     const companyLineHeight = Math.ceil(companyFocusCompanyFontSize * (compact ? 1.05 : 1.12));
     const titleLineHeight = Math.ceil(companyFocusTitleFontSize * (compact ? 1.1 : 1.15));
+    const trimmedName = professionalName.trim();
+    const offsetChars = Math.min(4, Math.max(0, trimmedName.length));
+    const namePrefix = trimmedName.slice(0, Math.max(0, trimmedName.length - offsetChars));
     return (
       <View
         className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
@@ -716,43 +719,69 @@ export function ProfessionalSectionRenderer({
             paddingTop: spacing.tightVertical,
           }}
         >
-          <View className="max-w-full self-start">
-            <Text
-              variant="none"
-              adjustsFontSizeToFit
-              minimumFontScale={0.65}
-              numberOfLines={1}
-              className="self-start font-bold"
-              style={{
-                color: slots.textPrimary,
-                fontFamily: getCardFontFamily(cardTheme.fontStyle),
-                fontSize: companyFocusNameFontSize,
-                lineHeight: nameLineHeight,
-              }}
+          <Text
+            variant="none"
+            adjustsFontSizeToFit
+            minimumFontScale={0.65}
+            numberOfLines={1}
+            className="self-start font-bold"
+            style={{
+              color: slots.textPrimary,
+              fontFamily: getCardFontFamily(cardTheme.fontStyle),
+              fontSize: companyFocusNameFontSize,
+              lineHeight: nameLineHeight,
+            }}
+          >
+            {professionalName}
+          </Text>
+          {accreditations ? (
+            <View
+              className="min-w-0 flex-row items-center"
+              style={{ marginTop: compact ? 1 : 2 }}
             >
-              {professionalName}
-            </Text>
-            {accreditations ? (
+              {namePrefix ? (
+                <View
+                  aria-hidden
+                  style={{
+                    flexShrink: 0,
+                    height: accreditationLineHeight,
+                    justifyContent: 'center',
+                    opacity: 0,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <Text
+                    variant="none"
+                    className="font-bold"
+                    numberOfLines={1}
+                    style={{
+                      fontFamily: getCardFontFamily(cardTheme.fontStyle),
+                      fontSize: companyFocusNameFontSize,
+                      lineHeight: companyFocusNameFontSize,
+                    }}
+                  >
+                    {namePrefix}
+                  </Text>
+                </View>
+              ) : null}
               <Text
                 variant="none"
                 adjustsFontSizeToFit
                 minimumFontScale={0.65}
                 numberOfLines={1}
-                className="self-end text-right font-semibold"
+                className="min-w-0 flex-1 font-semibold"
                 style={{
                   color: slots.accent,
                   fontFamily: getCardFontFamily(cardTheme.fontStyle),
                   fontSize: companyFocusAccreditationFontSize,
                   lineHeight: accreditationLineHeight,
-                  marginTop: 2,
-                  maxWidth: '68%',
-                  textAlign: 'right',
+                  textAlign: 'left',
                 }}
               >
                 {accreditations}
               </Text>
-            ) : null}
-          </View>
+            </View>
+          ) : null}
           <View
             className="min-w-0 flex-row items-center"
             style={{ marginTop: compact ? 0 : spacing.gap }}
