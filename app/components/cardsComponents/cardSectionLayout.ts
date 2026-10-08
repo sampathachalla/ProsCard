@@ -2,14 +2,13 @@
 export const IDENTITY_SECTION_HEIGHT_RATIO = 0.25;
 
 /** Section 2 height in the scrollable full-card and edit views. */
-export const PROFESSIONAL_FULL_CARD_SECTION_HEIGHT_RATIO = 0.12;
+export const PROFESSIONAL_FULL_CARD_SECTION_HEIGHT_RATIO = 0.20;
 
-/** Fixed proportions for the four-section preview shown on the homepage. */
+/** Fixed proportions for the card face. About (section 3) is not shown. */
 export const HOMEPAGE_CARD_SECTION_HEIGHT_RATIOS = {
   identity: 0.25,
-  professional: 0.12,
-  bio: 0.18,
-  connections: 0.45,
+  professional: 0.20,
+  connections: 0.55,
 } as const;
 
 /** Wallet shows only Sections 1 and 2, so Section 2 fills the remaining pass height there. */
@@ -21,4 +20,12 @@ export function identitySectionHeight(viewportHeight: number) {
 
 export function professionalSectionHeight(viewportHeight: number) {
   return Math.round(viewportHeight * PROFESSIONAL_FULL_CARD_SECTION_HEIGHT_RATIO);
+}
+
+export function cardSectionHeight(
+  sectionId: keyof typeof HOMEPAGE_CARD_SECTION_HEIGHT_RATIOS | 'bio',
+  viewportHeight: number,
+) {
+  if (sectionId === 'bio') return 0;
+  return Math.round(viewportHeight * HOMEPAGE_CARD_SECTION_HEIGHT_RATIOS[sectionId]);
 }

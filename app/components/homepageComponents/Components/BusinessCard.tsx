@@ -17,7 +17,6 @@ type Props = {
 export function BusinessCard({ card, height, onDoubleTap, onSwipeDown, profile, width }: Props) {
   const identitySectionHeight = height * HOMEPAGE_CARD_SECTION_HEIGHT_RATIOS.identity;
   const professionalSectionHeight = height * HOMEPAGE_CARD_SECTION_HEIGHT_RATIOS.professional;
-  const bioSectionHeight = height * HOMEPAGE_CARD_SECTION_HEIGHT_RATIOS.bio;
   const connectionsSectionHeight = height * HOMEPAGE_CARD_SECTION_HEIGHT_RATIOS.connections;
   const identityTheme = card.sectionThemes.identity;
   const view = (
@@ -45,14 +44,6 @@ export function BusinessCard({ card, height, onDoubleTap, onSwipeDown, profile, 
         profile={profile}
         seamless
         sectionId="professional"
-        width={width}
-      />
-      <CardSectionFace
-        card={card}
-        height={bioSectionHeight}
-        profile={profile}
-        seamless
-        sectionId="bio"
         width={width}
       />
       <CardSectionFace

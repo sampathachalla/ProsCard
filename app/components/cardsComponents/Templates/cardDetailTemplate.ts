@@ -111,6 +111,12 @@ export function createCardDetailTemplate(card: BusinessCard, profile: Profile): 
           value: override(card, 'company', profile.organization || card.company || ''),
         },
         {
+          id: 'tagline',
+          title: 'Tagline',
+          type: 'text',
+          value: override(card, 'tagline', profile.tagline || ''),
+        },
+        {
           id: 'accreditations',
           title: 'Accreditations',
           type: 'text',
@@ -145,25 +151,6 @@ export function createCardDetailTemplate(card: BusinessCard, profile: Profile): 
           title: 'Suffix',
           type: 'text',
           value: override(card, 'suffix', profile.suffix || ''),
-        },
-      ],
-    },
-    {
-      id: 'bio',
-      title: 'About',
-      templateId: resolveLayoutStyle(card.sectionLayouts.bio, 'bio'),
-      fields: [
-        {
-          id: 'tagline',
-          title: 'Tagline',
-          type: 'text',
-          value: override(card, 'tagline', profile.tagline || ''),
-        },
-        {
-          id: 'bio',
-          title: 'Bio',
-          type: 'multiline',
-          value: override(card, 'bio', profile.shortBio || ''),
         },
       ],
     },

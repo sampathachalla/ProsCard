@@ -13,6 +13,7 @@ import {
 } from './SectionSharedComponents';
 import { resolveLayoutColorSlots } from '@/utils/cardThemeColor';
 import { identitySectionHeight } from '../../cardSectionLayout';
+import { getCardSectionSpacing } from './cardSectionSpacing';
 
 type Props = {
   compact?: boolean;
@@ -35,13 +36,17 @@ export function IdentitySectionRenderer({
   fullCardView = false,
 }: Props) {
   const { height: windowHeight, width: windowWidth } = useWindowDimensions();
+  const spacing = getCardSectionSpacing(windowWidth);
   const boxed = compact && !seamless;
   const field = (id: string) => section.fields.find((item) => item.id === id);
   const cover = field('coverPhoto');
   const profile = field('profilePhoto');
   const logo = field('logo');
   const layoutId = resolveIdentityTemplateId(section.templateId);
-  const slots = resolveLayoutColorSlots({ templateId: layoutId, theme: cardTheme });
+  const slots = resolveLayoutColorSlots({
+    templateId: layoutId,
+    theme: cardTheme,
+  });
   const fullCardIdentityHeight = identitySectionHeight(windowHeight);
   const classicProfileSize = walletPass
     ? 48
@@ -74,10 +79,10 @@ export function IdentitySectionRenderer({
           ? 70
           : 88;
     const minimalLogoWidth = fullCardView
-      ? Math.max(120, Math.min(180, Math.round(windowWidth * 0.3)))
+      ? Math.max(148, Math.min(168, Math.round(windowWidth * 0.38)))
       : compact
-        ? 112
-        : 144;
+        ? 132
+        : 168;
     return (
       <View
         className={`flex-row overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
@@ -85,11 +90,12 @@ export function IdentitySectionRenderer({
       >
         {/* Left: Full-bleed Cover Backdrop + Elevated Avatar with Specular Ring & Shadow */}
         <View
-          className="w-1/2 items-center justify-center overflow-hidden p-2"
+          className="w-1/2 items-center justify-center overflow-hidden"
           style={{
             backgroundColor: slots.background,
             borderRightWidth: StyleSheet.hairlineWidth,
             borderRightColor: slots.highlight || 'rgba(255,255,255,0.2)',
+            padding: spacing.gap,
           }}
         >
           <IdentityImage field={cover} {...imageColors} style={StyleSheet.absoluteFill} />
@@ -130,14 +136,23 @@ export function IdentitySectionRenderer({
         </View>
 
         {/* Right: Clean Identity Pane */}
-        <View className="w-1/2 items-center justify-center p-4" style={{ backgroundColor: slots.surface }}>
+        <View
+          className="w-1/2 items-center justify-center"
+          style={{
+            backgroundColor: slots.surface,
+            padding: spacing.horizontal,
+          }}
+        >
           <View className="items-center">
             <UniversalLogoBadge
               bare
               cardTheme={cardTheme}
               compact={compact}
               field={logo}
-              logoSize={{ width: minimalLogoWidth, height: Math.round(minimalLogoWidth * (56 / 152)) }}
+              logoSize={{
+                width: minimalLogoWidth,
+                height: Math.round(minimalLogoWidth * (56 / 152)),
+              }}
               placement="on-surface"
               slots={slots}
               templateId={layoutId}
@@ -183,7 +198,10 @@ export function IdentitySectionRenderer({
             cardTheme={cardTheme}
             compact
             field={logo}
-            logoSize={{ width: boldLogoWidth, height: Math.round(boldLogoWidth * (56 / 152)) }}
+            logoSize={{
+              width: boldLogoWidth,
+              height: Math.round(boldLogoWidth * (56 / 152)),
+            }}
             placement="on-cover"
             slots={slots}
             templateId={layoutId}
@@ -191,7 +209,11 @@ export function IdentitySectionRenderer({
         </View>
         <View
           className="absolute flex-row items-center"
-          style={{ bottom: boldBottomInset, left: boldEdgeInset, right: boldEdgeInset }}
+          style={{
+            bottom: boldBottomInset,
+            left: boldEdgeInset,
+            right: boldEdgeInset,
+          }}
         >
           <IdentityImage
             field={profile}
@@ -232,13 +254,18 @@ export function IdentitySectionRenderer({
         <View className="h-full w-full items-center justify-center px-4">
           <View
             className="w-full items-center justify-center"
-            style={{ transform: [{ translateY: fullCardView ? -18 : compact ? -12 : -16 }] }}
+            style={{
+              transform: [{ translateY: fullCardView ? -18 : compact ? -12 : -16 }],
+            }}
           >
             <UniversalLogoBadge
               bare
               cardTheme={cardTheme}
               field={logo}
-              logoSize={{ width: editorialLogoWidth, height: editorialLogoHeight }}
+              logoSize={{
+                width: editorialLogoWidth,
+                height: editorialLogoHeight,
+              }}
               placement="on-cover"
               slots={slots}
               templateId={layoutId}
@@ -285,13 +312,18 @@ export function IdentitySectionRenderer({
         <View className="h-full w-full items-center justify-center px-4">
           <View
             className="w-full items-center justify-center"
-            style={{ transform: [{ translateY: fullCardView ? -18 : compact ? -12 : -16 }] }}
+            style={{
+              transform: [{ translateY: fullCardView ? -18 : compact ? -12 : -16 }],
+            }}
           >
             <UniversalLogoBadge
               bare
               cardTheme={cardTheme}
               field={logo}
-              logoSize={{ width: spotlightLogoWidth, height: spotlightLogoHeight }}
+              logoSize={{
+                width: spotlightLogoWidth,
+                height: spotlightLogoHeight,
+              }}
               placement="on-cover"
               slots={slots}
               templateId={layoutId}
@@ -329,7 +361,11 @@ export function IdentitySectionRenderer({
       >
         <View
           className="h-full w-[40%] overflow-hidden"
-          style={{ backgroundColor: slots.background, borderRightWidth: 1, borderRightColor: slots.highlight }}
+          style={{
+            backgroundColor: slots.background,
+            borderRightWidth: 1,
+            borderRightColor: slots.highlight,
+          }}
         >
           <IdentityImage field={cover} {...imageColors} style={StyleSheet.absoluteFill} />
         </View>
@@ -393,7 +429,10 @@ export function IdentitySectionRenderer({
               cardTheme={cardTheme}
               compact={compact || walletPass}
               field={logo}
-              logoSize={{ width: classicLogoWidth, height: Math.round(classicLogoWidth * (56 / 152)) }}
+              logoSize={{
+                width: classicLogoWidth,
+                height: Math.round(classicLogoWidth * (56 / 152)),
+              }}
               placement="on-cover"
               slots={slots}
               templateId={layoutId}
@@ -401,15 +440,20 @@ export function IdentitySectionRenderer({
           </View>
         </View>
         <View
-          className={`w-full flex-1 items-center ${fullCardView ? 'justify-start px-4' : `justify-center ${walletPass ? 'px-2.5 py-1' : compact ? 'px-3 pb-2' : 'px-4 py-3'}`}`}
+          className={`w-full flex-1 items-center ${fullCardView ? 'justify-start' : 'justify-center'}`}
           style={{
             backgroundColor: slots.surface,
-            paddingTop: 0,
+            paddingHorizontal: walletPass ? 10 : spacing.horizontal,
+            paddingBottom: walletPass ? 4 : spacing.tightVertical,
+            paddingTop: fullCardView ? 0 : walletPass ? 4 : spacing.tightVertical,
           }}
         />
         <View
           className="absolute left-0 right-0 z-10 items-center"
-          style={{ top: classicTopHeight, transform: [{ translateY: -classicProfileSize / 2 }] }}
+          style={{
+            top: classicTopHeight,
+            transform: [{ translateY: -classicProfileSize / 2 }],
+          }}
         >
           <IdentityImage
             field={profile}

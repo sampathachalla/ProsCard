@@ -17,6 +17,8 @@ export type SectionTemplateRendererProps = {
   showEmpty?: boolean;
   walletPass?: boolean;
   fullCardView?: boolean;
+  /** Keep authored font sizes. Home-card faces omit this and may still shrink to fit. */
+  preserveTypeScale?: boolean;
 };
 
 export function SectionTemplateRenderer({
@@ -28,6 +30,7 @@ export function SectionTemplateRenderer({
   showEmpty = false,
   walletPass = false,
   fullCardView = false,
+  preserveTypeScale = false,
 }: SectionTemplateRendererProps) {
   if (!section) return null;
 
@@ -73,7 +76,9 @@ export function SectionTemplateRenderer({
         <BioSectionRenderer
           compact={compact}
           cardTheme={cardTheme}
+          fullCardView={fullCardView}
           gradient={gradient}
+          preserveTypeScale={preserveTypeScale}
           section={section}
           seamless={seamless}
           showEmpty={showEmpty}
@@ -85,7 +90,9 @@ export function SectionTemplateRenderer({
         <ConnectionsSectionRenderer
           compact={compact}
           cardTheme={cardTheme}
+          fullCardView={fullCardView}
           gradient={gradient}
+          preserveTypeScale={preserveTypeScale}
           section={section}
           seamless={seamless}
           showEmpty={showEmpty}

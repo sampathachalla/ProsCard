@@ -114,6 +114,7 @@ function MinimalIdentity({ section, cardTheme, templateId }: WalletIdentitySecti
   const slots = resolveLayoutColorSlots({ templateId, theme: cardTheme });
   const { cover, logo, name, profile } = walletIdentityFields(section);
   const avatarSize = 44;
+  const minimalLogoWidth = 120;
   const displayName = name ? name.replace(/\b\w/g, (c) => c.toUpperCase()) : name;
   return (
     <WalletIdentityRoot backgroundColor={slots.surface}>
@@ -148,7 +149,19 @@ function MinimalIdentity({ section, cardTheme, templateId }: WalletIdentitySecti
 
         {/* Right: Logo & Formatted Name */}
         <View className="w-1/2 justify-center px-3" style={{ backgroundColor: slots.surface }}>
-          <UniversalLogoBadge bare cardTheme={cardTheme} compact field={logo} placement="on-surface" slots={slots} templateId={templateId} />
+          <UniversalLogoBadge
+            bare
+            cardTheme={cardTheme}
+            compact
+            field={logo}
+            logoSize={{
+              width: minimalLogoWidth,
+              height: Math.round(minimalLogoWidth * (56 / 152)),
+            }}
+            placement="on-surface"
+            slots={slots}
+            templateId={templateId}
+          />
           <View className="mt-1">
             <WalletPassText cardTheme={cardTheme} color={slots.textPrimary} lines={2} size="md">
               {displayName}

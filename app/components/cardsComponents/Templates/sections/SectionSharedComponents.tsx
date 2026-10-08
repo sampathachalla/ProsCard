@@ -316,7 +316,8 @@ export function AccreditationPills({
         >
           <Award color={light ? '#ffffff' : cardTheme.accentColor} size={compact ? 10 : 12} />
           <Text
-            className={`ml-1 font-bold ${compact ? 'text-[9px]' : 'text-[11px]'}`}
+            variant="none"
+            className={`ml-1 font-bold ${compact ? 'text-[11px]' : 'text-[11px]'}`}
             style={{
               color: light ? '#ffffff' : cardTheme.textColor,
               fontFamily,
@@ -362,6 +363,7 @@ export function SectionHeaderBadge({
           </View>
         ) : null}
         <Text
+          variant="none"
           className="text-[11px] font-extrabold uppercase tracking-wider"
           style={{
             color: light ? 'rgba(255, 255, 255, 0.85)' : cardTheme.mutedTextColor,
@@ -383,7 +385,8 @@ export function SectionHeaderBadge({
         >
           <Sparkles color={light ? '#ffffff' : cardTheme.accentColor} size={10} />
           <Text
-            className="ml-1 text-[10px] font-bold"
+            variant="none"
+            className="ml-1 text-[11px] font-bold"
             style={{
               color: light ? '#ffffff' : cardTheme.accentColor,
               fontFamily,

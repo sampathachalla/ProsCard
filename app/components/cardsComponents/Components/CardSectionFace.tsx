@@ -34,6 +34,7 @@ export function CardSectionFace({
         <SectionTemplateRenderer
           compact
           cardTheme={theme}
+          fullCardView={seamless && !walletPass}
           gradient={theme.gradient}
           section={section}
           seamless={seamless}

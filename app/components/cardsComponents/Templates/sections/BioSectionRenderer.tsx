@@ -1,5 +1,5 @@
 import React from "react";
-import { View } from "react-native";
+import { View, useWindowDimensions } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Quote } from "lucide-react-native";
 import { Text } from "@/components/uiComponents/Text";
@@ -12,6 +12,7 @@ import {
   BOXED_SHADOW_MD,
   BOXED_SHADOW_SM,
 } from "./SectionSharedComponents";
+import { getCardSectionSpacing } from "./cardSectionSpacing";
 
 /** Shared minimum height across all 12 layouts so switching between them
  * (with or without a tagline-length bio) never visibly jumps in size. */
@@ -21,6 +22,9 @@ type Props = {
   compact?: boolean;
   cardTheme: CardVisualTheme;
   gradient: [string, string];
+  fullCardView?: boolean;
+  /** Accepted for the shared renderer API. Bio always fills its fixed slot and may shrink to fit. */
+  preserveTypeScale?: boolean;
   section: CardDetailSection;
   seamless?: boolean;
   showEmpty?: boolean;
@@ -30,10 +34,13 @@ export function BioSectionRenderer({
   compact = false,
   cardTheme,
   gradient,
+  fullCardView = false,
   section,
   seamless = false,
   showEmpty = false,
 }: Props) {
+  const { width: viewportWidth } = useWindowDimensions();
+  const spacing = getCardSectionSpacing(viewportWidth);
   const boxed = compact && !seamless;
   const taglineText =
     section.fields.find((f) => f.id === "tagline")?.value?.trim() || "";
@@ -50,24 +57,61 @@ export function BioSectionRenderer({
     templateId: section.templateId,
     theme: cardTheme,
   });
-  const sharedTextProps = {
-    adjustsFontSizeToFit: compact,
-    minimumFontScale: 0.76,
-    numberOfLines: compact ? 4 : undefined,
+  // One type scale for every layout. Font size and line height always travel
+  // together. Compact faces, including the fixed full-card slot, shrink to fit.
+  const narrow = viewportWidth <= 360;
+  const compactShrink = compact ? { flexShrink: 1 as const } : {};
+  // Fill the fixed section slot instead of growing with the copy.
+  const slotStyle = compact
+    ? { height: "100%" as const, minHeight: 0 }
+    : { minHeight: BIO_MIN_HEIGHT };
+  const type = {
+    lead: compact
+      ? narrow
+        ? { fontSize: 18, lineHeight: 23, ...compactShrink }
+        : { fontSize: 21, lineHeight: 27, ...compactShrink }
+      : { fontSize: 18, lineHeight: 25 },
+    body: compact
+      ? narrow
+        ? { fontSize: 15, lineHeight: 21, ...compactShrink }
+        : { fontSize: 17, lineHeight: 24, ...compactShrink }
+      : { fontSize: 15, lineHeight: 22 },
+    label: compact && !narrow ? { fontSize: 12, lineHeight: 16 } : { fontSize: 11, lineHeight: 14 },
   } as const;
+  // Full-card Executive Statement, Pull Quote, Dual Column, and Story Card.
+  // Body stays close to the tagline inside the fixed 20% slot. Longer copy
+  // still shrinks via `fit` so the last line stays inside the box.
+  const fullCardType = {
+    lead: narrow
+      ? { fontSize: 18, lineHeight: 22, ...compactShrink }
+      : { fontSize: 19, lineHeight: 24, ...compactShrink },
+    body: narrow
+      ? { fontSize: 17, lineHeight: 22, ...compactShrink }
+      : { fontSize: 19, lineHeight: 24, ...compactShrink },
+  } as const;
+  const faceType = compact && fullCardView ? fullCardType : type;
+  // Floating wrench sits on the right edge of the full card. Keep the last
+  // words of the bio row clear of it without changing the 20% slot height.
+  const fullCardRightPad = fullCardView ? 36 : spacing.horizontal;
+  const fit = (lines: number) =>
+    compact
+      ? ({ adjustsFontSizeToFit: true, minimumFontScale: 0.65, numberOfLines: lines } as const)
+      : ({} as const);
 
   // Executive Statement (minimal): left accent rail with clean typography
   if (section.templateId === "minimal") {
     return (
       <View
-        className={`justify-center overflow-hidden px-5 py-4 ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
+        className={`justify-center overflow-hidden ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
         style={[
           {
             backgroundColor: slots.background,
             borderColor: boxed ? slots.accent : undefined,
             borderWidth: boxed ? 1 : 0,
-            height: compact ? "100%" : undefined,
-            minHeight: compact ? undefined : BIO_MIN_HEIGHT,
+            ...slotStyle,
+            paddingLeft: spacing.horizontal,
+            paddingRight: fullCardRightPad,
+            paddingVertical: compact ? 0 : spacing.vertical,
           },
           boxed ? BOXED_SHADOW_SM : null,
         ]}
@@ -76,16 +120,17 @@ export function BioSectionRenderer({
           style={{
             borderLeftColor: slots.accent,
             borderLeftWidth: 4,
+            flexShrink: 1,
+            minHeight: 0,
             paddingLeft: compact ? 12 : 18,
           }}
         >
           {!!taglineText && (
             <Text
-              numberOfLines={compact ? 2 : undefined}
-              className={
-                compact ? "text-sm font-extrabold" : "text-lg font-extrabold"
-              }
-              style={{ color: slots.textPrimary, fontFamily, letterSpacing }}
+              variant="none"
+              {...fit(2)}
+              className="font-extrabold"
+              style={{ ...faceType.lead, color: slots.textPrimary, fontFamily, letterSpacing }}
             >
               {taglineText}
             </Text>
@@ -95,9 +140,9 @@ export function BioSectionRenderer({
             style={{ backgroundColor: slots.accent }}
           />
           <Text
-            numberOfLines={compact ? 3 : undefined}
-            className={`leading-relaxed ${compact ? "text-[11px]" : "text-sm"}`}
-            style={{ color: slots.textSecondary, fontFamily, letterSpacing }}
+            variant="none"
+            {...fit(taglineText ? (fullCardView ? 3 : 2) : 4)}
+            style={{ ...faceType.body, color: slots.textPrimary, fontFamily, letterSpacing }}
           >
             {summaryText}
           </Text>
@@ -111,11 +156,12 @@ export function BioSectionRenderer({
     return (
       <LinearGradient
         colors={gradient}
-        className={`items-center justify-center overflow-hidden px-6 py-5 ${boxed ? "mb-5 rounded-[28px]" : ""}`}
+        className={`items-center justify-center overflow-hidden ${boxed ? "mb-5 rounded-[28px]" : ""}`}
         style={[
           {
-            height: compact ? "100%" : undefined,
-            minHeight: compact ? undefined : BIO_MIN_HEIGHT,
+            ...slotStyle,
+            paddingHorizontal: spacing.horizontal + 8,
+            paddingVertical: compact ? 0 : spacing.vertical,
           },
           boxed ? BOXED_SHADOW_LG : null,
         ]}
@@ -125,9 +171,10 @@ export function BioSectionRenderer({
           style={{ backgroundColor: slots.gradientText }}
         />
         <Text
-          {...sharedTextProps}
-          className={`leading-relaxed ${compact ? "text-center text-sm font-extrabold" : "text-center text-lg font-extrabold"}`}
-          style={{ color: slots.gradientText, fontFamily, letterSpacing }}
+          variant="none"
+          {...fit(4)}
+          className="text-center font-extrabold"
+          style={{ ...type.lead, color: slots.gradientText, fontFamily, letterSpacing }}
         >
           {bioText}
         </Text>
@@ -154,9 +201,9 @@ export function BioSectionRenderer({
         className={`overflow-hidden ${boxed ? "mb-5 rounded-[28px]" : ""}`}
         style={[
           {
-            height: compact ? "100%" : undefined,
-            minHeight: compact ? undefined : BIO_MIN_HEIGHT,
-            padding: compact ? 12 : 16,
+            ...slotStyle,
+            paddingHorizontal: compact ? 12 : 16,
+            paddingVertical: compact ? 0 : 16,
           },
           boxed ? BOXED_SHADOW_MD : null,
         ]}
@@ -179,7 +226,8 @@ export function BioSectionRenderer({
             borderColor: slots.highlight,
             borderRadius: 20,
             borderWidth: 1,
-            padding: compact ? 13 : 18,
+            paddingHorizontal: compact ? 13 : 18,
+            paddingVertical: compact ? 0 : 18,
           }}
         >
           <View className="mb-3 flex-row items-center justify-between">
@@ -189,19 +237,14 @@ export function BioSectionRenderer({
             />
             <Quote
               color={slots.accent}
-              size={compact ? 17 : 21}
+              size={21}
               strokeWidth={2}
             />
           </View>
           <Text
-            {...sharedTextProps}
-            style={{
-              color: slots.textPrimary,
-              fontFamily,
-              fontSize: compact ? 12 : 15,
-              letterSpacing,
-              lineHeight: compact ? 18 : 23,
-            }}
+            variant="none"
+            {...fit(4)}
+            style={{ ...type.body, color: slots.textPrimary, fontFamily, letterSpacing }}
           >
             {bioText}
           </Text>
@@ -214,22 +257,22 @@ export function BioSectionRenderer({
   if (section.templateId === "compact") {
     return (
       <View
-        className={`flex-row items-center overflow-hidden px-4 py-3 ${boxed ? "mb-5 rounded-[24px] border" : ""}`}
+        className={`flex-row items-center overflow-hidden px-4 ${compact ? "" : "py-3"} ${boxed ? "mb-5 rounded-[24px] border" : ""}`}
         style={[
           {
             backgroundColor: slots.surface,
             borderColor: slots.highlight,
-            height: compact ? "100%" : undefined,
-            minHeight: compact ? undefined : BIO_MIN_HEIGHT,
+            ...slotStyle,
           },
           boxed ? BOXED_SHADOW_SM : null,
         ]}
       >
-        <Quote color={slots.accent} size={14} strokeWidth={2.4} />
+        <Quote color={slots.accent} size={compact ? 20 : 16} strokeWidth={2.2} />
         <Text
-          {...sharedTextProps}
-          className={`ml-2.5 flex-1 font-semibold leading-relaxed ${compact ? "text-xs" : "text-sm"}`}
-          style={{ color: slots.textPrimary, fontFamily, letterSpacing }}
+          variant="none"
+          {...fit(4)}
+          className="ml-2.5 flex-1 font-semibold"
+          style={{ ...type.body, color: slots.textPrimary, fontFamily, letterSpacing }}
         >
           {bioText}
         </Text>
@@ -241,37 +284,43 @@ export function BioSectionRenderer({
   if (section.templateId === "editorial") {
     return (
       <View
-        className={`overflow-hidden p-5 ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
+        className={`justify-center overflow-hidden ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
         style={[
           {
             backgroundColor: slots.surface,
             borderColor: slots.highlight,
-            height: compact ? "100%" : undefined,
-            minHeight: compact ? undefined : BIO_MIN_HEIGHT,
+            ...slotStyle,
+            paddingLeft: spacing.horizontal,
+            paddingRight: fullCardRightPad,
+            paddingVertical: compact ? 0 : spacing.vertical,
           },
           boxed ? BOXED_SHADOW_SM : null,
         ]}
       >
         {!!taglineText && (
-          <View className="flex-row items-start">
-            <Quote color={slots.accent} size={compact ? 16 : 20} />
+          <View
+            className="flex-row items-start"
+            style={{ flexShrink: compact ? 1 : 0, minHeight: 0 }}
+          >
+            <Quote color={slots.accent} size={compact ? 22 : 20} />
             <Text
-              numberOfLines={compact ? 2 : undefined}
-              className={`ml-2 flex-1 font-bold italic leading-snug ${compact ? "text-sm" : "text-lg"}`}
-              style={{ color: slots.textPrimary, fontFamily, letterSpacing }}
+              variant="none"
+              {...fit(2)}
+              className="ml-2 flex-1 font-bold italic"
+              style={{ ...faceType.lead, color: slots.textPrimary, fontFamily, letterSpacing }}
             >
               {taglineText}
             </Text>
           </View>
         )}
         <View
-          className={taglineText ? "my-3 h-px w-full" : "mb-2 h-px w-full"}
+          className={taglineText ? "my-2 h-px w-full" : "mb-2 h-px w-full"}
           style={{ backgroundColor: slots.highlight }}
         />
         <Text
-          numberOfLines={compact ? 3 : undefined}
-          className={`leading-relaxed ${compact ? "text-[11px]" : "text-sm"}`}
-          style={{ color: slots.textSecondary, fontFamily, letterSpacing }}
+          variant="none"
+          {...fit(taglineText ? (fullCardView ? 3 : 2) : 4)}
+          style={{ ...faceType.body, color: slots.textPrimary, fontFamily, letterSpacing }}
         >
           {summaryText}
         </Text>
@@ -283,28 +332,28 @@ export function BioSectionRenderer({
   if (section.templateId === "spotlight") {
     return (
       <View
-        className={`items-center justify-center overflow-hidden p-5 ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
+        className={`items-center justify-center overflow-hidden ${compact ? "px-5" : "p-5"} ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
         style={[
           {
             backgroundColor: slots.surface,
             borderColor: slots.highlight,
-            height: compact ? "100%" : undefined,
-            minHeight: compact ? undefined : BIO_MIN_HEIGHT,
+            ...slotStyle,
           },
           boxed ? BOXED_SHADOW_SM : null,
         ]}
       >
-        <Quote color={slots.accent} size={22} strokeWidth={2} />
+        <Quote color={slots.accent} size={compact ? 26 : 22} strokeWidth={2} />
         <Text
-          {...sharedTextProps}
-          className={`my-3 text-center leading-relaxed font-medium ${compact ? "text-xs" : "text-sm"}`}
-          style={{ color: slots.textPrimary, fontFamily, letterSpacing }}
+          variant="none"
+          {...fit(3)}
+          className="my-2 text-center font-medium"
+          style={{ ...type.body, color: slots.textPrimary, fontFamily, letterSpacing }}
         >
           {bioText}
         </Text>
         <View className="flex-row gap-1.5">
           <View
-            className="h-1.5 w-1.5 rounded-full"
+            className="size-1.5 rounded-full"
             style={{ backgroundColor: slots.accent }}
           />
           <View
@@ -312,7 +361,7 @@ export function BioSectionRenderer({
             style={{ backgroundColor: slots.accent }}
           />
           <View
-            className="h-1.5 w-1.5 rounded-full"
+            className="size-1.5 rounded-full"
             style={{ backgroundColor: slots.accent }}
           />
         </View>
@@ -329,22 +378,31 @@ export function BioSectionRenderer({
           {
             backgroundColor: slots.surface,
             borderColor: slots.highlight,
-            height: compact ? "100%" : undefined,
-            minHeight: compact ? undefined : BIO_MIN_HEIGHT,
+            ...slotStyle,
           },
           boxed ? BOXED_SHADOW_SM : null,
         ]}
       >
         <View className="px-4 py-2" style={{ backgroundColor: slots.accent }}>
-          <Text className="text-xs font-black uppercase tracking-wider text-white">
-            About &amp; Story
+          <Text
+            variant="none"
+            className="font-black uppercase"
+            style={{ ...type.label, color: "#ffffff", fontFamily }}
+          >
+            About
           </Text>
         </View>
-        <View className="flex-1 p-4">
+        <View
+          className="flex-1"
+          style={{
+            paddingHorizontal: spacing.horizontal,
+            paddingVertical: compact ? 0 : spacing.vertical,
+          }}
+        >
           <Text
-            {...sharedTextProps}
-            className={`leading-relaxed ${compact ? "text-xs" : "text-sm"}`}
-            style={{ color: slots.textPrimary, fontFamily, letterSpacing }}
+            variant="none"
+            {...fit(4)}
+            style={{ ...type.body, color: slots.textPrimary, fontFamily, letterSpacing }}
           >
             {bioText}
           </Text>
@@ -353,45 +411,118 @@ export function BioSectionRenderer({
     );
   }
 
-  // Modular Bento (cards): inset floating cardlet
+  // Story Card (cards): stacked bold tagline over the bio, inside an inset
+  // rounded box on the section background. Compact home uses this same branch.
+  if (section.templateId === "cards" && compact && fullCardView) {
+    return (
+      <View
+        className="overflow-hidden"
+        style={{
+          alignSelf: "stretch",
+          backgroundColor: slots.background,
+          flex: 1,
+          padding: spacing.gap,
+          width: "100%",
+          ...slotStyle,
+        }}
+      >
+        <View
+          style={[
+            {
+              backgroundColor: slots.surface,
+              borderColor: slots.highlight,
+              borderRadius: 16,
+              borderWidth: 1,
+              flex: 1,
+              minHeight: 0,
+              overflow: "hidden",
+              paddingLeft: spacing.horizontal,
+              paddingRight: 36,
+              paddingVertical: 0,
+            },
+            BOXED_SHADOW_SM,
+          ]}
+        >
+          {!!taglineText && (
+            <Text
+              variant="none"
+              {...fit(2)}
+              className="font-extrabold"
+              style={{
+                ...fullCardType.lead,
+                color: slots.textPrimary,
+                fontFamily,
+                letterSpacing,
+              }}
+            >
+              {taglineText}
+            </Text>
+          )}
+          <Text
+            variant="none"
+            {...fit(taglineText ? 3 : 4)}
+            className="font-medium"
+            style={{
+              ...fullCardType.body,
+              color: slots.textPrimary,
+              fontFamily,
+              letterSpacing,
+              marginTop: taglineText ? 4 : 0,
+            }}
+          >
+            {summaryText}
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  // Modular Bento (cards): inset floating cardlet outside the fixed card slot
   if (section.templateId === "cards") {
     return (
       <View
-        className={`overflow-hidden p-3 ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
+        className={`overflow-hidden ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
         style={[
           {
             backgroundColor: slots.background,
-            height: compact ? "100%" : undefined,
-            minHeight: compact ? undefined : BIO_MIN_HEIGHT,
+            ...slotStyle,
+            padding: spacing.gap,
           },
           boxed ? BOXED_SHADOW_SM : null,
         ]}
       >
         <View
-          className="flex-1 rounded-2xl border p-4"
+          className="flex-1 rounded-2xl border"
           style={[
-            { backgroundColor: slots.surface, borderColor: slots.highlight },
+            {
+              backgroundColor: slots.surface,
+              borderColor: slots.highlight,
+              paddingHorizontal: spacing.horizontal - 4,
+              paddingVertical: compact ? 0 : spacing.horizontal - 4,
+            },
             BOXED_SHADOW_SM,
           ]}
         >
           {!!taglineText && (
             <View
-              className="mb-3 self-start rounded-full px-3 py-1.5"
+              className="mb-2 max-w-full self-start rounded-full px-3 py-1"
               style={{ backgroundColor: `${slots.accent}16` }}
             >
               <Text
+                variant="none"
                 numberOfLines={1}
-                className="text-[10px] font-black uppercase tracking-wider"
-                style={{ color: slots.accent, fontFamily, letterSpacing }}
+                className="font-black uppercase"
+                style={{ ...type.label, color: slots.accent, fontFamily, letterSpacing }}
               >
                 {taglineText}
               </Text>
             </View>
           )}
           <Text
-            numberOfLines={compact ? 4 : undefined}
-            className={`leading-relaxed ${compact ? "text-xs font-medium" : "text-sm font-medium"}`}
-            style={{ color: slots.textPrimary, fontFamily, letterSpacing }}
+            variant="none"
+            {...fit(taglineText ? 3 : 4)}
+            className="font-medium"
+            style={{ ...type.body, color: slots.textPrimary, fontFamily, letterSpacing }}
           >
             {summaryText}
           </Text>
@@ -404,13 +535,12 @@ export function BioSectionRenderer({
   if (section.templateId === "badge") {
     return (
       <View
-        className={`overflow-hidden p-4 ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
+        className={`overflow-hidden ${compact ? "px-4" : "p-4"} ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
         style={[
           {
             backgroundColor: slots.surface,
             borderColor: slots.accent,
-            height: compact ? "100%" : undefined,
-            minHeight: compact ? undefined : BIO_MIN_HEIGHT,
+            ...slotStyle,
           },
           boxed ? BOXED_SHADOW_MD : null,
         ]}
@@ -420,20 +550,21 @@ export function BioSectionRenderer({
           style={{ borderBottomColor: slots.highlight }}
         >
           <Text
-            className="text-[10px] font-black uppercase tracking-wider"
-            style={{ color: slots.accent }}
+            variant="none"
+            className="font-black uppercase"
+            style={{ ...type.label, color: slots.accent, fontFamily }}
           >
             VERIFIED BIOGRAPHY
           </Text>
           <View
-            className="h-2 w-2 rounded-full"
+            className="size-2 rounded-full"
             style={{ backgroundColor: slots.accent }}
           />
         </View>
         <Text
-          {...sharedTextProps}
-          className={`leading-relaxed ${compact ? "text-xs" : "text-sm"}`}
-          style={{ color: slots.textPrimary, fontFamily, letterSpacing }}
+          variant="none"
+          {...fit(3)}
+          style={{ ...type.body, color: slots.textPrimary, fontFamily, letterSpacing }}
         >
           {bioText}
         </Text>
@@ -450,40 +581,49 @@ export function BioSectionRenderer({
           {
             backgroundColor: slots.surface,
             borderColor: slots.highlight,
-            height: compact ? "100%" : undefined,
-            minHeight: compact ? undefined : BIO_MIN_HEIGHT,
+            ...slotStyle,
           },
           boxed ? BOXED_SHADOW_SM : null,
         ]}
       >
         <View
-          className="w-[38%] items-center justify-center border-r p-3"
+          className="w-[38%] items-center justify-center border-r"
           style={{
             borderRightColor: slots.highlight,
             backgroundColor: slots.background,
+            paddingHorizontal: spacing.gap,
+            paddingVertical: compact ? 0 : spacing.vertical,
           }}
         >
           <Quote
             color={slots.accent}
-            size={compact ? 18 : 24}
+            size={24}
             strokeWidth={2}
           />
-          <Text
-            numberOfLines={compact ? 3 : undefined}
-            className={`mt-2 text-center font-extrabold leading-tight ${compact ? "text-[11px]" : "text-sm"}`}
-            style={{ color: slots.textPrimary, fontFamily, letterSpacing }}
-          >
-            {taglineText || "My professional focus"}
-          </Text>
+          {!!taglineText && (
+            <Text
+              variant="none"
+              {...fit(3)}
+              className="mt-2 text-center font-extrabold"
+              style={{ ...faceType.lead, color: slots.textPrimary, fontFamily, letterSpacing }}
+            >
+              {taglineText}
+            </Text>
+          )}
         </View>
         <View
-          className="flex-1 p-4 justify-center"
-          style={{ backgroundColor: slots.surface }}
+          className="flex-1 justify-center"
+          style={{
+            backgroundColor: slots.surface,
+            paddingLeft: spacing.horizontal,
+            paddingRight: fullCardRightPad,
+            paddingVertical: compact ? 0 : spacing.vertical,
+          }}
         >
           <Text
-            numberOfLines={compact ? 4 : undefined}
-            className={`leading-relaxed ${compact ? "text-[11px]" : "text-sm"}`}
-            style={{ color: slots.textSecondary, fontFamily, letterSpacing }}
+            variant="none"
+            {...fit(5)}
+            style={{ ...faceType.body, color: slots.textPrimary, fontFamily, letterSpacing }}
           >
             {summaryText}
           </Text>
@@ -496,22 +636,21 @@ export function BioSectionRenderer({
   if (section.templateId === "neon") {
     return (
       <View
-        className={`overflow-hidden p-4 ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
+        className={`justify-center overflow-hidden ${compact ? "px-4" : "p-4"} ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
         style={[
           {
             backgroundColor: slots.background,
             borderColor: slots.accent,
             borderWidth: 2,
-            height: compact ? "100%" : undefined,
-            minHeight: compact ? undefined : BIO_MIN_HEIGHT,
+            ...slotStyle,
           },
           boxed ? BOXED_SHADOW_SM : null,
         ]}
       >
         <Text
-          {...sharedTextProps}
-          className={`leading-relaxed ${compact ? "text-xs" : "text-sm"}`}
-          style={{ color: slots.textPrimary, fontFamily, letterSpacing }}
+          variant="none"
+          {...fit(5)}
+          style={{ ...type.body, color: slots.textPrimary, fontFamily, letterSpacing }}
         >
           {bioText}
         </Text>
@@ -522,13 +661,14 @@ export function BioSectionRenderer({
   // Editorial Story (classic): magazine-style quote gutter beside narrative
   return (
     <View
-      className={`flex-row overflow-hidden px-4 py-5 ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
+      className={`flex-row overflow-hidden ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
       style={[
         {
           backgroundColor: slots.surface,
           borderColor: boxed ? slots.accent : undefined,
-          height: compact ? "100%" : undefined,
-          minHeight: compact ? undefined : BIO_MIN_HEIGHT,
+          ...slotStyle,
+          paddingHorizontal: spacing.horizontal,
+          paddingVertical: compact ? 0 : spacing.vertical,
         },
         boxed ? BOXED_SHADOW_SM : null,
       ]}
@@ -536,7 +676,7 @@ export function BioSectionRenderer({
       <View className="mr-4 items-center">
         <Quote
           color={slots.accent}
-          size={compact ? 20 : 26}
+          size={compact ? 24 : 26}
           strokeWidth={2.2}
         />
         <View
@@ -545,9 +685,10 @@ export function BioSectionRenderer({
         />
       </View>
       <Text
-        {...sharedTextProps}
-        className={`flex-1 leading-relaxed ${compact ? "text-xs" : "text-base"}`}
-        style={{ color: slots.textPrimary, fontFamily, letterSpacing }}
+        variant="none"
+        {...fit(5)}
+        className="flex-1"
+        style={{ ...type.body, color: slots.textPrimary, fontFamily, letterSpacing }}
       >
         {bioText}
       </Text>

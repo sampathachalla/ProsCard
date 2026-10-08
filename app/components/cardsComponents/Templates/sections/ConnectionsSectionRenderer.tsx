@@ -1,5 +1,11 @@
 import React from "react";
-import { Linking, Pressable, View, useWindowDimensions } from "react-native";
+import {
+  Linking,
+  Pressable,
+  View,
+  useWindowDimensions,
+  type ViewStyle,
+} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import * as Haptics from "expo-haptics";
@@ -15,6 +21,7 @@ import {
   resolveActionUrl,
 } from "./SectionSharedComponents";
 import { resolveLayoutColorSlots } from "@/utils/cardThemeColor";
+import { getCardSectionSpacing } from "./cardSectionSpacing";
 
 /** Floor only — unlike Identity/Professional/Bio, Connections legitimately
  * varies in height with the number of channels a user has added. This just
@@ -24,7 +31,9 @@ const CONNECTIONS_MIN_HEIGHT = 110;
 type Props = {
   compact?: boolean;
   cardTheme: CardVisualTheme;
+  fullCardView?: boolean;
   gradient: [string, string];
+  preserveTypeScale?: boolean;
   section: CardDetailSection;
   seamless?: boolean;
   showEmpty?: boolean;
@@ -124,13 +133,17 @@ function ConnectionIcon({
 export function ConnectionsSectionRenderer({
   compact = false,
   cardTheme,
+  fullCardView = false,
   gradient,
+  preserveTypeScale = false,
   section,
   seamless = false,
   showEmpty = false,
 }: Props) {
   const boxed = compact && !seamless;
   const { width } = useWindowDimensions();
+  const spacing = getCardSectionSpacing(width);
+  const inFixedCardSlot = compact && (fullCardView || seamless);
   const fontFamily = getCardFontFamily(cardTheme.fontStyle);
   const letterSpacing = getCardLetterSpacing(cardTheme.fontStyle);
   const slots = resolveLayoutColorSlots({
@@ -142,8 +155,76 @@ export function ConnectionsSectionRenderer({
     : section.fields.filter(
         (field) => field.value && field.value.trim().length > 0,
       );
-  const fields = compact ? rawFields.slice(0, 4) : rawFields;
+  const fields = rawFields;
+  const densePreview = compact && fields.length > (inFixedCardSlot ? 3 : 4);
+  const gridTileMinHeight = inFixedCardSlot
+    ? densePreview
+      ? 44
+      : 52
+    : compact
+      ? 62
+      : 94;
+  const rowPaddingVertical = densePreview ? 4 : inFixedCardSlot ? 6 : 10;
   const useTwoColumns = compact || width >= 600;
+  /** In the card view the section has a fixed height; rows and tiles grow to
+   * fill it (up to a cap, so two contacts don't become giant boxes). */
+  const fillSlot = inFixedCardSlot;
+  const listRowFill = fillSlot
+    ? ({
+        flex: 1,
+        maxHeight: 84,
+        minHeight: 0,
+        justifyContent: "center",
+      } as const)
+    : null;
+  const listFill = fillSlot
+    ? ({ flex: 1, justifyContent: "flex-start" } as const)
+    : null;
+  const fillIconBox = densePreview ? 34 : 40;
+  const fillIconSize = densePreview ? 16 : 18;
+
+  const renderGrid = (
+    items: CardDetailField[],
+    columns: number,
+    gap: number,
+    renderTile: (
+      field: CardDetailField,
+      tileStyle: ViewStyle,
+    ) => React.ReactNode,
+  ) => {
+    if (fillSlot) {
+      const rows: CardDetailField[][] = [];
+      for (let i = 0; i < items.length; i += columns)
+        rows.push(items.slice(i, i + columns));
+      return (
+        <View style={{ flex: 1, gap, justifyContent: "flex-start" }}>
+          {rows.map((row, rowIndex) => (
+            <View
+              key={rowIndex}
+              style={{
+                flex: 1,
+                flexDirection: "row",
+                gap,
+                maxHeight: 128,
+                minHeight: 0,
+              }}
+            >
+              {row.map((field) => renderTile(field, { flex: 1, minWidth: 0 }))}
+              {Array.from({ length: columns - row.length }, (_, i) => (
+                <View key={`spacer-${i}`} style={{ flex: 1 }} />
+              ))}
+            </View>
+          ))}
+        </View>
+      );
+    }
+    const tileWidth = columns === 1 ? "100%" : "48.5%";
+    return (
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap }}>
+        {items.map((field) => renderTile(field, { width: tileWidth }))}
+      </View>
+    );
+  };
 
   if (!fields.length) return null;
 
@@ -162,12 +243,9 @@ export function ConnectionsSectionRenderer({
   ) => (
     <View className="min-w-0 flex-1">
       <Text
+        variant="none"
         numberOfLines={1}
-        className={
-          compact
-            ? "text-[8px] font-bold uppercase tracking-wider"
-            : "text-[10px] font-bold uppercase tracking-wider"
-        }
+        className={`${fillSlot && !densePreview ? "text-xs" : "text-[11px]"} font-semibold uppercase`}
         style={{
           color: mutedColor,
           fontFamily,
@@ -178,11 +256,26 @@ export function ConnectionsSectionRenderer({
         {presentation.label}
       </Text>
       <Text
-        adjustsFontSizeToFit
-        minimumFontScale={0.72}
-        numberOfLines={1}
-        className={compact ? "text-[11px] font-bold" : "text-sm font-bold"}
-        style={{ color, fontFamily, letterSpacing, textAlign: align }}
+        variant="none"
+        {...(preserveTypeScale
+          ? { numberOfLines: 1 }
+          : { adjustsFontSizeToFit: true, minimumFontScale: 0.72, numberOfLines: 1 })}
+        className={
+          fillSlot
+            ? densePreview
+              ? "text-[15px] font-bold"
+              : "text-base font-bold"
+            : compact
+              ? "text-[13px] font-bold"
+              : "text-sm font-bold"
+        }
+        style={{
+          color,
+          fontFamily,
+          fontVariant: ["tabular-nums"],
+          letterSpacing,
+          textAlign: align,
+        }}
       >
         {presentation.value}
       </Text>
@@ -193,7 +286,7 @@ export function ConnectionsSectionRenderer({
   if (section.templateId === "minimal") {
     return (
       <View
-        className={`flex-row flex-wrap gap-2 overflow-hidden p-3 ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
+        className={`overflow-hidden p-3 ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
         style={[
           {
             backgroundColor: slots.background,
@@ -204,7 +297,7 @@ export function ConnectionsSectionRenderer({
           boxed ? BOXED_SHADOW_SM : null,
         ]}
       >
-        {fields.map((field) => {
+        {renderGrid(fields, useTwoColumns ? 2 : 1, 8, (field, tileStyle) => {
           const presentation = getConnectionPresentation(field, showEmpty);
           return (
             <Pressable
@@ -214,18 +307,20 @@ export function ConnectionsSectionRenderer({
               disabled={!resolveActionUrl(field)}
               onPress={() => handlePress(field)}
               className="items-center justify-center border p-3 active:opacity-70"
-              style={{
-                backgroundColor: slots.surface,
-                borderColor: slots.accent,
-                borderRadius: 10,
-                minHeight: compact ? 62 : 94,
-                width: useTwoColumns ? "48.5%" : "100%",
-              }}
+              style={[
+                {
+                  backgroundColor: slots.surface,
+                  borderColor: slots.accent,
+                  borderRadius: 10,
+                  minHeight: fillSlot ? 0 : gridTileMinHeight,
+                },
+                tileStyle,
+              ]}
             >
               <ConnectionIcon
                 color={slots.accent}
                 field={field}
-                size={compact ? 17 : 22}
+                size={fillSlot ? fillIconSize + 2 : compact ? 17 : 22}
               />
               <View className="mt-2 w-full">
                 {renderCopy(
@@ -259,7 +354,7 @@ export function ConnectionsSectionRenderer({
           boxed ? BOXED_SHADOW_LG : null,
         ]}
       >
-        <View className="gap-2">
+        <View className="gap-2" style={listFill}>
           {fields.map((field) => {
             const presentation = getConnectionPresentation(field, showEmpty);
             return (
@@ -269,7 +364,7 @@ export function ConnectionsSectionRenderer({
                 accessibilityLabel={`${presentation.label}: ${presentation.value}`}
                 disabled={!resolveActionUrl(field)}
                 onPress={() => handlePress(field)}
-                className="flex-row items-center border px-3 py-2.5 active:opacity-70"
+                className="flex-row items-center border px-3 active:opacity-70"
                 style={{
                   backgroundColor: slots.isDark
                     ? "rgba(15, 23, 42, 0.45)"
@@ -278,16 +373,23 @@ export function ConnectionsSectionRenderer({
                     ? "rgba(255, 255, 255, 0.18)"
                     : "rgba(0, 0, 0, 0.12)",
                   borderRadius: 10,
+                  paddingVertical: rowPaddingVertical,
+                  ...listRowFill,
                 }}
               >
                 <View
-                  className="mr-3 h-9 w-9 items-center justify-center"
-                  style={{ backgroundColor: slots.surface, borderRadius: 8 }}
+                  className="mr-3 items-center justify-center"
+                  style={{
+                    backgroundColor: slots.surface,
+                    borderRadius: 8,
+                    height: fillSlot ? fillIconBox : densePreview ? 28 : 36,
+                    width: fillSlot ? fillIconBox : densePreview ? 28 : 36,
+                  }}
                 >
                   <ConnectionIcon
                     color={slots.accent}
                     field={field}
-                    size={18}
+                    size={fillSlot ? fillIconSize : densePreview ? 14 : 18}
                   />
                 </View>
                 {renderCopy(presentation, slots.gradientText, mutedOnGradient)}
@@ -303,7 +405,7 @@ export function ConnectionsSectionRenderer({
   if (section.templateId === "glass") {
     return (
       <View
-        className={`flex-row flex-wrap gap-2.5 overflow-hidden p-4 ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
+        className={`overflow-hidden p-4 ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
         style={[
           {
             backgroundColor: slots.background,
@@ -314,7 +416,7 @@ export function ConnectionsSectionRenderer({
           boxed ? BOXED_SHADOW_MD : null,
         ]}
       >
-        {fields.map((field) => {
+        {renderGrid(fields, useTwoColumns ? 2 : 1, 10, (field, tileStyle) => {
           const presentation = getConnectionPresentation(field, showEmpty);
           return (
             <Pressable
@@ -324,26 +426,32 @@ export function ConnectionsSectionRenderer({
               disabled={!resolveActionUrl(field)}
               onPress={() => handlePress(field)}
               className="overflow-hidden border active:opacity-70"
-              style={{
-                backgroundColor: slots.surface,
-                borderColor: slots.highlight,
-                borderRadius: 18,
-                width: useTwoColumns ? "48%" : "100%",
-              }}
+              style={[
+                {
+                  backgroundColor: slots.surface,
+                  borderColor: slots.highlight,
+                  borderRadius: 18,
+                },
+                tileStyle,
+              ]}
             >
               <LinearGradient
                 colors={gradient}
                 style={{ height: 5, width: "100%" }}
               />
-              <View className="items-center px-3 py-3">
+              <View className="flex-1 items-center justify-center px-3 py-3">
                 <View
-                  className="mb-2 h-10 w-10 items-center justify-center rounded-full"
-                  style={{ backgroundColor: slots.background }}
+                  className="mb-2 items-center justify-center rounded-full"
+                  style={{
+                    backgroundColor: slots.background,
+                    height: fillSlot ? fillIconBox : 40,
+                    width: fillSlot ? fillIconBox : 40,
+                  }}
                 >
                   <ConnectionIcon
                     color={slots.accent}
                     field={field}
-                    size={19}
+                    size={fillSlot ? fillIconSize + 1 : 19}
                   />
                 </View>
                 {renderCopy(
@@ -365,13 +473,18 @@ export function ConnectionsSectionRenderer({
   if (section.templateId === "compact") {
     return (
       <View
-        className={`flex-row items-stretch justify-around gap-2 overflow-hidden px-3 pb-3 pt-1.5 ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
+        className={`flex-row flex-wrap items-stretch justify-around overflow-hidden ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
         style={[
           {
             backgroundColor: slots.surface,
             borderColor: boxed ? slots.highlight : undefined,
             height: compact ? "100%" : undefined,
             minHeight: compact ? undefined : CONNECTIONS_MIN_HEIGHT,
+            alignContent: fillSlot ? "flex-start" : undefined,
+            gap: spacing.gap,
+            paddingBottom: spacing.vertical,
+            paddingHorizontal: spacing.horizontal,
+            paddingTop: spacing.tightVertical,
           },
           boxed ? BOXED_SHADOW_SM : null,
         ]}
@@ -385,24 +498,45 @@ export function ConnectionsSectionRenderer({
               accessibilityLabel={`${presentation.label}: ${presentation.value}`}
               disabled={!resolveActionUrl(field)}
               onPress={() => handlePress(field)}
-              className="min-w-0 flex-1 items-center justify-center px-1.5 py-3 active:opacity-70"
+              className="min-w-0 items-center justify-center px-1 active:opacity-70"
+              style={{
+                paddingVertical: densePreview ? 4 : 8,
+                width: densePreview ? "24%" : `${100 / fields.length}%`,
+              }}
             >
               <View
-                className="h-10 w-10 items-center justify-center rounded-2xl"
+                className="items-center justify-center rounded-2xl"
                 style={{
                   backgroundColor:
                     field === fields[0] ? slots.accent : `${slots.accent}14`,
+                  height: fillSlot
+                    ? densePreview
+                      ? 44
+                      : 52
+                    : densePreview
+                      ? 28
+                      : 40,
+                  width: fillSlot
+                    ? densePreview
+                      ? 44
+                      : 52
+                    : densePreview
+                      ? 28
+                      : 40,
                 }}
               >
                 <ConnectionIcon
                   color={field === fields[0] ? slots.background : slots.accent}
                   field={field}
-                  size={16}
+                  size={
+                    fillSlot ? (densePreview ? 18 : 22) : densePreview ? 12 : 16
+                  }
                 />
               </View>
               <Text
+                variant="none"
                 numberOfLines={1}
-                className="mt-2 text-[9px] font-extrabold"
+                className={`${densePreview ? "mt-1.5" : "mt-2"} ${fillSlot ? "text-xs" : densePreview ? "text-[10px]" : "text-[11px]"} font-extrabold`}
                 style={{
                   color: slots.textPrimary,
                   fontFamily,
@@ -423,60 +557,82 @@ export function ConnectionsSectionRenderer({
   if (section.templateId === "editorial") {
     return (
       <View
-        className={`overflow-hidden px-4 pb-4 pt-2 ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
+        className={`overflow-hidden ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
         style={[
           {
             backgroundColor: slots.surface,
             borderColor: boxed ? slots.highlight : undefined,
             height: compact ? "100%" : undefined,
             minHeight: compact ? undefined : CONNECTIONS_MIN_HEIGHT,
+            paddingBottom: spacing.vertical,
+            paddingHorizontal: spacing.horizontal,
+            paddingTop: spacing.tightVertical,
           },
           boxed ? BOXED_SHADOW_SM : null,
         ]}
       >
-        {fields.map((field, idx) => {
-          const presentation = getConnectionPresentation(field, showEmpty);
-          return (
-            <Pressable
-              key={field.id}
-              accessibilityRole="button"
-              accessibilityLabel={`${presentation.label}: ${presentation.value}`}
-              disabled={!resolveActionUrl(field)}
-              onPress={() => handlePress(field)}
-              className="flex-row items-center py-2.5 active:opacity-70"
-              style={{
-                borderBottomWidth: idx === fields.length - 1 ? 0 : 1,
-                borderBottomColor: slots.borderColor,
-              }}
-            >
-              <View className="mr-3 w-7 items-center">
-                <Text
-                  className="text-[9px] font-bold"
-                  style={{ color: slots.accent, fontFamily }}
-                >
-                  {String(idx + 1).padStart(2, "0")}
-                </Text>
-                <View
-                  className="mt-1 h-4 w-px"
-                  style={{ backgroundColor: `${slots.accent}45` }}
-                />
-              </View>
-              <View
-                className="mr-3 h-8 w-8 items-center justify-center rounded-lg"
-                style={{ backgroundColor: `${slots.accent}14` }}
+        <View style={listFill}>
+          {fields.map((field, idx) => {
+            const presentation = getConnectionPresentation(field, showEmpty);
+            return (
+              <Pressable
+                key={field.id}
+                accessibilityRole="button"
+                accessibilityLabel={`${presentation.label}: ${presentation.value}`}
+                disabled={!resolveActionUrl(field)}
+                onPress={() => handlePress(field)}
+                className="flex-row items-center active:opacity-70"
+                style={{
+                  borderBottomWidth: idx === fields.length - 1 ? 0 : 1,
+                  borderBottomColor: slots.borderColor,
+                  paddingVertical: densePreview ? 4 : 10,
+                  ...listRowFill,
+                }}
               >
-                <ConnectionIcon color={slots.accent} field={field} size={14} />
-              </View>
-              {renderCopy(presentation, slots.textPrimary, slots.textSecondary)}
-              <FontAwesome6
-                name="arrow-up-right-from-square"
-                size={12}
-                color={slots.textSecondary}
-                style={{ marginLeft: 8 }}
-              />
-            </Pressable>
-          );
-        })}
+                <View
+                  className={`${densePreview ? "mr-2 w-5" : "mr-3 w-7"} items-center`}
+                >
+                  <Text
+                    variant="none"
+                    className="text-xs font-bold"
+                    style={{ color: slots.accent, fontFamily }}
+                  >
+                    {String(idx + 1).padStart(2, "0")}
+                  </Text>
+                  <View
+                    className={`${densePreview ? "mt-0.5 h-2" : "mt-1 h-4"} w-px`}
+                    style={{ backgroundColor: `${slots.accent}45` }}
+                  />
+                </View>
+                <View
+                  className="mr-3 items-center justify-center rounded-lg"
+                  style={{
+                    backgroundColor: `${slots.accent}14`,
+                    height: fillSlot ? fillIconBox - 4 : densePreview ? 24 : 32,
+                    width: fillSlot ? fillIconBox - 4 : densePreview ? 24 : 32,
+                  }}
+                >
+                  <ConnectionIcon
+                    color={slots.accent}
+                    field={field}
+                    size={fillSlot ? fillIconSize - 1 : densePreview ? 11 : 14}
+                  />
+                </View>
+                {renderCopy(
+                  presentation,
+                  slots.textPrimary,
+                  slots.textSecondary,
+                )}
+                <FontAwesome6
+                  name="arrow-up-right-from-square"
+                  size={12}
+                  color={slots.textSecondary}
+                  style={{ marginLeft: 8 }}
+                />
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
     );
   }
@@ -508,19 +664,34 @@ export function ConnectionsSectionRenderer({
             disabled={!resolveActionUrl(heroField)}
             onPress={() => handlePress(heroField)}
             className="flex-row items-center justify-between rounded-2xl p-3.5 active:opacity-80"
-            style={{ backgroundColor: slots.accent }}
+            style={{
+              backgroundColor: slots.accent,
+              minHeight: fillSlot ? 64 : undefined,
+            }}
           >
             <View className="flex-row items-center flex-1 mr-2">
-              <View className="mr-3 h-10 w-10 items-center justify-center rounded-xl bg-white/20">
-                <ConnectionIcon color="#FFFFFF" field={heroField} size={18} />
+              <View
+                className={`mr-3 ${fillSlot ? "size-11" : "size-10"} items-center justify-center rounded-xl bg-white/20`}
+              >
+                <ConnectionIcon
+                  color="#FFFFFF"
+                  field={heroField}
+                  size={fillSlot ? 20 : 18}
+                />
               </View>
               <View className="flex-1 min-w-0">
-                <Text className="text-[10px] font-bold uppercase tracking-wider text-white/80">
+                <Text
+                  variant="none"
+                  className={`${fillSlot ? "text-xs" : "text-[11px]"} font-semibold uppercase text-white/80`}
+                >
                   {heroPresentation.label}
                 </Text>
                 <Text
-                  numberOfLines={1}
-                  className="text-sm font-bold text-white"
+                  variant="none"
+                  {...(preserveTypeScale
+                    ? { numberOfLines: 1 }
+                    : { adjustsFontSizeToFit: true, minimumFontScale: 0.72, numberOfLines: 1 })}
+                  className={`${fillSlot ? "text-base" : "text-sm"} font-bold tabular-nums text-white`}
                   style={{ fontFamily }}
                 >
                   {heroPresentation.value}
@@ -531,9 +702,12 @@ export function ConnectionsSectionRenderer({
           </Pressable>
         )}
 
-        {otherFields.length > 0 && (
-          <View className="flex-row flex-wrap gap-2">
-            {otherFields.map((field) => {
+        {otherFields.length > 0 &&
+          renderGrid(
+            otherFields,
+            useTwoColumns ? 2 : 1,
+            8,
+            (field, tileStyle) => {
               const presentation = getConnectionPresentation(field, showEmpty);
               return (
                 <Pressable
@@ -543,21 +717,26 @@ export function ConnectionsSectionRenderer({
                   disabled={!resolveActionUrl(field)}
                   onPress={() => handlePress(field)}
                   className="flex-row items-center rounded-xl border px-3 py-2 active:opacity-70"
-                  style={{
-                    backgroundColor: slots.background,
-                    borderColor: slots.highlight,
-                    width: useTwoColumns ? "48.5%" : "100%",
-                  }}
+                  style={[
+                    {
+                      backgroundColor: slots.background,
+                      borderColor: slots.highlight,
+                    },
+                    tileStyle,
+                  ]}
                 >
                   <ConnectionIcon
                     color={slots.accent}
                     field={field}
-                    size={15}
+                    size={fillSlot ? fillIconSize - 1 : 15}
                   />
-                  <View className="ml-2 flex-1 min-w-0">
+                  <View className="ml-2.5 flex-1 min-w-0">
                     <Text
-                      numberOfLines={1}
-                      className="text-xs font-semibold"
+                      variant="none"
+                      {...(preserveTypeScale
+                        ? { numberOfLines: 1 }
+                        : { adjustsFontSizeToFit: true, minimumFontScale: 0.72, numberOfLines: 1 })}
+                      className={`${fillSlot ? "text-sm" : "text-xs"} font-semibold tabular-nums`}
                       style={{ color: slots.textPrimary, fontFamily }}
                     >
                       {presentation.value}
@@ -565,9 +744,8 @@ export function ConnectionsSectionRenderer({
                   </View>
                 </Pressable>
               );
-            })}
-          </View>
-        )}
+            },
+          )}
       </View>
     );
   }
@@ -576,13 +754,18 @@ export function ConnectionsSectionRenderer({
   if (section.templateId === "banner") {
     return (
       <View
-        className={`gap-2.5 overflow-hidden px-3.5 pb-3.5 pt-[7px] ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
+        className={`overflow-hidden ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
         style={[
           {
             backgroundColor: slots.background,
             borderColor: boxed ? slots.highlight : undefined,
             height: compact ? "100%" : undefined,
             minHeight: compact ? undefined : CONNECTIONS_MIN_HEIGHT,
+            gap: spacing.gap,
+            justifyContent: fillSlot ? "flex-start" : undefined,
+            paddingBottom: spacing.vertical,
+            paddingHorizontal: spacing.horizontal,
+            paddingTop: spacing.tightVertical,
           },
           boxed ? BOXED_SHADOW_SM : null,
         ]}
@@ -596,16 +779,25 @@ export function ConnectionsSectionRenderer({
               accessibilityLabel={`${presentation.label}: ${presentation.value}`}
               disabled={!resolveActionUrl(field)}
               onPress={() => handlePress(field)}
-              className="flex-row items-center rounded-xl border px-3 py-2.5 active:opacity-70"
+              className="flex-row items-center rounded-xl border active:opacity-70"
               style={{
                 backgroundColor: slots.surface,
                 borderColor: slots.highlight,
+                paddingHorizontal: densePreview ? 10 : 14,
+                paddingVertical: densePreview ? 5 : 10,
+                ...listRowFill,
+                ...(fillSlot ? { maxHeight: 64 } : null),
               }}
             >
-              <ConnectionIcon color={slots.accent} field={field} size={14} />
+              <ConnectionIcon
+                color={slots.accent}
+                field={field}
+                size={fillSlot ? fillIconSize : densePreview ? 11 : 14}
+              />
               <Text
+                variant="none"
                 numberOfLines={1}
-                className="ml-2 text-sm font-medium"
+                className={`ml-3 font-semibold ${fillSlot ? "text-base" : densePreview ? "text-xs" : "text-sm"}`}
                 style={{ color: slots.textPrimary, fontFamily }}
               >
                 {presentation.label}
@@ -621,7 +813,7 @@ export function ConnectionsSectionRenderer({
   if (section.templateId === "cards") {
     return (
       <View
-        className={`flex-row flex-wrap gap-2.5 overflow-hidden p-3.5 ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
+        className={`overflow-hidden p-3.5 ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
         style={[
           {
             backgroundColor: slots.background,
@@ -632,7 +824,7 @@ export function ConnectionsSectionRenderer({
           boxed ? BOXED_SHADOW_SM : null,
         ]}
       >
-        {fields.map((field) => {
+        {renderGrid(fields, useTwoColumns ? 2 : 1, 10, (field, tileStyle) => {
           const presentation = getConnectionPresentation(field, showEmpty);
           return (
             <Pressable
@@ -641,21 +833,29 @@ export function ConnectionsSectionRenderer({
               accessibilityLabel={`${presentation.label}: ${presentation.value}`}
               disabled={!resolveActionUrl(field)}
               onPress={() => handlePress(field)}
-              className="rounded-2xl border p-3.5 active:opacity-70"
+              className="justify-center rounded-2xl border p-3.5 active:opacity-70"
               style={[
                 {
                   backgroundColor: slots.surface,
                   borderColor: slots.highlight,
-                  width: useTwoColumns ? "48%" : "100%",
                 },
                 BOXED_SHADOW_SM,
+                tileStyle,
               ]}
             >
               <View
-                className="mb-2 h-9 w-9 items-center justify-center rounded-xl"
-                style={{ backgroundColor: `${slots.accent}18` }}
+                className="mb-2 items-center justify-center rounded-xl"
+                style={{
+                  backgroundColor: `${slots.accent}18`,
+                  height: fillSlot ? fillIconBox - 2 : 36,
+                  width: fillSlot ? fillIconBox - 2 : 36,
+                }}
               >
-                <ConnectionIcon color={slots.accent} field={field} size={17} />
+                <ConnectionIcon
+                  color={slots.accent}
+                  field={field}
+                  size={fillSlot ? fillIconSize : 17}
+                />
               </View>
               {renderCopy(presentation, slots.textPrimary, slots.textSecondary)}
             </Pressable>
@@ -668,6 +868,56 @@ export function ConnectionsSectionRenderer({
   // Icon Dock (badge): enterprise command dock with compact channel tiles
   if (section.templateId === "badge") {
     const dockItemWidth = compact ? "23.5%" : width >= 600 ? "23.5%" : "31.5%";
+    const renderDockTile = (field: CardDetailField, tileStyle: ViewStyle) => {
+      const presentation = getConnectionPresentation(field, showEmpty);
+      return (
+        <Pressable
+          key={field.id}
+          accessibilityRole="button"
+          accessibilityLabel={`${presentation.label}: ${presentation.value}`}
+          disabled={!resolveActionUrl(field)}
+          onPress={() => handlePress(field)}
+          className={`${compact ? "px-1.5 py-2" : "px-2 py-3"} items-center justify-center rounded-2xl border active:opacity-70`}
+          style={[
+            {
+              backgroundColor: slots.surface,
+              borderColor: slots.highlight,
+              minHeight: fillSlot ? 0 : compact ? 62 : 76,
+            },
+            BOXED_SHADOW_SM,
+            tileStyle,
+          ]}
+        >
+          <View
+            className="items-center justify-center rounded-xl"
+            style={{
+              backgroundColor: `${slots.accent}14`,
+              width: fillSlot ? fillIconBox - 4 : compact ? 30 : 38,
+              height: fillSlot ? fillIconBox - 4 : compact ? 30 : 38,
+            }}
+          >
+            <ConnectionIcon
+              color={slots.accent}
+              field={field}
+              size={fillSlot ? fillIconSize - 1 : compact ? 14 : 18}
+            />
+          </View>
+          <Text
+            variant="none"
+            numberOfLines={1}
+            className={`${compact ? "mt-1.5" : "mt-2"} ${fillSlot ? "text-xs" : "text-[11px]"} font-extrabold`}
+            style={{
+              color: slots.textPrimary,
+              fontFamily,
+              letterSpacing,
+              textAlign: "center",
+            }}
+          >
+            {presentation.label}
+          </Text>
+        </Pressable>
+      );
+    };
     return (
       <View
         className={`overflow-hidden ${compact ? "p-3" : "p-4"} ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
@@ -681,59 +931,15 @@ export function ConnectionsSectionRenderer({
           boxed ? BOXED_SHADOW_MD : null,
         ]}
       >
-        <View className="flex-row flex-wrap items-stretch justify-between gap-y-2.5">
-          {fields.map((field) => {
-            const presentation = getConnectionPresentation(field, showEmpty);
-            return (
-              <Pressable
-                key={field.id}
-                accessibilityRole="button"
-                accessibilityLabel={`${presentation.label}: ${presentation.value}`}
-                disabled={!resolveActionUrl(field)}
-                onPress={() => handlePress(field)}
-                className={`${compact ? "px-1.5 py-2" : "px-2 py-3"} items-center justify-center rounded-2xl border active:opacity-70`}
-                style={{
-                  width: dockItemWidth,
-                  backgroundColor: slots.surface,
-                  borderColor: slots.highlight,
-                  minHeight: compact ? 62 : 76,
-                  ...BOXED_SHADOW_SM,
-                }}
-              >
-                <View
-                  className="items-center justify-center rounded-xl"
-                  style={{
-                    backgroundColor: `${slots.accent}14`,
-                    width: compact ? 30 : 38,
-                    height: compact ? 30 : 38,
-                  }}
-                >
-                  <ConnectionIcon
-                    color={slots.accent}
-                    field={field}
-                    size={compact ? 14 : 18}
-                  />
-                </View>
-                <Text
-                  numberOfLines={1}
-                  className={
-                    compact
-                      ? "mt-1.5 text-[9px] font-extrabold"
-                      : "mt-2 text-[11px] font-extrabold"
-                  }
-                  style={{
-                    color: slots.textPrimary,
-                    fontFamily,
-                    letterSpacing,
-                    textAlign: "center",
-                  }}
-                >
-                  {presentation.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        {fillSlot ? (
+          renderGrid(fields, 4, 8, renderDockTile)
+        ) : (
+          <View className="flex-row flex-wrap items-stretch justify-between gap-y-2.5">
+            {fields.map((field) =>
+              renderDockTile(field, { width: dockItemWidth }),
+            )}
+          </View>
+        )}
       </View>
     );
   }
@@ -745,18 +951,21 @@ export function ConnectionsSectionRenderer({
     const columns = [fields.slice(0, midpoint), fields.slice(midpoint)];
     return (
       <View
-        className={`overflow-hidden px-3 pb-3 pt-1.5 ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
+        className={`overflow-hidden ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
         style={[
           {
             backgroundColor: slots.surface,
             borderColor: boxed ? slots.highlight : undefined,
             height: compact ? "100%" : undefined,
             minHeight: compact ? undefined : CONNECTIONS_MIN_HEIGHT,
+            paddingBottom: spacing.vertical,
+            paddingHorizontal: spacing.horizontal,
+            paddingTop: spacing.tightVertical,
           },
           boxed ? BOXED_SHADOW_SM : null,
         ]}
       >
-        <View className="flex-row">
+        <View className="flex-row" style={fillSlot ? { flex: 1 } : undefined}>
           {columns.map((column, columnIndex) => (
             <View
               key={columnIndex}
@@ -764,6 +973,7 @@ export function ConnectionsSectionRenderer({
               style={{
                 borderRightWidth: columnIndex === 0 ? 1 : 0,
                 borderRightColor: slots.borderColor,
+                ...listFill,
               }}
             >
               {column.map((field, rowIndex) => {
@@ -778,20 +988,36 @@ export function ConnectionsSectionRenderer({
                     accessibilityLabel={`${presentation.label}: ${presentation.value}`}
                     disabled={!resolveActionUrl(field)}
                     onPress={() => handlePress(field)}
-                    className="flex-row items-center py-3 active:opacity-70"
+                    className="flex-row items-center active:opacity-70"
                     style={{
                       borderBottomWidth: rowIndex === column.length - 1 ? 0 : 1,
                       borderBottomColor: slots.borderColor,
+                      paddingVertical: densePreview ? 5 : 12,
+                      ...listRowFill,
                     }}
                   >
                     <View
-                      className="mr-2.5 h-8 w-8 items-center justify-center rounded-full"
-                      style={{ backgroundColor: `${slots.accent}14` }}
+                      className="mr-2.5 items-center justify-center rounded-full"
+                      style={{
+                        backgroundColor: `${slots.accent}14`,
+                        height: fillSlot
+                          ? fillIconBox - 6
+                          : densePreview
+                            ? 24
+                            : 32,
+                        width: fillSlot
+                          ? fillIconBox - 6
+                          : densePreview
+                            ? 24
+                            : 32,
+                      }}
                     >
                       <ConnectionIcon
                         color={slots.accent}
                         field={field}
-                        size={14}
+                        size={
+                          fillSlot ? fillIconSize - 2 : densePreview ? 10 : 14
+                        }
                       />
                     </View>
                     <View className="min-w-0 flex-1">
@@ -818,6 +1044,7 @@ export function ConnectionsSectionRenderer({
         className={`gap-2.5 overflow-hidden p-4 ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
         style={[
           {
+            justifyContent: fillSlot ? "flex-start" : undefined,
             backgroundColor: "#0F172A",
             borderColor: slots.accent,
             borderWidth: 1.5,
@@ -836,26 +1063,33 @@ export function ConnectionsSectionRenderer({
               accessibilityLabel={`${presentation.label}: ${presentation.value}`}
               disabled={!resolveActionUrl(field)}
               onPress={() => handlePress(field)}
-              className="flex-row items-center rounded-xl border px-3.5 py-3 active:opacity-70"
+              className={`flex-row items-center rounded-xl border px-3.5 active:opacity-70 ${densePreview ? "py-1.5" : "py-3"}`}
               style={{
                 backgroundColor: "#1E293B",
                 borderColor: slots.accent,
                 borderWidth: 1,
+                ...listRowFill,
               }}
             >
               <View
-                className="mr-3 h-8 w-8 items-center justify-center rounded-lg"
+                className="mr-3 items-center justify-center rounded-lg"
                 style={{
                   backgroundColor: `${slots.accent}22`,
                   borderWidth: 1,
                   borderColor: slots.accent,
+                  height: fillSlot ? fillIconBox - 4 : 32,
+                  width: fillSlot ? fillIconBox - 4 : 32,
                 }}
               >
-                <ConnectionIcon color={slots.accent} field={field} size={15} />
+                <ConnectionIcon
+                  color={slots.accent}
+                  field={field}
+                  size={fillSlot ? fillIconSize - 1 : 15}
+                />
               </View>
               {renderCopy(presentation, "#FFFFFF", slots.accent)}
               <View
-                className="h-2 w-2 rounded-full"
+                className="size-2 rounded-full"
                 style={{ backgroundColor: slots.accent }}
               />
             </Pressable>
@@ -871,6 +1105,7 @@ export function ConnectionsSectionRenderer({
       className={`overflow-hidden px-4 py-2 ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
       style={[
         {
+          justifyContent: fillSlot ? "flex-start" : undefined,
           backgroundColor: slots.surface,
           borderColor: boxed ? slots.accent : undefined,
           height: compact ? "100%" : undefined,
@@ -888,24 +1123,26 @@ export function ConnectionsSectionRenderer({
             accessibilityLabel={`${presentation.label}: ${presentation.value}`}
             disabled={!resolveActionUrl(field)}
             onPress={() => handlePress(field)}
-            className="flex-row items-center py-3 active:opacity-70"
+            className="flex-row items-center active:opacity-70"
             style={{
               borderBottomColor: slots.borderColor,
               borderBottomWidth: index === fields.length - 1 ? 0 : 1,
+              paddingVertical: rowPaddingVertical,
+              ...listRowFill,
             }}
           >
             <View
               className="mr-4 items-center justify-center rounded-full"
               style={{
                 backgroundColor: slots.accent,
-                height: compact ? 38 : 52,
-                width: compact ? 38 : 52,
+                height: fillSlot ? fillIconBox : compact ? 38 : 52,
+                width: fillSlot ? fillIconBox : compact ? 38 : 52,
               }}
             >
               <ConnectionIcon
                 color={slots.background}
                 field={field}
-                size={compact ? 14 : 18}
+                size={fillSlot ? fillIconSize - 2 : compact ? 14 : 18}
               />
             </View>
             {renderCopy(presentation, slots.textPrimary, slots.textSecondary)}

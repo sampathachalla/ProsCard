@@ -26,6 +26,7 @@ import {
   Minus,
   Pencil,
   Plus,
+  Quote,
   Search,
   Trash2,
   Upload,
@@ -64,7 +65,6 @@ import {
 const SECTIONS: { id: CardSectionId; label: string }[] = [
   { id: 'identity', label: 'Identity' },
   { id: 'professional', label: 'Professional' },
-  { id: 'bio', label: 'About' },
   { id: 'connections', label: 'Contact & links' },
 ];
 
@@ -191,6 +191,8 @@ function EditorInput({
   onFocus,
   placeholder,
   roomy = false,
+  showCharacterCount = true,
+  size,
   value,
 }: {
   borderless?: boolean;
@@ -204,18 +206,22 @@ function EditorInput({
   onFocus?: () => void;
   placeholder?: string;
   roomy?: boolean;
+  showCharacterCount?: boolean;
+  /** Text size; `large` is shorthand for 'lg'. */
+  size?: 'sm' | 'base' | 'lg';
   value: string;
 }) {
+  const textSize = size ?? (large ? 'lg' : 'sm');
   return (
     <View className="mb-3">
       {!hideLabel ? (
         <View className="mb-1.5 flex-row items-center justify-between px-0.5">
-          <Text className="text-[11px] font-bold uppercase tracking-wider text-textMuted dark:text-slate-400">
+          <Text variant="none" className="text-xs font-bold uppercase text-textMuted dark:text-slate-400">
             {label}
           </Text>
-          {maxLength ? (
-            <Text className="text-[10px] font-semibold text-textMuted dark:text-slate-400">
-              {Math.min(value.length, maxLength)}/{maxLength}
+          {showCharacterCount && maxLength ? (
+            <Text variant="none" className="text-xs font-semibold tabular-nums text-textMuted dark:text-slate-400">
+              {value.length}/{maxLength}
             </Text>
           ) : null}
         </View>
@@ -232,8 +238,12 @@ function EditorInput({
           borderless
             ? 'px-0.5 py-1'
             : 'rounded-xl border border-slate-200/90 bg-slate-50/90 px-3.5 py-3 dark:border-slate-700/70 dark:bg-[#070d1a]'
-        } ${large ? 'text-lg' : 'text-sm'}`}
-        style={multiline ? { minHeight: minHeight ?? 76, textAlignVertical: 'top' } : { minHeight: 46 }}
+        } ${textSize === 'lg' ? 'text-lg' : textSize === 'base' ? 'text-base' : 'text-sm'}`}
+        style={
+          multiline
+            ? { minHeight: minHeight ?? 76, textAlignVertical: 'top' }
+            : { minHeight: textSize === 'sm' ? 46 : 54 }
+        }
       />
     </View>
   );
@@ -415,7 +425,7 @@ export function CardSectionEditor({
   showSectionNavigation?: boolean;
   stylingOpen: boolean;
 }) {
-  const { width } = useWindowDimensions();
+  const { height: windowHeight, width } = useWindowDimensions();
   const sections = useMemo(() => createCardDetailTemplate(card, profile), [card, profile]);
   // Falls back to the first section if the active one no longer exists.
   const section = sections.find((item) => item.id === activeSection) ?? sections[0]!;
@@ -446,17 +456,26 @@ export function CardSectionEditor({
   const professionalNameCharacterCount = PROFESSIONAL_NAME_FIELDS.map((fieldId) => professionalNameParts[fieldId])
     .filter(Boolean)
     .join(' ').length;
+  // One shared budget for the single-line card name. maxLength stays at least
+  // as long as the current value so an over-budget name can still be deleted.
   const getProfessionalNamePartLimit = (fieldId: ProfessionalNameField) => {
+    const rawValue = getFieldValue(fieldId);
     const otherParts = PROFESSIONAL_NAME_FIELDS.filter((candidate) => candidate !== fieldId)
       .map((candidate) => professionalNameParts[candidate])
       .filter(Boolean);
     const charactersUsedByOtherParts = otherParts.join(' ').length;
     const separatorLength = otherParts.length > 0 ? 1 : 0;
-    return Math.max(0, PROFESSIONAL_NAME_CHARACTER_LIMIT - charactersUsedByOtherParts - separatorLength);
+    const budgetForField = Math.max(
+      0,
+      PROFESSIONAL_NAME_CHARACTER_LIMIT - charactersUsedByOtherParts - separatorLength,
+    );
+    const extraCharacters = Math.max(0, budgetForField - rawValue.trim().length);
+    return rawValue.length + extraCharacters;
   };
   const changeProfessionalNamePart = (fieldId: ProfessionalNameField, value: string) => {
     onFieldChange(fieldId, value.slice(0, getProfessionalNamePartLimit(fieldId)));
   };
+  const professionalNameCountLabel = `${professionalNameCharacterCount}/${PROFESSIONAL_NAME_CHARACTER_LIMIT}`;
 
   const connectionFields = card.connectionFieldsCustomized
     ? card.connectionFields
@@ -659,6 +678,9 @@ export function CardSectionEditor({
         <Text className="text-[11px] font-bold uppercase tracking-wider text-textMuted dark:text-slate-400">
           Professional Overview
         </Text>
+        <Text className="ml-auto text-[10px] font-semibold text-textMuted dark:text-slate-400">
+          Name {professionalNameCountLabel}
+        </Text>
       </View>
 
       {/* Row 1: Name */}
@@ -667,6 +689,7 @@ export function CardSectionEditor({
           <EditorInput
             label="Prefix"
             maxLength={getProfessionalNamePartLimit('prefix')}
+            showCharacterCount={false}
             value={getFieldValue('prefix')}
             onChangeText={(val) => changeProfessionalNamePart('prefix', val)}
             onFocus={onProfessionalFieldFocus}
@@ -677,6 +700,7 @@ export function CardSectionEditor({
           <EditorInput
             label="First Name"
             maxLength={getProfessionalNamePartLimit('firstName')}
+            showCharacterCount={false}
             value={getFieldValue('firstName')}
             onChangeText={(val) => changeProfessionalNamePart('firstName', val)}
             onFocus={onProfessionalFieldFocus}
@@ -687,6 +711,7 @@ export function CardSectionEditor({
           <EditorInput
             label="Last Name"
             maxLength={getProfessionalNamePartLimit('lastName')}
+            showCharacterCount={false}
             value={getFieldValue('lastName')}
             onChangeText={(val) => changeProfessionalNamePart('lastName', val)}
             onFocus={onProfessionalFieldFocus}
@@ -733,7 +758,7 @@ export function CardSectionEditor({
     <View>
       {/* 1. Name & Honorifics */}
       <CardEditorFieldGroup
-        title={`Professional Name (${Math.min(professionalNameCharacterCount, PROFESSIONAL_NAME_CHARACTER_LIMIT)}/${PROFESSIONAL_NAME_CHARACTER_LIMIT})`}
+        title={`Professional Name (${professionalNameCountLabel})`}
         icon={UserRound}
       >
         <View className="flex-row gap-2.5">
@@ -741,6 +766,7 @@ export function CardSectionEditor({
             <EditorInput
               label="Prefix"
               maxLength={getProfessionalNamePartLimit('prefix')}
+              showCharacterCount={false}
               value={getFieldValue('prefix')}
               onChangeText={(val) => changeProfessionalNamePart('prefix', val)}
               onFocus={onProfessionalFieldFocus}
@@ -751,6 +777,7 @@ export function CardSectionEditor({
             <EditorInput
               label="First Name"
               maxLength={getProfessionalNamePartLimit('firstName')}
+              showCharacterCount={false}
               value={getFieldValue('firstName')}
               onChangeText={(val) => changeProfessionalNamePart('firstName', val)}
               onFocus={onProfessionalFieldFocus}
@@ -764,6 +791,7 @@ export function CardSectionEditor({
             <EditorInput
               label="Middle Name"
               maxLength={getProfessionalNamePartLimit('middleName')}
+              showCharacterCount={false}
               value={getFieldValue('middleName')}
               onChangeText={(val) => changeProfessionalNamePart('middleName', val)}
               onFocus={onProfessionalFieldFocus}
@@ -774,6 +802,7 @@ export function CardSectionEditor({
             <EditorInput
               label="Last Name"
               maxLength={getProfessionalNamePartLimit('lastName')}
+              showCharacterCount={false}
               value={getFieldValue('lastName')}
               onChangeText={(val) => changeProfessionalNamePart('lastName', val)}
               onFocus={onProfessionalFieldFocus}
@@ -785,6 +814,7 @@ export function CardSectionEditor({
         <EditorInput
           label="Suffix / Post-nominal"
           maxLength={getProfessionalNamePartLimit('suffix')}
+          showCharacterCount={false}
           value={getFieldValue('suffix')}
           onChangeText={(val) => changeProfessionalNamePart('suffix', val)}
           onFocus={onProfessionalFieldFocus}
@@ -810,6 +840,18 @@ export function CardSectionEditor({
         />
       </CardEditorFieldGroup>
 
+      {/* Tagline — shared with the About section, shown by layouts that feature it */}
+      <CardEditorFieldGroup title="Tagline" icon={Quote}>
+        <EditorInput
+          label="Tagline"
+          maxLength={taglineCharacterLimit}
+          value={taglineValue}
+          onChangeText={(val) => onFieldChange('tagline', val)}
+          onFocus={onProfessionalFieldFocus}
+          placeholder="e.g. Building thoughtful digital products"
+        />
+      </CardEditorFieldGroup>
+
       {/* 3. Credentials */}
       <CardEditorFieldGroup title="Credentials" icon={Award}>
         <EditorInput
@@ -829,29 +871,21 @@ export function CardSectionEditor({
 
   const bioContent = (
     <View>
-      <CardEditorFieldGroup
-        title="Professional Biography"
-        icon={AlignLeft}
-        headerAccessory={
-          <Text className="text-[11px] font-semibold text-textMuted dark:text-slate-400">
-            {Math.min(bioVal.length, 240)}/240
-          </Text>
-        }
-      >
+      <CardEditorFieldGroup title="Professional Biography" icon={AlignLeft}>
         <EditorInput
           label="Tagline"
           maxLength={taglineCharacterLimit}
+          size={fullOpen ? 'base' : 'sm'}
           value={taglineValue}
           onChangeText={(val) => onFieldChange('tagline', val)}
           placeholder="e.g. Building thoughtful digital products"
         />
         <EditorInput
-          borderless
-          hideLabel
-          label="Biography Narrative"
-          large
+          label="Biography"
           maxLength={240}
-          minHeight={editBarCollapsed ? 240 : 180}
+          // The fully open sheet has room for a writing area about half the screen tall.
+          minHeight={fullOpen ? Math.max(260, Math.round(windowHeight * 0.45)) : editBarCollapsed ? 240 : 180}
+          size={fullOpen ? 'lg' : 'sm'}
           multiline
           value={bioVal}
           onChangeText={(val) => onFieldChange('bio', val)}
