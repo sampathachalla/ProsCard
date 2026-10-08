@@ -1,8 +1,9 @@
 const MIN_CARD_HEIGHT = 340;
-const MAX_CARD_HEIGHT = 620;
+const MAX_CARD_HEIGHT = 680;
 const HOME_CARD_ASPECT_RATIO = 1.68;
-const MULTI_CARD_SIDE_SPACE = 64;
-const SINGLE_CARD_SIDE_SPACE = 40;
+const HOME_CARD_MAX_EXPANDED_ASPECT_RATIO = 2;
+const MULTI_CARD_SIDE_SPACE = 28;
+const SINGLE_CARD_SIDE_SPACE = 28;
 
 export function getBusinessCardWidth(
   viewportWidth: number,
@@ -10,11 +11,11 @@ export function getBusinessCardWidth(
   availableHeight?: number,
 ) {
   const sideSpace = cardCount > 1 ? MULTI_CARD_SIDE_SPACE : SINGLE_CARD_SIDE_SPACE;
-  const widthBasedOnViewport = Math.min(340, Math.max(270, viewportWidth - sideSpace));
+  const widthBasedOnViewport = Math.min(372, Math.max(270, viewportWidth - sideSpace));
 
   if (!availableHeight) return widthBasedOnViewport;
 
-  const widthBasedOnHeight = Math.max(180, (availableHeight - 16) / HOME_CARD_ASPECT_RATIO);
+  const widthBasedOnHeight = Math.max(180, availableHeight / HOME_CARD_ASPECT_RATIO);
   return Math.min(widthBasedOnViewport, widthBasedOnHeight);
 }
 
@@ -25,10 +26,10 @@ export function getBusinessCardHeight(width: number, availableHeight?: number) {
     return Math.min(MAX_CARD_HEIGHT, Math.max(MIN_CARD_HEIGHT, widthBasedHeight));
   }
 
-  const verticalPadding = 16;
-  const constrainedHeight = Math.max(0, availableHeight - verticalPadding);
+  const constrainedHeight = Math.max(0, availableHeight);
+  const expandedHeight = width * HOME_CARD_MAX_EXPANDED_ASPECT_RATIO;
 
-  return Math.max(0, Math.min(MAX_CARD_HEIGHT, widthBasedHeight, constrainedHeight));
+  return Math.max(0, Math.min(MAX_CARD_HEIGHT, expandedHeight, constrainedHeight));
 }
 
 export function getCardShowcaseHeight(

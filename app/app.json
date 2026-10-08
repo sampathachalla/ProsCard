@@ -62,7 +62,8 @@
         {
           "cameraPermission": "ProsCard uses the camera to scan business cards and ProsCard QR codes."
         }
-      ]
+      ],
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true

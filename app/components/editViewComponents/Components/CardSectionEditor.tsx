@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, TextInput, View, useWindowDimensions } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Switch, TextInput, View, useWindowDimensions } from 'react-native';
 import { MediaImage } from '@/components/uiComponents/MediaImage';
 import * as Haptics from 'expo-haptics';
 import { BottomSheetTextInput } from '@gorhom/bottom-sheet';
@@ -413,6 +413,8 @@ export function CardSectionEditor({
 
   const getFieldValue = (fieldId: CardSectionFieldId) => card.sectionOverrides[fieldId] ?? resolvedValues[fieldId] ?? '';
   const taglineValue = fitTaglineToViewport(getFieldValue('tagline'), width);
+  const bioValue = card.sectionOverrides.bio ?? profile.shortBio ?? '';
+  const bioEnabled = getFieldValue('bioEnabled') === 'true';
   const accreditationValue = fitAccreditationsToViewport(getFieldValue('accreditations'), width);
   const professionalNameParts = Object.fromEntries(PROFESSIONAL_NAME_FIELDS.map((fieldId) => [fieldId, getFieldValue(fieldId).trim()])) as Record<
     ProfessionalNameField,
@@ -699,6 +701,32 @@ export function CardSectionEditor({
         onFocus={onProfessionalFieldFocus}
         placeholder="e.g. MS, BTech, CPA"
       />
+      <View className="mb-3 mt-1 flex-row items-center justify-between">
+        <View className="mr-3 flex-1">
+          <Text className="text-sm font-bold text-textPrimary dark:text-dark-textPrimary">Show bio</Text>
+          <Text className="mt-0.5 text-xs leading-4 text-textMuted dark:text-slate-400">Display up to three lines below the tagline.</Text>
+        </View>
+        <Switch
+          accessibilityLabel="Show biography on card"
+          value={bioEnabled}
+          onValueChange={(enabled) => onFieldChange('bioEnabled', enabled ? 'true' : 'false')}
+          trackColor={{ false: '#cbd5e1', true: '#38bdf8' }}
+          thumbColor="#ffffff"
+        />
+      </View>
+      {bioEnabled ? (
+        <EditorInput
+          label="Biography"
+          maxLength={180}
+          minHeight={88}
+          multiline
+          size="base"
+          value={bioValue}
+          onChangeText={(val) => onFieldChange('bio', val)}
+          onFocus={onProfessionalFieldFocus}
+          placeholder="A concise professional biography..."
+        />
+      ) : null}
     </View>
   );
 
@@ -795,6 +823,37 @@ export function CardSectionEditor({
           onFocus={onProfessionalFieldFocus}
           placeholder="e.g. Building thoughtful digital products"
         />
+      </CardEditorFieldGroup>
+
+      <CardEditorFieldGroup
+        title="Biography"
+        description="Optional supporting copy shown below the tagline, up to three lines."
+        icon={AlignLeft}
+        headerAccessory={(
+          <Switch
+            accessibilityLabel="Show biography on card"
+            value={bioEnabled}
+            onValueChange={(enabled) => onFieldChange('bioEnabled', enabled ? 'true' : 'false')}
+            trackColor={{ false: '#cbd5e1', true: '#38bdf8' }}
+            thumbColor="#ffffff"
+          />
+        )}
+      >
+        {bioEnabled ? (
+          <EditorInput
+            label="Biography"
+            maxLength={180}
+            minHeight={104}
+            multiline
+            size="base"
+            value={bioValue}
+            onChangeText={(val) => onFieldChange('bio', val)}
+            onFocus={onProfessionalFieldFocus}
+            placeholder="A concise professional biography..."
+          />
+        ) : (
+          <Text className="text-sm leading-5 text-textMuted dark:text-slate-400">Enable the bio to add supporting professional context.</Text>
+        )}
       </CardEditorFieldGroup>
 
       {/* 3. Credentials */}
@@ -1103,7 +1162,15 @@ export function CardSectionEditor({
             onBack={onCloseStyling}
             sectionId={activeSection}
             theme={card.sectionThemes[activeSection]}
-            onChange={(theme) => onThemeChange(activeSection, theme)}
+            onChange={(theme) => {
+              (Object.keys(card.sectionThemes) as CardSectionId[]).forEach((sectionId) => {
+                onThemeChange(sectionId, {
+                  ...theme,
+                  gradient: [...theme.gradient],
+                  paletteColors: theme.paletteColors ? [...theme.paletteColors] : undefined,
+                });
+              });
+            }}
             onSaveCustomTheme={(entry) => onSaveCustomTheme(activeSection, entry)}
           />
         </View>

@@ -83,6 +83,7 @@ export default function ContactDetailScreen() {
       {contact ? (
         <ContactReview
           key={`${contact.id}-${formVersion}`}
+          contactId={contact.id}
           mode="edit"
           editing={editing}
           initialValues={formValues(contact)}

@@ -25,7 +25,11 @@ export default function SharedCardPage() {
       return { card: normalizeCard(result.card), profile: normalizeProfile(result.profile) };
     },
     enabled: Boolean(slug),
+    refetchOnMount: 'always',
+    refetchOnReconnect: 'always',
+    refetchOnWindowFocus: 'always',
     retry: 1,
+    staleTime: 0,
   });
 
   const cardName = view.data?.card.name;

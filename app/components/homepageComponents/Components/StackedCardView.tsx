@@ -27,7 +27,7 @@ export type StackedCardViewProps = {
   showAddCardPass?: boolean;
 };
 
-const FOCUSED_CARD_TOP = 8;
+const FOCUSED_CARD_TOP = 0;
 const COLLAPSED_CARD_STEP = 36;
 const COLLAPSED_STACK_VISIBLE_HEIGHT = 44;
 

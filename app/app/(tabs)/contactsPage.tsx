@@ -36,7 +36,11 @@ export default function ContactsScreen() {
         data={filtered}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <ContactRow contact={item} onPress={(contact) => router.push(`/contacts/${contact.id}`)} onDelete={removeContact} />
+          <ContactRow
+            contact={item}
+            onPress={(contact) => router.push(`/contacts/${contact.id}`)}
+            onDelete={removeContact}
+          />
         )}
         contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: 16 }}
         keyboardShouldPersistTaps="handled"

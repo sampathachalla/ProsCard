@@ -1,19 +1,17 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
-import { Check, ChevronDown, ChevronLeft, ChevronUp, Palette, Type as TypeIcon } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Check, ChevronLeft, Palette, Type as TypeIcon } from 'lucide-react-native';
 import {
   type CardFontStyle,
   type CardSectionId,
   type CardTemplateId,
   type CardVisualTheme,
   type SavedSectionTheme,
-  getTemplatePaletteTier,
 } from '@/components/cardsComponents/types/card.types';
 import { getCardFontFamily } from '@/components/cardsComponents/Templates/cardTheme';
-import { buildMultiTierSectionTheme, expandPresetColorsForLayoutTier } from '@/utils/cardThemeColor';
 import { Text } from '@/components/uiComponents/Text';
 import { EditorSectionLabel } from '@/components/uiComponents/editor/EditorSectionLabel';
-import { ColorPickerDropdown } from '@/components/uiComponents/ColorPickerDropdown';
 
 const FONT_NAMES: Record<CardFontStyle, string> = {
   modern: 'Modern',
@@ -23,10 +21,71 @@ const FONT_NAMES: Record<CardFontStyle, string> = {
 };
 
 const FONT_IDS = Object.keys(FONT_NAMES) as CardFontStyle[];
-type ColorTarget = 'background' | 'text';
+
+type GlobalThemeOption = {
+  name: string;
+  description: string;
+  theme: Omit<CardVisualTheme, 'fontStyle'>;
+};
+
+const GLOBAL_THEME_OPTIONS: GlobalThemeOption[] = [
+  {
+    name: 'Executive Ocean',
+    description: 'Crisp blue with a clean white surface',
+    theme: {
+      id: 'ocean', backgroundColor: '#eff6ff', surfaceColor: '#ffffff', textColor: '#0f172a', mutedTextColor: '#475569',
+      accentColor: '#0284c7', gradient: ['#1d4ed8', '#0891b2'], paletteTier: 3,
+      paletteColors: ['#eff6ff', '#ffffff', '#0284c7'],
+    },
+  },
+  {
+    name: 'Midnight Boardroom',
+    description: 'Deep navy with cool cyan details',
+    theme: {
+      id: 'midnight', backgroundColor: '#020617', surfaceColor: '#0f172a', textColor: '#f8fafc', mutedTextColor: '#cbd5e1',
+      accentColor: '#38bdf8', gradient: ['#0f172a', '#075985'], paletteTier: 3,
+      paletteColors: ['#020617', '#0f172a', '#38bdf8'],
+    },
+  },
+  {
+    name: 'Graphite Studio',
+    description: 'Neutral slate with precise blue accents',
+    theme: {
+      id: 'custom', backgroundColor: '#e2e8f0', surfaceColor: '#f8fafc', textColor: '#111827', mutedTextColor: '#4b5563',
+      accentColor: '#2563eb', gradient: ['#334155', '#0f172a'], paletteTier: 3,
+      paletteColors: ['#e2e8f0', '#f8fafc', '#2563eb'],
+    },
+  },
+  {
+    name: 'Emerald Ledger',
+    description: 'Confident green with a soft mint surface',
+    theme: {
+      id: 'aurora', backgroundColor: '#ecfdf5', surfaceColor: '#ffffff', textColor: '#064e3b', mutedTextColor: '#166534',
+      accentColor: '#059669', gradient: ['#047857', '#0f766e'], paletteTier: 3,
+      paletteColors: ['#ecfdf5', '#ffffff', '#059669'],
+    },
+  },
+  {
+    name: 'Warm Sand',
+    description: 'Refined ivory with warm gold details',
+    theme: {
+      id: 'sand', backgroundColor: '#fffbeb', surfaceColor: '#fffdf5', textColor: '#422006', mutedTextColor: '#854d0e',
+      accentColor: '#ca8a04', gradient: ['#92400e', '#d97706'], paletteTier: 3,
+      paletteColors: ['#fffbeb', '#fffdf5', '#ca8a04'],
+    },
+  },
+  {
+    name: 'Ember Signature',
+    description: 'Warm coral with a polished cream surface',
+    theme: {
+      id: 'sunset', backgroundColor: '#fff7ed', surfaceColor: '#ffffff', textColor: '#431407', mutedTextColor: '#9a3412',
+      accentColor: '#ea580c', gradient: ['#c2410c', '#f97316'], paletteTier: 3,
+      paletteColors: ['#fff7ed', '#ffffff', '#ea580c'],
+    },
+  },
+];
 
 export function CardStylingCustomizer({
-  activeTemplateId,
   backLabel,
   embedded = false,
   editBarCollapsed = false,
@@ -50,173 +109,148 @@ export function CardStylingCustomizer({
   const { width } = useWindowDimensions();
   const editorPaneWidth = Math.min(720, Math.max(260, width - 48));
   const gridGap = 12;
-  const fontCardHeight = editBarCollapsed ? Math.min(176, Math.max(128, editorPaneWidth * 0.34)) : Math.min(144, Math.max(96, editorPaneWidth * 0.28));
-  const [activeStylingPanel, setActiveStylingPanel] = useState<'background' | 'font'>('background');
-  const [colorTarget, setColorTarget] = useState<ColorTarget>('background');
-  const [colorTargetMenuOpen, setColorTargetMenuOpen] = useState(false);
-  const layoutTier = activeTemplateId ? getTemplatePaletteTier(activeTemplateId) : theme.paletteTier || 3;
+  const cardWidth = (editorPaneWidth - gridGap) / 2;
+  const [activePanel, setActivePanel] = useState<'themes' | 'fonts'>('themes');
+  const [themePage, setThemePage] = useState(0);
+  const themePages = Array.from({ length: Math.ceil(GLOBAL_THEME_OPTIONS.length / 4) }, (_, index) =>
+    GLOBAL_THEME_OPTIONS.slice(index * 4, index * 4 + 4),
+  );
+  const compactThemeCards = !editBarCollapsed;
+  const useThemeCarousel = !fullOpen || compactThemeCards;
 
-  const handleBackgroundChange = (backgroundColor: string) => {
-    const currentColors = expandPresetColorsForLayoutTier(
-      theme.paletteColors ?? [theme.backgroundColor, theme.surfaceColor, theme.accentColor],
-      layoutTier,
-      theme.fontStyle,
-    );
-    const nextColors = [...currentColors];
-    nextColors[0] = backgroundColor;
-    if (layoutTier >= 3) {
-      nextColors[1] = backgroundColor;
-    }
-
-    const nextTheme = buildMultiTierSectionTheme(nextColors, theme.fontStyle);
+  const applyPreset = (option: GlobalThemeOption) => {
     onChange({
-      ...nextTheme,
-      backgroundColor,
-      surfaceColor: backgroundColor,
-      gradient: [backgroundColor, nextTheme.gradient[1]],
-      textColor: theme.textColorOverride ?? nextTheme.textColor,
-      textColorOverride: theme.textColorOverride,
+      ...option.theme,
+      fontStyle: theme.fontStyle,
+      gradient: [...option.theme.gradient],
+      paletteColors: option.theme.paletteColors ? [...option.theme.paletteColors] : undefined,
+      textColorOverride: undefined,
     });
   };
 
-  const handleTextColorChange = (textColor: string) => {
-    onChange({ ...theme, textColor, textColorOverride: textColor });
+  const renderThemeOption = (option: GlobalThemeOption) => {
+    const selected = theme.backgroundColor.toLowerCase() === option.theme.backgroundColor.toLowerCase()
+      && theme.accentColor.toLowerCase() === option.theme.accentColor.toLowerCase();
+    return (
+      <Pressable
+        key={option.name}
+        accessibilityLabel={`Apply ${option.name} theme to all card sections`}
+        accessibilityRole="button"
+        accessibilityState={{ selected }}
+        onPress={() => applyPreset(option)}
+        className={`overflow-hidden rounded-2xl border bg-card active:opacity-80 dark:bg-dark-card ${selected ? 'border-2 border-primary' : 'border-slate-200 dark:border-slate-700'}`}
+        style={{ height: compactThemeCards ? 104 : 148, width: cardWidth }}
+      >
+        <LinearGradient colors={option.theme.gradient} style={{ height: compactThemeCards ? 40 : 64, width: '100%' }} />
+        <View className={compactThemeCards ? 'px-3 py-2' : 'p-3'}>
+          <Text numberOfLines={1} className="text-sm font-bold text-textPrimary dark:text-dark-textPrimary">{option.name}</Text>
+          <Text numberOfLines={compactThemeCards ? 1 : 2} className="mt-1 text-xs leading-4 text-textMuted dark:text-slate-400">{option.description}</Text>
+        </View>
+        {selected ? (
+          <View className="absolute right-2 top-2 h-6 w-6 items-center justify-center rounded-full bg-white">
+            <Check color="#2563eb" size={14} strokeWidth={3} />
+          </View>
+        ) : null}
+      </Pressable>
+    );
   };
 
   return (
     <View className="mb-5">
       <View className="mb-4 flex-row items-center justify-between">
         {embedded ? (
-          <View />
+          <View className="mr-3 min-w-0 flex-1">
+            <Text className="text-xs font-bold uppercase text-textMuted dark:text-dark-textMuted">
+              {activePanel === 'themes' ? 'Card themes' : 'Font styles'}
+            </Text>
+            <Text numberOfLines={1} variant="muted" className="mt-1 text-xs">
+              {activePanel === 'themes' ? 'Styles every card section.' : 'Applies across the complete card.'}
+            </Text>
+          </View>
         ) : (
-          <Pressable
-            accessibilityLabel={backLabel}
-            accessibilityRole="button"
-            className="flex-row items-center rounded-full border border-slate-200 bg-card px-3 py-2 active:opacity-70 dark:border-slate-700 dark:bg-dark-card"
-            onPress={onBack}
-          >
+          <Pressable accessibilityLabel={backLabel} accessibilityRole="button" className="min-h-[44px] flex-row items-center rounded-full border border-slate-200 bg-card px-3 active:opacity-70 dark:border-slate-700 dark:bg-dark-card" onPress={onBack}>
             <ChevronLeft color="#3b82f6" size={18} />
             <Text className="ml-1.5 text-sm font-bold text-primary dark:text-dark-primary">{backLabel}</Text>
           </Pressable>
         )}
         <Pressable
-          accessibilityLabel={`Show ${activeStylingPanel === 'background' ? 'font' : 'background'} styles`}
+          accessibilityLabel={`Show ${activePanel === 'themes' ? 'font' : 'card theme'} choices`}
           accessibilityRole="button"
-          className="flex-row items-center rounded-full border border-primary/50 bg-blue-50 px-3 py-2 active:opacity-70 dark:bg-blue-950/30"
-          onPress={() => {
-            setActiveStylingPanel((current) => (current === 'background' ? 'font' : 'background'));
-          }}
+          className="min-h-[44px] flex-row items-center rounded-full border border-primary/50 bg-blue-50 px-3 active:opacity-70 dark:bg-blue-950/30"
+          onPress={() => setActivePanel((current) => (current === 'themes' ? 'fonts' : 'themes'))}
         >
-          {activeStylingPanel === 'background' ? <TypeIcon color="#3b82f6" size={17} /> : <Palette color="#3b82f6" size={17} />}
-          <Text className="ml-2 text-sm font-bold text-primary dark:text-dark-primary">{activeStylingPanel === 'background' ? 'Fonts' : 'Background'}</Text>
+          {activePanel === 'themes' ? <TypeIcon color="#3b82f6" size={17} /> : <Palette color="#3b82f6" size={17} />}
+          <Text className="ml-2 text-sm font-bold text-primary dark:text-dark-primary">{activePanel === 'themes' ? 'Fonts' : 'Themes'}</Text>
         </Pressable>
       </View>
-      {activeStylingPanel === 'background' ? (
+
+      {activePanel === 'themes' ? (
         <>
-          <View className="mb-2 flex-row items-center justify-between">
-            <Pressable
-              accessibilityLabel={`Editing ${colorTarget === 'background' ? 'background' : 'text'} color`}
-              accessibilityRole="button"
-              accessibilityState={{ expanded: colorTargetMenuOpen }}
-              onPress={() => setColorTargetMenuOpen((open) => !open)}
-              className="flex-row items-center rounded-lg py-2 pr-3 active:opacity-70"
-            >
-              <Text className="text-sm font-bold uppercase tracking-wider text-textPrimary dark:text-dark-textPrimary">
-                {colorTarget === 'background' ? 'Background Color' : 'Text Color'}
-              </Text>
-              {colorTargetMenuOpen ? (
-                <ChevronUp color="#64748b" size={18} style={{ marginLeft: 8 }} />
-              ) : (
-                <ChevronDown color="#64748b" size={18} style={{ marginLeft: 8 }} />
-              )}
-            </Pressable>
-            {!embedded ? (
-              <Pressable
-                accessibilityLabel="Save color styling"
-                accessibilityRole="button"
-                onPress={onBack}
-                className="min-h-[36px] items-center justify-center rounded-lg bg-primary px-4 active:opacity-70 dark:bg-dark-primary"
+          {!embedded ? <EditorSectionLabel title="Card themes" subtitle="One selection styles every card section." /> : null}
+          {!useThemeCarousel ? (
+            <View className="flex-row flex-wrap" style={{ gap: gridGap }}>
+              {GLOBAL_THEME_OPTIONS.map(renderThemeOption)}
+            </View>
+          ) : (
+            <>
+              <ScrollView
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                decelerationRate="fast"
+                onMomentumScrollEnd={(event) => {
+                  setThemePage(Math.round(event.nativeEvent.contentOffset.x / editorPaneWidth));
+                }}
+                style={{ width: editorPaneWidth }}
               >
-                <Text className="text-sm font-bold text-white">Save</Text>
-              </Pressable>
-            ) : null}
-          </View>
-          {colorTargetMenuOpen ? (
-            <View className="mb-3 overflow-hidden rounded-xl border border-slate-200 bg-card dark:border-slate-700 dark:bg-dark-card">
-              {(['background', 'text'] as ColorTarget[]).map((target, index) => {
-                const selected = colorTarget === target;
-                const label = target === 'background' ? 'Background Color' : 'Text Color';
+                {themePages.map((page, pageIndex) => (
+                  <View
+                    key={`theme-page-${pageIndex}`}
+                    className="flex-row flex-wrap"
+                    style={{ gap: gridGap, width: editorPaneWidth }}
+                  >
+                    {page.map(renderThemeOption)}
+                  </View>
+                ))}
+              </ScrollView>
+              <View className="mt-3 flex-row items-center justify-center gap-2">
+                {themePages.map((_, index) => (
+                  <View
+                    key={`theme-dot-${index}`}
+                    className={index === themePage ? 'h-2 w-7 rounded-full bg-primary' : 'h-2 w-2 rounded-full bg-slate-600'}
+                  />
+                ))}
+              </View>
+            </>
+          )}
+        </>
+      ) : (
+        <>
+          {!embedded ? <EditorSectionLabel title="Font styles" subtitle="The selected font applies across the complete card." /> : null}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ width: editorPaneWidth }}>
+            <View className="flex-row flex-wrap" style={{ gap: gridGap, width: editorPaneWidth }}>
+              {FONT_IDS.map((fontStyle) => {
+                const selected = theme.fontStyle === fontStyle;
                 return (
                   <Pressable
-                    key={target}
-                    accessibilityLabel={`Edit ${label}`}
+                    key={fontStyle}
+                    accessibilityLabel={`Use ${FONT_NAMES[fontStyle]} font across all card sections`}
                     accessibilityRole="button"
                     accessibilityState={{ selected }}
-                    onPress={() => {
-                      setColorTarget(target);
-                      setColorTargetMenuOpen(false);
-                    }}
-                    className={`min-h-[48px] flex-row items-center px-4 active:opacity-70 ${
-                      index === 0 ? 'border-b border-slate-200 dark:border-slate-700' : ''
-                    } ${selected ? 'bg-blue-50 dark:bg-blue-950/30' : ''}`}
+                    onPress={() => onChange({ ...theme, fontStyle })}
+                    className={`items-center justify-center rounded-2xl border px-3 ${selected ? 'border-2 border-primary bg-blue-50 dark:bg-blue-950/30' : 'border-slate-200 bg-card dark:border-slate-700 dark:bg-dark-card'}`}
+                    style={{ height: editBarCollapsed ? 128 : 104, width: cardWidth }}
                   >
-                    <Text className="flex-1 text-sm font-semibold text-textPrimary dark:text-dark-textPrimary">{label}</Text>
-                    {selected ? <Check color="#3b82f6" size={18} strokeWidth={3} /> : null}
+                    <Text style={{ fontFamily: getCardFontFamily(fontStyle) }} className="text-base text-textPrimary dark:text-dark-textPrimary">{FONT_NAMES[fontStyle]}</Text>
+                    {selected ? (
+                      <View className="absolute right-2 top-2 h-5 w-5 items-center justify-center rounded-full bg-primary">
+                        <Check color="#ffffff" size={12} strokeWidth={3} />
+                      </View>
+                    ) : null}
                   </Pressable>
                 );
               })}
             </View>
-          ) : null}
-          <ColorPickerDropdown
-            editorExpanded={fullOpen}
-            label={colorTarget === 'background' ? 'Background color' : 'Text color'}
-            largeExpandedPicker
-            value={colorTarget === 'background' ? theme.backgroundColor : (theme.textColorOverride ?? theme.textColor)}
-            open
-            responsiveToEditorSheet
-            showLabel={false}
-            showPanel
-            showTrigger={false}
-            onOpenChange={() => {}}
-            onChange={colorTarget === 'background' ? handleBackgroundChange : handleTextColorChange}
-          />
-        </>
-      ) : (
-        <>
-          <EditorSectionLabel title="Font styles" subtitle="Swipe sideways to browse font style groups." />
-          <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} decelerationRate="fast" style={{ width: editorPaneWidth }}>
-            {Array.from({ length: Math.ceil(FONT_IDS.length / 4) }, (_, pageIndex) => (
-              <View key={`font-page-${pageIndex}`} className="flex-row flex-wrap" style={{ gap: gridGap, width: editorPaneWidth }}>
-                {FONT_IDS.slice(pageIndex * 4, pageIndex * 4 + 4).map((fontStyle) => {
-                  const selected = theme.fontStyle === fontStyle;
-                  return (
-                    <Pressable
-                      key={fontStyle}
-                      accessibilityLabel={`Use ${FONT_NAMES[fontStyle]} font style`}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected }}
-                      onPress={() => onChange({ ...theme, fontStyle })}
-                      className={`items-center justify-center rounded-2xl border px-3 ${
-                        selected ? 'border-2 border-primary bg-blue-50 dark:bg-blue-950/30' : 'border-slate-200 bg-card dark:border-slate-700 dark:bg-dark-card'
-                      }`}
-                      style={{
-                        height: fontCardHeight,
-                        width: (editorPaneWidth - gridGap) / 2,
-                      }}
-                    >
-                      <Text style={{ fontFamily: getCardFontFamily(fontStyle) }} className="text-base text-textPrimary dark:text-dark-textPrimary">
-                        {FONT_NAMES[fontStyle]}
-                      </Text>
-                      {selected ? (
-                        <View className="absolute right-2 top-2 h-5 w-5 items-center justify-center rounded-full bg-primary">
-                          <Check color="#ffffff" size={12} strokeWidth={3} />
-                        </View>
-                      ) : null}
-                    </Pressable>
-                  );
-                })}
-              </View>
-            ))}
           </ScrollView>
         </>
       )}

@@ -8,5 +8,8 @@ export default defineConfig({
       'react-native': 'react-native-web',
     },
   },
+  define: {
+    __DEV__: 'true',
+  },
   test: { environment: 'node', clearMocks: true, include: ['tests/**/*.test.ts'] },
 });

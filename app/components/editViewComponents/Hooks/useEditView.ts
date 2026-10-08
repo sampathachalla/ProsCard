@@ -18,7 +18,7 @@ import { validateCard } from '../Utils/validateCard';
 
 const SECTION_FIELD_IDS: Record<Exclude<CardSectionId, 'connections'>, CardSectionFieldId[]> = {
   identity: ['preferredName', 'coverPhoto', 'profilePhoto', 'logo'],
-  professional: ['accreditations', 'prefix', 'suffix', 'firstName', 'middleName', 'lastName', 'title', 'company', 'tagline'],
+  professional: ['accreditations', 'prefix', 'suffix', 'firstName', 'middleName', 'lastName', 'title', 'company', 'tagline', 'bio', 'bioEnabled'],
   bio: ['tagline', 'bio'],
 };
 

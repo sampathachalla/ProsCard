@@ -226,6 +226,9 @@ export function getContrastMutedColor(bgHex: string): string {
 export function themePaletteForLayout(theme: CardVisualTheme, templateId: CardTemplateId): string[] {
   const tier = getTemplatePaletteTier(templateId);
   if (theme.paletteColors && theme.paletteColors.length >= tier) {
+    if (tier === 2) {
+      return [theme.paletteColors[0], theme.paletteColors[2] ?? theme.paletteColors[1]];
+    }
     return theme.paletteColors.slice(0, tier);
   }
   const accent = theme.accentColor;

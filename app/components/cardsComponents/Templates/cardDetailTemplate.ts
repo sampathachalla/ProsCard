@@ -117,6 +117,18 @@ export function createCardDetailTemplate(card: BusinessCard, profile: Profile): 
           value: override(card, 'tagline', profile.tagline || ''),
         },
         {
+          id: 'bio',
+          title: 'Biography',
+          type: 'multiline',
+          value: override(card, 'bio', profile.shortBio || ''),
+        },
+        {
+          id: 'bioEnabled',
+          title: 'Show biography',
+          type: 'text',
+          value: override(card, 'bioEnabled', 'false'),
+        },
+        {
           id: 'accreditations',
           title: 'Accreditations',
           type: 'text',

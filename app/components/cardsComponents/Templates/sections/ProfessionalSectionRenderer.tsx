@@ -583,11 +583,11 @@ export function ProfessionalSectionRenderer({
       <View
         className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
         style={[
-          {
-            ...sectionBoundsStyle,
-            backgroundColor: slots.surface,
-            borderColor: slots.highlight,
-          },
+            {
+              ...sectionBoundsStyle,
+              backgroundColor: slots.surface,
+              borderColor: slots.highlight,
+            },
           boxed ? BOXED_SHADOW_SM : null,
         ]}
       >
@@ -849,16 +849,17 @@ export function ProfessionalSectionRenderer({
           {
             ...sectionBoundsStyle,
             backgroundColor: slots.surface,
+            borderBottomWidth: 0,
             borderColor: slots.highlight,
           },
           boxed ? BOXED_SHADOW_SM : null,
         ]}
       >
-        <View className="min-h-0 flex-1 flex-row-reverse">
+        <View className={contentDriven ? 'flex-row-reverse' : 'min-h-0 flex-1 flex-row-reverse'}>
           <View
             className="w-[30%] items-center justify-center"
             style={{
-              backgroundColor: `${slots.accent}0D`,
+              backgroundColor: slots.surface,
               paddingHorizontal: spacing.gap,
               paddingVertical: spacing.tightVertical,
             }}

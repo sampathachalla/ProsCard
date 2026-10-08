@@ -285,7 +285,8 @@ export type CardSectionFieldId =
   | 'lastName'
   | 'title'
   | 'company'
-  | 'bio';
+  | 'bio'
+  | 'bioEnabled';
 
 export type CardSectionLayouts = Record<CardSectionId, CardLayoutId>;
 export type CardSectionThemes = Record<CardSectionId, CardVisualTheme>;

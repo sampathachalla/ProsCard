@@ -32,6 +32,38 @@ export async function getShareUrl(cardId: string): Promise<string> {
 
 type SharedCardView = { card: BusinessCard; profile: Partial<Profile> };
 
+const SHARED_MEDIA_PATH = /\/api\/v1\/sharing\/public\/[^/]+\/media\/[^/?#]+/;
+
+function collectSharedMediaUrls(value: unknown, urls = new Set<string>()): Set<string> {
+  if (typeof value === 'string') {
+    if (SHARED_MEDIA_PATH.test(value)) {
+      const absolute = /^(?:https?:)?\/\//i.test(value)
+        ? value
+        : `${API_BASE_URL}${value.startsWith('/') ? '' : '/'}${value}`;
+      urls.add(absolute);
+    }
+    return urls;
+  }
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectSharedMediaUrls(item, urls));
+    return urls;
+  }
+  if (value && typeof value === 'object') {
+    Object.values(value as Record<string, unknown>).forEach((item) => collectSharedMediaUrls(item, urls));
+  }
+  return urls;
+}
+
+async function prefetchSharedMedia(view: SharedCardView): Promise<void> {
+  const urls = [...collectSharedMediaUrls(view)];
+  if (!urls.length) return;
+  // Public media URLs authorize and redirect to OCI. Warming the exact URLs here
+  // prevents text from painting a full network round trip before photos and logos.
+  await import('expo-image')
+    .then(({ Image }) => Image.prefetch(urls, 'memory-disk'))
+    .catch(() => false);
+}
+
 /**
  * Card plus owner profile for the public share page; image links are already share-scoped.
  * On the web the page is served by the API itself, so it talks to (and loads images from) the origin
@@ -40,16 +72,26 @@ type SharedCardView = { card: BusinessCard; profile: Partial<Profile> };
 export async function getSharedCardView(slug: string): Promise<SharedCardView> {
   const path = `/sharing/public/${encodeURIComponent(slug)}/view`;
   const origin = Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.origin : null;
-  if (!origin) return apiRequest<SharedCardView>(path, { authenticated: false });
+  if (!origin) {
+    const view = await apiRequest<SharedCardView>(path, { authenticated: false });
+    await prefetchSharedMedia(view);
+    return view;
+  }
 
-  const response = await fetch(`${origin}/api/v1${path}`, { headers: { Accept: 'application/json' } });
+  const response = await fetch(`${origin}/api/v1${path}`, {
+    cache: 'no-store',
+    headers: { Accept: 'application/json', 'Cache-Control': 'no-cache' },
+  });
   if (!response.ok) throw new Error(response.status === 404 ? 'Shared card not found or expired.' : `Request failed (${response.status}).`);
   const view = await response.json() as SharedCardView;
   // Absolute same-origin image links, so they are not re-pointed at the build's API address.
-  const absolute = JSON.stringify(view).replace(/"\/api\/v1\/sharing\/public\//g, `"${origin}/api/v1/sharing/public/`);
-  return JSON.parse(absolute) as SharedCardView;
+  const absolute = JSON.parse(
+    JSON.stringify(view).replace(/"\/api\/v1\/sharing\/public\//g, `"${origin}/api/v1/sharing/public/`),
+  ) as SharedCardView;
+  await prefetchSharedMedia(absolute);
+  return absolute;
 }
 
 export async function resolveSharedCard(slug: string): Promise<SharedCard> {
-  return apiRequest<SharedCard>(`/sharing/public/${encodeURIComponent(slug)}`, { authenticated: false });
+  return apiRequest<SharedCard>(`/sharing/public/${encodeURIComponent(slug)}?t=${Date.now()}`, { authenticated: false });
 }

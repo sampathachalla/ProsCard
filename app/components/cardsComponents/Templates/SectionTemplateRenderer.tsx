@@ -17,16 +17,29 @@ export type SectionTemplateRendererProps = {
   showEmpty?: boolean;
   walletPass?: boolean;
   fullCardView?: boolean;
-  /** Let the professional section size itself from its rendered content. */
+  /** Let supported full-card sections size themselves from rendered content. */
   contentDriven?: boolean;
   /** Keep authored font sizes. Home-card faces omit this and may still shrink to fit. */
   preserveTypeScale?: boolean;
+  cardMetadata?: {
+    name?: string;
+    title?: string;
+    company?: string;
+    id?: string;
+  };
+  interactiveActions?: boolean;
+  onSaveContact?: () => void;
+  onShareCard?: () => void;
 };
 
 export function SectionTemplateRenderer({
+  cardMetadata,
   compact = false,
   cardTheme,
   gradient,
+  interactiveActions,
+  onSaveContact,
+  onShareCard,
   section,
   seamless = false,
   showEmpty = false,
@@ -92,10 +105,15 @@ export function SectionTemplateRenderer({
     case 'connections':
       return (
         <ConnectionsSectionRenderer
+          cardMetadata={cardMetadata}
           compact={compact}
           cardTheme={cardTheme}
+          contentDriven={contentDriven}
           fullCardView={fullCardView}
           gradient={gradient}
+          interactiveActions={interactiveActions}
+          onSaveContact={onSaveContact}
+          onShareCard={onShareCard}
           preserveTypeScale={preserveTypeScale}
           section={section}
           seamless={seamless}

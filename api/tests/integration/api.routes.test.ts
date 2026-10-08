@@ -146,6 +146,11 @@ describe('ProsCard API routes',()=>{
   it('creates, resolves, and revokes a public share',async()=>{
     const created=await request(app).post(`/api/v1/sharing/cards/${cardId}`).set(auth).send({});expect(created.status).toBe(201);shareId=created.body.id;shareSlug=created.body.slug;
     expect((await request(app).get(`/api/v1/sharing/public/${shareSlug}`)).body.name).toBe('Ada Lovelace');
+    const vcf=await request(app).get(`/api/v1/sharing/public/${shareSlug}/vcard`);
+    expect(vcf.status).toBe(200);
+    expect(vcf.headers['content-type']).toContain('text/vcard');
+    expect(vcf.text).toContain('BEGIN:VCARD');
+    expect(vcf.text).toContain('FN:Ada Lovelace');
     expect((await request(app).delete(`/api/v1/sharing/${shareId}`).set(auth)).status).toBe(204);
     expect((await request(app).get(`/api/v1/sharing/public/${shareSlug}`)).status).toBe(404);
   });

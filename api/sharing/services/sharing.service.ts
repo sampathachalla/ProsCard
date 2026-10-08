@@ -37,4 +37,63 @@ export class SharingService{constructor(private readonly repo:SharingRepository,
     return this.storage.createDownloadUrl(media.object_name);
   }
 
+  async vcard(slug: string): Promise<{ vcard: string; filename: string }> {
+    const row = await this.repo.publicView(slug);
+    if (!row) throw new HttpError(404, 'Shared card not found or expired.');
+    const card = (row.card_data ?? {}) as Record<string, unknown>;
+    const profile = (row.profile_data ?? {}) as Record<string, unknown>;
+    const name = String(card.name || profile.fullName || 'Contact');
+    const filename = `${name.replace(/[^a-zA-Z0-9_-]/g, '_')}.vcf`;
+
+    const parts: string[] = ['BEGIN:VCARD', 'VERSION:3.0'];
+    parts.push(`FN:${name}`);
+    const nameParts = name.trim().split(/\s+/);
+    if (nameParts.length > 1) {
+      parts.push(`N:${nameParts.slice(1).join(' ')};${nameParts[0]};;;`);
+    } else {
+      parts.push(`N:${name};;;;`);
+    }
+    const org = String(card.company || profile.organization || '');
+    if (org) parts.push(`ORG:${org}`);
+    const title = String(card.title || profile.title || '');
+    if (title) parts.push(`TITLE:${title}`);
+    const email = String(card.email || profile.email || '');
+    if (email) parts.push(`EMAIL;TYPE=INTERNET,WORK:${email}`);
+    const phone = String(card.phone || profile.phone || '');
+    if (phone) parts.push(`TEL;TYPE=CELL,VOICE:${phone}`);
+    const website = String(profile.website || '');
+    if (website) parts.push(`URL:${website}`);
+    const address = String(profile.businessAddress || '');
+    if (address) parts.push(`ADR;TYPE=WORK:;;${address};;;;`);
+
+    const noteLines: string[] = [];
+    if (profile.tagline) noteLines.push(String(profile.tagline));
+    if (profile.shortBio) noteLines.push(String(profile.shortBio));
+
+    if (profile.social && typeof profile.social === 'object') {
+      for (const [k, v] of Object.entries(profile.social as Record<string, unknown>)) {
+        if (typeof v === 'string' && v.trim()) {
+          parts.push(`X-SOCIALPROFILE;type=${k}:${v.trim()}`);
+          noteLines.push(`${k}: ${v.trim()}`);
+        }
+      }
+    }
+
+    if (Array.isArray(card.connectionFields)) {
+      for (const f of card.connectionFields) {
+        if (f && typeof f === 'object' && 'value' in f && typeof f.value === 'string' && f.value.trim()) {
+          const label = ('title' in f && typeof f.title === 'string' && f.title) || ('type' in f && typeof f.type === 'string' && f.type) || 'Link';
+          noteLines.push(`${label}: ${f.value.trim()}`);
+        }
+      }
+    }
+
+    if (noteLines.length > 0) {
+      parts.push(`NOTE:${noteLines.join('\\n')}`);
+    }
+
+    parts.push('END:VCARD');
+    return { vcard: parts.join('\r\n'), filename };
+  }
+
   async revoke(u:string,id:string){if(!await this.repo.revoke(u,id))throw new HttpError(404,'Share not found.')}}

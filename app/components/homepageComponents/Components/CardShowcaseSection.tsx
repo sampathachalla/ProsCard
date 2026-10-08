@@ -4,7 +4,6 @@ import type { BusinessCard } from '@/components/cardsComponents/types/card.types
 import type { Profile } from '@/components/profileComponents/types/profile.types';
 import { BusinessCardCarousel } from './BusinessCardCarousel';
 import type { CardViewMode } from '../types/cardViewMode';
-import { CarouselFooter } from './CarouselFooter';
 import { StackedCardView } from './StackedCardView';
 
 type CardShowcaseSectionProps = {
@@ -21,7 +20,7 @@ type CardShowcaseSectionProps = {
   viewMode: CardViewMode;
 };
 
-const FOOTER_HEIGHT = 38;
+const ACTION_BAR_SAFETY_GAP = 24;
 
 export function CardShowcaseSection({
   activeIndex,
@@ -37,10 +36,11 @@ export function CardShowcaseSection({
   viewMode,
 }: CardShowcaseSectionProps) {
   const carouselProgress = useSharedValue(0);
+  const adjustedBottomInset = Math.max(0, bottomInset - ACTION_BAR_SAFETY_GAP);
   const contentHeight =
     viewMode === 'stack'
       ? height
-      : Math.max(0, height - FOOTER_HEIGHT - bottomInset);
+      : Math.max(0, height - adjustedBottomInset);
 
   return (
     <View style={{ height }}>
@@ -68,7 +68,7 @@ export function CardShowcaseSection({
           <StackedCardView
             activeIndex={activeIndex}
             addingCard={addingCard}
-            bottomInset={bottomInset + FOOTER_HEIGHT}
+            bottomInset={adjustedBottomInset}
             cards={cards}
             height={contentHeight}
             onActiveIndexChange={onActiveIndexChange}
@@ -80,17 +80,6 @@ export function CardShowcaseSection({
         )}
       </Animated.View>
 
-      <View
-        style={{
-          bottom: bottomInset,
-          left: 0,
-          pointerEvents: 'none',
-          position: 'absolute',
-          right: 0,
-        }}
-      >
-        <CarouselFooter activeIndex={activeIndex} count={cards.length} />
-      </View>
     </View>
   );
 }

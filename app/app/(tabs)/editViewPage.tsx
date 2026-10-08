@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Dimensions, Modal, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, BackHandler, Dimensions, Modal, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -181,7 +181,17 @@ export default function EditViewPage() {
     }
   };
 
-  const closeEditor = () => sheetRef.current?.close();
+  const closeEditor = useCallback(() => {
+    // Do not depend exclusively on BottomSheet's asynchronous onChange event.
+    // During a modal/sheet transition that event may arrive late (or not at all),
+    // leaving the screen in editing state after the sheet is already hidden.
+    setSectionPickerOpen(false);
+    setHomeBarCollapsed(false);
+    setStylingOpen(false);
+    setSheetIndex(-1);
+    sheetRef.current?.close();
+    stopEditing();
+  }, [setHomeBarCollapsed, setSectionPickerOpen, setSheetIndex, setStylingOpen, stopEditing]);
   const compactBarHidden = homeBarCollapsed && sheetIndex === 0;
   const changeEditTab = (tab: EditHomeTab) => {
     setActiveEditTab(tab);
@@ -195,7 +205,15 @@ export default function EditViewPage() {
     setSectionPickerOpen(false);
     requestAnimationFrame(() => sheetRef.current?.snapToIndex(0));
   };
-  const handleHeaderBack = () => {
+  const handleHeaderBack = useCallback(() => {
+    if (previewVisible) {
+      setPreviewVisible(false);
+      return;
+    }
+    if (sectionPickerOpen) {
+      setSectionPickerOpen(false);
+      return;
+    }
     if (isCreateMode) {
       Alert.alert('Discard new card?', 'Your card has not been created yet. All changes in this setup will be discarded.', [
         { text: 'Keep editing', style: 'cancel' },
@@ -211,10 +229,6 @@ export default function EditViewPage() {
       closeEditor();
       return;
     }
-    if (sectionPickerOpen) {
-      setSectionPickerOpen(false);
-      return;
-    }
     // Prefer popping the existing stack entry (e.g. the card detail screen
     // this was pushed from) over replace(), which would stack a duplicate
     // entry on top of it and require an extra back-press to clear.
@@ -227,7 +241,28 @@ export default function EditViewPage() {
       return;
     }
     router.replace('/(tabs)/cardsPage');
-  };
+  }, [
+    cardId,
+    closeEditor,
+    isCreateMode,
+    isEditing,
+    previewVisible,
+    router,
+    sectionPickerOpen,
+    setPreviewVisible,
+    setSectionPickerOpen,
+  ]);
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      // Let the navigator handle a normal page pop, but consume Back while an
+      // editor layer is active so it closes exactly one layer at a time.
+      if (!previewVisible && !sectionPickerOpen && !isEditing && !isCreateMode) return false;
+      handleHeaderBack();
+      return true;
+    });
+    return () => subscription.remove();
+  }, [handleHeaderBack, isCreateMode, isEditing, previewVisible, sectionPickerOpen]);
   const saveSection = async () => {
     if (isCreateMode) {
       if (activeEditTab === 'layout') {
@@ -565,7 +600,7 @@ export default function EditViewPage() {
               keyboardShouldPersistTaps="handled"
             >
               <View>
-                {sheetIndex === 0 ? (
+                {sheetIndex === 0 && activeEditTab !== 'styling' ? (
                   <Pressable
                     accessibilityLabel={`Select card section. Current section: ${SECTION_TITLES[activeSection]}`}
                     accessibilityRole="button"
@@ -593,9 +628,9 @@ export default function EditViewPage() {
                     })()}
                   </Pressable>
                 ) : null}
-                {(sheetIndex === 0 ? [activeSection] : CREATION_STEPS).map((sectionId) => (
+                {(sheetIndex === 0 || activeEditTab === 'styling' ? [activeSection] : CREATION_STEPS).map((sectionId) => (
                   <View key={`${activeEditTab}-${sectionId}`} className={sheetIndex === 1 ? 'mb-2' : 'mb-6'}>
-                    {sheetIndex === 1 ? (
+                    {sheetIndex === 1 && activeEditTab !== 'styling' ? (
                       <View className="mb-3 flex-row items-center">
                         <Text className="text-lg font-black text-textPrimary dark:text-dark-textPrimary">{SECTION_TITLES[sectionId]}</Text>
                         <View className="ml-3 h-px flex-1 bg-slate-200 dark:bg-slate-700" />

@@ -35,6 +35,7 @@ import {
   Sparkles,
   Trash2,
   User,
+  UserPlus,
   type LucideIcon,
 } from 'lucide-react-native';
 import { Colors } from '@/constants/Colors';
@@ -45,6 +46,7 @@ import { useCardCapture, type CaptureMode } from '@/components/scannerComponents
 import { useCardReader } from '@/components/scannerComponents/Hooks/useCardReader';
 import { rotateCardPhoto } from '@/components/scannerComponents/Services/cardReaderService';
 import { initialsFor } from '@/components/contactsComponents/Services/contactsService';
+import { saveDirectlyToNativeContacts } from '@/utils/nativeContacts';
 import type { CardContactFields, ProcessedCard } from '@/components/scannerComponents/types/scanner.types';
 
 export type ContactFieldKey = keyof CardContactFields;
@@ -100,6 +102,7 @@ export function fillEmptyFields(current: ContactFormValues, fields: CardContactF
 }
 
 type ContactReviewProps = {
+  contactId?: string;
   mode: 'create' | 'edit';
   initialValues: ContactFormValues;
   /** A new, unsaved card photo on the device (from the scanner or a rescan). */
@@ -132,6 +135,7 @@ function getAvatarBgColor(name: string): string {
  * iOS Apple Contacts style review and detail screen.
  */
 export function ContactReview({
+  contactId,
   mode,
   initialValues,
   initialCard = null,
@@ -152,9 +156,30 @@ export function ContactReview({
   const [deleting, setDeleting] = useState(false);
   const [rotating, setRotating] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
+  const [savingToPhone, setSavingToPhone] = useState(false);
   const { busy: capturing, captureCard } = useCardCapture();
   const reader = useCardReader();
   const formRef = useRef(form);
+
+  const handleSaveToPhoneContacts = async () => {
+    if (savingToPhone) return;
+    setSavingToPhone(true);
+    try {
+      await saveDirectlyToNativeContacts({
+        name: form.name,
+        title: form.title,
+        company: form.company,
+        phone: form.phone,
+        email: form.email,
+        website: form.website,
+        address: form.address,
+        note: form.notes,
+        photoUrl: card?.uri || storedImageUrl,
+      });
+    } finally {
+      setSavingToPhone(false);
+    }
+  };
 
   useEffect(() => {
     formRef.current = form;
@@ -355,10 +380,38 @@ export function ContactReview({
               </View>
             </View>
           ) : (
-            <View className="items-center mt-3 px-4">
+            <View className="items-center mt-3 px-4 w-full">
               <Text className="text-2xl font-bold text-textPrimary dark:text-dark-textPrimary text-center">
                 {form.name || 'Unnamed Contact'}
               </Text>
+              {(form.title.trim() || form.company.trim()) ? (
+                <Text className="mt-1 text-sm font-medium text-textMuted dark:text-dark-textMuted text-center">
+                  {[form.title.trim(), form.company.trim()].filter(Boolean).join(' · ')}
+                </Text>
+              ) : null}
+
+              {/* Save to Phone Contacts Button */}
+              <View className="mt-4 w-full max-w-sm">
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Save contact to phone contacts"
+                  disabled={savingToPhone}
+                  onPress={handleSaveToPhoneContacts}
+                  activeOpacity={0.8}
+                  className="flex-row items-center justify-center py-3.5 px-6 rounded-2xl bg-primary shadow-sm"
+                >
+                  {savingToPhone ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <>
+                      <UserPlus color="#FFFFFF" size={18} strokeWidth={2.4} />
+                      <Text className="ml-2 font-semibold text-white text-base">
+                        Save to Phone Contacts
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
           )}
         </View>

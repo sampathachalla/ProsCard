@@ -84,6 +84,7 @@ export default function HomepageScreen() {
 
       <View
         className="flex-1 overflow-hidden"
+        style={{ marginTop: -56 }}
         onLayout={handleShowcaseLayout}
       >
         {showcaseHeight > 0 && viewModeHydrated ? (
@@ -111,9 +112,6 @@ export default function HomepageScreen() {
         style={{
           backgroundColor:
             theme === 'dark' ? 'rgba(2, 6, 23, 0.32)' : 'rgba(255, 255, 255, 0.36)',
-          borderTopColor:
-            theme === 'dark' ? 'rgba(148, 163, 184, 0.18)' : 'rgba(203, 213, 225, 0.7)',
-          borderTopWidth: 1,
           bottom: 0,
           left: 0,
           paddingBottom: Math.max(insets.bottom + 8, 16),
