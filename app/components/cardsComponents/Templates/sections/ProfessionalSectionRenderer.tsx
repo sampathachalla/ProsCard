@@ -21,6 +21,7 @@ const PROFESSIONAL_MIN_HEIGHT = 160;
 type Props = {
   compact?: boolean;
   cardTheme: CardVisualTheme;
+  contentDriven?: boolean;
   fullCardView?: boolean;
   gradient: [string, string];
   section: CardDetailSection;
@@ -299,6 +300,7 @@ function ProfessionalTaglineFooter({
 export function ProfessionalSectionRenderer({
   compact = false,
   cardTheme,
+  contentDriven = false,
   fullCardView = false,
   gradient,
   section,
@@ -352,18 +354,20 @@ export function ProfessionalSectionRenderer({
     theme: cardTheme,
   });
   const shared = { cardTheme, compact, slots };
-  const inFixedCardSlot = compact && (fullCardView || seamless);
+  const inFixedCardSlot = compact && !contentDriven && (fullCardView || seamless);
   const homePreview = compact && seamless && !fullCardView;
-  const sectionBoundsStyle = compact
-    ? ({
-        flexShrink: 1,
-        height: '100%',
-        maxHeight: '100%',
-        minHeight: 0,
-        overflow: 'hidden',
-        width: '100%',
-      } as const)
-    : ({ minHeight: PROFESSIONAL_MIN_HEIGHT } as const);
+  const sectionBoundsStyle = contentDriven
+    ? ({ width: '100%' } as const)
+    : compact
+      ? ({
+          flexShrink: 1,
+          height: '100%',
+          maxHeight: '100%',
+          minHeight: 0,
+          overflow: 'hidden',
+          width: '100%',
+        } as const)
+      : ({ minHeight: PROFESSIONAL_MIN_HEIGHT } as const);
   const homeFillStyle = homePreview
     ? ({ ...sectionBoundsStyle, flex: 1 } as const)
     : compact
@@ -436,6 +440,13 @@ export function ProfessionalSectionRenderer({
     company.length,
     compact ? 16 : 18,
     compact ? 18 : 22,
+    0.58,
+  );
+  const enterpriseCompanyFontSize = getResponsiveSingleLineFontSize(
+    viewportWidth - (compact ? 64 : 88),
+    company.length,
+    compact ? 18 : 22,
+    compact ? 22 : 26,
     0.58,
   );
 
@@ -523,34 +534,43 @@ export function ProfessionalSectionRenderer({
                 </Text>
               </View>
             </View>
-            {accreditations ? (
-              <Text
-                variant="none"
-                adjustsFontSizeToFit
-                minimumFontScale={0.7}
-                numberOfLines={2}
-                className="ml-3 max-w-[34%] text-right text-[11px] font-bold uppercase"
-                style={{
-                  color: slots.accent,
-                  fontFamily: getCardFontFamily(cardTheme.fontStyle),
-                  textAlign: 'right',
-                }}
-              >
-                {accreditations}
-              </Text>
-            ) : null}
           </View>
         </View>
         {showTagline ? (
           <ProfessionalTaglineFooter
             compact={compact}
-            fillGap
             fullCardView={fullCardView}
             horizontalPadding={spacing.horizontal}
             mark="quote"
             shared={shared}
             tagline={tagline}
           />
+        ) : null}
+        {accreditations ? (
+          <View
+            className="self-start rounded-full border px-3 py-1"
+            style={{
+              backgroundColor: `${slots.accent}0D`,
+              borderColor: `${slots.accent}35`,
+              marginBottom: spacing.tightVertical,
+              marginHorizontal: spacing.horizontal,
+              marginTop: showTagline ? 2 : 8,
+            }}
+          >
+            <Text
+              variant="none"
+              adjustsFontSizeToFit
+              minimumFontScale={0.72}
+              numberOfLines={1}
+              className="text-xs font-bold uppercase"
+              style={{
+                color: slots.accent,
+                fontFamily: getCardFontFamily(cardTheme.fontStyle),
+              }}
+            >
+              {accreditations}
+            </Text>
+          </View>
         ) : null}
       </View>
     );
@@ -598,8 +618,8 @@ export function ProfessionalSectionRenderer({
                 style={{
                   color: slots.textSecondary,
                   fontFamily: getCardFontFamily(cardTheme.fontStyle),
-                  fontSize: credentialCompanyFontSize,
-                  lineHeight: Math.ceil(credentialCompanyFontSize * 1.2),
+                  fontSize: enterpriseCompanyFontSize,
+                  lineHeight: Math.ceil(enterpriseCompanyFontSize * 1.2),
                   maxWidth: '88%',
                   textAlign: 'center',
                 }}
@@ -696,40 +716,43 @@ export function ProfessionalSectionRenderer({
             paddingTop: spacing.tightVertical,
           }}
         >
-          <Text
-            variant="none"
-            adjustsFontSizeToFit
-            minimumFontScale={0.65}
-            numberOfLines={1}
-            className="font-bold"
-            style={{
-              color: slots.textPrimary,
-              fontFamily: getCardFontFamily(cardTheme.fontStyle),
-              fontSize: companyFocusNameFontSize,
-              lineHeight: nameLineHeight,
-            }}
-          >
-            {professionalName}
-          </Text>
-          {accreditations ? (
+          <View className="max-w-full self-start">
             <Text
               variant="none"
               adjustsFontSizeToFit
               minimumFontScale={0.65}
               numberOfLines={1}
-              className="self-end text-right font-semibold"
+              className="self-start font-bold"
               style={{
-                color: slots.accent,
+                color: slots.textPrimary,
                 fontFamily: getCardFontFamily(cardTheme.fontStyle),
-                fontSize: companyFocusAccreditationFontSize,
-                lineHeight: accreditationLineHeight,
-                maxWidth: '68%',
-                textAlign: 'right',
+                fontSize: companyFocusNameFontSize,
+                lineHeight: nameLineHeight,
               }}
             >
-              {accreditations}
+              {professionalName}
             </Text>
-          ) : null}
+            {accreditations ? (
+              <Text
+                variant="none"
+                adjustsFontSizeToFit
+                minimumFontScale={0.65}
+                numberOfLines={1}
+                className="self-end text-right font-semibold"
+                style={{
+                  color: slots.accent,
+                  fontFamily: getCardFontFamily(cardTheme.fontStyle),
+                  fontSize: companyFocusAccreditationFontSize,
+                  lineHeight: accreditationLineHeight,
+                  marginTop: 2,
+                  maxWidth: '68%',
+                  textAlign: 'right',
+                }}
+              >
+                {accreditations}
+              </Text>
+            ) : null}
+          </View>
           <View
             className="min-w-0 flex-row items-center"
             style={{ marginTop: compact ? 0 : spacing.gap }}
@@ -802,31 +825,31 @@ export function ProfessionalSectionRenderer({
           boxed ? BOXED_SHADOW_SM : null,
         ]}
       >
-        <View className="min-h-0 flex-1 flex-row">
+        <View className="min-h-0 flex-1 flex-row-reverse">
           <View
-            className="w-[30%] items-center justify-center border-r"
+            className="w-[30%] items-center justify-center"
             style={{
               backgroundColor: `${slots.accent}0D`,
-              borderRightColor: `${slots.accent}35`,
               paddingHorizontal: spacing.gap,
               paddingVertical: spacing.tightVertical,
             }}
           >
             <View
-              className={`${compact ? 'size-8' : 'size-10'} items-center justify-center rounded-full`}
+              className={`${compact ? 'size-10' : 'size-12'} items-center justify-center rounded-full`}
               style={{ backgroundColor: `${slots.accent}18` }}
             >
-              <Award color={slots.accent} size={compact ? 22 : 26} />
+              <Award color={slots.accent} size={compact ? 26 : 30} />
             </View>
             <Text
               variant="none"
               adjustsFontSizeToFit
               minimumFontScale={0.72}
               numberOfLines={2}
-              className="mt-1.5 text-center text-xs font-bold uppercase"
+              className="mt-2 self-stretch text-center text-sm font-bold uppercase"
               style={{
                 color: slots.accent,
                 fontFamily: getCardFontFamily(cardTheme.fontStyle),
+                textAlign: 'center',
               }}
             >
               {accreditations || 'Credentials'}

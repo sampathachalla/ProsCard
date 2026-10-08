@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import Animated, {
   Extrapolation,
   interpolate,
@@ -27,6 +27,8 @@ export function EditorPresentationCrossfade({
   expandedHeight,
 }: EditorPresentationCrossfadeProps) {
   const animatedIndex = useEditorAnimatedIndex();
+  const [measuredExpandedHeight, setMeasuredExpandedHeight] = useState(0);
+  const resolvedExpandedHeight = measuredExpandedHeight || expandedHeight;
 
   const fadeStart = PRESENTATION_MIDPOINT - CROSSFADE_HALF_WIDTH;
   const fadeEnd = PRESENTATION_MIDPOINT + CROSSFADE_HALF_WIDTH;
@@ -42,8 +44,8 @@ export function EditorPresentationCrossfade({
   }, [animatedCompactHeight, compactHeight]);
 
   useEffect(() => {
-    animatedExpandedHeight.value = withTiming(expandedHeight, { duration: 280 });
-  }, [animatedExpandedHeight, expandedHeight]);
+    animatedExpandedHeight.value = withTiming(resolvedExpandedHeight, { duration: 180 });
+  }, [animatedExpandedHeight, resolvedExpandedHeight]);
 
   const containerStyle = useAnimatedStyle(() => {
     const index = animatedIndex.value < 0 ? 0 : animatedIndex.value;
@@ -83,7 +85,13 @@ export function EditorPresentationCrossfade({
         <Animated.View style={[compactStyle, { position: 'absolute', left: 0, right: 0, top: 0 }]}>
           {compact}
         </Animated.View>
-        <Animated.View style={[expandedStyle, { position: 'absolute', left: 0, right: 0, top: 0 }]}>
+        <Animated.View
+          onLayout={(event) => {
+            const nextHeight = Math.ceil(event.nativeEvent.layout.height);
+            if (nextHeight > 0 && nextHeight !== measuredExpandedHeight) setMeasuredExpandedHeight(nextHeight);
+          }}
+          style={[expandedStyle, { position: 'absolute', left: 0, right: 0, top: 0 }]}
+        >
           {expanded}
         </Animated.View>
       </Animated.View>

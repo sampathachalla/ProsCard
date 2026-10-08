@@ -5,8 +5,12 @@ import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   BriefcaseBusiness,
+  ChevronDown,
   Eye,
+  LayoutTemplate,
   Link2,
+  ListPlus,
+  Palette,
   Pencil,
   RotateCcw,
   Save as SaveIcon,
@@ -35,17 +39,37 @@ const SECTION_TITLES: Record<CardSectionId, string> = {
   bio: 'About',
   connections: 'Contact & links',
 };
-const SECTION_CHOICES: { id: CardSectionId; title: string; description: string; icon: LucideIcon }[] = [
-  { id: 'identity', title: 'Identity', description: 'Name, cover, profile photo and logo', icon: UserRound },
+const SECTION_CHOICES: {
+  id: CardSectionId;
+  title: string;
+  description: string;
+  icon: LucideIcon;
+}[] = [
+  {
+    id: 'identity',
+    title: 'Identity',
+    description: 'Name, cover, profile photo and logo',
+    icon: UserRound,
+  },
   {
     id: 'professional',
     title: 'Professional',
     description: 'Name details, title and company',
     icon: BriefcaseBusiness,
   },
-  { id: 'connections', title: 'Contact & links', description: 'Email, phone and social links', icon: Link2 },
+  {
+    id: 'connections',
+    title: 'Contact & links',
+    description: 'Email, phone and social links',
+    icon: Link2,
+  },
 ];
 const CREATION_STEPS: CardSectionId[] = ['identity', 'professional', 'connections'];
+const EDIT_MODES: { id: EditHomeTab; label: string; icon: LucideIcon }[] = [
+  { id: 'layout', label: 'Layout', icon: LayoutTemplate },
+  { id: 'content', label: 'Content', icon: ListPlus },
+  { id: 'styling', label: 'Styling', icon: Palette },
+];
 // Stacking order for editor chrome. FloatingEditBarButton sits at 100, between the sheet and the bars.
 const Z_INDEX = { sheet: 50, bottomBar: 200, header: 220 } as const;
 
@@ -66,11 +90,7 @@ export default function EditViewPage() {
   const { profile } = useProfileSnapshot();
   const [creationDraft] = useState(() => buildDefaultCard(profile));
   const { theme } = useThemeContext();
-  const {
-    glassmorphicEditorEnabled,
-    hydrated: editorPreferencesHydrated,
-    sectionHighlightEnabled,
-  } = useEditorPreferences();
+  const { glassmorphicEditorEnabled, hydrated: editorPreferencesHydrated, sectionHighlightEnabled } = useEditorPreferences();
   const sheetRef = useRef<BottomSheet>(null);
   const cardScrollRef = useRef<ScrollView>(null);
   const sectionOffsets = useRef<Partial<Record<CardSectionId, number>>>({});
@@ -132,7 +152,10 @@ export default function EditViewPage() {
       requestAnimationFrame(() => {
         const sectionY = sectionOffsets.current[section];
         if (sectionY !== undefined) {
-          cardScrollRef.current?.scrollTo({ y: Math.max(0, sectionY - 8), animated: true });
+          cardScrollRef.current?.scrollTo({
+            y: Math.max(0, sectionY - 8),
+            animated: true,
+          });
         }
       });
     });
@@ -162,18 +185,26 @@ export default function EditViewPage() {
   const compactBarHidden = homeBarCollapsed && sheetIndex === 0;
   const changeEditTab = (tab: EditHomeTab) => {
     setActiveEditTab(tab);
-    setStylingOpen(false);
+    setStylingOpen(tab === 'styling');
+  };
+  const openEditorMode = (tab: EditHomeTab) => {
+    startEditing();
+    setHomeBarCollapsed(false);
+    setActiveEditTab(tab);
+    setStylingOpen(tab === 'styling');
+    setSectionPickerOpen(false);
+    requestAnimationFrame(() => sheetRef.current?.snapToIndex(0));
   };
   const handleHeaderBack = () => {
     if (isCreateMode) {
-      Alert.alert(
-        'Discard new card?',
-        'Your card has not been created yet. All changes in this setup will be discarded.',
-        [
-          { text: 'Keep editing', style: 'cancel' },
-          { text: 'Discard', style: 'destructive', onPress: () => router.back() },
-        ],
-      );
+      Alert.alert('Discard new card?', 'Your card has not been created yet. All changes in this setup will be discarded.', [
+        { text: 'Keep editing', style: 'cancel' },
+        {
+          text: 'Discard',
+          style: 'destructive',
+          onPress: () => router.back(),
+        },
+      ]);
       return;
     }
     if (isEditing) {
@@ -215,7 +246,11 @@ export default function EditViewPage() {
         requestAnimationFrame(() => {
           sheetRef.current?.snapToIndex(0);
           const sectionY = sectionOffsets.current[nextSection];
-          if (sectionY !== undefined) cardScrollRef.current?.scrollTo({ y: Math.max(0, sectionY - 8), animated: true });
+          if (sectionY !== undefined)
+            cardScrollRef.current?.scrollTo({
+              y: Math.max(0, sectionY - 8),
+              animated: true,
+            });
         });
         return;
       }
@@ -229,7 +264,8 @@ export default function EditViewPage() {
   };
   const saveAllChanges = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-    await submit();
+    const saved = await submit({ keepEditing: !isCreateMode });
+    if (saved && isCreateMode) router.back();
   };
   const undoAllChanges = () => {
     if (!hasChanges || isSaving) return;
@@ -242,14 +278,14 @@ export default function EditViewPage() {
   const undoActiveSectionChanges = () => {
     if (!hasSectionChanges(activeSection) || isSaving) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
-    Alert.alert(
-      `Discard ${SECTION_TITLES[activeSection]} changes?`,
-      'Unsaved changes to this section will be lost.',
-      [
-        { text: 'Keep editing', style: 'cancel' },
-        { text: 'Discard', style: 'destructive', onPress: () => resetSection(activeSection) },
-      ],
-    );
+    Alert.alert(`Discard ${SECTION_TITLES[activeSection]} changes?`, 'Unsaved changes to this section will be lost.', [
+      { text: 'Keep editing', style: 'cancel' },
+      {
+        text: 'Discard',
+        style: 'destructive',
+        onPress: () => resetSection(activeSection),
+      },
+    ]);
   };
   const previewCard = () => {
     Haptics.selectionAsync().catch(() => {});
@@ -278,39 +314,44 @@ export default function EditViewPage() {
         }}
       >
         <PageHeader
-          title={
-            isCreateMode
-              ? 'Add Card'
-              : isEditing
-                ? stylingOpen
-                  ? `Style ${SECTION_TITLES[activeSection]}`
-                  : `Edit ${SECTION_TITLES[activeSection]}`
-                : 'Edit Card'
-          }
+          title={isCreateMode ? 'Add Card' : isEditing ? 'Edit Card' : 'Edit Card'}
           subtitle={
-            isCreateMode
-              ? `${SECTION_TITLES[activeSection]} · ${activeEditTab === 'layout' ? 'Layout' : 'Content'} · Step ${CREATION_STEPS.indexOf(activeSection) + 1} of ${CREATION_STEPS.length}`
-              : isEditing
-                ? stylingOpen
-                  ? `Styling opened from ${activeEditTab === 'layout' ? 'Layout' : 'Content'}`
-                  : 'Customize this card section'
-                : card.name || 'Choose a section to customize'
+            isEditing
+              ? `${activeEditTab === 'layout' ? 'Layouts' : activeEditTab === 'content' ? 'Content' : 'Styling'} · All card sections`
+              : card.name || 'Choose how you want to customize the card'
           }
           onBackPress={handleHeaderBack}
           right={
             isEditing ? (
-              !isCreateMode && hasSectionChanges(activeSection) ? (
-                <Pressable
-                  accessibilityLabel={`Undo unsaved ${SECTION_TITLES[activeSection]} changes`}
-                  accessibilityRole="button"
-                  accessibilityState={{ disabled: isSaving }}
-                  className="flex-row items-center rounded-full border border-amber-500 bg-amber-500/15 px-3 py-2 active:opacity-70"
-                  disabled={isSaving}
-                  onPress={undoActiveSectionChanges}
-                >
-                  <RotateCcw color="#f59e0b" size={17} />
-                  <Text className="ml-1.5 text-sm font-bold text-amber-600 dark:text-amber-400">Undo</Text>
-                </Pressable>
+              hasChanges || isCreateMode ? (
+                <View className="flex-row items-center gap-2">
+                  {hasChanges ? (
+                    <Pressable
+                      accessibilityLabel="Undo all unsaved card changes"
+                      accessibilityRole="button"
+                      accessibilityState={{ disabled: isSaving }}
+                      className="size-10 items-center justify-center rounded-full border border-amber-500 bg-amber-500/15 active:opacity-70"
+                      disabled={isSaving}
+                      onPress={undoAllChanges}
+                    >
+                      <RotateCcw color="#f59e0b" size={18} />
+                    </Pressable>
+                  ) : null}
+                  <Pressable
+                    accessibilityLabel={isCreateMode ? 'Create card' : 'Save all card changes'}
+                    accessibilityRole="button"
+                    accessibilityState={{
+                      busy: isSaving,
+                      disabled: isSaving || (!isCreateMode && !hasChanges),
+                    }}
+                    className="flex-row items-center rounded-full bg-emerald-600 px-3 py-2 active:opacity-70 disabled:opacity-40"
+                    disabled={isSaving || (!isCreateMode && !hasChanges)}
+                    onPress={saveAllChanges}
+                  >
+                    <SaveIcon color="#ffffff" size={17} />
+                    <Text className="ml-1.5 text-sm font-bold text-white">{isSaving ? 'Saving' : isCreateMode ? 'Create' : 'Save'}</Text>
+                  </Pressable>
+                </View>
               ) : (
                 <Pressable
                   accessibilityLabel={`Preview ${card.name || 'card'}`}
@@ -339,7 +380,10 @@ export default function EditViewPage() {
                     <Pressable
                       accessibilityLabel="Save all card changes"
                       accessibilityRole="button"
-                      accessibilityState={{ disabled: isSaving, busy: isSaving }}
+                      accessibilityState={{
+                        disabled: isSaving,
+                        busy: isSaving,
+                      }}
                       className="size-11 items-center justify-center rounded-full border border-emerald-500 bg-emerald-600"
                       disabled={isSaving}
                       onPress={saveAllChanges}
@@ -372,7 +416,9 @@ export default function EditViewPage() {
         showsVerticalScrollIndicator={false}
       >
         <CardDetailView
-          activeSection={isEditing && editorPreferencesHydrated && sectionHighlightEnabled ? activeSection : undefined}
+          activeSection={
+            isEditing && editorPreferencesHydrated && sectionHighlightEnabled ? activeSection : undefined
+          }
           card={isEditing ? draft : card}
           profile={profile}
           viewportHeight={cardLayoutHeight}
@@ -394,25 +440,19 @@ export default function EditViewPage() {
             zIndex: Z_INDEX.bottomBar,
           }}
         >
-          <View
-            className="flex-row"
-            style={{ alignSelf: 'center', maxWidth: 760, width: '100%' }}
-          >
-            {SECTION_CHOICES.map(({ icon: Icon, id, title }) => (
+          <View className="flex-row" style={{ alignSelf: 'center', maxWidth: 760, width: '100%' }}>
+            {EDIT_MODES.map(({ icon: Icon, id, label }) => (
               <Pressable
                 key={id}
-                accessibilityLabel={`Edit ${title}`}
+                accessibilityLabel={`Open ${label} editor`}
                 accessibilityRole="button"
-                onPress={() => openSection(id)}
+                onPress={() => openEditorMode(id)}
                 className="min-w-0 flex-1 items-center justify-center px-1 active:opacity-70"
                 style={{ minHeight: 52, paddingVertical: 3 }}
               >
                 <Icon color="#3b82f6" size={19} strokeWidth={2.2} />
-                <Text
-                  className="mt-1 text-center text-[10px] font-semibold text-textPrimary dark:text-dark-textPrimary"
-                  numberOfLines={1}
-                >
-                  {id === 'connections' ? 'Contact' : title}
+                <Text className="mt-1 text-center text-[10px] font-semibold text-textPrimary dark:text-dark-textPrimary" numberOfLines={1}>
+                  {label}
                 </Text>
               </Pressable>
             ))}
@@ -420,13 +460,7 @@ export default function EditViewPage() {
         </View>
       ) : null}
 
-      <Modal
-        animationType="fade"
-        onRequestClose={() => setSectionPickerOpen(false)}
-        presentationStyle="overFullScreen"
-        transparent
-        visible={sectionPickerOpen}
-      >
+      <Modal animationType="fade" onRequestClose={() => setSectionPickerOpen(false)} presentationStyle="overFullScreen" transparent visible={sectionPickerOpen}>
         <Pressable className="flex-1 justify-end bg-slate-950/65" onPress={() => setSectionPickerOpen(false)}>
           <Pressable
             className="max-h-[72%] rounded-t-[30px] border-t border-slate-200 bg-background px-5 pt-3 dark:border-slate-700 dark:bg-dark-background"
@@ -434,8 +468,7 @@ export default function EditViewPage() {
             onTouchCancel={finishSectionPickerDrag}
             onTouchEnd={finishSectionPickerDrag}
             onTouchMove={(event) => {
-              sectionPickerDragCurrentY.current =
-                event.nativeEvent.touches[0]?.pageY ?? sectionPickerDragCurrentY.current;
+              sectionPickerDragCurrentY.current = event.nativeEvent.touches[0]?.pageY ?? sectionPickerDragCurrentY.current;
             }}
             onTouchStart={(event) => startSectionPickerDrag(event.nativeEvent.touches[0]?.pageY ?? 0)}
             style={{ paddingBottom: Math.max(safeAreaInsets.bottom, 18) }}
@@ -462,7 +495,9 @@ export default function EditViewPage() {
                     className="min-h-28 rounded-2xl border border-slate-200 bg-card p-4 active:opacity-70 dark:border-slate-700 dark:bg-dark-card"
                     key={id}
                     onPress={() => chooseSection(id)}
-                    style={{ width: windowWidth < 380 ? '100%' : (windowWidth - 52) / 2 }}
+                    style={{
+                      width: windowWidth < 380 ? '100%' : (windowWidth - 52) / 2,
+                    }}
                   >
                     <View className="mb-3 size-9 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-950/50">
                       <Icon color="#3b82f6" size={19} />
@@ -502,19 +537,11 @@ export default function EditViewPage() {
               <View style={{ alignSelf: 'center', maxWidth: 760, width: '100%' }}>
                 <EditHomeBar
                   activeTab={activeEditTab}
-                  actionLabel={
-                    isCreateMode
-                      ? activeEditTab === 'layout'
-                        ? 'Next'
-                        : activeSection === 'connections'
-                          ? 'Create'
-                          : 'Save & next'
-                      : 'Save'
-                  }
                   isSaving={isSaving}
                   onChange={changeEditTab}
-                  onSave={saveSection}
-                  saveDisabled={!isCreateMode && !hasSectionChanges(activeSection)}
+                  onSave={saveAllChanges}
+                  saveDisabled={!isCreateMode && !hasChanges}
+                  showSave={isCreateMode || hasChanges || isSaving}
                 />
               </View>
             </View>
@@ -533,34 +560,70 @@ export default function EditViewPage() {
             <BottomSheetScrollView
               contentContainerStyle={{
                 paddingHorizontal: 20,
-                paddingBottom: compactBarHidden
-                  ? Math.max(safeAreaInsets.bottom, 24)
-                  : 104 + Math.max(safeAreaInsets.bottom, 14),
+                paddingBottom: compactBarHidden ? Math.max(safeAreaInsets.bottom, 24) : 104 + Math.max(safeAreaInsets.bottom, 14),
               }}
               keyboardShouldPersistTaps="handled"
             >
               <View>
-                <CardSectionEditor
-                  activeEditTab={activeEditTab}
-                  activeSection={activeSection}
-                  card={draft}
-                  editBarCollapsed={homeBarCollapsed}
-                  fullOpen={sheetIndex === 1}
-                  profile={profile}
-                  showSectionNavigation={false}
-                  onActiveSectionChange={setActiveSection}
-                  onConnectionsChange={replaceConnectionFields}
-                  onFieldChange={updateSectionField}
-                  onLayoutChange={updateSectionLayout}
-                  onCloseStyling={() => setStylingOpen(false)}
-                  onOpenStyling={() => setStylingOpen(true)}
-                  onProfessionalFieldFocus={() => {
-                    if (sheetIndex !== 1) sheetRef.current?.snapToIndex(1);
-                  }}
-                  onThemeChange={updateSectionTheme}
-                  onSaveCustomTheme={saveCustomSectionTheme}
-                  stylingOpen={stylingOpen}
-                />
+                {sheetIndex === 0 ? (
+                  <Pressable
+                    accessibilityLabel={`Select card section. Current section: ${SECTION_TITLES[activeSection]}`}
+                    accessibilityRole="button"
+                    accessibilityState={{ expanded: sectionPickerOpen }}
+                    className="mb-4 flex-row items-center rounded-2xl border border-slate-200 bg-card px-4 py-3 active:opacity-70 dark:border-slate-700 dark:bg-dark-card"
+                    onPress={() => setSectionPickerOpen(true)}
+                  >
+                    {(() => {
+                      const selected = SECTION_CHOICES.find(({ id }) => id === activeSection) ?? SECTION_CHOICES[0];
+                      const SelectedIcon = selected.icon;
+                      return (
+                        <>
+                          <View className="size-10 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-950/50">
+                            <SelectedIcon color="#3b82f6" size={20} />
+                          </View>
+                          <View className="ml-3 min-w-0 flex-1">
+                            <Text className="text-xs font-semibold text-textMuted dark:text-dark-textMuted">Card section</Text>
+                            <Text className="mt-0.5 text-base font-bold text-textPrimary dark:text-dark-textPrimary">
+                              {selected.title}
+                            </Text>
+                          </View>
+                          <ChevronDown color="#64748b" size={20} />
+                        </>
+                      );
+                    })()}
+                  </Pressable>
+                ) : null}
+                {(sheetIndex === 0 ? [activeSection] : CREATION_STEPS).map((sectionId) => (
+                  <View key={`${activeEditTab}-${sectionId}`} className={sheetIndex === 1 ? 'mb-2' : 'mb-6'}>
+                    {sheetIndex === 1 ? (
+                      <View className="mb-3 flex-row items-center">
+                        <Text className="text-lg font-black text-textPrimary dark:text-dark-textPrimary">{SECTION_TITLES[sectionId]}</Text>
+                        <View className="ml-3 h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+                      </View>
+                    ) : null}
+                    <CardSectionEditor
+                      activeEditTab={activeEditTab}
+                      activeSection={sectionId}
+                      card={draft}
+                      editBarCollapsed={homeBarCollapsed}
+                      fullOpen={sheetIndex === 1}
+                      profile={profile}
+                      showSectionNavigation={false}
+                      onActiveSectionChange={setActiveSection}
+                      onConnectionsChange={replaceConnectionFields}
+                      onFieldChange={updateSectionField}
+                      onLayoutChange={updateSectionLayout}
+                      onCloseStyling={() => changeEditTab('layout')}
+                      onOpenStyling={() => changeEditTab('styling')}
+                      onProfessionalFieldFocus={() => {
+                        if (sheetIndex !== 1) sheetRef.current?.snapToIndex(1);
+                      }}
+                      onThemeChange={updateSectionTheme}
+                      onSaveCustomTheme={saveCustomSectionTheme}
+                      stylingOpen={activeEditTab === 'styling'}
+                    />
+                  </View>
+                ))}
               </View>
             </BottomSheetScrollView>
           </EditorAnimatedPresentationProvider>
@@ -581,7 +644,10 @@ export default function EditViewPage() {
         <SafeAreaView
           className="flex-1 bg-background dark:bg-dark-background"
           edges={['left', 'right']}
-          style={{ paddingTop: Math.max(safeAreaInsets.top, 12), paddingBottom: Math.max(safeAreaInsets.bottom, 8) }}
+          style={{
+            paddingTop: Math.max(safeAreaInsets.top, 12),
+            paddingBottom: Math.max(safeAreaInsets.bottom, 8),
+          }}
         >
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 88 }}>
             <CardDetailView card={previewCardData} fullBleed profile={profile} viewportHeight={cardLayoutHeight} />
@@ -606,7 +672,10 @@ export default function EditViewPage() {
             accessibilityRole="button"
             onPress={closePreview}
             className="absolute right-5 flex-row items-center rounded-full border border-white/30 bg-primary px-4 py-3 shadow-xl shadow-black/30 active:scale-95 dark:bg-dark-primary"
-            style={{ bottom: Math.max(safeAreaInsets.bottom + 18, 24), elevation: 30 }}
+            style={{
+              bottom: Math.max(safeAreaInsets.bottom + 18, 24),
+              elevation: 30,
+            }}
           >
             <Pencil color="#ffffff" size={18} strokeWidth={2.4} />
             <Text className="ml-2 text-sm font-bold text-white">Back to edit</Text>

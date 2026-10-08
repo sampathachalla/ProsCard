@@ -1,14 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  TextInput,
-  View,
-  useWindowDimensions,
-} from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, TextInput, View, useWindowDimensions } from 'react-native';
 import { MediaImage } from '@/components/uiComponents/MediaImage';
 import * as Haptics from 'expo-haptics';
 import { BottomSheetTextInput } from '@gorhom/bottom-sheet';
@@ -51,16 +42,10 @@ import type { EditHomeTab } from '@/components/uiComponents/EditHomeBar';
 import type { EditableCard } from '../types/editView.types';
 import { CardStylingCustomizer } from './CardThemeCustomizer';
 import { LayoutTemplatePicker } from './LayoutTemplatePicker';
-import { EditorStylingLauncher } from '@/components/uiComponents/editor/EditorStylingLauncher';
 import { EditorPresentationCrossfade } from '@/components/uiComponents/editor/EditorPresentationCrossfade';
 import { EditorSectionLabel } from '@/components/uiComponents/editor/EditorSectionLabel';
 import { getFieldIcon } from '@/components/cardsComponents/Templates/sections/SectionSharedComponents';
-import {
-  fitAccreditationsToViewport,
-  fitTaglineToViewport,
-  getResponsiveAccreditationLimit,
-  getResponsiveTaglineLimit,
-} from '@/utils/cardTextLayout';
+import { fitAccreditationsToViewport, fitTaglineToViewport, getResponsiveAccreditationLimit, getResponsiveTaglineLimit } from '@/utils/cardTextLayout';
 
 const SECTIONS: { id: CardSectionId; label: string }[] = [
   { id: 'identity', label: 'Identity' },
@@ -156,21 +141,13 @@ function CardEditorFieldGroup({
           </View>
         ) : null}
         <View className="flex-1">
-          <Text className="text-[11px] font-bold uppercase tracking-wider text-textMuted dark:text-slate-400">
-            {title}
-          </Text>
-          {description ? (
-            <Text className="mt-0.5 text-xs text-textMuted dark:text-slate-400">{description}</Text>
-          ) : null}
+          <Text className="text-[11px] font-bold uppercase tracking-wider text-textMuted dark:text-slate-400">{title}</Text>
+          {description ? <Text className="mt-0.5 text-xs text-textMuted dark:text-slate-400">{description}</Text> : null}
         </View>
         {headerAccessory}
         {collapsible ? (
           <View className="ml-2 h-6 w-6 items-center justify-center rounded-md border border-slate-300/80 bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
-            {expanded ? (
-              <Minus color="#64748b" size={14} strokeWidth={2.4} />
-            ) : (
-              <Plus color="#64748b" size={14} strokeWidth={2.4} />
-            )}
+            {expanded ? <Minus color="#64748b" size={14} strokeWidth={2.4} /> : <Plus color="#64748b" size={14} strokeWidth={2.4} />}
           </View>
         ) : null}
       </Pressable>
@@ -235,15 +212,9 @@ function EditorInput({
         multiline={multiline}
         onFocus={onFocus}
         className={`font-semibold text-textPrimary dark:text-white ${
-          borderless
-            ? 'px-0.5 py-1'
-            : 'rounded-xl border border-slate-200/90 bg-slate-50/90 px-3.5 py-3 dark:border-slate-700/70 dark:bg-[#070d1a]'
+          borderless ? 'px-0.5 py-1' : 'rounded-xl border border-slate-200/90 bg-slate-50/90 px-3.5 py-3 dark:border-slate-700/70 dark:bg-[#070d1a]'
         } ${textSize === 'lg' ? 'text-lg' : textSize === 'base' ? 'text-base' : 'text-sm'}`}
-        style={
-          multiline
-            ? { minHeight: minHeight ?? 76, textAlignVertical: 'top' }
-            : { minHeight: textSize === 'sm' ? 46 : 54 }
-        }
+        style={multiline ? { minHeight: minHeight ?? 76, textAlignVertical: 'top' } : { minHeight: textSize === 'sm' ? 46 : 54 }}
       />
     </View>
   );
@@ -341,19 +312,13 @@ function DraggableConnectionRow({
     const dragY = dragOffsetY.value;
     if (dragY > 0 && index > activeIndex) {
       const distanceFromActive = index - activeIndex - 1;
-      const progress = Math.max(
-        0,
-        Math.min(CONNECTION_ROW_DRAG_STEP, dragY - distanceFromActive * CONNECTION_ROW_DRAG_STEP),
-      );
+      const progress = Math.max(0, Math.min(CONNECTION_ROW_DRAG_STEP, dragY - distanceFromActive * CONNECTION_ROW_DRAG_STEP));
       return { transform: [{ translateY: -progress }] };
     }
 
     if (dragY < 0 && index < activeIndex) {
       const distanceFromActive = activeIndex - index - 1;
-      const progress = Math.max(
-        0,
-        Math.min(CONNECTION_ROW_DRAG_STEP, -dragY - distanceFromActive * CONNECTION_ROW_DRAG_STEP),
-      );
+      const progress = Math.max(0, Math.min(CONNECTION_ROW_DRAG_STEP, -dragY - distanceFromActive * CONNECTION_ROW_DRAG_STEP));
       return { transform: [{ translateY: progress }] };
     }
 
@@ -446,13 +411,13 @@ export function CardSectionEditor({
 
   const resolvedValues = Object.fromEntries(section.fields.map((field) => [field.id, field.value]));
 
-  const getFieldValue = (fieldId: CardSectionFieldId) =>
-    card.sectionOverrides[fieldId] ?? resolvedValues[fieldId] ?? '';
+  const getFieldValue = (fieldId: CardSectionFieldId) => card.sectionOverrides[fieldId] ?? resolvedValues[fieldId] ?? '';
   const taglineValue = fitTaglineToViewport(getFieldValue('tagline'), width);
   const accreditationValue = fitAccreditationsToViewport(getFieldValue('accreditations'), width);
-  const professionalNameParts = Object.fromEntries(
-    PROFESSIONAL_NAME_FIELDS.map((fieldId) => [fieldId, getFieldValue(fieldId).trim()]),
-  ) as Record<ProfessionalNameField, string>;
+  const professionalNameParts = Object.fromEntries(PROFESSIONAL_NAME_FIELDS.map((fieldId) => [fieldId, getFieldValue(fieldId).trim()])) as Record<
+    ProfessionalNameField,
+    string
+  >;
   const professionalNameCharacterCount = PROFESSIONAL_NAME_FIELDS.map((fieldId) => professionalNameParts[fieldId])
     .filter(Boolean)
     .join(' ').length;
@@ -465,10 +430,7 @@ export function CardSectionEditor({
       .filter(Boolean);
     const charactersUsedByOtherParts = otherParts.join(' ').length;
     const separatorLength = otherParts.length > 0 ? 1 : 0;
-    const budgetForField = Math.max(
-      0,
-      PROFESSIONAL_NAME_CHARACTER_LIMIT - charactersUsedByOtherParts - separatorLength,
-    );
+    const budgetForField = Math.max(0, PROFESSIONAL_NAME_CHARACTER_LIMIT - charactersUsedByOtherParts - separatorLength);
     const extraCharacters = Math.max(0, budgetForField - rawValue.trim().length);
     return rawValue.length + extraCharacters;
   };
@@ -511,9 +473,7 @@ export function CardSectionEditor({
   const availableConnectionFields = AVAILABLE_CONNECTION_FIELDS.filter(
     (option) =>
       option.title.toLowerCase().includes(customFieldSearch.trim().toLowerCase()) &&
-      !connectionFields.some(
-        (field) => normalizeConnectionTitle(field.title) === normalizeConnectionTitle(option.title),
-      ),
+      !connectionFields.some((field) => normalizeConnectionTitle(field.title) === normalizeConnectionTitle(option.title)),
   );
   const addConnectionField = (option: { title: string; type: DynamicCardFieldType }, value: string) => {
     const idBase = normalizeConnectionTitle(option.title) || 'custom';
@@ -578,11 +538,7 @@ export function CardSectionEditor({
             }`}
           >
             {getFieldValue('coverPhoto') ? (
-              <MediaImage
-                sourceUrl={getFieldValue('coverPhoto')}
-                contentFit="cover"
-                style={{ width: '100%', height: '100%' }}
-              />
+              <MediaImage sourceUrl={getFieldValue('coverPhoto')} contentFit="cover" style={{ width: '100%', height: '100%' }} />
             ) : (
               <View className="h-full items-center justify-center">
                 <ImageIcon color="#3b82f6" size={22} />
@@ -609,11 +565,7 @@ export function CardSectionEditor({
                   }`}
                 >
                   {imageUri ? (
-                    <MediaImage
-                      sourceUrl={imageUri}
-                      contentFit={option.variant === 'logo' ? 'contain' : 'cover'}
-                      style={{ width: '100%', height: '100%' }}
-                    />
+                    <MediaImage sourceUrl={imageUri} contentFit={option.variant === 'logo' ? 'contain' : 'cover'} style={{ width: '100%', height: '100%' }} />
                   ) : (
                     <View className="h-full items-center justify-center">
                       <ImageIcon color="#3b82f6" size={21} />
@@ -675,12 +627,8 @@ export function CardSectionEditor({
         <View className="mr-2.5 h-6 w-6 items-center justify-center rounded-lg bg-blue-500/10 dark:bg-blue-500/20">
           <Briefcase color="#3b82f6" size={14} />
         </View>
-        <Text className="text-[11px] font-bold uppercase tracking-wider text-textMuted dark:text-slate-400">
-          Professional Overview
-        </Text>
-        <Text className="ml-auto text-[10px] font-semibold text-textMuted dark:text-slate-400">
-          Name {professionalNameCountLabel}
-        </Text>
+        <Text className="text-[11px] font-bold uppercase tracking-wider text-textMuted dark:text-slate-400">Professional Overview</Text>
+        <Text className="ml-auto text-[10px] font-semibold text-textMuted dark:text-slate-400">Name {professionalNameCountLabel}</Text>
       </View>
 
       {/* Row 1: Name */}
@@ -757,10 +705,7 @@ export function CardSectionEditor({
   const professionalContent = (
     <View>
       {/* 1. Name & Honorifics */}
-      <CardEditorFieldGroup
-        title={`Professional Name (${professionalNameCountLabel})`}
-        icon={UserRound}
-      >
+      <CardEditorFieldGroup title={`Professional Name (${professionalNameCountLabel})`} icon={UserRound}>
         <View className="flex-row gap-2.5">
           <View className="flex-[0.8]">
             <EditorInput
@@ -863,6 +808,7 @@ export function CardSectionEditor({
           placeholder="e.g. MBA, AWS Certified Architect, PMP"
         />
       </CardEditorFieldGroup>
+      <View className="h-4" />
     </View>
   );
 
@@ -911,11 +857,7 @@ export function CardSectionEditor({
           <Plus color="#3b82f6" size={19} strokeWidth={2.5} />
           <Text className="ml-2 font-bold text-primary dark:text-dark-primary">Add Custom Field</Text>
           <View className="absolute right-4">
-            {customFieldPickerOpen ? (
-              <ChevronUp color="#64748b" size={20} />
-            ) : (
-              <ChevronDown color="#64748b" size={20} />
-            )}
+            {customFieldPickerOpen ? <ChevronUp color="#64748b" size={20} /> : <ChevronDown color="#64748b" size={20} />}
           </View>
         </Pressable>
 
@@ -952,9 +894,7 @@ export function CardSectionEditor({
                     <View className="h-10 w-10 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800">
                       <Icon color="#3b82f6" size={18} />
                     </View>
-                    <Text className="ml-3 flex-1 text-sm font-bold text-textPrimary dark:text-white">
-                      {option.title}
-                    </Text>
+                    <Text className="ml-3 flex-1 text-sm font-bold text-textPrimary dark:text-white">{option.title}</Text>
                     <View className="h-8 w-8 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-950/60">
                       <Plus color="#3b82f6" size={17} strokeWidth={2.5} />
                     </View>
@@ -962,9 +902,7 @@ export function CardSectionEditor({
                 );
               })}
               {!availableConnectionFields.length ? (
-                <Text className="py-6 text-center text-sm text-textMuted dark:text-slate-400">
-                  No available fields found
-                </Text>
+                <Text className="py-6 text-center text-sm text-textMuted dark:text-slate-400">No available fields found</Text>
               ) : null}
             </View>
           </View>
@@ -995,9 +933,7 @@ export function CardSectionEditor({
               >
                 <View
                   className={`mb-2 flex-row items-center border px-3 py-2.5 dark:bg-[#0b1120] ${
-                    editing
-                      ? 'rounded-xl border-blue-400 bg-blue-50 dark:border-blue-500/70'
-                      : 'rounded-xl border-slate-200 bg-card dark:border-slate-800'
+                    editing ? 'rounded-xl border-blue-400 bg-blue-50 dark:border-blue-500/70' : 'rounded-xl border-slate-200 bg-card dark:border-slate-800'
                   }`}
                 >
                   <View className="h-10 w-10 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800">
@@ -1025,23 +961,15 @@ export function CardSectionEditor({
                     accessibilityLabel={`${editing ? 'Finish editing' : 'Edit'} ${field.title}`}
                     accessibilityRole="button"
                     onPress={() => setEditingConnection(editing ? null : field.id)}
-                    className={`ml-2 h-9 w-9 items-center justify-center rounded-lg ${
-                      editing ? 'bg-blue-500' : 'bg-slate-100 dark:bg-slate-800'
-                    }`}
+                    className={`ml-2 h-9 w-9 items-center justify-center rounded-lg ${editing ? 'bg-blue-500' : 'bg-slate-100 dark:bg-slate-800'}`}
                   >
-                    {editing ? (
-                      <Check color="#ffffff" size={17} strokeWidth={2.7} />
-                    ) : (
-                      <Pencil color="#3b82f6" size={16} />
-                    )}
+                    {editing ? <Check color="#ffffff" size={17} strokeWidth={2.7} /> : <Pencil color="#3b82f6" size={16} />}
                   </Pressable>
                   {!editing ? (
                     <Pressable
                       accessibilityLabel={`Delete ${field.title}`}
                       accessibilityRole="button"
-                      onPress={() =>
-                        onConnectionsChange(connectionFields.filter((_, itemIndex) => itemIndex !== index))
-                      }
+                      onPress={() => onConnectionsChange(connectionFields.filter((_, itemIndex) => itemIndex !== index))}
                       className="ml-1.5 h-9 w-9 items-center justify-center rounded-lg bg-rose-50 dark:bg-rose-950/40"
                     >
                       <Trash2 color="#ef4444" size={16} />
@@ -1062,10 +990,7 @@ export function CardSectionEditor({
           setPendingConnectionValue('');
         }}
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          className="flex-1 justify-center bg-black/60 px-5"
-        >
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1 justify-center bg-black/60 px-5">
           {pendingConnectionField ? (
             <View className="w-full max-w-xl self-center rounded-[24px] border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-700 dark:bg-[#0b1120]">
               <View className="mb-4 flex-row items-center">
@@ -1078,12 +1003,8 @@ export function CardSectionEditor({
                   );
                 })()}
                 <View className="ml-3 min-w-0 flex-1">
-                  <Text className="text-base font-bold text-textPrimary dark:text-white">
-                    Add {pendingConnectionField.title}
-                  </Text>
-                  <Text className="mt-0.5 text-xs text-textMuted dark:text-slate-400">
-                    Enter the value you want displayed on your card
-                  </Text>
+                  <Text className="text-base font-bold text-textPrimary dark:text-white">Add {pendingConnectionField.title}</Text>
+                  <Text className="mt-0.5 text-xs text-textMuted dark:text-slate-400">Enter the value you want displayed on your card</Text>
                 </View>
               </View>
 
@@ -1170,13 +1091,14 @@ export function CardSectionEditor({
 
   const editZone = (
     <View style={{ width: editorPaneWidth, maxWidth: '100%', alignSelf: 'center' }}>
-      {stylingOpen ? (
+      {stylingOpen || activeEditTab === 'styling' ? (
         <View>
           <CardStylingCustomizer
             activeTemplateId={resolveLayoutStyle(card.sectionLayouts[activeSection], activeSection)}
             backLabel={`Back to ${activeEditTab === 'layout' ? 'Layout' : 'Content'}`}
             customThemes={card.customThemes ?? []}
             editBarCollapsed={editBarCollapsed}
+            embedded={activeEditTab === 'styling'}
             fullOpen={fullOpen}
             onBack={onCloseStyling}
             sectionId={activeSection}
@@ -1191,28 +1113,18 @@ export function CardSectionEditor({
             <>
               <EditorPresentationCrossfade
                 compactHeight={48}
-                expandedHeight={112}
+                expandedHeight={48}
                 compact={
-                  <View className="flex-row items-center justify-between gap-3">
+                  <View>
                     <Text className="min-w-0 flex-1 text-xs font-bold uppercase tracking-wider text-textMuted dark:text-dark-textMuted">
                       Choose a design layout
                     </Text>
-                    <EditorStylingLauncher compact onPress={onOpenStyling} />
                   </View>
                 }
-                expanded={
-                  <View>
-                    <EditorStylingLauncher onPress={onOpenStyling} />
-                    <EditorSectionLabel title="Choose a design layout" />
-                  </View>
-                }
+                expanded={<EditorSectionLabel title="Choose a design layout" />}
               />
               <LayoutTemplatePicker
-                key={
-                  activeSection === 'identity'
-                    ? `identity-${resolveIdentityTemplateId(section.templateId)}`
-                    : activeSection
-                }
+                key={activeSection === 'identity' ? `identity-${resolveIdentityTemplateId(section.templateId)}` : activeSection}
                 editBarCollapsed={editBarCollapsed}
                 showHeader={false}
                 section={activeSection}
@@ -1238,17 +1150,9 @@ export function CardSectionEditor({
             <Pressable
               key={item.id}
               onPress={() => onActiveSectionChange(item.id)}
-              className={`mr-2 rounded-full px-4 py-2 ${
-                activeSection === item.id ? 'bg-primary dark:bg-dark-primary' : 'bg-card dark:bg-dark-card'
-              }`}
+              className={`mr-2 rounded-full px-4 py-2 ${activeSection === item.id ? 'bg-primary dark:bg-dark-primary' : 'bg-card dark:bg-dark-card'}`}
             >
-              <Text
-                className={
-                  activeSection === item.id
-                    ? 'font-bold text-white'
-                    : 'font-semibold text-textPrimary dark:text-dark-textPrimary'
-                }
-              >
+              <Text className={activeSection === item.id ? 'font-bold text-white' : 'font-semibold text-textPrimary dark:text-dark-textPrimary'}>
                 {item.label}
               </Text>
             </Pressable>

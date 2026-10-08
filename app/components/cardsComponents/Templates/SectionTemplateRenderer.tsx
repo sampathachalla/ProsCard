@@ -17,6 +17,8 @@ export type SectionTemplateRendererProps = {
   showEmpty?: boolean;
   walletPass?: boolean;
   fullCardView?: boolean;
+  /** Let the professional section size itself from its rendered content. */
+  contentDriven?: boolean;
   /** Keep authored font sizes. Home-card faces omit this and may still shrink to fit. */
   preserveTypeScale?: boolean;
 };
@@ -30,6 +32,7 @@ export function SectionTemplateRenderer({
   showEmpty = false,
   walletPass = false,
   fullCardView = false,
+  contentDriven = false,
   preserveTypeScale = false,
 }: SectionTemplateRendererProps) {
   if (!section) return null;
@@ -63,6 +66,7 @@ export function SectionTemplateRenderer({
         <ProfessionalSectionRenderer
           compact={compact}
           cardTheme={cardTheme}
+          contentDriven={contentDriven}
           fullCardView={fullCardView}
           gradient={gradient}
           section={section}

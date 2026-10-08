@@ -6,6 +6,7 @@
     "start": "expo start",
     "tunnel": "zsh ./scripts/start-expo-tunnel.sh",
     "tunnel:oci": "zsh ./scripts/start-expo-with-oci-api.sh",
+    "tunnel:persistent": "zsh ./scripts/start-oci-tunnel.sh",
     "build:share": "expo export --platform web --output-dir ../api/web --clear",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",

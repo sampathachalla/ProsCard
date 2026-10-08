@@ -51,11 +51,12 @@ export function CardDetailView({
         const letterSpacing = getCardLetterSpacing(theme.fontStyle);
         const handleLayout = (event: LayoutChangeEvent) => onSectionLayout?.(section.id, event.nativeEvent.layout.y);
         const sectionHeight = cardSectionHeight(section.id, layoutViewportHeight);
+        const contentDriven = section.id === 'professional' && !fitToViewport;
         return (
           <View key={section.id} onLayout={handleLayout} style={{ position: 'relative' }}>
             <View
               style={{
-                height: sectionHeight,
+                height: contentDriven ? undefined : sectionHeight,
                 width: '100%',
                 overflow: 'hidden',
               }}
@@ -64,6 +65,7 @@ export function CardDetailView({
                 key={`${section.id}-${theme.backgroundColor}-${theme.surfaceColor}-${theme.textColorOverride ?? theme.textColor}-${theme.accentColor}-${theme.customThemeId ?? ''}`}
                 compact
                 cardTheme={theme}
+                contentDriven={contentDriven}
                 fullCardView
                 gradient={[...theme.gradient]}
                 preserveTypeScale

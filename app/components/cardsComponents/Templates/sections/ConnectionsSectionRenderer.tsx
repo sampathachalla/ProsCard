@@ -468,20 +468,18 @@ export function ConnectionsSectionRenderer({
     );
   }
 
-  // Command Dock (compact): a horizontal app-style dock. This intentionally
-  // prioritizes fast recognition over the directory treatment used elsewhere.
+  // Direct Contact List (compact): a borderless, scannable list inspired by
+  // modern contact cards. Circular channel icons anchor each actionable value.
   if (section.templateId === "compact") {
     return (
       <View
-        className={`flex-row flex-wrap items-stretch justify-around overflow-hidden ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
+        className={`overflow-hidden ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
         style={[
           {
             backgroundColor: slots.surface,
             borderColor: boxed ? slots.highlight : undefined,
             height: compact ? "100%" : undefined,
             minHeight: compact ? undefined : CONNECTIONS_MIN_HEIGHT,
-            alignContent: fillSlot ? "flex-start" : undefined,
-            gap: spacing.gap,
             paddingBottom: spacing.vertical,
             paddingHorizontal: spacing.horizontal,
             paddingTop: spacing.tightVertical,
@@ -491,6 +489,14 @@ export function ConnectionsSectionRenderer({
       >
         {fields.map((field) => {
           const presentation = getConnectionPresentation(field, showEmpty);
+          const iconSize = fillSlot ? (densePreview ? 20 : 22) : 18;
+          const iconContainerSize = fillSlot
+            ? densePreview
+              ? 48
+              : 52
+            : densePreview
+              ? 36
+              : 44;
           return (
             <Pressable
               key={field.id}
@@ -498,53 +504,45 @@ export function ConnectionsSectionRenderer({
               accessibilityLabel={`${presentation.label}: ${presentation.value}`}
               disabled={!resolveActionUrl(field)}
               onPress={() => handlePress(field)}
-              className="min-w-0 items-center justify-center px-1 active:opacity-70"
-              style={{
-                paddingVertical: densePreview ? 4 : 8,
-                width: densePreview ? "24%" : `${100 / fields.length}%`,
-              }}
+              className="min-w-0 flex-row items-center active:opacity-70"
+              style={[
+                {
+                  gap: densePreview ? 12 : 14,
+                  paddingVertical: densePreview ? 5 : fillSlot ? 7 : 9,
+                },
+                fillSlot
+                  ? {
+                      flex: 1,
+                      minHeight: 0,
+                    }
+                  : null,
+              ]}
             >
               <View
-                className="items-center justify-center rounded-2xl"
+                className="items-center justify-center rounded-full"
                 style={{
-                  backgroundColor:
-                    field === fields[0] ? slots.accent : `${slots.accent}14`,
-                  height: fillSlot
-                    ? densePreview
-                      ? 44
-                      : 52
-                    : densePreview
-                      ? 28
-                      : 40,
-                  width: fillSlot
-                    ? densePreview
-                      ? 44
-                      : 52
-                    : densePreview
-                      ? 28
-                      : 40,
+                  backgroundColor: slots.accent,
+                  height: iconContainerSize,
+                  width: iconContainerSize,
                 }}
               >
                 <ConnectionIcon
-                  color={field === fields[0] ? slots.background : slots.accent}
+                  color={slots.background}
                   field={field}
-                  size={
-                    fillSlot ? (densePreview ? 18 : 22) : densePreview ? 12 : 16
-                  }
+                  size={iconSize}
                 />
               </View>
               <Text
                 variant="none"
-                numberOfLines={1}
-                className={`${densePreview ? "mt-1.5" : "mt-2"} ${fillSlot ? "text-xs" : densePreview ? "text-[10px]" : "text-[11px]"} font-extrabold`}
+                numberOfLines={2}
+                className={`min-w-0 flex-1 ${fillSlot ? (densePreview ? "text-sm" : "text-base") : densePreview ? "text-xs" : "text-sm"} font-bold`}
                 style={{
                   color: slots.textPrimary,
                   fontFamily,
                   letterSpacing,
-                  textAlign: "center",
                 }}
               >
-                {presentation.label}
+                {presentation.value || presentation.label}
               </Text>
             </Pressable>
           );

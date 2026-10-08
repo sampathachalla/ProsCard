@@ -201,7 +201,7 @@ export function useEditView(cardId?: string, startInEditMode = false, initialCar
     });
   };
 
-  const submit = async () => {
+  const submit = async ({ keepEditing = false }: { keepEditing?: boolean } = {}) => {
     const error = validateCard(draft);
     if (error) {
       Alert.alert('Check your details', error);
@@ -212,7 +212,7 @@ export function useEditView(cardId?: string, startInEditMode = false, initialCar
       const saved = await saveCard(draft);
       setCard(saved);
       setDraft(saved);
-      setIsEditing(false);
+      setIsEditing(keepEditing);
       return saved;
     } catch (error) {
       Alert.alert('Save failed', error instanceof Error ? error.message : 'Could not save this card.');

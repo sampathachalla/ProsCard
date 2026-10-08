@@ -59,8 +59,13 @@ const IDENTITY_TEMPLATE_LABELS: Record<
 };
 
 // Section 1 options carry their layout ids (layout-1 … layout-6); the names users see stay the same.
+const HIDDEN_IDENTITY_LAYOUT_IDS = new Set<CardLayoutId>([
+  "layout-3",
+  "layout-4",
+]);
+
 const IDENTITY_TEMPLATES: { id: CardLayoutId; label: string }[] =
-  IDENTITY_LAYOUT_IDS.map((id) => ({
+  IDENTITY_LAYOUT_IDS.filter((id) => !HIDDEN_IDENTITY_LAYOUT_IDS.has(id)).map((id) => ({
     id,
     label: IDENTITY_TEMPLATE_LABELS[IDENTITY_LAYOUT_STYLES[id]],
   }));
@@ -107,13 +112,12 @@ const CONNECTION_TEMPLATE_ORDER: CardTemplateId[] = [
   "banner",
   "editorial",
   "compact",
-  "split",
 ];
 
 const CONNECTION_TEMPLATE_LABELS: Partial<Record<CardTemplateId, string>> = {
   banner: "Executive Directory",
   editorial: "Contact Ledger",
-  compact: "Command Dock",
+  compact: "Direct Contact List",
   split: "Channel Matrix",
 };
 
@@ -207,7 +211,7 @@ const SECTION_TEMPLATE_NAMES: Record<
     minimal: "Quick Grid",
     bold: "Gradient Cards",
     glass: "Frosted Dock",
-    compact: "Command Dock",
+    compact: "Direct Contact List",
     editorial: "Contact Ledger",
     spotlight: "Hero Spotlight",
     banner: "Executive Directory",
@@ -229,30 +233,31 @@ function LayoutThumbnail({
 }) {
   const slots = resolveLayoutColorSlots({ templateId: template, theme });
 
-  if (template === "compact") {
+  if (template === "compact" && section === "connections") {
     return (
       <View
-        className="relative mb-2 h-12 flex-row items-center justify-between overflow-hidden rounded-xl px-2"
+        className="relative mb-2 h-12 justify-center gap-1 overflow-hidden rounded-xl px-3"
         style={{
           backgroundColor: slots.surface,
           borderColor: slots.accent,
           borderWidth: 1,
         }}
       >
-        <View className="flex-row items-center gap-1.5">
-          <View
-            className="h-5 w-5 rounded-full"
-            style={{ backgroundColor: slots.accent }}
-          />
-          <View
-            className="h-1.5 w-12 rounded"
-            style={{ backgroundColor: slots.textPrimary }}
-          />
-        </View>
-        <View
-          className="h-3 w-8 rounded-md"
-          style={{ backgroundColor: slots.background }}
-        />
+        {[0, 1, 2].map((row) => (
+          <View key={row} className="flex-row items-center gap-2">
+            <View
+              className="h-2.5 w-2.5 rounded-full"
+              style={{ backgroundColor: slots.accent }}
+            />
+            <View
+              className="h-1.5 rounded"
+              style={{
+                backgroundColor: slots.textPrimary,
+                width: row === 1 ? 62 : 48,
+              }}
+            />
+          </View>
+        ))}
       </View>
     );
   }

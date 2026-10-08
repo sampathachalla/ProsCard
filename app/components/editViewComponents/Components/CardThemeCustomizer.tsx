@@ -28,6 +28,7 @@ type ColorTarget = 'background' | 'text';
 export function CardStylingCustomizer({
   activeTemplateId,
   backLabel,
+  embedded = false,
   editBarCollapsed = false,
   fullOpen = false,
   onBack,
@@ -38,6 +39,7 @@ export function CardStylingCustomizer({
   backLabel: string;
   customThemes: SavedSectionTheme[];
   editBarCollapsed?: boolean;
+  embedded?: boolean;
   fullOpen?: boolean;
   onBack: () => void;
   onChange: (theme: CardVisualTheme) => void;
@@ -48,9 +50,7 @@ export function CardStylingCustomizer({
   const { width } = useWindowDimensions();
   const editorPaneWidth = Math.min(720, Math.max(260, width - 48));
   const gridGap = 12;
-  const fontCardHeight = editBarCollapsed
-    ? Math.min(176, Math.max(128, editorPaneWidth * 0.34))
-    : Math.min(144, Math.max(96, editorPaneWidth * 0.28));
+  const fontCardHeight = editBarCollapsed ? Math.min(176, Math.max(128, editorPaneWidth * 0.34)) : Math.min(144, Math.max(96, editorPaneWidth * 0.28));
   const [activeStylingPanel, setActiveStylingPanel] = useState<'background' | 'font'>('background');
   const [colorTarget, setColorTarget] = useState<ColorTarget>('background');
   const [colorTargetMenuOpen, setColorTargetMenuOpen] = useState(false);
@@ -86,15 +86,19 @@ export function CardStylingCustomizer({
   return (
     <View className="mb-5">
       <View className="mb-4 flex-row items-center justify-between">
-        <Pressable
-          accessibilityLabel={backLabel}
-          accessibilityRole="button"
-          className="flex-row items-center rounded-full border border-slate-200 bg-card px-3 py-2 active:opacity-70 dark:border-slate-700 dark:bg-dark-card"
-          onPress={onBack}
-        >
-          <ChevronLeft color="#3b82f6" size={18} />
-          <Text className="ml-1.5 text-sm font-bold text-primary dark:text-dark-primary">{backLabel}</Text>
-        </Pressable>
+        {embedded ? (
+          <View />
+        ) : (
+          <Pressable
+            accessibilityLabel={backLabel}
+            accessibilityRole="button"
+            className="flex-row items-center rounded-full border border-slate-200 bg-card px-3 py-2 active:opacity-70 dark:border-slate-700 dark:bg-dark-card"
+            onPress={onBack}
+          >
+            <ChevronLeft color="#3b82f6" size={18} />
+            <Text className="ml-1.5 text-sm font-bold text-primary dark:text-dark-primary">{backLabel}</Text>
+          </Pressable>
+        )}
         <Pressable
           accessibilityLabel={`Show ${activeStylingPanel === 'background' ? 'font' : 'background'} styles`}
           accessibilityRole="button"
@@ -103,14 +107,8 @@ export function CardStylingCustomizer({
             setActiveStylingPanel((current) => (current === 'background' ? 'font' : 'background'));
           }}
         >
-          {activeStylingPanel === 'background' ? (
-            <TypeIcon color="#3b82f6" size={17} />
-          ) : (
-            <Palette color="#3b82f6" size={17} />
-          )}
-          <Text className="ml-2 text-sm font-bold text-primary dark:text-dark-primary">
-            {activeStylingPanel === 'background' ? 'Fonts' : 'Background'}
-          </Text>
+          {activeStylingPanel === 'background' ? <TypeIcon color="#3b82f6" size={17} /> : <Palette color="#3b82f6" size={17} />}
+          <Text className="ml-2 text-sm font-bold text-primary dark:text-dark-primary">{activeStylingPanel === 'background' ? 'Fonts' : 'Background'}</Text>
         </Pressable>
       </View>
       {activeStylingPanel === 'background' ? (
@@ -132,14 +130,16 @@ export function CardStylingCustomizer({
                 <ChevronDown color="#64748b" size={18} style={{ marginLeft: 8 }} />
               )}
             </Pressable>
-            <Pressable
-              accessibilityLabel="Save color styling"
-              accessibilityRole="button"
-              onPress={onBack}
-              className="min-h-[36px] items-center justify-center rounded-lg bg-primary px-4 active:opacity-70 dark:bg-dark-primary"
-            >
-              <Text className="text-sm font-bold text-white">Save</Text>
-            </Pressable>
+            {!embedded ? (
+              <Pressable
+                accessibilityLabel="Save color styling"
+                accessibilityRole="button"
+                onPress={onBack}
+                className="min-h-[36px] items-center justify-center rounded-lg bg-primary px-4 active:opacity-70 dark:bg-dark-primary"
+              >
+                <Text className="text-sm font-bold text-white">Save</Text>
+              </Pressable>
+            ) : null}
           </View>
           {colorTargetMenuOpen ? (
             <View className="mb-3 overflow-hidden rounded-xl border border-slate-200 bg-card dark:border-slate-700 dark:bg-dark-card">
@@ -160,9 +160,7 @@ export function CardStylingCustomizer({
                       index === 0 ? 'border-b border-slate-200 dark:border-slate-700' : ''
                     } ${selected ? 'bg-blue-50 dark:bg-blue-950/30' : ''}`}
                   >
-                    <Text className="flex-1 text-sm font-semibold text-textPrimary dark:text-dark-textPrimary">
-                      {label}
-                    </Text>
+                    <Text className="flex-1 text-sm font-semibold text-textPrimary dark:text-dark-textPrimary">{label}</Text>
                     {selected ? <Check color="#3b82f6" size={18} strokeWidth={3} /> : null}
                   </Pressable>
                 );
@@ -186,19 +184,9 @@ export function CardStylingCustomizer({
       ) : (
         <>
           <EditorSectionLabel title="Font styles" subtitle="Swipe sideways to browse font style groups." />
-          <ScrollView
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            decelerationRate="fast"
-            style={{ width: editorPaneWidth }}
-          >
+          <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} decelerationRate="fast" style={{ width: editorPaneWidth }}>
             {Array.from({ length: Math.ceil(FONT_IDS.length / 4) }, (_, pageIndex) => (
-              <View
-                key={`font-page-${pageIndex}`}
-                className="flex-row flex-wrap"
-                style={{ gap: gridGap, width: editorPaneWidth }}
-              >
+              <View key={`font-page-${pageIndex}`} className="flex-row flex-wrap" style={{ gap: gridGap, width: editorPaneWidth }}>
                 {FONT_IDS.slice(pageIndex * 4, pageIndex * 4 + 4).map((fontStyle) => {
                   const selected = theme.fontStyle === fontStyle;
                   return (
@@ -209,19 +197,14 @@ export function CardStylingCustomizer({
                       accessibilityState={{ selected }}
                       onPress={() => onChange({ ...theme, fontStyle })}
                       className={`items-center justify-center rounded-2xl border px-3 ${
-                        selected
-                          ? 'border-2 border-primary bg-blue-50 dark:bg-blue-950/30'
-                          : 'border-slate-200 bg-card dark:border-slate-700 dark:bg-dark-card'
+                        selected ? 'border-2 border-primary bg-blue-50 dark:bg-blue-950/30' : 'border-slate-200 bg-card dark:border-slate-700 dark:bg-dark-card'
                       }`}
                       style={{
                         height: fontCardHeight,
                         width: (editorPaneWidth - gridGap) / 2,
                       }}
                     >
-                      <Text
-                        style={{ fontFamily: getCardFontFamily(fontStyle) }}
-                        className="text-base text-textPrimary dark:text-dark-textPrimary"
-                      >
+                      <Text style={{ fontFamily: getCardFontFamily(fontStyle) }} className="text-base text-textPrimary dark:text-dark-textPrimary">
                         {FONT_NAMES[fontStyle]}
                       </Text>
                       {selected ? (
