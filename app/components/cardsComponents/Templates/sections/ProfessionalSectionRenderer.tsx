@@ -777,7 +777,6 @@ export function ProfessionalSectionRenderer({
         {showTagline ? (
           <ProfessionalTaglineFooter
             compact={compact}
-            fillGap
             fullCardView={fullCardView}
             horizontalPadding={spacing.horizontal}
             mark="chevron"
@@ -893,18 +892,18 @@ export function ProfessionalSectionRenderer({
                 {title}
               </Text>
             </View>
-            {showTagline ? (
-              <ProfessionalTaglineFooter
-                compact={compact}
-                fullCardView={fullCardView}
-                horizontalPadding={0}
-                mark="star"
-                shared={shared}
-                tagline={tagline}
-              />
-            ) : null}
           </View>
         </View>
+        {showTagline ? (
+          <ProfessionalTaglineFooter
+            compact={compact}
+            fullCardView={fullCardView}
+            horizontalPadding={spacing.horizontal}
+            mark="star"
+            shared={shared}
+            tagline={tagline}
+          />
+        ) : null}
       </View>
     );
   }
