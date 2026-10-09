@@ -16,6 +16,7 @@ export type WalletCard = {
   photoMediaId: string | null;
   logoMediaId: string | null;
   coverMediaId: string | null;
+  coverPresetId: string | null;
   colors: {
     background: string;
     foreground: string;
@@ -115,6 +116,7 @@ export function toWalletCard(cardId: string, card: Json, profile: Json | null): 
   const photo = pick('profilePhoto', p.photoUrl);
   const logo = pick('logo', p.companyLogoUrl);
   const cover = pick('coverPhoto', p.coverPhotoUrl);
+  const coverPresetMatch = cover.match(/^proscard-cover:(.+)$/);
   const colors = passColors(card);
   return {
     cardId,
@@ -128,6 +130,7 @@ export function toWalletCard(cardId: string, card: Json, profile: Json | null): 
     photoMediaId: mediaId(photo),
     logoMediaId: mediaId(logo),
     coverMediaId: mediaId(cover),
+    coverPresetId: coverPresetMatch?.[1] ?? null,
     colors: {
       background: rgb(colors.background),
       foreground: rgb(colors.foreground),

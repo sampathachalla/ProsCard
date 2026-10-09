@@ -10,6 +10,7 @@ export type ConnectionsBottomDockProps = {
   letterSpacing?: number;
   onSaveContact?: () => void;
   onShareCard?: () => void;
+  previewCompact?: boolean;
   surfaceColor?: string;
   textColor?: string;
 };
@@ -21,18 +22,19 @@ export function ConnectionsBottomDock({
   fontFamily,
   letterSpacing,
   onSaveContact,
+  previewCompact = false,
 }: ConnectionsBottomDockProps) {
-  const buttonHeight = compact ? 50 : 52;
-  const iconSize = compact ? 17 : 18;
-  const textSize = 'text-sm';
+  const buttonHeight = previewCompact ? 44 : compact ? 50 : 52;
+  const iconSize = previewCompact ? 15 : compact ? 17 : 18;
+  const textSize = previewCompact ? 'text-[13px]' : 'text-sm';
 
   return (
     <View
       className="w-full"
       pointerEvents={disabled ? 'none' : 'auto'}
       style={{
-        marginTop: compact ? 2 : 4,
-        marginBottom: compact ? 2 : 4,
+        marginTop: previewCompact ? 0 : compact ? 2 : 4,
+        marginBottom: previewCompact ? 0 : compact ? 2 : 4,
         opacity: disabled ? 0.9 : 1,
       }}
     >

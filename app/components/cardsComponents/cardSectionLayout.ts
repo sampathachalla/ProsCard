@@ -4,7 +4,7 @@ export const IDENTITY_SECTION_HEIGHT_RATIO = 0.25;
 /** Section 2 height in the scrollable full-card and edit views. */
 export const PROFESSIONAL_FULL_CARD_SECTION_HEIGHT_RATIO = 0.20;
 
-/** Fixed proportions for the card face. About (section 3) is not shown. */
+/** Fixed proportions for legacy fixed card faces. */
 export const HOMEPAGE_CARD_SECTION_HEIGHT_RATIOS = {
   identity: 0.25,
   professional: 0.20,

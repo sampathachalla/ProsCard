@@ -18,6 +18,14 @@ export function shareUrlForSlug(slug: string): string {
   return `${PUBLIC_WEB_URL}/share/${slug}`;
 }
 
+/** Public standards-based contact download used by iOS and Android browsers. */
+export function vcardUrlForSlug(slug: string): string {
+  const origin = Platform.OS === 'web' && typeof window !== 'undefined'
+    ? window.location.origin
+    : PUBLIC_WEB_URL;
+  return `${origin}/api/v1/sharing/public/${encodeURIComponent(slug)}/vcard`;
+}
+
 /** Extracts the share slug from a scanned QR payload (a ProsCard share URL). */
 export function parseShareSlug(data: string): string | null {
   return data.trim().match(/\/share\/([A-Za-z0-9_-]+)\/?(?:[?#].*)?$/)?.[1] ?? null;
@@ -32,12 +40,14 @@ export async function getShareUrl(cardId: string): Promise<string> {
 
 type SharedCardView = { card: BusinessCard; profile: Partial<Profile> };
 
+const SHARE_REQUEST_TIMEOUT_MS = 20_000;
 const SHARED_MEDIA_PATH = /\/api\/v1\/sharing\/public\/[^/]+\/media\/[^/?#]+/;
+const DIRECT_IMAGE_URL = /^https?:\/\//i;
 
-function collectSharedMediaUrls(value: unknown, urls = new Set<string>()): Set<string> {
+function collectWarmUrls(value: unknown, urls = new Set<string>()): Set<string> {
   if (typeof value === 'string') {
-    if (SHARED_MEDIA_PATH.test(value)) {
-      const absolute = /^(?:https?:)?\/\//i.test(value)
+    if (DIRECT_IMAGE_URL.test(value) || SHARED_MEDIA_PATH.test(value)) {
+      const absolute = DIRECT_IMAGE_URL.test(value)
         ? value
         : `${API_BASE_URL}${value.startsWith('/') ? '' : '/'}${value}`;
       urls.add(absolute);
@@ -45,43 +55,35 @@ function collectSharedMediaUrls(value: unknown, urls = new Set<string>()): Set<s
     return urls;
   }
   if (Array.isArray(value)) {
-    value.forEach((item) => collectSharedMediaUrls(item, urls));
+    value.forEach((item) => collectWarmUrls(item, urls));
     return urls;
   }
   if (value && typeof value === 'object') {
-    Object.values(value as Record<string, unknown>).forEach((item) => collectSharedMediaUrls(item, urls));
+    Object.values(value as Record<string, unknown>).forEach((item) => collectWarmUrls(item, urls));
   }
   return urls;
 }
 
-async function prefetchSharedMedia(view: SharedCardView): Promise<void> {
-  const urls = [...collectSharedMediaUrls(view)];
+/** Warm the image cache in the background — never blocks the card from rendering. */
+function warmSharedMedia(view: SharedCardView): void {
+  const urls = [...collectWarmUrls(view)];
   if (!urls.length) return;
-  // Public media URLs authorize and redirect to OCI. Warming the exact URLs here
-  // prevents text from painting a full network round trip before photos and logos.
-  const prefetch = import('expo-image')
+  void import('expo-image')
     .then(({ Image }) => Image.prefetch(urls, 'memory-disk'))
-    .catch(() => false);
-  // Images are a nice-to-have: after a few seconds show the card anyway and let them stream in.
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  await Promise.race([prefetch, new Promise((resolve) => { timer = setTimeout(resolve, MEDIA_PREFETCH_WAIT_MS); })]);
-  clearTimeout(timer);
+    .catch(() => undefined);
 }
 
-const MEDIA_PREFETCH_WAIT_MS = 4_000;
-const SHARE_REQUEST_TIMEOUT_MS = 20_000;
-
 /**
- * Card plus owner profile for the public share page; image links are already share-scoped.
- * On the web the page is served by the API itself, so it talks to (and loads images from) the origin
- * it was opened on — whatever domain the QR code used — rather than the address baked into the build.
+ * Card plus owner profile for the public share page.
+ * Image fields usually arrive as short-lived OCI download URLs (one hop to Object Storage).
+ * On the web the page talks to the origin it was opened on — the domain in the QR code.
  */
 export async function getSharedCardView(slug: string): Promise<SharedCardView> {
   const path = `/sharing/public/${encodeURIComponent(slug)}/view`;
   const origin = Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.origin : null;
   if (!origin) {
     const view = await apiRequest<SharedCardView>(path, { authenticated: false });
-    await prefetchSharedMedia(view);
+    warmSharedMedia(view);
     return view;
   }
 
@@ -95,7 +97,13 @@ export async function getSharedCardView(slug: string): Promise<SharedCardView> {
       headers: { Accept: 'application/json', 'Cache-Control': 'no-cache' },
       signal: controller.signal,
     });
-    if (!response.ok) throw new ApiError(response.status === 404 ? 'Shared card not found or expired.' : `Request failed (${response.status}).`, response.status, null);
+    if (!response.ok) {
+      throw new ApiError(
+        response.status === 404 ? 'Shared card not found or expired.' : `Request failed (${response.status}).`,
+        response.status,
+        null,
+      );
+    }
     view = await response.json() as SharedCardView;
   } catch (error) {
     if (controller.signal.aborted) throw new Error('The card took too long to load. Check your connection and try again.');
@@ -105,11 +113,12 @@ export async function getSharedCardView(slug: string): Promise<SharedCardView> {
   } finally {
     clearTimeout(timer);
   }
-  // Absolute same-origin image links, so they are not re-pointed at the build's API address.
+
+  // Only rewrite leftover relative share-media paths; OCI URLs from /view stay as-is.
   const absolute = JSON.parse(
     JSON.stringify(view).replace(/"\/api\/v1\/sharing\/public\//g, `"${origin}/api/v1/sharing/public/`),
   ) as SharedCardView;
-  await prefetchSharedMedia(absolute);
+  warmSharedMedia(absolute);
   return absolute;
 }
 

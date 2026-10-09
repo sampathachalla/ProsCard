@@ -43,6 +43,7 @@ type Props = {
   cardTheme: CardVisualTheme;
   fullCardView?: boolean;
   gradient: [string, string];
+  homepagePreview?: boolean;
   interactiveActions?: boolean;
   onSaveContact?: () => void;
   onShareCard?: () => void;
@@ -150,6 +151,7 @@ export function ConnectionsSectionRenderer({
   cardTheme,
   fullCardView = false,
   gradient,
+  homepagePreview = false,
   interactiveActions,
   onSaveContact,
   onShareCard,
@@ -176,6 +178,7 @@ export function ConnectionsSectionRenderer({
       );
   const fields = rawFields;
   const densePreview = compact && fields.length > (inFixedCardSlot ? 3 : 4);
+  const compactHomepagePreview = homepagePreview && inFixedCardSlot;
   // Homepage previews have a fixed-height contacts slot. Dense lists need a
   // compact rhythm so the action dock and its bottom inset remain fully visible.
   const fixedSlotFieldGap = inFixedCardSlot
@@ -194,8 +197,8 @@ export function ConnectionsSectionRenderer({
   /** In the card view the section has a fixed height; rows and tiles grow to
    * fill it (up to a cap, so two contacts don't become giant boxes). */
   const fillSlot = inFixedCardSlot;
-  const fillIconBox = densePreview ? 34 : 40;
-  const fillIconSize = densePreview ? 16 : 18;
+  const fillIconBox = compactHomepagePreview ? 28 : densePreview ? 34 : 40;
+  const fillIconSize = compactHomepagePreview ? 14 : densePreview ? 16 : 18;
 
   const handleSaveContact = () => {
     if (onSaveContact) {
@@ -267,6 +270,7 @@ export function ConnectionsSectionRenderer({
         letterSpacing={letterSpacing}
         onSaveContact={handleSaveContact}
         onShareCard={handleShareCard}
+        previewCompact={compactHomepagePreview}
         surfaceColor={slots.surface}
         textColor={slots.textPrimary}
       />
@@ -358,7 +362,9 @@ export function ConnectionsSectionRenderer({
               numberOfLines: 1,
             })}
         className={
-          fillSlot
+          compactHomepagePreview
+            ? "text-[13px] font-semibold"
+            : fillSlot
             ? densePreview
               ? "text-[15px] font-bold"
               : "text-base font-bold"
@@ -1373,7 +1379,7 @@ export function ConnectionsSectionRenderer({
         style={{
           flex: contentDriven ? undefined : 1,
           justifyContent: "flex-start",
-          paddingTop: 8,
+          paddingTop: compactHomepagePreview ? 12 : 8,
           width: "100%",
         }}
       >
@@ -1395,13 +1401,14 @@ export function ConnectionsSectionRenderer({
                 className="flex-row items-center active:opacity-70"
                 style={{
                   borderBottomColor: slots.borderColor,
-                  borderBottomWidth: index === fields.length - 1 ? 0 : 1,
+                  borderBottomWidth:
+                    compactHomepagePreview || index === fields.length - 1 ? 0 : 1,
                   paddingBottom:
                     index === fields.length - 1 ? 0 : Math.round(fieldGap / 2),
                 }}
               >
                 <View
-                  className="mr-4 items-center justify-center rounded-full"
+                  className={`${compactHomepagePreview ? "mr-3" : "mr-4"} items-center justify-center rounded-full`}
                   style={{
                     backgroundColor: slots.accent,
                     height: fillSlot ? fillIconBox : compact ? 36 : 46,

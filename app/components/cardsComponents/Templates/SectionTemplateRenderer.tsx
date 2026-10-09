@@ -17,6 +17,7 @@ export type SectionTemplateRendererProps = {
   showEmpty?: boolean;
   walletPass?: boolean;
   fullCardView?: boolean;
+  homepagePreview?: boolean;
   /** Let supported full-card sections size themselves from rendered content. */
   contentDriven?: boolean;
   /** Keep authored font sizes. Home-card faces omit this and may still shrink to fit. */
@@ -45,6 +46,7 @@ export function SectionTemplateRenderer({
   showEmpty = false,
   walletPass = false,
   fullCardView = false,
+  homepagePreview = false,
   contentDriven = false,
   preserveTypeScale = false,
 }: SectionTemplateRendererProps) {
@@ -111,6 +113,7 @@ export function SectionTemplateRenderer({
           contentDriven={contentDriven}
           fullCardView={fullCardView}
           gradient={gradient}
+          homepagePreview={homepagePreview}
           interactiveActions={interactiveActions}
           onSaveContact={onSaveContact}
           onShareCard={onShareCard}

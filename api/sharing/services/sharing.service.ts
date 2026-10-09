@@ -7,14 +7,27 @@ import type { SharingRepository } from '../repository/sharing.repository.js';
 const PROTECTED_MEDIA = /\/api\/v1\/media\/([0-9a-f-]{36})\/content/g;
 const SLUG_CREATE_ATTEMPTS = 5;
 
+function collectMediaIds(...values: unknown[]): string[] {
+  const ids = new Set<string>();
+  for (const value of values) {
+    const json = JSON.stringify(value ?? {});
+    for (const match of json.matchAll(PROTECTED_MEDIA)) {
+      ids.add(match[1]!);
+    }
+  }
+  return [...ids];
+}
+
 /**
- * Stored media links (`/api/v1/media/:id/content`) need the owner's login. For a public share they are
- * rewritten to share-scoped links that work for anyone holding the share URL, and only while it is active.
+ * Prefer short-lived OCI download URLs so the phone loads images in one hop.
+ * Fall back to the share media redirect when signing is unavailable for an id.
  */
-function withShareMediaLinks<T>(data: T, slug: string): T {
+function withResolvedMediaLinks<T>(data: T, urlById: Map<string, string>, slug: string): T {
   try {
     return JSON.parse(
-      JSON.stringify(data ?? {}).replace(PROTECTED_MEDIA, (_m, id: string) => `/api/v1/sharing/public/${slug}/media/${id}`),
+      JSON.stringify(data ?? {}).replace(PROTECTED_MEDIA, (_m, id: string) => (
+        urlById.get(id) ?? `/api/v1/sharing/public/${slug}/media/${id}`
+      )),
     ) as T;
   } catch (error) {
     log('error', 'share_media_rewrite_failed', {
@@ -74,33 +87,57 @@ export class SharingService {
     return { id: row.card_id, ...row.card_data };
   }
 
-  /** Everything the public share page needs to render the card exactly as the owner sees it. */
+  /**
+   * Everything the public share page needs. Image fields are rewritten to short-lived OCI
+   * download URLs so the scanner's phone fetches photos in one hop (no API redirect per image).
+   */
   async view(slug: string) {
     const row = await this.repo.publicView(slug);
     if (!row) throw new HttpError(404, 'Shared card not found or expired.');
+    const card = { ...row.card_data, id: row.card_id };
+    const profile = row.profile_data ?? {};
+    const urlById = await this.signReferencedMedia(row.user_id, collectMediaIds(card, profile));
     return {
-      card: withShareMediaLinks({ ...row.card_data, id: row.card_id }, slug),
-      profile: withShareMediaLinks(row.profile_data ?? {}, slug),
+      card: withResolvedMediaLinks(card, urlById, slug),
+      profile: withResolvedMediaLinks(profile, urlById, slug),
     };
   }
 
+  /** Sign every referenced ready media object in parallel (uses the download-URL cache). */
+  private async signReferencedMedia(userId: string, mediaIds: string[]) {
+    const urlById = new Map<string, string>();
+    if (!this.storage || !mediaIds.length) return urlById;
+
+    const rows = await this.repo.readyMediaMany(userId, mediaIds);
+    await Promise.all(rows.map(async (row) => {
+      try {
+        const signed = await this.storage!.createDownloadUrl(row.object_name);
+        urlById.set(row.id, signed.url);
+      } catch (error) {
+        log('warn', 'share_media_sign_failed', {
+          mediaId: row.id,
+          message: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }));
+    return urlById;
+  }
+
   /**
-   * Signed download URL for an image on a shared card. Only images the card or the owner's profile
-   * actually show are served, so a share link cannot be used to read the owner's other media.
+   * Fallback redirect for clients that still hit the share media path (or when signing
+   * failed for an individual image in /view).
    */
   async mediaUrl(slug: string, mediaId: string) {
     if (!this.storage) throw new HttpError(503, 'Media storage is not configured.');
+    if (!/^[0-9a-f-]{36}$/i.test(mediaId)) throw new HttpError(404, 'Image not found.');
+
     const row = await this.repo.publicView(slug);
     if (!row) throw new HttpError(404, 'Shared card not found or expired.');
-    const shown = `/api/v1/media/${mediaId}/content`;
-    let referenced = false;
-    try {
-      referenced = JSON.stringify(row.card_data).includes(shown)
-        || JSON.stringify(row.profile_data ?? {}).includes(shown);
-    } catch {
-      throw new HttpError(500, 'Shared card data could not be prepared.');
-    }
-    const media = referenced ? await this.repo.readyMedia(row.user_id, mediaId) : null;
+
+    const referenced = collectMediaIds(row.card_data, row.profile_data).includes(mediaId);
+    if (!referenced) throw new HttpError(404, 'Image not found.');
+
+    const media = await this.repo.readyMedia(row.user_id, mediaId);
     if (!media) throw new HttpError(404, 'Image not found.');
     return this.storage.createDownloadUrl(media.object_name);
   }

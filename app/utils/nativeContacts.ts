@@ -49,15 +49,21 @@ export async function saveDirectlyToNativeContacts(contact: VCardContact): Promi
           ? [{ label: 'work', url: contact.website.trim() }]
           : undefined,
         addresses: contact.address?.trim()
-          ? [{ label: 'work', formattedAddress: contact.address.trim(), street: contact.address.trim() }]
+          ? [{ label: 'work', street: contact.address.trim() }]
           : undefined,
         image: contact.photoUrl && contact.photoUrl.startsWith('file://')
           ? contact.photoUrl
           : undefined,
       };
 
-      const result = await Contact.presentCreateForm(record);
-      return result ?? true;
+      try {
+        const result = await Contact.presentCreateForm(record);
+        return result ?? true;
+      } catch {
+        // Expo Go can expose the new JavaScript API while its current native
+        // runtime does not yet provide the matching create-form method. Try
+        // the bundled legacy create controller before falling back to a vCard.
+      }
     }
 
     // 2. Fallback: legacy presentFormAsync with isNew: true

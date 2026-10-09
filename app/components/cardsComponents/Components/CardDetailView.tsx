@@ -19,6 +19,7 @@ export function CardDetailView({
   onEditSection,
   onSectionLayout,
   profile,
+  vcardDownloadUrl,
   viewportHeight,
 }: {
   activeSection?: CardSectionId;
@@ -28,6 +29,7 @@ export function CardDetailView({
   onEditSection?: (section: CardSectionId) => void;
   onSectionLayout?: (section: CardSectionId, y: number) => void;
   profile: Profile;
+  vcardDownloadUrl?: string;
   viewportHeight?: number;
 }) {
   const { height: windowHeight } = useWindowDimensions();
@@ -86,6 +88,7 @@ export function CardDetailView({
       note,
       photoUrl,
       socials,
+      vcardDownloadUrl,
     });
   };
 

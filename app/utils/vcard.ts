@@ -115,6 +115,25 @@ async function fetchPhotoAsBase64(photoUrl: string): Promise<string | undefined>
 
 export async function saveOrShareContact(contact: VCardContact) {
   try {
+    // Keep the public card page alive underneath iOS/Android's contact importer.
+    // Navigating the current page to a .vcf leaves the user inside the native
+    // preview with no ProsCard browser history to return to.
+    if (
+      Platform.OS === 'web' &&
+      contact.vcardDownloadUrl &&
+      typeof window !== 'undefined' &&
+      typeof document !== 'undefined'
+    ) {
+      const link = document.createElement('a');
+      link.href = contact.vcardDownloadUrl;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      return;
+    }
+
     let photoBase64 = contact.photoBase64;
     if (!photoBase64 && contact.photoUrl) {
       photoBase64 = await fetchPhotoAsBase64(contact.photoUrl);
@@ -125,16 +144,13 @@ export async function saveOrShareContact(contact: VCardContact) {
 
     // 1. Web browser: Safari / Chrome
     if (Platform.OS === 'web' && typeof window !== 'undefined' && typeof document !== 'undefined') {
-      if (contact.vcardDownloadUrl) {
-        window.location.href = contact.vcardDownloadUrl;
-        return;
-      }
-
       const blob = new Blob([vcard], { type: 'text/vcard;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', fileName);
+      link.target = '_blank';
+      link.rel = 'noopener';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

@@ -89,7 +89,8 @@ describe('ProsCard API routes',()=>{
     const share=await request(app).post(`/api/v1/sharing/cards/${cardId}`).set(auth).send({});const slug=share.body.slug as string;
     const view=await request(app).get(`/api/v1/sharing/public/${slug}/view`);expect(view.status).toBe(200);
     expect(view.body.profile.firstName).toBe('Ada');
-    expect(view.body.card.sectionOverrides.logo).toBe(`/api/v1/sharing/public/${slug}/media/${logo.body.mediaId}`);
+    // /view inlines short-lived OCI URLs so scanners load images in one hop (no per-image API redirect).
+    expect(view.body.card.sectionOverrides.logo).toContain(`oci.test/download/${logo.body.objectName}`);
     expect(JSON.stringify(view.body)).not.toContain('/api/v1/media/');
     const image=await request(app).get(`/api/v1/sharing/public/${slug}/media/${logo.body.mediaId}`);expect(image.status).toBe(302);expect(image.headers.location).toContain(`oci.test/download/${logo.body.objectName}`);
     expect((await request(app).get(`/api/v1/sharing/public/${slug}/media/${unrelated.body.mediaId}`)).status).toBe(404);

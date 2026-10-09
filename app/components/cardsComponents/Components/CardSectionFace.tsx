@@ -7,6 +7,7 @@ import { SectionTemplateRenderer } from '../Templates/SectionTemplateRenderer';
 export function CardSectionFace({
   card,
   height,
+  homepagePreview = false,
   profile,
   sectionId,
   seamless = false,
@@ -15,6 +16,7 @@ export function CardSectionFace({
 }: {
   card: BusinessCard;
   height: number;
+  homepagePreview?: boolean;
   profile: Profile;
   sectionId: CardSectionId;
   seamless?: boolean;
@@ -36,6 +38,7 @@ export function CardSectionFace({
           cardTheme={theme}
           fullCardView={seamless && !walletPass}
           gradient={theme.gradient}
+          homepagePreview={homepagePreview}
           section={section}
           seamless={seamless}
           walletPass={walletPass}

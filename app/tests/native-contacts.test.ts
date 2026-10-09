@@ -7,6 +7,11 @@ vi.mock('expo-contacts', () => ({
   },
 }));
 
+vi.mock('expo-contacts/legacy', () => ({
+  ContactTypes: { Person: 'person' },
+  presentFormAsync: vi.fn().mockResolvedValue(true),
+}));
+
 vi.mock('expo-file-system', () => {
   class File {
     uri: string;
@@ -24,6 +29,7 @@ vi.mock('expo-sharing', () => ({
 }));
 
 import { Contact } from 'expo-contacts';
+import * as LegacyContacts from 'expo-contacts/legacy';
 import { saveDirectlyToNativeContacts } from '../utils/nativeContacts';
 
 describe('saveDirectlyToNativeContacts', () => {
@@ -54,5 +60,29 @@ describe('saveDirectlyToNativeContacts', () => {
 
     Platform.OS = originalOs;
   });
-});
 
+  it('uses the legacy new-contact form when Expo Go cannot provide the modern native form', async () => {
+    const originalOs = Platform.OS;
+    Platform.OS = 'ios';
+    vi.mocked(Contact.presentCreateForm).mockRejectedValueOnce(new Error('Native method unavailable'));
+
+    const success = await saveDirectlyToNativeContacts({
+      name: 'Joshua Isaacs',
+      phone: '410-313-1846',
+      email: 'joisaacs@howardcountymd.gov',
+    });
+
+    expect(LegacyContacts.presentFormAsync).toHaveBeenCalledWith(
+      undefined,
+      expect.objectContaining({
+        firstName: 'Joshua',
+        lastName: 'Isaacs',
+        phoneNumbers: [{ label: 'work', number: '410-313-1846' }],
+      }),
+      { isNew: true },
+    );
+    expect(success).toBe(true);
+
+    Platform.OS = originalOs;
+  });
+});

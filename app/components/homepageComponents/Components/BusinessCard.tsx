@@ -1,9 +1,9 @@
-import { View } from 'react-native';
+import { useState } from 'react';
+import { View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
 import type { BusinessCard as BusinessCardData } from '@/components/cardsComponents/types/card.types';
 import type { Profile } from '@/components/profileComponents/types/profile.types';
 import { CardTapGesture } from '@/components/gestures';
-import { CardSectionFace } from '@/components/cardsComponents/Components/CardSectionFace';
-import { HOMEPAGE_CARD_SECTION_HEIGHT_RATIOS } from '@/components/cardsComponents/cardSectionLayout';
+import { CardDetailView } from '@/components/cardsComponents/Components/CardDetailView';
 
 type Props = {
   card: BusinessCardData;
@@ -14,52 +14,57 @@ type Props = {
   width: number;
 };
 
+/** The carousel renders the real full card and scales it into the preview frame. */
 export function BusinessCard({ card, height, onDoubleTap, onSwipeDown, profile, width }: Props) {
-  const identitySectionHeight = height * HOMEPAGE_CARD_SECTION_HEIGHT_RATIOS.identity;
-  const professionalSectionHeight = height * HOMEPAGE_CARD_SECTION_HEIGHT_RATIOS.professional;
-  const connectionsSectionHeight = height * HOMEPAGE_CARD_SECTION_HEIGHT_RATIOS.connections;
-  const identityTheme = card.sectionThemes.identity;
-  const view = (
+  const { width: viewportWidth } = useWindowDimensions();
+  const [contentHeight, setContentHeight] = useState(0);
+  const sourceWidth = Math.max(viewportWidth, 320);
+  const widthScale = width / sourceWidth;
+  const scale = contentHeight > 0
+    ? Math.min(widthScale, height / contentHeight)
+    : widthScale;
+  const scaledWidth = sourceWidth * scale;
+
+  const measureContent = (event: LayoutChangeEvent) => {
+    const nextHeight = event.nativeEvent.layout.height;
+    if (nextHeight > 0 && Math.abs(nextHeight - contentHeight) > 0.5) {
+      setContentHeight(nextHeight);
+    }
+  };
+
+  const preview = (
     <View
       accessibilityLabel={`${card.name}, ${card.title} digital business card`}
       className="overflow-hidden rounded-[28px] border"
       style={{
         width,
         height,
-        backgroundColor: identityTheme.backgroundColor,
-        borderColor: identityTheme.accentColor,
+        backgroundColor: card.sectionThemes.identity.backgroundColor,
+        borderColor: card.sectionThemes.identity.accentColor,
       }}
     >
-      <CardSectionFace
-        card={card}
-        height={identitySectionHeight}
-        profile={profile}
-        seamless
-        sectionId="identity"
-        width={width}
-      />
-      <CardSectionFace
-        card={card}
-        height={professionalSectionHeight}
-        profile={profile}
-        seamless
-        sectionId="professional"
-        width={width}
-      />
-      <CardSectionFace
-        card={card}
-        height={connectionsSectionHeight}
-        profile={profile}
-        seamless
-        sectionId="connections"
-        width={width}
-      />
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: (width - scaledWidth) / 2,
+          width: sourceWidth,
+          transform: [{ scale }],
+          transformOrigin: 'top left',
+        }}
+      >
+        <View onLayout={measureContent} style={{ width: sourceWidth }}>
+          <CardDetailView card={card} fullBleed profile={profile} />
+        </View>
+      </View>
     </View>
   );
-  if (!onDoubleTap) return view;
+
+  if (!onDoubleTap) return preview;
   return (
     <CardTapGesture onDoubleTap={onDoubleTap} onSwipeDown={onSwipeDown}>
-      {view}
+      {preview}
     </CardTapGesture>
   );
 }

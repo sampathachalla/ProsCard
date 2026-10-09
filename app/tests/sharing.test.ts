@@ -3,11 +3,15 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('@/services/api/client', () => ({ apiRequest: vi.fn() }));
 vi.mock('@/components/authComponents/Config/authMode', () => ({ AUTH_TEST_MODE: false }));
 
-import { parseShareSlug, shareUrlForSlug } from '@/components/sharingComponents/Services/sharingService';
+import { parseShareSlug, shareUrlForSlug, vcardUrlForSlug } from '@/components/sharingComponents/Services/sharingService';
 
 describe('share links', () => {
   it('round-trips a slug through the QR share URL', () => {
     expect(parseShareSlug(shareUrlForSlug('Ab3_x-9Q'))).toBe('Ab3_x-9Q');
+  });
+
+  it('builds a public vCard download URL for a shared card', () => {
+    expect(vcardUrlForSlug('Ab3_x-9Q')).toContain('/api/v1/sharing/public/Ab3_x-9Q/vcard');
   });
 
   it('accepts share URLs from any origin, with trailing slash or query', () => {

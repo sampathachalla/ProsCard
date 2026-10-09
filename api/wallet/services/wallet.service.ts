@@ -1,4 +1,7 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { HttpError } from '../../src/errors.js';
 import { log } from '../../src/logger.js';
 import type { ObjectStorageGateway } from '../../media/services/oci-storage.service.js';
@@ -69,13 +72,34 @@ export class WalletService {
     return this.buildApplePass(userId, cardId, base);
   }
 
+  private async loadCover(owner: string, card: WalletCard): Promise<Buffer | null> {
+    if (card.coverMediaId) {
+      return this.image(owner, card.coverMediaId);
+    }
+    if (card.coverPresetId) {
+      const presetPath = path.join(
+        path.dirname(fileURLToPath(import.meta.url)),
+        '..',
+        'assets',
+        'card-covers',
+        `${card.coverPresetId}.jpg`,
+      );
+      try {
+        return readFileSync(presetPath);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+
   private async buildApplePass(userId: string, cardId: string, base: string) {
     const apple = this.deps.apple!;
     const { card, slug, userId: owner } = await this.load(userId, cardId);
     const images: PassImages = {
       photo: card.photoMediaId ? await this.image(owner, card.photoMediaId) : null,
       logo: card.logoMediaId ? await this.image(owner, card.logoMediaId) : null,
-      cover: card.coverMediaId ? await this.image(owner, card.coverMediaId) : null,
+      cover: await this.loadCover(owner, card),
     };
     // Apple only calls an HTTPS web service, so local http runs simply skip the "added" confirmation.
     const webService = base.startsWith('https://')

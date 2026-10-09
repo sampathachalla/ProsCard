@@ -8,7 +8,7 @@ import { CreditCard, WifiOff } from 'lucide-react-native';
 import { CardDetailView } from '@/components/cardsComponents/Components/CardDetailView';
 import { normalizeCard } from '@/components/cardsComponents/Services/cardsService';
 import { normalizeProfile } from '@/components/profileComponents/Services/profileService';
-import { getSharedCardView } from '@/components/sharingComponents/Services/sharingService';
+import { getSharedCardView, vcardUrlForSlug } from '@/components/sharingComponents/Services/sharingService';
 import { Text } from '@/components/uiComponents/Text';
 import { ApiError } from '@/services/api/client';
 
@@ -26,11 +26,12 @@ export default function SharedCardPage() {
       return { card: normalizeCard(result.card), profile: normalizeProfile(result.profile) };
     },
     enabled: Boolean(slug),
-    refetchOnMount: 'always',
-    refetchOnReconnect: 'always',
-    refetchOnWindowFocus: 'always',
+    // Keep the first paint fast after a QR scan; avoid refetching (and re-signing images) on every focus.
+    refetchOnMount: false,
+    refetchOnReconnect: true,
+    refetchOnWindowFocus: false,
     retry: 1,
-    staleTime: 0,
+    staleTime: 5 * 60_000,
   });
 
   const cardName = view.data?.card.name;
@@ -92,7 +93,12 @@ export default function SharedCardPage() {
     >
       {/* Phone-width column so the card keeps its proportions on desktop browsers too. */}
       <View style={{ width: '100%', maxWidth: 520, alignSelf: 'center' }}>
-        <CardDetailView card={view.data.card} fullBleed profile={view.data.profile} />
+        <CardDetailView
+          card={view.data.card}
+          fullBleed
+          profile={view.data.profile}
+          vcardDownloadUrl={vcardUrlForSlug(slug)}
+        />
         <Text variant="muted" className="mt-6 text-center text-xs">Shared with ProsCard</Text>
       </View>
     </ScrollView>

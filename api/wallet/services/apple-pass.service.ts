@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PKPass } from 'passkit-generator';
 import sharp from 'sharp';
+import type { OverlayOptions } from 'sharp';
 import type { WalletCard } from '../utils/wallet-card.js';
 
 export type AppleWalletConfig = {
@@ -45,28 +46,81 @@ function rgbParts(color: string): [number, number, number] {
   return values?.length === 3 ? values as [number, number, number] : [37, 99, 235];
 }
 
-/** Cover / gradient strip only — company logo uses Apple's native `logo.png` slot, not this image. */
+/** Generates the landscape visual strip displaying the user's cover photo with the circular profile photo avatar composited on top. */
 async function walletStrip(card: WalletCard, images: PassImages) {
   const width = 1125;
   const height = 432;
-  const [r, g, b] = rgbParts(card.colors.headerBackground);
   const [gradientStart, gradientEnd] = card.colors.headerGradient;
+
   const base = images.cover
     ? sharp(images.cover).rotate().resize(width, height, { fit: 'cover' })
-    : sharp(Buffer.from(`<svg width="${width}" height="${height}"><defs><linearGradient id="default" x2="1" y2="1"><stop stop-color="${gradientStart}"/><stop offset="1" stop-color="${gradientEnd}"/></linearGradient></defs><rect width="100%" height="100%" fill="url(#default)"/></svg>`));
-  if (!images.cover) {
-    return base.png().toBuffer();
-  }
-  return base
-    .composite([
-      {
-        input: Buffer.from(
-          `<svg width="${width}" height="${height}"><rect width="100%" height="100%" fill="rgb(${r},${g},${b})" fill-opacity=".82"/></svg>`,
+    : sharp(
+        Buffer.from(
+          `<svg width="${width}" height="${height}"><defs><linearGradient id="default" x2="1" y2="1"><stop stop-color="${gradientStart}"/><stop offset="1" stop-color="${gradientEnd}"/></linearGradient></defs><rect width="100%" height="100%" fill="url(#default)"/></svg>`,
         ),
-      },
-    ])
-    .png()
-    .toBuffer();
+      );
+
+  const overlays: OverlayOptions[] = [];
+
+  // If user has a cover photo, apply a subtle tint overlay for depth
+  if (images.cover) {
+    const [r, g, b] = rgbParts(card.colors.headerBackground);
+    overlays.push({
+      input: Buffer.from(
+        `<svg width="${width}" height="${height}"><rect width="100%" height="100%" fill="rgb(${r},${g},${b})" fill-opacity=".35"/></svg>`,
+      ),
+    });
+  }
+
+  // If user has a profile photo, composite a circular avatar with border onto the strip
+  if (images.photo) {
+    try {
+      const avatarSize = 270;
+      const borderWidth = 8;
+      const innerSize = avatarSize - borderWidth * 2;
+      const circleMask = Buffer.from(
+        `<svg width="${innerSize}" height="${innerSize}"><circle cx="${innerSize / 2}" cy="${innerSize / 2}" r="${innerSize / 2}" fill="#fff"/></svg>`,
+      );
+      const borderRing = Buffer.from(
+        `<svg width="${avatarSize}" height="${avatarSize}"><circle cx="${avatarSize / 2}" cy="${avatarSize / 2}" r="${avatarSize / 2 - borderWidth / 2}" fill="none" stroke="#ffffff" stroke-width="${borderWidth}"/></svg>`,
+      );
+
+      const roundedPhoto = await sharp(images.photo)
+        .rotate()
+        .resize(innerSize, innerSize, { fit: 'cover' })
+        .composite([{ input: circleMask, blend: 'dest-in' }])
+        .png()
+        .toBuffer();
+
+      const avatar = await sharp({
+        create: {
+          width: avatarSize,
+          height: avatarSize,
+          channels: 4,
+          background: { r: 0, g: 0, b: 0, alpha: 0 },
+        },
+      })
+        .composite([
+          { input: roundedPhoto, left: borderWidth, top: borderWidth },
+          { input: borderRing, left: 0, top: 0 },
+        ])
+        .png()
+        .toBuffer();
+
+      overlays.push({
+        input: avatar,
+        left: Math.round((width - avatarSize) / 2),
+        top: Math.round((height - avatarSize) / 2),
+      });
+    } catch {
+      // In case photo processing fails, proceed with base strip
+    }
+  }
+
+  if (overlays.length > 0) {
+    return base.composite(overlays).png().toBuffer();
+  }
+  return base.png().toBuffer();
 }
 
 /**
@@ -109,10 +163,9 @@ export class AppleWalletPassGenerator {
     const logoSource = images.logo ?? readFileSync(DEFAULT_ICON);
     const files: Record<string, Buffer> = {
       ...(await variants(readFileSync(DEFAULT_ICON), 'icon', 29, 29, 'contain')),
-      // Native PassKit logo — Apple places this in the pass header (not painted onto the strip).
+      // Native PassKit logo — Apple places this in the pass header
       ...(await variants(logoSource, 'logo', 160, 50, 'contain')),
       ...(await variants(strip, 'strip', 375, 144, 'cover')),
-      ...(images.photo ? await variants(images.photo, 'thumbnail', 90, 90, 'cover') : {}),
     };
 
     const pass = new PKPass(files, this.certificates, {
@@ -131,20 +184,18 @@ export class AppleWalletPassGenerator {
     });
     pass.type = 'storeCard';
 
-    // Top-right corner header field in Apple Wallet
+    // Top header (right side, opposite the logo): Company name
     if (card.company) {
       pass.headerFields.push({ key: 'header_company', label: 'COMPANY', value: card.company });
     }
 
-    // Logo uses Apple's header logo slot. Strip is cover/gradient only (no logo drawn on it).
-    pass.primaryFields.push({ key: 'name', label: 'PREFERRED NAME', value: card.name });
-    if (card.title) pass.secondaryFields.push({ key: 'title', label: 'JOB TITLE', value: card.title });
-    if (card.email) {
-      pass.secondaryFields.push({ key: 'email', label: 'EMAIL', value: card.email });
-    } else if (card.phone) {
-      pass.secondaryFields.push({ key: 'phone', label: 'PHONE', value: card.phone });
-    } else if (card.company && !card.title) {
-      pass.secondaryFields.push({ key: 'company', label: 'COMPANY', value: card.company });
+    // Primary fields: Kept empty so Apple does NOT paint large text over the strip artwork,
+    // keeping the user's cover photo and circular profile photo clearly visible.
+
+    // Below strip: Preferred Name and Job Title side by side (clean 2-column layout)
+    pass.secondaryFields.push({ key: 'name', label: 'PREFERRED NAME', value: card.name });
+    if (card.title) {
+      pass.secondaryFields.push({ key: 'title', label: 'JOB TITLE', value: card.title });
     }
 
     const back = [
