@@ -27,7 +27,8 @@ export type StackedCardViewProps = {
   showAddCardPass?: boolean;
 };
 
-const FOCUSED_CARD_TOP = 0;
+const FOCUSED_CARD_TOP = 12;
+const CARD_BOTTOM_PADDING = 12;
 const COLLAPSED_CARD_STEP = 36;
 const COLLAPSED_STACK_VISIBLE_HEIGHT = 44;
 
@@ -148,7 +149,10 @@ export function StackedCardView({
     ? null
     : Math.min(expandedIndex, slotCount - 1);
 
-  const cardAvailableHeight = Math.max(0, containerHeight - bottomInset - FOCUSED_CARD_TOP);
+  const cardAvailableHeight = Math.max(
+    0,
+    containerHeight - bottomInset - FOCUSED_CARD_TOP - CARD_BOTTOM_PADDING,
+  );
   const cardWidth = getBusinessCardWidth(windowWidth, slotCount, cardAvailableHeight);
   const cardHeight = getBusinessCardHeight(cardWidth, cardAvailableHeight);
 
@@ -169,6 +173,7 @@ export function StackedCardView({
     FOCUSED_CARD_TOP,
     containerHeight -
       bottomInset -
+      CARD_BOTTOM_PADDING -
       COLLAPSED_STACK_VISIBLE_HEIGHT -
       Math.max(0, collapsedCardOrder.length - 1) * COLLAPSED_CARD_STEP,
   );

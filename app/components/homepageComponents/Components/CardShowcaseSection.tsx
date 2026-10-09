@@ -9,7 +9,6 @@ import { StackedCardView } from './StackedCardView';
 type CardShowcaseSectionProps = {
   activeIndex: number;
   addingCard?: boolean;
-  bottomInset: number;
   cards: BusinessCard[];
   height: number;
   onActiveIndexChange: (index: number) => void;
@@ -20,12 +19,9 @@ type CardShowcaseSectionProps = {
   viewMode: CardViewMode;
 };
 
-const ACTION_BAR_SAFETY_GAP = 24;
-
 export function CardShowcaseSection({
   activeIndex,
   addingCard,
-  bottomInset,
   cards,
   height,
   onActiveIndexChange,
@@ -36,11 +32,7 @@ export function CardShowcaseSection({
   viewMode,
 }: CardShowcaseSectionProps) {
   const carouselProgress = useSharedValue(0);
-  const adjustedBottomInset = Math.max(0, bottomInset - ACTION_BAR_SAFETY_GAP);
-  const contentHeight =
-    viewMode === 'stack'
-      ? height
-      : Math.max(0, height - adjustedBottomInset);
+  const contentHeight = height;
 
   return (
     <View style={{ height }}>
@@ -68,7 +60,7 @@ export function CardShowcaseSection({
           <StackedCardView
             activeIndex={activeIndex}
             addingCard={addingCard}
-            bottomInset={adjustedBottomInset}
+            bottomInset={0}
             cards={cards}
             height={contentHeight}
             onActiveIndexChange={onActiveIndexChange}

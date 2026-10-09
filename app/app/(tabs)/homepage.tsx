@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { View, type LayoutChangeEvent } from 'react-native';
-import { BlurView } from 'expo-blur';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCards } from '@/components/cardsComponents/Hooks/useCards';
@@ -8,7 +7,6 @@ import { CardShowcaseSection } from '@/components/homepageComponents/Components/
 import { useCardViewPreference } from '@/components/homepageComponents/Hooks/useCardViewPreference';
 import { HomeActions } from '@/components/homepageComponents/Components/HomeActions';
 import { HomeHeader } from '@/components/homepageComponents/Components/HomeHeader';
-import { useThemeContext } from '@/context/ThemeContext';
 import { useProfileSnapshot } from '@/components/profileComponents/Hooks/useProfileSnapshot';
 import { QRCodeModal } from '@/components/uiComponents/QRCodeModal';
 import { useShareUrl } from '@/components/sharingComponents/Hooks/useShareUrl';
@@ -17,7 +15,6 @@ import { showMessage } from '@/components/uiComponents/confirmAction';
 
 export default function HomepageScreen() {
   const { cards, fetched, error: cardsError, offline } = useCards();
-  const [actionBarHeight, setActionBarHeight] = useState(0);
   const [activeCardIndex, setActiveCardIndex] = useState(0);
   const [showcaseHeight, setShowcaseHeight] = useState(0);
   const { hydrated: viewModeHydrated, viewMode } = useCardViewPreference();
@@ -26,7 +23,6 @@ export default function HomepageScreen() {
   const { profile } = useProfileSnapshot();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { theme } = useThemeContext();
 
   // Every account starts with one default card; this covers users who reach home without one.
   const [defaultCardFailed, setDefaultCardFailed] = useState(false);
@@ -59,13 +55,6 @@ export default function HomepageScreen() {
     );
   };
 
-  const handleActionBarLayout = (event: LayoutChangeEvent) => {
-    const nextHeight = Math.round(event.nativeEvent.layout.height);
-    setActionBarHeight((currentHeight) =>
-      currentHeight === nextHeight ? currentHeight : nextHeight,
-    );
-  };
-
   const handleCardPress = (cardId: string) => {
     router.push({
       pathname: '/cards/[cardId]',
@@ -84,7 +73,7 @@ export default function HomepageScreen() {
 
       <View
         className="flex-1 overflow-hidden"
-        style={{ marginTop: -56 }}
+        style={{ marginTop: 8 }}
         onLayout={handleShowcaseLayout}
       >
         {showcaseHeight > 0 && viewModeHydrated ? (
@@ -92,7 +81,6 @@ export default function HomepageScreen() {
             activeIndex={activeCardIndex}
             addingCard={needsDefaultCard}
             onAddCard={handleAddCard}
-            bottomInset={actionBarHeight}
             cards={cards}
             height={showcaseHeight}
             onActiveIndexChange={setActiveCardIndex}
@@ -104,26 +92,16 @@ export default function HomepageScreen() {
         ) : null}
       </View>
 
-      <BlurView
-        blurMethod="dimezisBlurView"
-        intensity={38}
-        onLayout={handleActionBarLayout}
-        tint={theme}
+      <View
+        className="bg-background dark:bg-dark-background"
         style={{
-          backgroundColor:
-            theme === 'dark' ? 'rgba(2, 6, 23, 0.32)' : 'rgba(255, 255, 255, 0.36)',
-          bottom: 0,
-          left: 0,
           paddingBottom: Math.max(insets.bottom + 8, 16),
           paddingHorizontal: 20,
           paddingTop: 12,
-          position: 'absolute',
-          right: 0,
-          zIndex: 20,
         }}
       >
         <HomeActions />
-      </BlurView>
+      </View>
 
       <QRCodeModal
         visible={Boolean(qrCardId)}

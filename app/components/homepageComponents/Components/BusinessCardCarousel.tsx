@@ -29,6 +29,7 @@ type BusinessCardCarouselProps = {
 
 const CARD_GAP = 14;
 const SIDE_PADDING = 20;
+const CARD_VERTICAL_PADDING = 12;
 const ADD_CARD_KEY = '__add-card__';
 
 type CarouselItem = { kind: 'card'; card: BusinessCardData } | { kind: 'add' };
@@ -100,8 +101,9 @@ export function BusinessCardCarousel({
   const { width: windowWidth } = useWindowDimensions();
 
   const items: CarouselItem[] = [...cards.map((card) => ({ kind: 'card' as const, card })), { kind: 'add' }];
-  const cardWidth = getBusinessCardWidth(windowWidth, items.length, height);
-  const cardHeight = getBusinessCardHeight(cardWidth, height);
+  const cardAvailableHeight = Math.max(0, height - CARD_VERTICAL_PADDING * 2);
+  const cardWidth = getBusinessCardWidth(windowWidth, items.length, cardAvailableHeight);
+  const cardHeight = getBusinessCardHeight(cardWidth, cardAvailableHeight);
   const interval = cardWidth + CARD_GAP;
   useEffect(() => {
     const boundedIndex = Math.max(0, Math.min(items.length - 1, activeIndex));
@@ -136,7 +138,7 @@ export function BusinessCardCarousel({
   };
 
   return (
-    <View style={{ height }} className="justify-center py-2">
+    <View style={{ height, paddingVertical: CARD_VERTICAL_PADDING }} className="justify-center">
       <FlashList
         ref={listRef}
         accessibilityLabel="Business card carousel"

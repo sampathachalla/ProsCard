@@ -161,7 +161,8 @@ export function ConnectionsSectionRenderer({
   const boxed = compact && !seamless;
   const { width } = useWindowDimensions();
   const spacing = getCardSectionSpacing(width);
-  const inFixedCardSlot = compact && !contentDriven && (fullCardView || seamless);
+  const inFixedCardSlot =
+    compact && !contentDriven && (fullCardView || seamless);
   const fontFamily = getCardFontFamily(cardTheme.fontStyle);
   const letterSpacing = getCardLetterSpacing(cardTheme.fontStyle);
   const slots = resolveLayoutColorSlots({
@@ -175,6 +176,13 @@ export function ConnectionsSectionRenderer({
       );
   const fields = rawFields;
   const densePreview = compact && fields.length > (inFixedCardSlot ? 3 : 4);
+  // Homepage previews have a fixed-height contacts slot. Dense lists need a
+  // compact rhythm so the action dock and its bottom inset remain fully visible.
+  const fixedSlotFieldGap = inFixedCardSlot
+    ? fields.length >= 5
+      ? 6
+      : 10
+    : null;
   const gridTileMinHeight = inFixedCardSlot
     ? densePreview
       ? 44
@@ -204,7 +212,18 @@ export function ConnectionsSectionRenderer({
     )?.value;
     const socials: { label?: string; type?: string; url: string }[] = [];
     fields.forEach((f) => {
-      if (f.value && f.value !== websiteField && (f.type === "url" || f.id.includes("social") || f.id.includes("link") || f.id.includes("github") || f.id.includes("linkedin") || f.id.includes("twitter") || f.id.includes("youtube") || f.id.includes("instagram"))) {
+      if (
+        f.value &&
+        f.value !== websiteField &&
+        (f.type === "url" ||
+          f.id.includes("social") ||
+          f.id.includes("link") ||
+          f.id.includes("github") ||
+          f.id.includes("linkedin") ||
+          f.id.includes("twitter") ||
+          f.id.includes("youtube") ||
+          f.id.includes("instagram"))
+      ) {
         socials.push({ label: f.title || f.type, type: f.type, url: f.value });
       }
     });
@@ -231,7 +250,9 @@ export function ConnectionsSectionRenderer({
       : "Check out this digital business card on ProsCard!";
     void Share.share({
       message: shareMessage,
-      title: cardMetadata?.name ? `${cardMetadata.name} | ProsCard` : "ProsCard",
+      title: cardMetadata?.name
+        ? `${cardMetadata.name} | ProsCard`
+        : "ProsCard",
     });
   };
 
@@ -331,7 +352,11 @@ export function ConnectionsSectionRenderer({
         variant="none"
         {...(preserveTypeScale
           ? { numberOfLines: 1 }
-          : { adjustsFontSizeToFit: true, minimumFontScale: 0.72, numberOfLines: 1 })}
+          : {
+              adjustsFontSizeToFit: true,
+              minimumFontScale: 0.72,
+              numberOfLines: 1,
+            })}
         className={
           fillSlot
             ? densePreview
@@ -378,46 +403,52 @@ export function ConnectionsSectionRenderer({
           }}
         >
           <View style={{ width: "100%" }}>
-            {renderGrid(fields, useTwoColumns ? 2 : 1, 8, (field, tileStyle) => {
-              const presentation = getConnectionPresentation(field, showEmpty);
-              return (
-                <Pressable
-                  key={field.id}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${presentation.label}: ${presentation.value}`}
-                  disabled={!resolveActionUrl(field)}
-                  onPress={() => handlePress(field)}
-                  className="items-center justify-center border p-2.5 active:opacity-70"
-                  style={[
-                    {
-                      backgroundColor: slots.surface,
-                      borderColor: slots.accent,
-                      borderRadius: 10,
-                      minHeight: fillSlot ? 0 : gridTileMinHeight,
-                    },
-                    tileStyle,
-                  ]}
-                >
-                  <ConnectionIcon
-                    color={slots.accent}
-                    field={field}
-                    size={fillSlot ? fillIconSize + 2 : compact ? 17 : 22}
-                  />
-                  <View className="mt-1.5 w-full">
-                    {renderCopy(
-                      presentation,
-                      slots.textPrimary,
-                      slots.textSecondary,
-                      "center",
-                    )}
-                  </View>
-                </Pressable>
-              );
-            })}
+            {renderGrid(
+              fields,
+              useTwoColumns ? 2 : 1,
+              8,
+              (field, tileStyle) => {
+                const presentation = getConnectionPresentation(
+                  field,
+                  showEmpty,
+                );
+                return (
+                  <Pressable
+                    key={field.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${presentation.label}: ${presentation.value}`}
+                    disabled={!resolveActionUrl(field)}
+                    onPress={() => handlePress(field)}
+                    className="items-center justify-center border p-2.5 active:opacity-70"
+                    style={[
+                      {
+                        backgroundColor: slots.surface,
+                        borderColor: slots.accent,
+                        borderRadius: 10,
+                        minHeight: fillSlot ? 0 : gridTileMinHeight,
+                      },
+                      tileStyle,
+                    ]}
+                  >
+                    <ConnectionIcon
+                      color={slots.accent}
+                      field={field}
+                      size={fillSlot ? fillIconSize + 2 : compact ? 17 : 22}
+                    />
+                    <View className="mt-1.5 w-full">
+                      {renderCopy(
+                        presentation,
+                        slots.textPrimary,
+                        slots.textSecondary,
+                        "center",
+                      )}
+                    </View>
+                  </Pressable>
+                );
+              },
+            )}
           </View>
-          <View style={{ marginTop: 14 }}>
-            {renderDock()}
-          </View>
+          <View style={{ marginTop: 14 }}>{renderDock()}</View>
         </View>
       </View>
     );
@@ -425,7 +456,9 @@ export function ConnectionsSectionRenderer({
 
   // Gradient Cards (bold): action rows over theme gradient
   if (section.templateId === "bold") {
-    const fieldGap = fields.length <= 4 ? 24 : fields.length === 5 ? 22 : 16;
+    const fieldGap =
+      fixedSlotFieldGap ??
+      (fields.length <= 4 ? 24 : fields.length === 5 ? 22 : 16);
     const mutedOnGradient = slots.isDark
       ? "rgba(255,255,255,0.6)"
       : "rgba(15,23,42,0.6)";
@@ -486,14 +519,16 @@ export function ConnectionsSectionRenderer({
                       size={fillSlot ? fillIconSize : densePreview ? 14 : 18}
                     />
                   </View>
-                  {renderCopy(presentation, slots.gradientText, mutedOnGradient)}
+                  {renderCopy(
+                    presentation,
+                    slots.gradientText,
+                    mutedOnGradient,
+                  )}
                 </Pressable>
               );
             })}
           </View>
-          <View style={{ marginTop: fieldGap }}>
-            {renderDock()}
-          </View>
+          <View style={{ marginTop: fieldGap }}>{renderDock()}</View>
         </View>
       </LinearGradient>
     );
@@ -523,58 +558,64 @@ export function ConnectionsSectionRenderer({
           }}
         >
           <View style={{ width: "100%" }}>
-            {renderGrid(fields, useTwoColumns ? 2 : 1, 10, (field, tileStyle) => {
-              const presentation = getConnectionPresentation(field, showEmpty);
-              return (
-                <Pressable
-                  key={field.id}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${presentation.label}: ${presentation.value}`}
-                  disabled={!resolveActionUrl(field)}
-                  onPress={() => handlePress(field)}
-                  className="overflow-hidden border active:opacity-70"
-                  style={[
-                    {
-                      backgroundColor: slots.surface,
-                      borderColor: slots.highlight,
-                      borderRadius: 18,
-                    },
-                    tileStyle,
-                  ]}
-                >
-                  <LinearGradient
-                    colors={gradient}
-                    style={{ height: 5, width: "100%" }}
-                  />
-                  <View className="flex-1 items-center justify-center px-3 py-2.5">
-                    <View
-                      className="mb-1.5 items-center justify-center rounded-full"
-                      style={{
-                        backgroundColor: slots.background,
-                        height: fillSlot ? fillIconBox : 36,
-                        width: fillSlot ? fillIconBox : 36,
-                      }}
-                    >
-                      <ConnectionIcon
-                        color={slots.accent}
-                        field={field}
-                        size={fillSlot ? fillIconSize + 1 : 18}
-                      />
+            {renderGrid(
+              fields,
+              useTwoColumns ? 2 : 1,
+              10,
+              (field, tileStyle) => {
+                const presentation = getConnectionPresentation(
+                  field,
+                  showEmpty,
+                );
+                return (
+                  <Pressable
+                    key={field.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${presentation.label}: ${presentation.value}`}
+                    disabled={!resolveActionUrl(field)}
+                    onPress={() => handlePress(field)}
+                    className="overflow-hidden border active:opacity-70"
+                    style={[
+                      {
+                        backgroundColor: slots.surface,
+                        borderColor: slots.highlight,
+                        borderRadius: 18,
+                      },
+                      tileStyle,
+                    ]}
+                  >
+                    <LinearGradient
+                      colors={gradient}
+                      style={{ height: 5, width: "100%" }}
+                    />
+                    <View className="flex-1 items-center justify-center px-3 py-2.5">
+                      <View
+                        className="mb-1.5 items-center justify-center rounded-full"
+                        style={{
+                          backgroundColor: slots.background,
+                          height: fillSlot ? fillIconBox : 36,
+                          width: fillSlot ? fillIconBox : 36,
+                        }}
+                      >
+                        <ConnectionIcon
+                          color={slots.accent}
+                          field={field}
+                          size={fillSlot ? fillIconSize + 1 : 18}
+                        />
+                      </View>
+                      {renderCopy(
+                        presentation,
+                        slots.textPrimary,
+                        slots.textSecondary,
+                        "center",
+                      )}
                     </View>
-                    {renderCopy(
-                      presentation,
-                      slots.textPrimary,
-                      slots.textSecondary,
-                      "center",
-                    )}
-                  </View>
-                </Pressable>
-              );
-            })}
+                  </Pressable>
+                );
+              },
+            )}
           </View>
-          <View style={{ marginTop: 14 }}>
-            {renderDock()}
-          </View>
+          <View style={{ marginTop: 14 }}>{renderDock()}</View>
         </View>
       </View>
     );
@@ -583,7 +624,9 @@ export function ConnectionsSectionRenderer({
   // Direct Contact List (compact): a borderless, scannable list inspired by
   // modern contact cards. Circular channel icons anchor each actionable value.
   if (section.templateId === "compact") {
-    const fieldGap = fields.length <= 4 ? 24 : fields.length === 5 ? 22 : 16;
+    const fieldGap =
+      fixedSlotFieldGap ??
+      (fields.length <= 4 ? 24 : fields.length === 5 ? 22 : 16);
     return (
       <View
         className={`overflow-hidden ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
@@ -653,9 +696,7 @@ export function ConnectionsSectionRenderer({
               );
             })}
           </View>
-          <View style={{ marginTop: fieldGap }}>
-            {renderDock()}
-          </View>
+          <View style={{ marginTop: fieldGap }}>{renderDock()}</View>
         </View>
       </View>
     );
@@ -663,7 +704,9 @@ export function ConnectionsSectionRenderer({
 
   // Contact Ledger (editorial): structured enterprise directory rows.
   if (section.templateId === "editorial") {
-    const fieldGap = fields.length <= 4 ? 24 : fields.length === 5 ? 22 : 16;
+    const fieldGap =
+      fixedSlotFieldGap ??
+      (fields.length <= 4 ? 24 : fields.length === 5 ? 22 : 16);
     return (
       <View
         className={`overflow-hidden ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
@@ -702,7 +745,8 @@ export function ConnectionsSectionRenderer({
                   style={{
                     borderBottomWidth: idx === fields.length - 1 ? 0 : 1,
                     borderBottomColor: slots.borderColor,
-                    paddingBottom: idx === fields.length - 1 ? 0 : Math.round(fieldGap / 2),
+                    paddingBottom:
+                      idx === fields.length - 1 ? 0 : Math.round(fieldGap / 2),
                   }}
                 >
                   <View
@@ -734,9 +778,7 @@ export function ConnectionsSectionRenderer({
               );
             })}
           </View>
-          <View style={{ marginTop: fieldGap }}>
-            {renderDock()}
-          </View>
+          <View style={{ marginTop: fieldGap }}>{renderDock()}</View>
         </View>
       </View>
     );
@@ -804,7 +846,11 @@ export function ConnectionsSectionRenderer({
                       variant="none"
                       {...(preserveTypeScale
                         ? { numberOfLines: 1 }
-                        : { adjustsFontSizeToFit: true, minimumFontScale: 0.72, numberOfLines: 1 })}
+                        : {
+                            adjustsFontSizeToFit: true,
+                            minimumFontScale: 0.72,
+                            numberOfLines: 1,
+                          })}
                       className={`${fillSlot ? "text-base" : "text-sm"} font-bold tabular-nums text-white`}
                       style={{ fontFamily }}
                     >
@@ -822,7 +868,10 @@ export function ConnectionsSectionRenderer({
                 useTwoColumns ? 2 : 1,
                 8,
                 (field, tileStyle) => {
-                  const presentation = getConnectionPresentation(field, showEmpty);
+                  const presentation = getConnectionPresentation(
+                    field,
+                    showEmpty,
+                  );
                   return (
                     <Pressable
                       key={field.id}
@@ -849,7 +898,11 @@ export function ConnectionsSectionRenderer({
                           variant="none"
                           {...(preserveTypeScale
                             ? { numberOfLines: 1 }
-                            : { adjustsFontSizeToFit: true, minimumFontScale: 0.72, numberOfLines: 1 })}
+                            : {
+                                adjustsFontSizeToFit: true,
+                                minimumFontScale: 0.72,
+                                numberOfLines: 1,
+                              })}
                           className={`${fillSlot ? "text-sm" : "text-xs"} font-semibold tabular-nums`}
                           style={{ color: slots.textPrimary, fontFamily }}
                         >
@@ -861,9 +914,7 @@ export function ConnectionsSectionRenderer({
                 },
               )}
           </View>
-          <View style={{ marginTop: 14 }}>
-            {renderDock()}
-          </View>
+          <View style={{ marginTop: 14 }}>{renderDock()}</View>
         </View>
       </View>
     );
@@ -871,7 +922,9 @@ export function ConnectionsSectionRenderer({
 
   // Executive Directory (banner): uniform full-width directory actions.
   if (section.templateId === "banner") {
-    const fieldGap = fields.length <= 4 ? 16 : fields.length === 5 ? 13 : 10;
+    const fieldGap =
+      fixedSlotFieldGap ??
+      (fields.length <= 4 ? 16 : fields.length === 5 ? 13 : 10);
     const boxMinHeight = fillSlot ? (fields.length <= 4 ? 64 : 56) : 52;
     return (
       <View
@@ -933,9 +986,7 @@ export function ConnectionsSectionRenderer({
               );
             })}
           </View>
-          <View style={{ marginTop: fieldGap }}>
-            {renderDock()}
-          </View>
+          <View style={{ marginTop: fieldGap }}>{renderDock()}</View>
         </View>
       </View>
     );
@@ -965,47 +1016,57 @@ export function ConnectionsSectionRenderer({
           }}
         >
           <View style={{ width: "100%" }}>
-            {renderGrid(fields, useTwoColumns ? 2 : 1, 8, (field, tileStyle) => {
-              const presentation = getConnectionPresentation(field, showEmpty);
-              return (
-                <Pressable
-                  key={field.id}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${presentation.label}: ${presentation.value}`}
-                  disabled={!resolveActionUrl(field)}
-                  onPress={() => handlePress(field)}
-                  className="justify-center rounded-2xl border p-3 active:opacity-70"
-                  style={[
-                    {
-                      backgroundColor: slots.surface,
-                      borderColor: slots.highlight,
-                    },
-                    BOXED_SHADOW_SM,
-                    tileStyle,
-                  ]}
-                >
-                  <View
-                    className="mb-1.5 items-center justify-center rounded-xl"
-                    style={{
-                      backgroundColor: `${slots.accent}18`,
-                      height: fillSlot ? fillIconBox - 4 : 34,
-                      width: fillSlot ? fillIconBox - 4 : 34,
-                    }}
+            {renderGrid(
+              fields,
+              useTwoColumns ? 2 : 1,
+              8,
+              (field, tileStyle) => {
+                const presentation = getConnectionPresentation(
+                  field,
+                  showEmpty,
+                );
+                return (
+                  <Pressable
+                    key={field.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${presentation.label}: ${presentation.value}`}
+                    disabled={!resolveActionUrl(field)}
+                    onPress={() => handlePress(field)}
+                    className="justify-center rounded-2xl border p-3 active:opacity-70"
+                    style={[
+                      {
+                        backgroundColor: slots.surface,
+                        borderColor: slots.highlight,
+                      },
+                      BOXED_SHADOW_SM,
+                      tileStyle,
+                    ]}
                   >
-                    <ConnectionIcon
-                      color={slots.accent}
-                      field={field}
-                      size={fillSlot ? fillIconSize : 16}
-                    />
-                  </View>
-                  {renderCopy(presentation, slots.textPrimary, slots.textSecondary)}
-                </Pressable>
-              );
-            })}
+                    <View
+                      className="mb-1.5 items-center justify-center rounded-xl"
+                      style={{
+                        backgroundColor: `${slots.accent}18`,
+                        height: fillSlot ? fillIconBox - 4 : 34,
+                        width: fillSlot ? fillIconBox - 4 : 34,
+                      }}
+                    >
+                      <ConnectionIcon
+                        color={slots.accent}
+                        field={field}
+                        size={fillSlot ? fillIconSize : 16}
+                      />
+                    </View>
+                    {renderCopy(
+                      presentation,
+                      slots.textPrimary,
+                      slots.textSecondary,
+                    )}
+                  </Pressable>
+                );
+              },
+            )}
           </View>
-          <View style={{ marginTop: 14 }}>
-            {renderDock()}
-          </View>
+          <View style={{ marginTop: 14 }}>{renderDock()}</View>
         </View>
       </View>
     );
@@ -1096,9 +1157,7 @@ export function ConnectionsSectionRenderer({
               </View>
             )}
           </View>
-          <View style={{ marginTop: 14 }}>
-            {renderDock()}
-          </View>
+          <View style={{ marginTop: 14 }}>{renderDock()}</View>
         </View>
       </View>
     );
@@ -1158,7 +1217,8 @@ export function ConnectionsSectionRenderer({
                         onPress={() => handlePress(field)}
                         className="flex-row items-center active:opacity-70"
                         style={{
-                          borderBottomWidth: rowIndex === column.length - 1 ? 0 : 1,
+                          borderBottomWidth:
+                            rowIndex === column.length - 1 ? 0 : 1,
                           borderBottomColor: slots.borderColor,
                           paddingVertical: densePreview ? 4 : 6,
                         }}
@@ -1183,7 +1243,11 @@ export function ConnectionsSectionRenderer({
                             color={slots.accent}
                             field={field}
                             size={
-                              fillSlot ? fillIconSize - 2 : densePreview ? 10 : 14
+                              fillSlot
+                                ? fillIconSize - 2
+                                : densePreview
+                                  ? 10
+                                  : 14
                             }
                           />
                         </View>
@@ -1201,9 +1265,7 @@ export function ConnectionsSectionRenderer({
               ))}
             </View>
           </View>
-          <View style={{ marginTop: 14 }}>
-            {renderDock()}
-          </View>
+          <View style={{ marginTop: 14 }}>{renderDock()}</View>
         </View>
       </View>
     );
@@ -1211,7 +1273,9 @@ export function ConnectionsSectionRenderer({
 
   // Cyber Grid (neon): high-contrast tech readout rows
   if (section.templateId === "neon") {
-    const fieldGap = fields.length <= 4 ? 24 : fields.length === 5 ? 22 : 16;
+    const fieldGap =
+      fixedSlotFieldGap ??
+      (fields.length <= 4 ? 24 : fields.length === 5 ? 22 : 16);
     return (
       <View
         className={`gap-2.5 overflow-hidden p-4 ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
@@ -1281,16 +1345,16 @@ export function ConnectionsSectionRenderer({
               );
             })}
           </View>
-          <View style={{ marginTop: fieldGap }}>
-            {renderDock()}
-          </View>
+          <View style={{ marginTop: fieldGap }}>{renderDock()}</View>
         </View>
       </View>
     );
   }
 
   // Action Tiles (classic): clean corporate directory rows
-  const fieldGap = fields.length <= 4 ? 24 : fields.length === 5 ? 22 : 16;
+  const fieldGap =
+    fixedSlotFieldGap ??
+    (fields.length <= 4 ? 24 : fields.length === 5 ? 22 : 16);
   return (
     <View
       className={`overflow-hidden px-4 py-2 ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
@@ -1332,7 +1396,8 @@ export function ConnectionsSectionRenderer({
                 style={{
                   borderBottomColor: slots.borderColor,
                   borderBottomWidth: index === fields.length - 1 ? 0 : 1,
-                  paddingBottom: index === fields.length - 1 ? 0 : Math.round(fieldGap / 2),
+                  paddingBottom:
+                    index === fields.length - 1 ? 0 : Math.round(fieldGap / 2),
                 }}
               >
                 <View
@@ -1349,14 +1414,16 @@ export function ConnectionsSectionRenderer({
                     size={fillSlot ? fillIconSize - 2 : compact ? 14 : 18}
                   />
                 </View>
-                {renderCopy(presentation, slots.textPrimary, slots.textSecondary)}
+                {renderCopy(
+                  presentation,
+                  slots.textPrimary,
+                  slots.textSecondary,
+                )}
               </Pressable>
             );
           })}
         </View>
-        <View style={{ marginTop: fieldGap }}>
-          {renderDock()}
-        </View>
+        <View style={{ marginTop: fieldGap }}>{renderDock()}</View>
       </View>
     </View>
   );
