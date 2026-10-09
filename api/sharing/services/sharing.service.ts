@@ -1,16 +1,78 @@
-import{randomBytes}from'node:crypto';import{HttpError}from'../../src/errors.js';import type{SharingRepository}from'../repository/sharing.repository.js';import type{ObjectStorageGateway}from'../../media/services/oci-storage.service.js';
+import { randomBytes } from 'node:crypto';
+import { HttpError } from '../../src/errors.js';
+import { log } from '../../src/logger.js';
+import type { ObjectStorageGateway } from '../../media/services/oci-storage.service.js';
+import type { SharingRepository } from '../repository/sharing.repository.js';
 
 const PROTECTED_MEDIA = /\/api\/v1\/media\/([0-9a-f-]{36})\/content/g;
+const SLUG_CREATE_ATTEMPTS = 5;
 
 /**
  * Stored media links (`/api/v1/media/:id/content`) need the owner's login. For a public share they are
  * rewritten to share-scoped links that work for anyone holding the share URL, and only while it is active.
  */
 function withShareMediaLinks<T>(data: T, slug: string): T {
-  return JSON.parse(JSON.stringify(data ?? {}).replace(PROTECTED_MEDIA, (_m, id: string) => `/api/v1/sharing/public/${slug}/media/${id}`)) as T;
+  try {
+    return JSON.parse(
+      JSON.stringify(data ?? {}).replace(PROTECTED_MEDIA, (_m, id: string) => `/api/v1/sharing/public/${slug}/media/${id}`),
+    ) as T;
+  } catch (error) {
+    log('error', 'share_media_rewrite_failed', {
+      message: error instanceof Error ? error.message : String(error),
+    });
+    throw new HttpError(500, 'Shared card data could not be prepared.');
+  }
 }
 
-export class SharingService{constructor(private readonly repo:SharingRepository,private readonly storage?:ObjectStorageGateway){}async create(u:string,c:string,e?:string|null){if(!e){const existing=await this.repo.findReusable(u,c);if(existing)return existing}const row=await this.repo.create(u,c,randomBytes(8).toString('base64url'),e?new Date(e):null);if(!row)throw new HttpError(404,'Card not found.');return row}async resolve(slug:string){const row=await this.repo.public(slug);if(!row)throw new HttpError(404,'Shared card not found or expired.');return{id:row.card_id,...row.card_data}}
+function isUniqueViolation(error: unknown) {
+  return (error as { code?: string } | null)?.code === '23505';
+}
+
+export class SharingService {
+  constructor(private readonly repo: SharingRepository, private readonly storage?: ObjectStorageGateway) {}
+
+  async create(u: string, c: string, e?: string | null) {
+    if (e) {
+      const expires = new Date(e);
+      if (Number.isNaN(expires.getTime()) || expires.getTime() <= Date.now()) {
+        throw new HttpError(400, 'Share expiry must be a future date and time.');
+      }
+    }
+    if (!e) {
+      const existing = await this.repo.findReusable(u, c);
+      if (existing) return existing;
+    }
+    let lastError: unknown;
+    for (let attempt = 0; attempt < SLUG_CREATE_ATTEMPTS; attempt++) {
+      try {
+        const row = await this.repo.create(u, c, randomBytes(8).toString('base64url'), e ? new Date(e) : null);
+        if (!row) throw new HttpError(404, 'Card not found.');
+        return row;
+      } catch (error) {
+        if (error instanceof HttpError) throw error;
+        if (isUniqueViolation(error)) {
+          // Concurrent reusable-share create: return the winner. Slug collisions just retry.
+          if (!e) {
+            const existing = await this.repo.findReusable(u, c);
+            if (existing) return existing;
+          }
+          lastError = error;
+          continue;
+        }
+        throw error;
+      }
+    }
+    log('error', 'share_create_conflict', {
+      message: lastError instanceof Error ? lastError.message : String(lastError),
+    });
+    throw new HttpError(503, 'Could not create a share link. Please try again.');
+  }
+
+  async resolve(slug: string) {
+    const row = await this.repo.public(slug);
+    if (!row) throw new HttpError(404, 'Shared card not found or expired.');
+    return { id: row.card_id, ...row.card_data };
+  }
 
   /** Everything the public share page needs to render the card exactly as the owner sees it. */
   async view(slug: string) {
@@ -31,7 +93,13 @@ export class SharingService{constructor(private readonly repo:SharingRepository,
     const row = await this.repo.publicView(slug);
     if (!row) throw new HttpError(404, 'Shared card not found or expired.');
     const shown = `/api/v1/media/${mediaId}/content`;
-    const referenced = JSON.stringify(row.card_data).includes(shown) || JSON.stringify(row.profile_data ?? {}).includes(shown);
+    let referenced = false;
+    try {
+      referenced = JSON.stringify(row.card_data).includes(shown)
+        || JSON.stringify(row.profile_data ?? {}).includes(shown);
+    } catch {
+      throw new HttpError(500, 'Shared card data could not be prepared.');
+    }
     const media = referenced ? await this.repo.readyMedia(row.user_id, mediaId) : null;
     if (!media) throw new HttpError(404, 'Image not found.');
     return this.storage.createDownloadUrl(media.object_name);
@@ -43,7 +111,7 @@ export class SharingService{constructor(private readonly repo:SharingRepository,
     const card = (row.card_data ?? {}) as Record<string, unknown>;
     const profile = (row.profile_data ?? {}) as Record<string, unknown>;
     const name = String(card.name || profile.fullName || 'Contact');
-    const filename = `${name.replace(/[^a-zA-Z0-9_-]/g, '_')}.vcf`;
+    const filename = `${name.replace(/[^a-zA-Z0-9_-]+/g, '_')}.vcf`;
 
     const parts: string[] = ['BEGIN:VCARD', 'VERSION:3.0'];
     parts.push(`FN:${name}`);
@@ -96,4 +164,7 @@ export class SharingService{constructor(private readonly repo:SharingRepository,
     return { vcard: parts.join('\r\n'), filename };
   }
 
-  async revoke(u:string,id:string){if(!await this.repo.revoke(u,id))throw new HttpError(404,'Share not found.')}}
+  async revoke(u: string, id: string) {
+    if (!await this.repo.revoke(u, id)) throw new HttpError(404, 'Share not found.');
+  }
+}

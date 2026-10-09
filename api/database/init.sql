@@ -60,6 +60,9 @@ CREATE TABLE IF NOT EXISTS shares (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS shares_card_id_idx ON shares(card_id);
+CREATE UNIQUE INDEX IF NOT EXISTS shares_one_active_reusable_idx
+  ON shares (user_id, card_id)
+  WHERE is_active = true AND expires_at IS NULL;
 
 CREATE TABLE IF NOT EXISTS media (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

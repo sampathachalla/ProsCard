@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { HttpError } from '../../src/errors.js';
+import { log } from '../../src/logger.js';
 import type { MediaKind, MediaRepository, MediaRow, MediaScope } from '../repository/media.repository.js';
 import type { ObjectStorageGateway } from './oci-storage.service.js';
 
@@ -63,7 +64,11 @@ export class MediaService {
     const field = fieldFor(row);
     const previous = await this.repo.findAttached(userId, row.attachment_scope, field, targetIdFor(row));
     const ready = await this.repo.ready(userId, id);
-    await this.repo.attach(ready!, field);
+    if (!ready) throw new HttpError(409, 'Media could not be confirmed.');
+    const attached = await this.repo.attach(ready, field);
+    if (!attached) {
+      throw new HttpError(409, 'The card, contact, or profile for this upload no longer exists.');
+    }
     let replacedMediaId: string | undefined;
     let cleanupPending = false;
     if (previous && previous.id !== id) {
@@ -78,7 +83,7 @@ export class MediaService {
     }
     return {
       mediaId: id, kind: row.kind, scope: row.attachment_scope, cardId: row.card_id, contactId: row.contact_id,
-      status: ready!.status, profileField: row.attachment_scope === 'profile' ? field : undefined,
+      status: ready.status, profileField: row.attachment_scope === 'profile' ? field : undefined,
       cardField: row.attachment_scope === 'card' ? field : undefined,
       contactField: row.attachment_scope === 'contact' ? field : undefined,
       contentUrl: `/api/v1/media/${id}/content`, replacedMediaId, cleanupPending,
@@ -148,9 +153,26 @@ export class MediaService {
   }
   async delete(userId: string, id: string) {
     const row = await this.requireRow(userId, id);
-    await this.storage.deleteObject(row.object_name);
-    await this.repo.detach(row, fieldFor(row));
-    await this.repo.delete(userId, id);
+    try {
+      await this.storage.deleteObject(row.object_name);
+      await this.repo.detach(row, fieldFor(row));
+      await this.repo.delete(userId, id);
+    } catch (error) {
+      if (error instanceof HttpError) throw error;
+      try {
+        await this.repo.cleanupFailed(userId, id);
+      } catch (cleanupError) {
+        log('warn', 'media_delete_cleanup_mark_failed', {
+          mediaId: id,
+          message: cleanupError instanceof Error ? cleanupError.message : String(cleanupError),
+        });
+      }
+      log('error', 'media_delete_failed', {
+        mediaId: id,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      throw new HttpError(502, 'Media could not be deleted. It will be retried shortly.');
+    }
   }
   private async requireRow(userId: string, id: string) {
     const row = await this.repo.find(userId, id);

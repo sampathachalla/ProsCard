@@ -65,13 +65,13 @@ export class MediaRepository {
 
   cleanupCandidates(userId: string) {
     return this.db.query<MediaRow>(
-      "SELECT * FROM media WHERE user_id=$1 AND (status='cleanup_failed' OR (status='pending' AND created_at<now()-interval '1 hour')) ORDER BY created_at LIMIT 100",
+      "SELECT * FROM media WHERE user_id=$1 AND (status='cleanup_failed' OR (status='pending' AND created_at<now()-interval '1 hour')) ORDER BY created_at LIMIT 200",
       [userId],
     ).then((result) => result.rows);
   }
   cleanupCandidatesAll() {
     return this.db.query<MediaRow>(
-      "SELECT * FROM media WHERE status='cleanup_failed' OR (status='pending' AND created_at<now()-interval '1 hour') ORDER BY created_at LIMIT 100",
+      "SELECT * FROM media WHERE status='cleanup_failed' OR (status='pending' AND created_at<now()-interval '1 hour') ORDER BY created_at LIMIT 200",
     ).then((result) => result.rows);
   }
   allForUser(userId: string) {
@@ -96,6 +96,7 @@ export class MediaRepository {
   cleanupFailed(userId: string, id: string) {
     return this.db.query("UPDATE media SET status='cleanup_failed' WHERE id=$1 AND user_id=$2", [id, userId]);
   }
+  /** Returns false when the target card/contact/profile row is gone (race with delete). */
   attach(row: MediaRow, field: string) {
     const value = `/api/v1/media/${row.id}/content`;
     if (row.attachment_scope === 'profile') {
@@ -103,20 +104,20 @@ export class MediaRepository {
         `INSERT INTO profiles(user_id,data) VALUES($1,jsonb_build_object($2::text,$3::text))
          ON CONFLICT(user_id) DO UPDATE SET data=profiles.data || jsonb_build_object($2::text,$3::text),updated_at=now()`,
         [row.user_id, field, value],
-      );
+      ).then((result) => (result.rowCount ?? 0) > 0);
     }
     if (row.attachment_scope === 'contact') {
       return this.db.query(
         `UPDATE contacts SET data=data || jsonb_build_object($3::text,$4::text),updated_at=now()
          WHERE id=$1 AND user_id=$2`,
         [row.contact_id, row.user_id, field, value],
-      );
+      ).then((result) => (result.rowCount ?? 0) > 0);
     }
     return this.db.query(
       `UPDATE cards SET data=jsonb_set(data,'{sectionOverrides}',COALESCE(data->'sectionOverrides','{}'::jsonb) || jsonb_build_object($3::text,$4::text),true),updated_at=now()
        WHERE id=$1 AND user_id=$2`,
       [row.card_id, row.user_id, field, value],
-    );
+    ).then((result) => (result.rowCount ?? 0) > 0);
   }
   detach(row: MediaRow, field: string) {
     const value = `/api/v1/media/${row.id}/content`;

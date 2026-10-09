@@ -134,7 +134,15 @@ export class OpenAiCardReader implements CardReaderGateway {
 
     // Separates OpenAI time from the photo upload, which the request log's duration includes.
     log('info', 'card_reader_openai', { ms: Date.now() - started, imageKb: Math.round(input.image.length * 0.75 / 1024) });
-    const payload = await response.json() as { choices?: { message?: { content?: string | null; refusal?: string | null } }[] };
+    let payload: { choices?: { message?: { content?: string | null; refusal?: string | null } }[] };
+    try {
+      payload = await response.json() as typeof payload;
+    } catch (error) {
+      log('error', 'card_reader_invalid_response', {
+        message: error instanceof Error ? error.message : String(error),
+      });
+      throw new HttpError(502, 'The card reader returned an unexpected answer.');
+    }
     const message = payload.choices?.[0]?.message;
     if (!message?.content || message.refusal) {
       throw new HttpError(422, 'The card reader could not read this photo.');

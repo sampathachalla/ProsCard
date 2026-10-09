@@ -8,7 +8,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Queryable } from './types.js';
 import { errorHandler, HttpError } from './errors.js';
 import { createAuthenticator } from './authenticate.js';
-import { requestLogger } from './request-logger.js';
+import { requestLogger, type RequestWithId } from './request-logger.js';
 import { openApiDocument } from './openapi.js';
 import { asyncHandler } from './async-handler.js';
 import type { ObjectStorageGateway } from '../media/services/oci-storage.service.js';
@@ -47,13 +47,31 @@ function mountShareWeb(app:express.Express,webDir:string){
   app.use('/_expo',webSecurity,express.static(path.join(webDir,'_expo'),assets));
   app.use('/assets',webSecurity,express.static(path.join(webDir,'assets'),assets));
   // Checked per request so a fresh `npm run build:share` is picked up without restarting the API.
-  app.get('/share/:slug',(_q,r,next)=>(existsSync(index)?next():r.status(404).json({message:'Share page is not built. Run npm run build:share in app/.'})),webSecurity,(_q,r)=>{r.set('Cache-Control','no-cache');r.sendFile(index)});
+  app.get('/share/:slug', (_q, r, next) => {
+    if (!existsSync(index)) {
+      r.status(404).json({ message: 'Share page is not built. Run npm run build:share in app/.' });
+      return;
+    }
+    next();
+  }, webSecurity, (_q, r, next) => {
+    r.set('Cache-Control', 'no-cache');
+    r.sendFile(index, (error) => {
+      if (error) next(error);
+    });
+  });
 }
 export function createApp(deps:AppDependencies){
   const app=express();app.disable('x-powered-by');if(deps.shareWebDir)mountShareWeb(app,deps.shareWebDir);app.use(helmet());app.use(requestLogger);app.use(cors({origin(origin,callback){if(!origin||!deps.corsOrigins?.length||deps.corsOrigins.includes(origin))return callback(null,true);callback(new HttpError(403,'Origin is not allowed.'))}}));app.use('/api/v1/scanner',express.json({limit:'8mb'}));app.use(express.json({limit:'1mb'}));
   const auth=createAuthenticator(deps.supabase);
   app.get('/health',(_q,r)=>r.json({status:'ok'}));
-  app.get('/ready',asyncHandler(async(_q,r)=>{await deps.db.query('SELECT 1');r.json({status:'ready',database:'ok'})}));
+  app.get('/ready', asyncHandler(async (_q, r) => {
+    try {
+      await deps.db.query('SELECT 1');
+      r.json({ status: 'ready', database: 'ok' });
+    } catch {
+      throw new HttpError(503, 'Database is not ready.');
+    }
+  }));
   app.get('/api-docs.json',(_q,r)=>r.json(openApiDocument));
   const mediaService=new MediaService(new MediaRepository(deps.db),deps.storage);
   app.use('/api/v1/auth',rateLimit({windowMs:60_000,limit:deps.authRateLimitMax??20,standardHeaders:'draft-8',legacyHeaders:false,message:{message:'Too many authentication requests. Try again shortly.'}}),createAuthRouter(new AuthController(new AuthService(new AuthRepository(deps.supabase,deps.passwordResetRedirectUrl))),auth));
@@ -67,5 +85,10 @@ export function createApp(deps:AppDependencies){
   app.use('/api/v1/scanner',createScannerRouter(auth,rateLimit({windowMs:60_000,limit:deps.scannerRateLimitMax??20,standardHeaders:'draft-8',legacyHeaders:false,message:{message:'Too many card scans. Try again shortly.'}}),new ScannerController(new ScannerService(deps.cardReader))));
   app.use('/api/v1/media',createMediaRouter(auth,new MediaController(mediaService)));
   app.use('/api/v1/account',createAccountRouter(auth,new AccountController(new AccountService(new AccountRepository(deps.db,deps.supabase),mediaService))));
-  app.use((_q,r)=>r.status(404).json({message:'Route not found.'}));app.use(errorHandler);return app;
+  app.use((request, response) => {
+    const requestId = (request as typeof request & RequestWithId).requestId;
+    response.status(404).json({ message: 'Route not found.', requestId });
+  });
+  app.use(errorHandler);
+  return app;
 }

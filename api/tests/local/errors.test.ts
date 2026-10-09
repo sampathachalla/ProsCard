@@ -39,4 +39,25 @@ describe('error handler', () => {
     expect(response.body.message).toBe('Internal server error.');
     expect(JSON.stringify(response.body)).not.toContain('secret');
   });
+
+  it('maps database-unavailable Postgres codes to 503', async () => {
+    const response = await request(appThrowing(pgError('57P03'))).get('/fail');
+    expect(response.status).toBe(503);
+    expect(response.body.message).toBe('The database is temporarily unavailable.');
+  });
+
+  it('maps network dependency failures to 503', async () => {
+    const error = Object.assign(new Error('connect ECONNREFUSED'), { code: 'ECONNREFUSED' });
+    const response = await request(appThrowing(error)).get('/fail');
+    expect(response.status).toBe(503);
+    expect(response.body.message).toBe('A dependent service is temporarily unavailable.');
+  });
+
+  it('does not leak vendor text from SDK 4xx status codes', async () => {
+    const error = Object.assign(new Error('OCI Authorization failed: secret-key'), { statusCode: 401 });
+    const response = await request(appThrowing(error)).get('/fail');
+    expect(response.status).toBe(401);
+    expect(response.body.message).toBe('The request could not be processed.');
+    expect(JSON.stringify(response.body)).not.toContain('secret-key');
+  });
 });

@@ -61,7 +61,20 @@ const schema = z.object({
   GOOGLE_WALLET_ISSUER_ID: z.string().default(''),
   GOOGLE_WALLET_SERVICE_ACCOUNT_PATH: z.string().default(''),
   // Signs the short-lived Apple pass download links; a random per-process value is used when empty.
-  WALLET_LINK_SECRET: z.string().default('')
+  WALLET_LINK_SECRET: z.string().default(''),
+}).superRefine((config, context) => {
+  // Multi-instance production must share one secret or Apple pass links break across restarts/replicas.
+  if (
+    config.NODE_ENV === 'production'
+    && config.APPLE_WALLET_PASS_TYPE_ID
+    && !config.WALLET_LINK_SECRET
+  ) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['WALLET_LINK_SECRET'],
+      message: 'WALLET_LINK_SECRET is required in production when Apple Wallet is enabled.',
+    });
+  }
 });
 
 export type AppConfig = z.infer<typeof schema>;

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PKPass } from 'passkit-generator';
-import sharp, { type OverlayOptions } from 'sharp';
+import sharp from 'sharp';
 import type { WalletCard } from '../utils/wallet-card.js';
 
 export type AppleWalletConfig = {
@@ -45,7 +45,7 @@ function rgbParts(color: string): [number, number, number] {
   return values?.length === 3 ? values as [number, number, number] : [37, 99, 235];
 }
 
-/** Creates the landscape visual band used by Apple Wallet from the same saved card artwork. */
+/** Cover / gradient strip only — company logo uses Apple's native `logo.png` slot, not this image. */
 async function walletStrip(card: WalletCard, images: PassImages) {
   const width = 1125;
   const height = 432;
@@ -54,13 +54,19 @@ async function walletStrip(card: WalletCard, images: PassImages) {
   const base = images.cover
     ? sharp(images.cover).rotate().resize(width, height, { fit: 'cover' })
     : sharp(Buffer.from(`<svg width="${width}" height="${height}"><defs><linearGradient id="default" x2="1" y2="1"><stop stop-color="${gradientStart}"/><stop offset="1" stop-color="${gradientEnd}"/></linearGradient></defs><rect width="100%" height="100%" fill="url(#default)"/></svg>`));
-  const overlays: OverlayOptions[] = images.cover
-    ? [{ input: Buffer.from(`<svg width="${width}" height="${height}"><rect width="100%" height="100%" fill="rgb(${r},${g},${b})" fill-opacity=".82"/></svg>`) }]
-    : [];
-  const logoSource = images.logo ?? readFileSync(DEFAULT_ICON);
-  const logo = await sharp(logoSource).rotate().resize(360, 135, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } }).png().toBuffer();
-  overlays.push({ input: logo, left: 710, top: 54 });
-  return base.composite(overlays).png().toBuffer();
+  if (!images.cover) {
+    return base.png().toBuffer();
+  }
+  return base
+    .composite([
+      {
+        input: Buffer.from(
+          `<svg width="${width}" height="${height}"><rect width="100%" height="100%" fill="rgb(${r},${g},${b})" fill-opacity=".82"/></svg>`,
+        ),
+      },
+    ])
+    .png()
+    .toBuffer();
 }
 
 /**
@@ -100,9 +106,13 @@ export class AppleWalletPassGenerator {
 
   async create(card: WalletCard, shareUrl: string, images: PassImages, webService?: PassWebService): Promise<Buffer> {
     const strip = await walletStrip(card, images);
+    const logoSource = images.logo ?? readFileSync(DEFAULT_ICON);
     const files: Record<string, Buffer> = {
       ...(await variants(readFileSync(DEFAULT_ICON), 'icon', 29, 29, 'contain')),
+      // Native PassKit logo — Apple places this in the pass header (not painted onto the strip).
+      ...(await variants(logoSource, 'logo', 160, 50, 'contain')),
       ...(await variants(strip, 'strip', 375, 144, 'cover')),
+      ...(images.photo ? await variants(images.photo, 'thumbnail', 90, 90, 'cover') : {}),
     };
 
     const pass = new PKPass(files, this.certificates, {
@@ -121,11 +131,21 @@ export class AppleWalletPassGenerator {
     });
     pass.type = 'storeCard';
 
-    // Store-card primary text is rendered by Apple over the left side of the strip, parallel
-    // to the company logo composited on the strip's right side.
+    // Top-right corner header field in Apple Wallet
+    if (card.company) {
+      pass.headerFields.push({ key: 'header_company', label: 'COMPANY', value: card.company });
+    }
+
+    // Logo uses Apple's header logo slot. Strip is cover/gradient only (no logo drawn on it).
     pass.primaryFields.push({ key: 'name', label: 'PREFERRED NAME', value: card.name });
     if (card.title) pass.secondaryFields.push({ key: 'title', label: 'JOB TITLE', value: card.title });
-    if (card.company) pass.secondaryFields.push({ key: 'company', label: 'COMPANY', value: card.company });
+    if (card.email) {
+      pass.secondaryFields.push({ key: 'email', label: 'EMAIL', value: card.email });
+    } else if (card.phone) {
+      pass.secondaryFields.push({ key: 'phone', label: 'PHONE', value: card.phone });
+    } else if (card.company && !card.title) {
+      pass.secondaryFields.push({ key: 'company', label: 'COMPANY', value: card.company });
+    }
 
     const back = [
       ['name', 'Preferred name', card.name],

@@ -21,13 +21,21 @@ export class WalletRepository {
   }
 
   /** Returns true when this device had not registered the pass before. */
-  register(deviceId: string, passTypeId: string, serial: string, pushToken: string) {
-    return this.db.query(
+  async register(deviceId: string, passTypeId: string, serial: string, pushToken: string) {
+    const inserted = await this.db.query(
       `INSERT INTO wallet_registrations(device_library_id,pass_type_id,serial_number,push_token)
-       VALUES($1,$2,$3,$4) ON CONFLICT (device_library_id,pass_type_id,serial_number) DO UPDATE SET push_token=EXCLUDED.push_token
-       RETURNING (xmax = 0) AS inserted`,
+       VALUES($1,$2,$3,$4)
+       ON CONFLICT (device_library_id,pass_type_id,serial_number) DO NOTHING
+       RETURNING 1`,
       [deviceId, passTypeId, serial, pushToken],
-    ).then((result) => Boolean((result.rows[0] as { inserted?: boolean } | undefined)?.inserted));
+    );
+    if ((inserted.rowCount ?? 0) > 0) return true;
+    await this.db.query(
+      `UPDATE wallet_registrations SET push_token=$4
+       WHERE device_library_id=$1 AND pass_type_id=$2 AND serial_number=$3`,
+      [deviceId, passTypeId, serial, pushToken],
+    );
+    return false;
   }
 
   unregister(deviceId: string, passTypeId: string, serial: string) {

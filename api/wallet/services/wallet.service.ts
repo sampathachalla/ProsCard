@@ -51,7 +51,19 @@ export class WalletService {
     if (!this.deps.apple) throw new HttpError(503, 'Apple Wallet is not set up on the server yet.');
     const [payload, signature] = token.replace(/\.pkpass$/, '').split('.');
     if (!payload || !signature || !this.verify(payload, signature)) throw new HttpError(404, 'Wallet link not found.');
-    const { u: userId, c: cardId, e: expires } = JSON.parse(Buffer.from(payload, 'base64url').toString()) as { u: string; c: string; e: number };
+    let userId: string;
+    let cardId: string;
+    let expires: number;
+    try {
+      ({ u: userId, c: cardId, e: expires } = JSON.parse(Buffer.from(payload, 'base64url').toString()) as {
+        u: string;
+        c: string;
+        e: number;
+      });
+    } catch {
+      throw new HttpError(404, 'Wallet link not found.');
+    }
+    if (!userId || !cardId || typeof expires !== 'number') throw new HttpError(404, 'Wallet link not found.');
     if (expires < Date.now() / 1000) throw new HttpError(410, 'This wallet link has expired. Tap Add to Wallet again.');
 
     return this.buildApplePass(userId, cardId, base);
@@ -69,8 +81,17 @@ export class WalletService {
     const webService = base.startsWith('https://')
       ? { url: `${base}/api/v1/wallet/apple/ws`, token: apple.authToken(cardId) }
       : undefined;
-    const buffer = await apple.create(card, `${base}/share/${slug}`, images, webService);
-    return { buffer, fileName: `${card.name.replace(/[^\w-]+/g, '-').replace(/^-|-$/g, '') || 'card'}.pkpass` };
+    try {
+      const buffer = await apple.create(card, `${base}/share/${slug}`, images, webService);
+      return { buffer, fileName: `${card.name.replace(/[^\w-]+/g, '-').replace(/^-|-$/g, '') || 'card'}.pkpass` };
+    } catch (error) {
+      if (error instanceof HttpError) throw error;
+      log('error', 'apple_pass_build_failed', {
+        cardId,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      throw new HttpError(503, 'Could not generate the wallet pass. Try again later.');
+    }
   }
 
   // ---- Apple pass web service (called by Wallet on the user's iPhone) ----
@@ -117,9 +138,22 @@ export class WalletService {
   async googleLink(userId: string, cardId: string, base: string) {
     if (!this.deps.google) throw new HttpError(503, 'Google Wallet is not set up on the server yet.');
     const { card, slug } = await this.load(userId, cardId);
-    // Google fetches pass images itself, so they go through the public, share-scoped image route.
-    const url = this.deps.google.createSaveUrl(card, `${base}/share/${slug}`, (mediaId) => `${base}/api/v1/sharing/public/${slug}/media/${mediaId}`);
-    return { url };
+    try {
+      // Google fetches pass images itself, so they go through the public, share-scoped image route.
+      const url = this.deps.google.createSaveUrl(
+        card,
+        `${base}/share/${slug}`,
+        (mediaId) => `${base}/api/v1/sharing/public/${slug}/media/${mediaId}`,
+      );
+      return { url };
+    } catch (error) {
+      if (error instanceof HttpError) throw error;
+      log('error', 'google_wallet_link_failed', {
+        cardId,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      throw new HttpError(503, 'Could not create the Google Wallet link. Try again later.');
+    }
   }
 
   private async load(userId: string, cardId: string): Promise<{ card: WalletCard; slug: string; userId: string }> {
