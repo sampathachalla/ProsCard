@@ -112,22 +112,30 @@ export async function establishRecoverySession(accessToken: string, refreshToken
   return toStoredUser(session);
 }
 
+/** Signs out on this device. Each step is independent, so one failing cleanup never leaves the user half signed in. */
 async function clearLocalSession(): Promise<void> {
-  await setSession(null);
-  await clearMediaCache();
-  clearCardState();
-  queryClient.clear();
+  await setSession(null).catch((error) => console.warn('Could not clear the stored session:', error));
+  await clearMediaCache().catch((error) => console.warn('Could not clear the media cache:', error));
+  try {
+    clearCardState();
+    queryClient.clear();
+  } catch (error) {
+    console.warn('Could not reset in-memory app state:', error);
+  }
 }
 
 export async function logout(): Promise<void> {
-  const session = await getSession();
   try {
+    const session = await getSession();
     if (!AUTH_TEST_MODE && session?.token) {
       await apiRequest('/auth/logout', { method: 'POST', retryAuth: false });
     }
-  } finally {
-    await clearLocalSession();
+  } catch (error) {
+    // Offline or server error: the server session simply expires on its own. Logging out on this
+    // device must still succeed, otherwise the user is stuck on a screen with no session.
+    console.warn('Server logout failed; signing out locally:', error);
   }
+  await clearLocalSession();
 }
 
 /** Permanently deletes the account on the backend, then clears everything stored on this device. */

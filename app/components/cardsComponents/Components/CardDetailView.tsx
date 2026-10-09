@@ -9,6 +9,7 @@ import { getCardFontFamily, getCardLetterSpacing } from '../Templates/cardTheme'
 import { ActiveSectionHighlight } from '@/components/editViewComponents/Components/ActiveSectionHighlight';
 import { saveDirectlyToNativeContacts } from '@/utils/nativeContacts';
 import { getShareUrl } from '@/components/sharingComponents/Services/sharingService';
+import { resolveLayoutColorSlots } from '@/utils/cardThemeColor';
 
 export function CardDetailView({
   activeSection,
@@ -130,6 +131,7 @@ export function CardDetailView({
           section.id === 'professional' &&
           section.fields.find((field) => field.id === 'bioEnabled')?.value === 'true' &&
           Boolean(bioText);
+        const sectionSlots = resolveLayoutColorSlots({ templateId: section.templateId, theme });
         return (
           <View key={section.id} onLayout={handleLayout} style={{ position: 'relative' }}>
             <View
@@ -163,7 +165,7 @@ export function CardDetailView({
             {showBio ? (
               <View
                 style={{
-                  backgroundColor: theme.surfaceColor,
+                  backgroundColor: sectionSlots.surface,
                   paddingBottom: 12,
                   paddingHorizontal: 20,
                   paddingTop: 8,
@@ -173,7 +175,7 @@ export function CardDetailView({
                   variant="none"
                   numberOfLines={3}
                   style={{
-                    color: theme.mutedTextColor,
+                    color: sectionSlots.surfaceTextSecondary,
                     fontFamily,
                     fontSize: 16,
                     letterSpacing,

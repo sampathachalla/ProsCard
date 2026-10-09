@@ -25,7 +25,7 @@ export function PermissionGate({
         accessibilityRole="button"
         accessibilityLabel={canAskAgain ? 'Grant camera permission' : 'Open Settings'}
         className="bg-primary dark:bg-dark-primary rounded-full px-6 py-3 mt-6"
-        onPress={canAskAgain ? onRequestPermission : () => Linking.openSettings()}
+        onPress={canAskAgain ? onRequestPermission : () => { Linking.openSettings().catch(() => {}); }}
       >
         <Text className="text-white font-semibold">{canAskAgain ? 'Grant permission' : 'Open Settings'}</Text>
       </TouchableOpacity>

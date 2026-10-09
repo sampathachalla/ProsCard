@@ -8,6 +8,10 @@ import { ThemeProvider, useThemeContext } from '../context/ThemeContext';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/services/api/queryClient';
 import { AppErrorBoundary } from '@/components/uiComponents/AppErrorBoundary';
+import { installGlobalErrorHandler } from '@/utils/globalErrorHandler';
+
+// Errors outside rendering (tap handlers, timers) show an alert instead of closing the app.
+installGlobalErrorHandler();
 
 // Load Tailwind styles only on web (for NativeWind)
 if (typeof window !== 'undefined') {

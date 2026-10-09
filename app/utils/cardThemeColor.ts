@@ -149,6 +149,17 @@ export function relativeLuminance(hex: string): number {
   return 0.2126 * channel(rgb.r) + 0.7152 * channel(rgb.g) + 0.0722 * channel(rgb.b);
 }
 
+export function contrastRatio(foreground: string, background: string): number {
+  const lighter = Math.max(relativeLuminance(foreground), relativeLuminance(background));
+  const darker = Math.min(relativeLuminance(foreground), relativeLuminance(background));
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+function contrastSafeColor(preferred: string, background: string, fallback: string, minimum = 4.5): string {
+  const normalized = normalizeHexColor(preferred);
+  return normalized && contrastRatio(normalized, background) >= minimum ? normalized : fallback;
+}
+
 /**
  * Classifies the colors users actually see in the theme preview. Keeping this
  * here gives every card section and the styling picker one shared definition
@@ -316,14 +327,20 @@ export function resolveLayoutColorSlots({
   const isAccentLight = isColorLight(accentColor);
 
   // Surface-specific contrast text
-  let surfaceTextPrimary = isSurfaceLight ? '#0f172a' : '#f8fafc';
-  const surfaceTextSecondary = isSurfaceLight ? '#334155' : '#cbd5e1';
-  const surfaceTextMuted = isSurfaceLight ? '#64748b' : '#94a3b8';
+  const fallbackSurfacePrimary = isSurfaceLight ? '#0f172a' : '#f8fafc';
+  const fallbackSurfaceSecondary = isSurfaceLight ? '#334155' : '#cbd5e1';
+  const fallbackSurfaceMuted = isSurfaceLight ? '#475569' : '#cbd5e1';
+  let surfaceTextPrimary = contrastSafeColor(theme.textColor, surfaceColor, fallbackSurfacePrimary);
+  const surfaceTextSecondary = contrastSafeColor(theme.mutedTextColor, surfaceColor, fallbackSurfaceSecondary);
+  const surfaceTextMuted = contrastSafeColor(theme.mutedTextColor, surfaceColor, fallbackSurfaceMuted);
 
   // Base background-specific contrast text
-  let bgTextPrimary = isBaseLight ? '#0f172a' : '#f8fafc';
-  const bgTextSecondary = isBaseLight ? '#334155' : '#cbd5e1';
-  const bgTextMuted = isBaseLight ? '#64748b' : '#94a3b8';
+  const fallbackBgPrimary = isBaseLight ? '#0f172a' : '#f8fafc';
+  const fallbackBgSecondary = isBaseLight ? '#334155' : '#cbd5e1';
+  const fallbackBgMuted = isBaseLight ? '#475569' : '#cbd5e1';
+  let bgTextPrimary = contrastSafeColor(theme.textColor, baseColor, fallbackBgPrimary);
+  const bgTextSecondary = contrastSafeColor(theme.mutedTextColor, baseColor, fallbackBgSecondary);
+  const bgTextMuted = contrastSafeColor(theme.mutedTextColor, baseColor, fallbackBgMuted);
 
   // Accent & Gradient contrast text
   const accentText = isAccentLight ? '#0f172a' : '#ffffff';
@@ -331,9 +348,9 @@ export function resolveLayoutColorSlots({
 
   // Default textPrimary / textSecondary matches the main container (surface for standard layouts, gradient for bold)
   const isPrimaryDark = isBold ? !isGradientLight : !isSurfaceLight;
-  let textPrimary = isPrimaryDark ? '#f8fafc' : '#0f172a';
-  const textSecondary = isPrimaryDark ? '#cbd5e1' : '#334155';
-  const textMuted = isPrimaryDark ? '#94a3b8' : '#64748b';
+  let textPrimary = isBold ? gradientText : surfaceTextPrimary;
+  const textSecondary = isBold ? (isPrimaryDark ? '#cbd5e1' : '#334155') : surfaceTextSecondary;
+  const textMuted = isBold ? (isPrimaryDark ? '#cbd5e1' : '#475569') : surfaceTextMuted;
 
   const textColorOverride = normalizeHexColor(theme.textColorOverride ?? '');
   if (textColorOverride) {

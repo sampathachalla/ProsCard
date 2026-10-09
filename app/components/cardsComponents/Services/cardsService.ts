@@ -2,6 +2,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '@/constants/Colors';
 import { buildCustomSectionTheme } from '@/utils/cardThemeColor';
+import { parseStoredJson } from '@/utils/safeJson';
 import { CARD_THEME_PRESETS, createDefaultCardSectionThemes, DEFAULT_CARD_SECTION_LAYOUTS, DEFAULT_CARD_THEME, resolveIdentityLayoutId, resolveProfessionalLayoutId, type BusinessCard, type CardVisualTheme } from '../types/card.types';
 import { apiRequest } from '@/services/api/client';
 import { AUTH_TEST_MODE } from '@/components/authComponents/Config/authMode';
@@ -324,29 +325,24 @@ export async function hydrateCards(): Promise<BusinessCard[]> {
         console.warn('Using cached cards because synchronization failed:', error);
       }
     }
-    const rawUserCards = await AsyncStorage.getItem(userCardsKey);
-    if (rawUserCards) {
-      const parsed = JSON.parse(rawUserCards) as BusinessCard[];
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        const normalizedCards = parsed.map(normalizeCard);
-        CARDS.splice(0, CARDS.length, ...normalizedCards);
-        await AsyncStorage.setItem(userCardsKey, JSON.stringify(normalizedCards));
-        notifyCardListeners();
-        prefetchCardMedia(normalizedCards);
-        return CARDS;
-      }
+    // A corrupted entry is skipped (not thrown), so the primary-card fallback below still runs.
+    const parsed = parseStoredJson<BusinessCard[]>(await AsyncStorage.getItem(userCardsKey));
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      const normalizedCards = parsed.map(normalizeCard);
+      CARDS.splice(0, CARDS.length, ...normalizedCards);
+      await AsyncStorage.setItem(userCardsKey, JSON.stringify(normalizedCards));
+      notifyCardListeners();
+      prefetchCardMedia(normalizedCards);
+      return CARDS;
     }
 
-    const rawPrimary = await AsyncStorage.getItem(primaryCardKey);
-    if (rawPrimary) {
-      const parsedPrimary = JSON.parse(rawPrimary) as BusinessCard;
-      if (parsedPrimary && typeof parsedPrimary === 'object') {
-        CARDS[0] = normalizeCard({ ...CARDS[0], ...parsedPrimary });
-        await AsyncStorage.setItem(primaryCardKey, JSON.stringify(CARDS[0]));
-        notifyCardListeners();
-        prefetchCardMedia([CARDS[0]]);
-        return CARDS;
-      }
+    const parsedPrimary = parseStoredJson<BusinessCard>(await AsyncStorage.getItem(primaryCardKey));
+    if (parsedPrimary && typeof parsedPrimary === 'object') {
+      CARDS[0] = normalizeCard({ ...CARDS[0], ...parsedPrimary });
+      await AsyncStorage.setItem(primaryCardKey, JSON.stringify(CARDS[0]));
+      notifyCardListeners();
+      prefetchCardMedia([CARDS[0]]);
+      return CARDS;
     }
   } catch (error) {
     console.error('Failed to hydrate cards from storage:', error);

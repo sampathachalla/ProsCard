@@ -33,9 +33,9 @@ const GLOBAL_THEME_OPTIONS: GlobalThemeOption[] = [
     name: 'Executive Ocean',
     description: 'Crisp blue with a clean white surface',
     theme: {
-      id: 'ocean', backgroundColor: '#eff6ff', surfaceColor: '#ffffff', textColor: '#0f172a', mutedTextColor: '#475569',
+      id: 'ocean', backgroundColor: '#eaf3ff', surfaceColor: '#f8fbff', textColor: '#10213d', mutedTextColor: '#465a78',
       accentColor: '#0284c7', gradient: ['#1d4ed8', '#0891b2'], paletteTier: 3,
-      paletteColors: ['#eff6ff', '#ffffff', '#0284c7'],
+      paletteColors: ['#eaf3ff', '#f8fbff', '#0284c7'],
     },
   },
   {
@@ -51,7 +51,7 @@ const GLOBAL_THEME_OPTIONS: GlobalThemeOption[] = [
     name: 'Graphite Studio',
     description: 'Neutral slate with precise blue accents',
     theme: {
-      id: 'custom', backgroundColor: '#e2e8f0', surfaceColor: '#f8fafc', textColor: '#111827', mutedTextColor: '#4b5563',
+      id: 'custom', backgroundColor: '#e2e8f0', surfaceColor: '#f8fafc', textColor: '#182230', mutedTextColor: '#4b5563',
       accentColor: '#2563eb', gradient: ['#334155', '#0f172a'], paletteTier: 3,
       paletteColors: ['#e2e8f0', '#f8fafc', '#2563eb'],
     },
@@ -60,36 +60,36 @@ const GLOBAL_THEME_OPTIONS: GlobalThemeOption[] = [
     name: 'Emerald Ledger',
     description: 'Confident green with a soft mint surface',
     theme: {
-      id: 'aurora', backgroundColor: '#ecfdf5', surfaceColor: '#ffffff', textColor: '#064e3b', mutedTextColor: '#166534',
+      id: 'aurora', backgroundColor: '#e8f8f1', surfaceColor: '#f6fcf9', textColor: '#123b31', mutedTextColor: '#315f52',
       accentColor: '#059669', gradient: ['#047857', '#0f766e'], paletteTier: 3,
-      paletteColors: ['#ecfdf5', '#ffffff', '#059669'],
+      paletteColors: ['#e8f8f1', '#f6fcf9', '#059669'],
     },
   },
   {
     name: 'Warm Sand',
     description: 'Refined ivory with warm gold details',
     theme: {
-      id: 'sand', backgroundColor: '#fffbeb', surfaceColor: '#fffdf5', textColor: '#422006', mutedTextColor: '#854d0e',
+      id: 'sand', backgroundColor: '#f8f1e4', surfaceColor: '#fffaf0', textColor: '#3f2a14', mutedTextColor: '#73512d',
       accentColor: '#ca8a04', gradient: ['#92400e', '#d97706'], paletteTier: 3,
-      paletteColors: ['#fffbeb', '#fffdf5', '#ca8a04'],
+      paletteColors: ['#f8f1e4', '#fffaf0', '#ca8a04'],
     },
   },
   {
     name: 'Ember Signature',
     description: 'Warm coral with a polished cream surface',
     theme: {
-      id: 'sunset', backgroundColor: '#fff7ed', surfaceColor: '#ffffff', textColor: '#431407', mutedTextColor: '#9a3412',
+      id: 'sunset', backgroundColor: '#fff0e7', surfaceColor: '#fff9f5', textColor: '#4a2115', mutedTextColor: '#8a4630',
       accentColor: '#ea580c', gradient: ['#c2410c', '#f97316'], paletteTier: 3,
-      paletteColors: ['#fff7ed', '#ffffff', '#ea580c'],
+      paletteColors: ['#fff0e7', '#fff9f5', '#ea580c'],
     },
   },
   {
     name: 'Arctic Steel',
     description: 'Cool silver with disciplined blue details',
     theme: {
-      id: 'custom', backgroundColor: '#f1f5f9', surfaceColor: '#ffffff', textColor: '#172033', mutedTextColor: '#526175',
+      id: 'custom', backgroundColor: '#e9eef4', surfaceColor: '#f8fafc', textColor: '#172033', mutedTextColor: '#526175',
       accentColor: '#0f6cbd', gradient: ['#64748b', '#0f6cbd'], paletteTier: 3,
-      paletteColors: ['#f1f5f9', '#ffffff', '#0f6cbd'],
+      paletteColors: ['#e9eef4', '#f8fafc', '#0f6cbd'],
     },
   },
   {
@@ -114,27 +114,27 @@ const GLOBAL_THEME_OPTIONS: GlobalThemeOption[] = [
     name: 'Rose Quartz',
     description: 'Soft blush with confident berry details',
     theme: {
-      id: 'custom', backgroundColor: '#fff1f2', surfaceColor: '#ffffff', textColor: '#4c0519', mutedTextColor: '#9f1239',
+      id: 'custom', backgroundColor: '#fbecef', surfaceColor: '#fff8fa', textColor: '#4c1625', mutedTextColor: '#8c3a52',
       accentColor: '#e11d48', gradient: ['#be123c', '#fb7185'], paletteTier: 3,
-      paletteColors: ['#fff1f2', '#ffffff', '#e11d48'],
+      paletteColors: ['#fbecef', '#fff8fa', '#e11d48'],
     },
   },
   {
     name: 'Cobalt Precision',
     description: 'Saturated blue with a bright ice surface',
     theme: {
-      id: 'custom', backgroundColor: '#eaf2ff', surfaceColor: '#ffffff', textColor: '#172554', mutedTextColor: '#334e8a',
+      id: 'custom', backgroundColor: '#e8f0ff', surfaceColor: '#f7faff', textColor: '#172554', mutedTextColor: '#3f568c',
       accentColor: '#1d4ed8', gradient: ['#1e3a8a', '#2563eb'], paletteTier: 3,
-      paletteColors: ['#eaf2ff', '#ffffff', '#1d4ed8'],
+      paletteColors: ['#e8f0ff', '#f7faff', '#1d4ed8'],
     },
   },
   {
     name: 'Monochrome Paper',
     description: 'Clean white with timeless ink contrast',
     theme: {
-      id: 'custom', backgroundColor: '#f5f5f4', surfaceColor: '#ffffff', textColor: '#1c1917', mutedTextColor: '#57534e',
+      id: 'custom', backgroundColor: '#efefed', surfaceColor: '#fafaf9', textColor: '#1c1917', mutedTextColor: '#57534e',
       accentColor: '#292524', gradient: ['#44403c', '#0c0a09'], paletteTier: 3,
-      paletteColors: ['#f5f5f4', '#ffffff', '#292524'],
+      paletteColors: ['#efefed', '#fafaf9', '#292524'],
     },
   },
 ];

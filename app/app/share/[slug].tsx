@@ -1,15 +1,16 @@
 // app/share/[slug].tsx
 import { useEffect } from 'react';
-import { ActivityIndicator, Platform, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, ScrollView, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CreditCard } from 'lucide-react-native';
+import { CreditCard, WifiOff } from 'lucide-react-native';
 import { CardDetailView } from '@/components/cardsComponents/Components/CardDetailView';
 import { normalizeCard } from '@/components/cardsComponents/Services/cardsService';
 import { normalizeProfile } from '@/components/profileComponents/Services/profileService';
 import { getSharedCardView } from '@/components/sharingComponents/Services/sharingService';
 import { Text } from '@/components/uiComponents/Text';
+import { ApiError } from '@/services/api/client';
 
 /**
  * Public page behind a card's QR code / share link. Anyone can open it without an account; it renders
@@ -48,13 +49,37 @@ export default function SharedCardPage() {
   }
 
   if (!view.data) {
+    // Only a 404 means the link is gone; anything else (offline, timeout, server error) can be retried.
+    const linkGone = view.error instanceof ApiError && view.error.status === 404;
     return (
       <View className="flex-1 items-center justify-center bg-background px-8 dark:bg-dark-background">
-        <CreditCard color="#94a3b8" size={44} strokeWidth={1.6} />
-        <Text variant="heading" className="mt-4 text-center">Card unavailable</Text>
-        <Text variant="muted" className="mt-2 text-center">
-          This ProsCard link has expired or was turned off by its owner.
+        {linkGone ? (
+          <CreditCard color="#94a3b8" size={44} strokeWidth={1.6} />
+        ) : (
+          <WifiOff color="#94a3b8" size={44} strokeWidth={1.6} />
+        )}
+        <Text variant="heading" className="mt-4 text-center">
+          {linkGone ? 'Card unavailable' : 'Couldn’t load this card'}
         </Text>
+        <Text variant="muted" className="mt-2 text-center">
+          {linkGone
+            ? 'This ProsCard link has expired or was turned off by its owner.'
+            : view.error instanceof Error
+              ? view.error.message
+              : 'Something went wrong. Please try again.'}
+        </Text>
+        {linkGone ? null : (
+          <Pressable
+            accessibilityRole="button"
+            disabled={view.isFetching}
+            onPress={() => void view.refetch()}
+            className="mt-6 min-h-11 items-center justify-center rounded-xl bg-primary px-6 active:opacity-80 dark:bg-dark-primary"
+          >
+            <Text variant="none" className="text-sm font-bold text-white">
+              {view.isFetching ? 'Loading…' : 'Try again'}
+            </Text>
+          </Pressable>
+        )}
       </View>
     );
   }

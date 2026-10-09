@@ -58,7 +58,13 @@ async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = DEFA
 async function parseResponse(response: Response): Promise<unknown> {
   if (response.status === 204) return undefined;
   const contentType = response.headers.get('content-type') ?? '';
-  const text = await response.text();
+  let text: string;
+  try {
+    text = await response.text();
+  } catch (error) {
+    // The connection dropped while the reply was arriving.
+    throw new ApiError('The connection was interrupted. Check your internet connection and try again.', NETWORK_ERROR_STATUS, error);
+  }
   if (!contentType.includes('application/json')) return text;
   try {
     return text ? JSON.parse(text) : undefined;

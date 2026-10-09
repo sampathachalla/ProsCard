@@ -3,6 +3,7 @@ import { loadConfig } from './config.js';
 import { createPool } from './database.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { Server } from 'node:http';
 import { createApp } from './app.js';
 import { CachedDownloadUrlStorage, OciObjectStorageGateway } from '../media/services/oci-storage.service.js';
 import { MediaRepository } from '../media/repository/media.repository.js';
@@ -32,8 +33,30 @@ const wallet={
 log('info','wallet_passes',{apple:Boolean(wallet.apple),google:Boolean(wallet.google)});
 const shareWebDir=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..','web');
 const app=createApp({db:pool,supabase,storage,cardReader,shareWebDir,wallet,scannerRateLimitMax:config.SCANNER_RATE_LIMIT_MAX,corsOrigins:config.CORS_ORIGINS.split(',').map(value=>value.trim()).filter(Boolean),authRateLimitMax:config.AUTH_RATE_LIMIT_MAX,passwordResetRedirectUrl:config.PASSWORD_RESET_REDIRECT_URL});
-await pool.query('SELECT 1');
-const cleanupJob=startMediaCleanupJob(new MediaService(new MediaRepository(pool),storage),config.MEDIA_CLEANUP_INTERVAL_SECONDS);
-const server=app.listen(config.PORT,()=>log('info','server_started',{port:config.PORT}));
-async function shutdown(){cleanupJob.stop();server.close();await pool.end();}
+// Assigned once startup succeeds; shutdown() handles either being missing.
+let cleanupJob:{stop():void}|undefined;
+let server:Server|undefined;
+let shuttingDown=false;
+
+// A rejected promise nobody awaited is a bug, but one request's mistake should not take the API down.
+process.on('unhandledRejection',(reason)=>log('error','unhandled_rejection',{message:reason instanceof Error?reason.message:String(reason),stack:reason instanceof Error?reason.stack:undefined}));
+// After an uncaught exception the process state is unknown: log it, then exit so Docker restarts a clean process.
+process.on('uncaughtException',(error)=>{log('error','uncaught_exception',{message:error.message,stack:error.stack});void shutdown(1);});
+
+try{await pool.query('SELECT 1');}
+catch(error){log('error','database_unreachable_at_startup',{host:config.DB_HOST,port:config.DB_PORT,message:error instanceof Error?error.message:String(error)});await pool.end().catch(()=>undefined);process.exit(1);}
+cleanupJob=startMediaCleanupJob(new MediaService(new MediaRepository(pool),storage),config.MEDIA_CLEANUP_INTERVAL_SECONDS);
+server=app.listen(config.PORT,()=>log('info','server_started',{port:config.PORT}));
+server.on('error',(error)=>{log('error','server_listen_failed',{port:config.PORT,message:error.message});void shutdown(1);});
+
+/** Stops taking new requests, lets in-flight ones finish (up to 10s), then closes the database pool. */
+async function shutdown(exitCode=0){
+  if(shuttingDown)return;shuttingDown=true;
+  log('info','server_shutting_down',{exitCode});
+  const force=setTimeout(()=>{log('warn','shutdown_timed_out');process.exit(exitCode||1);},10_000);force.unref();
+  cleanupJob?.stop();
+  if(server){const closing=server;await new Promise<void>((resolve)=>closing.close(()=>resolve()));}
+  await pool.end().catch((error)=>log('warn','database_pool_close_failed',{message:error instanceof Error?error.message:String(error)}));
+  process.exit(exitCode);
+}
 process.on('SIGINT',()=>void shutdown());process.on('SIGTERM',()=>void shutdown());
