@@ -6,7 +6,7 @@ export type BackendTarget = 'local' | 'tunnel' | 'oci';
  *   tunnel → local Docker backend exposed through a public HTTPS tunnel
  *   oci    → backend deployed on the OCI instance (deploy/oci, https://150.136.12.178.nip.io)
  */
-export const BACKEND_TARGET: BackendTarget = 'tunnel';
+export const BACKEND_TARGET: BackendTarget = 'local';
 
 function normalize(url: string | undefined): string {
   return url?.trim().replace(/\/$/, '') ?? '';
