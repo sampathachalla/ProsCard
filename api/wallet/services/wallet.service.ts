@@ -63,6 +63,7 @@ export class WalletService {
     const images: PassImages = {
       photo: card.photoMediaId ? await this.image(owner, card.photoMediaId) : null,
       logo: card.logoMediaId ? await this.image(owner, card.logoMediaId) : null,
+      cover: card.coverMediaId ? await this.image(owner, card.coverMediaId) : null,
     };
     // Apple only calls an HTTPS web service, so local http runs simply skip the "added" confirmation.
     const webService = base.startsWith('https://')

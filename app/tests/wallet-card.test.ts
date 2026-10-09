@@ -6,14 +6,23 @@ import {
   WALLET_IDENTITY_HEIGHT_RATIO,
   WALLET_PROFESSIONAL_HEIGHT_RATIO,
 } from '@/components/walletCardComponents/walletCardLayout';
+import { resolveWalletPassLayouts } from '@/components/walletCardComponents/resolveWalletPassLayouts';
 import { walletStackRankFor } from '@/components/walletCardComponents/WalletStackView';
+import type { BusinessCard } from '@/components/cardsComponents/types/card.types';
 
+vi.mock('@/components/walletCardComponents/WalletDesignEngine', () => ({ WalletDesignEngine: () => null }));
 vi.mock('@/components/walletCardComponents/WalletCardRenderEngine', () => ({ WalletCardRenderEngine: () => null }));
 vi.mock('react-native', () => ({}));
 vi.mock('react-native-reanimated', () => ({}));
 vi.mock('lucide-react-native', () => ({}));
 vi.mock('react-native-qrcode-svg', () => ({}));
 vi.mock('@/components/uiComponents/Text', () => ({}));
+
+function layoutsCard(identity: string, professional: string): BusinessCard {
+  return {
+    sectionLayouts: { identity, professional, bio: 'classic', connections: 'classic' },
+  } as BusinessCard;
+}
 
 describe('walletCardComponents - traditional ID-1 layout engine', () => {
   it('calculates traditional ID-1 wallet dimensions correctly', () => {
@@ -48,5 +57,21 @@ describe('walletCardComponents - traditional ID-1 layout engine', () => {
 
     expect(walletStackRankFor(2, 2, 3)).toBe(0);
     expect(walletStackRankFor(3, 2, 3)).toBe(3);
+  });
+
+  it('maps full-view layout ids to the matching wallet design styles', () => {
+    expect(resolveWalletPassLayouts(layoutsCard('layout-2', 'layout-4'))).toMatchObject({
+      identityLayoutId: 'layout-2',
+      professionalLayoutId: 'layout-4',
+      identity: 'minimal',
+      professional: 'banner',
+    });
+
+    expect(resolveWalletPassLayouts(layoutsCard('spotlight', 'neon'))).toMatchObject({
+      identityLayoutId: 'layout-5',
+      professionalLayoutId: 'layout-7',
+      identity: 'spotlight',
+      professional: 'neon',
+    });
   });
 });

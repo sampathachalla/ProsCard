@@ -1,6 +1,6 @@
 import { ActivityIndicator, Pressable, useWindowDimensions } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { LayoutTemplate, ListPlus, Palette, Save, type LucideIcon } from 'lucide-react-native';
+import { ArrowRight, Eye, LayoutTemplate, ListPlus, Palette, Save, type LucideIcon } from 'lucide-react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { Text } from './Text';
 
@@ -14,6 +14,7 @@ const ITEMS: { id: EditHomeTab; label: string; icon: LucideIcon }[] = [
 
 export function EditHomeBar({
   activeTab,
+  actionLabel = 'Save',
   isSaving = false,
   onChange,
   onSave,
@@ -21,6 +22,7 @@ export function EditHomeBar({
   showSave = true,
 }: {
   activeTab: EditHomeTab;
+  actionLabel?: 'Next' | 'Save & next' | 'Preview' | 'Save';
   isSaving?: boolean;
   onChange: (tab: EditHomeTab) => void;
   onSave: () => void;
@@ -33,6 +35,11 @@ export function EditHomeBar({
     if (tab !== activeTab) Haptics.selectionAsync().catch(() => {});
     onChange(tab);
   };
+  const ActionIcon = actionLabel === 'Preview'
+    ? Eye
+    : actionLabel === 'Next' || actionLabel === 'Save & next'
+      ? ArrowRight
+      : Save;
 
   return (
     <Animated.View
@@ -69,7 +76,11 @@ export function EditHomeBar({
       })}
       {showSave ? (
         <Pressable
-          accessibilityLabel="Save all card changes"
+          accessibilityLabel={
+            actionLabel === 'Save'
+              ? 'Save all card changes'
+              : `${actionLabel} card creation step`
+          }
           accessibilityRole="button"
           accessibilityState={{ busy: isSaving, disabled: isSaving || saveDisabled }}
           className="min-w-0 flex-1 items-center justify-center px-1 active:opacity-70 disabled:opacity-50"
@@ -84,13 +95,13 @@ export function EditHomeBar({
           {isSaving ? (
             <ActivityIndicator color="#10b981" size="small" />
           ) : (
-            <Save color={saveDisabled ? '#94a3b8' : '#10b981'} size={compact ? 17 : 18} />
+            <ActionIcon color={saveDisabled ? '#94a3b8' : '#10b981'} size={compact ? 17 : 18} />
           )}
           <Text
             numberOfLines={1}
             className={`mt-0.5 font-semibold ${compact ? 'text-[10px]' : 'text-[11px]'} ${saveDisabled ? 'text-slate-500 dark:text-slate-400' : 'text-emerald-500'}`}
           >
-            {isSaving ? 'Saving' : 'Save'}
+            {isSaving ? 'Saving' : actionLabel}
           </Text>
         </Pressable>
       ) : null}

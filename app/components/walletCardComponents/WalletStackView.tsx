@@ -10,7 +10,7 @@ import type { BusinessCard } from '@/components/cardsComponents/types/card.types
 import type { Profile } from '@/components/profileComponents/types/profile.types';
 import { Text } from '@/components/uiComponents/Text';
 import { getWalletCardDimensions, resolveWalletCardWidth } from './walletCardLayout';
-import { WalletCardRenderEngine } from './WalletCardRenderEngine';
+import { WalletDesignEngine } from './WalletDesignEngine';
 
 export type WalletStackViewProps = {
   activeIndex: number;
@@ -244,7 +244,7 @@ export function WalletStackView({
         return (
           <StackSlot key={card.id} targetScale={targetScale} targetY={targetY} zIndex={zIndex}>
             <View style={{ position: 'relative' }}>
-              <WalletCardRenderEngine
+              <WalletDesignEngine
                 card={card}
                 profile={profile}
                 width={cardWidth}

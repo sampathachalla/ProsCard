@@ -48,8 +48,8 @@ export class GoogleWalletLinkGenerator {
       header: text(card.name),
       ...(card.title ? { subheader: text(card.title) } : {}),
       ...(avatar ? { logo: { sourceUri: { uri: imageUrl(avatar) }, contentDescription: text(card.name) } } : {}),
-      ...(card.logoMediaId && card.photoMediaId
-        ? { heroImage: { sourceUri: { uri: imageUrl(card.logoMediaId) }, contentDescription: text(card.company || 'Logo') } }
+      ...(card.coverMediaId
+        ? { heroImage: { sourceUri: { uri: imageUrl(card.coverMediaId) }, contentDescription: text(`${card.name} card cover`) } }
         : {}),
       hexBackgroundColor: backgroundHex(card),
       barcode: { type: 'QR_CODE', value: shareUrl, alternateText: 'Scan to view card' },

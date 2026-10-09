@@ -1,7 +1,12 @@
 // components/walletCardComponents/Services/walletPassService.ts
 import { Linking, Platform } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 import { apiRequest } from '@/services/api/client';
 import { AUTH_TEST_MODE } from '@/components/authComponents/Config/authMode';
+import {
+  isNativeWalletPassPresenterAvailable,
+  presentWalletPassAsync,
+} from '@/modules/wallet-pass-presenter';
 
 export type WalletKind = 'apple' | 'google';
 
@@ -26,7 +31,7 @@ export async function getWalletStatus(cardId: string): Promise<WalletStatus> {
 /**
  * Adds a card to the phone's wallet. The API builds the pass from the card exactly as My Cards shows it
  * (photo, logo, name, title, company, colours, share QR):
- *  - Apple: a short-lived link to a signed .pkpass; Safari shows the "Add to Apple Wallet" sheet.
+ *  - Apple: a short-lived link to a signed .pkpass; an in-app Safari sheet shows Apple Wallet.
  *  - Google: a "Save to Google Wallet" link that opens Google's add screen.
  */
 export async function addCardToWallet(cardId: string): Promise<void> {
@@ -34,5 +39,18 @@ export async function addCardToWallet(cardId: string): Promise<void> {
   if (!kind) throw new Error('Open ProsCard on your iPhone or Android phone to add this card to your wallet.');
   if (AUTH_TEST_MODE) throw new Error('Wallet passes need the backend; turn off auth test mode.');
   const { url } = await apiRequest<{ url: string }>(`/wallet/cards/${encodeURIComponent(cardId)}/${kind}`, { method: 'POST' });
+  if (kind === 'apple') {
+    if (isNativeWalletPassPresenterAvailable()) {
+      await presentWalletPassAsync(url);
+      return;
+    }
+    // A raw Linking.openURL leaves the user on Safari's blank .pkpass download page after Add.
+    // Expo Go cannot load the native PassKit presenter, so keep an explicit Done fallback there.
+    await WebBrowser.openBrowserAsync(url, {
+      dismissButtonStyle: 'done',
+      presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET,
+    });
+    return;
+  }
   await Linking.openURL(url);
 }

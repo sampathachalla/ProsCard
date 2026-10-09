@@ -98,8 +98,8 @@ export const CARDS: BusinessCard[] = AUTH_TEST_MODE ? [
     gradient: [Colors.light.tint, Colors.palette.brandCyan],
     ...defaultSectionData([Colors.light.tint, Colors.palette.brandCyan]),
     sectionLayouts: {
-      identity: 'classic',
-      professional: 'classic',
+      identity: 'layout-1',
+      professional: 'layout-1',
       bio: 'classic',
       connections: 'classic',
     },
@@ -128,8 +128,8 @@ export const CARDS: BusinessCard[] = AUTH_TEST_MODE ? [
     gradient: [Colors.palette.surfaceDark, Colors.palette.midnightBase],
     ...defaultSectionData([Colors.palette.surfaceDark, Colors.palette.midnightBase]),
     sectionLayouts: {
-      identity: 'minimal',
-      professional: 'minimal',
+      identity: 'layout-2',
+      professional: 'layout-3',
       bio: 'minimal',
       connections: 'minimal',
     },
@@ -158,8 +158,8 @@ export const CARDS: BusinessCard[] = AUTH_TEST_MODE ? [
     gradient: ['#4f46e5', '#7c3aed'],
     ...defaultSectionData(['#4f46e5', '#7c3aed']),
     sectionLayouts: {
-      identity: 'bold',
-      professional: 'bold',
+      identity: 'layout-5',
+      professional: 'layout-4',
       bio: 'bold',
       connections: 'bold',
     },
@@ -188,8 +188,8 @@ export const CARDS: BusinessCard[] = AUTH_TEST_MODE ? [
     gradient: ['#0f766e', '#059669'],
     ...defaultSectionData(['#0f766e', '#059669']),
     sectionLayouts: {
-      identity: 'glass',
-      professional: 'glass',
+      identity: 'layout-6',
+      professional: 'layout-5',
       bio: 'glass',
       connections: 'glass',
     },

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PKPass } from 'passkit-generator';
-import sharp from 'sharp';
+import sharp, { type OverlayOptions } from 'sharp';
 import type { WalletCard } from '../utils/wallet-card.js';
 
 export type AppleWalletConfig = {
@@ -19,7 +19,7 @@ export type AppleWalletConfig = {
 export type PassWebService = { url: string; token: string };
 
 /** Images shown on the pass; any can be missing. */
-export type PassImages = { photo?: Buffer | null; logo?: Buffer | null };
+export type PassImages = { photo?: Buffer | null; logo?: Buffer | null; cover?: Buffer | null };
 
 const DEFAULT_ICON = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'assets', 'proscard-logo.png');
 
@@ -38,6 +38,29 @@ async function variants(source: Buffer, name: string, width: number, height: num
       .toBuffer();
   }
   return files;
+}
+
+function rgbParts(color: string): [number, number, number] {
+  const values = color.match(/\d+/g)?.map(Number);
+  return values?.length === 3 ? values as [number, number, number] : [37, 99, 235];
+}
+
+/** Creates the landscape visual band used by Apple Wallet from the same saved card artwork. */
+async function walletStrip(card: WalletCard, images: PassImages) {
+  const width = 1125;
+  const height = 432;
+  const [r, g, b] = rgbParts(card.colors.headerBackground);
+  const [gradientStart, gradientEnd] = card.colors.headerGradient;
+  const base = images.cover
+    ? sharp(images.cover).rotate().resize(width, height, { fit: 'cover' })
+    : sharp(Buffer.from(`<svg width="${width}" height="${height}"><defs><linearGradient id="default" x2="1" y2="1"><stop stop-color="${gradientStart}"/><stop offset="1" stop-color="${gradientEnd}"/></linearGradient></defs><rect width="100%" height="100%" fill="url(#default)"/></svg>`));
+  const overlays: OverlayOptions[] = images.cover
+    ? [{ input: Buffer.from(`<svg width="${width}" height="${height}"><rect width="100%" height="100%" fill="rgb(${r},${g},${b})" fill-opacity=".82"/></svg>`) }]
+    : [];
+  const logoSource = images.logo ?? readFileSync(DEFAULT_ICON);
+  const logo = await sharp(logoSource).rotate().resize(360, 135, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } }).png().toBuffer();
+  overlays.push({ input: logo, left: 710, top: 54 });
+  return base.composite(overlays).png().toBuffer();
 }
 
 /**
@@ -76,10 +99,10 @@ export class AppleWalletPassGenerator {
   }
 
   async create(card: WalletCard, shareUrl: string, images: PassImages, webService?: PassWebService): Promise<Buffer> {
+    const strip = await walletStrip(card, images);
     const files: Record<string, Buffer> = {
       ...(await variants(readFileSync(DEFAULT_ICON), 'icon', 29, 29, 'contain')),
-      ...(images.logo ? await variants(images.logo, 'logo', 160, 50, 'contain') : {}),
-      ...(images.photo ? await variants(images.photo, 'thumbnail', 90, 90, 'cover') : {}),
+      ...(await variants(strip, 'strip', 375, 144, 'cover')),
     };
 
     const pass = new PKPass(files, this.certificates, {
@@ -91,20 +114,23 @@ export class AppleWalletPassGenerator {
       description: `${card.name} — business card`,
       backgroundColor: card.colors.background,
       foregroundColor: card.colors.foreground,
-      labelColor: card.colors.label,
-      ...(images.logo ? {} : { logoText: card.company || 'ProsCard' }),
+      labelColor: card.colors.accent,
+      suppressStripShine: true,
       sharingProhibited: false,
       ...(webService ? { webServiceURL: webService.url, authenticationToken: webService.token } : {}),
     });
-    pass.type = 'generic';
+    pass.type = 'storeCard';
 
-    pass.primaryFields.push({ key: 'name', label: 'NAME', value: card.name });
-    if (card.title) pass.secondaryFields.push({ key: 'title', label: 'TITLE', value: card.title });
+    // Store-card primary text is rendered by Apple over the left side of the strip, parallel
+    // to the company logo composited on the strip's right side.
+    pass.primaryFields.push({ key: 'name', label: 'PREFERRED NAME', value: card.name });
+    if (card.title) pass.secondaryFields.push({ key: 'title', label: 'JOB TITLE', value: card.title });
     if (card.company) pass.secondaryFields.push({ key: 'company', label: 'COMPANY', value: card.company });
-    if (card.phone) pass.auxiliaryFields.push({ key: 'phone', label: 'PHONE', value: card.phone });
-    if (card.email) pass.auxiliaryFields.push({ key: 'email', label: 'EMAIL', value: card.email });
 
     const back = [
+      ['name', 'Preferred name', card.name],
+      ['title', 'Job title', card.title],
+      ['company', 'Company', card.company],
       ['email', 'Email', card.email],
       ['phone', 'Phone', card.phone],
       ['website', 'Website', card.website],

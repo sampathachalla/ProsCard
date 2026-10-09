@@ -17,9 +17,13 @@ const card = {
   name: 'Card Name',
   title: 'Card Title',
   sectionOverrides: { title: 'Override Title', profilePhoto: `/api/v1/media/${MEDIA}/content` },
-  sectionThemes: { professional: { gradient: ['#2563eb', '#00a8e8'] }, identity: { gradient: ['#111827', '#020617'] } },
+  sectionThemes: {
+    professional: { surfaceColor: '#ffffff', textColor: '#0f172a', mutedTextColor: '#64748b', accentColor: '#d19000', gradient: ['#2563eb', '#00a8e8'] },
+    identity: { backgroundColor: '#eff6ff', gradient: ['#111827', '#020617'] },
+    connections: { accentColor: '#d19000' },
+  },
 };
-const profile = { preferredName: 'Ada Lovelace', organization: 'Engines Ltd', email: 'ada@engines.io', phone: '+44 20 1234', website: 'engines.io', companyLogoUrl: '' };
+const profile = { preferredName: 'Ada Lovelace', organization: 'Engines Ltd', email: 'ada@engines.io', phone: '+44 20 1234', website: 'engines.io', companyLogoUrl: '', coverPhotoUrl: `/api/v1/media/${MEDIA}/content` };
 
 /** Throwaway self-signed signer, enough to exercise the real pass builder and signer. */
 function selfSigned() {
@@ -48,8 +52,12 @@ describe('wallet passes', () => {
     expect(wallet.company).toBe('Engines Ltd');
     expect(wallet.photoMediaId).toBe(MEDIA);
     expect(wallet.logoMediaId).toBeNull();
+    expect(wallet.coverMediaId).toBe(MEDIA);
     expect(wallet.colors.background).toBe('rgb(37, 99, 235)');
-    expect(wallet.colors.foreground).toBe('rgb(255, 255, 255)');
+    expect(wallet.colors.foreground).toBe('rgb(248, 250, 252)');
+    expect(wallet.colors.accent).toBe('rgb(248, 250, 252)');
+    expect(wallet.colors.headerBackground).toBe('rgb(239, 246, 255)');
+    expect(wallet.colors.headerGradient).toEqual(['#111827', '#020617']);
     expect(toWalletCard('c', { name: 'Only Card' }, null).name).toBe('Only Card');
   });
 
@@ -59,14 +67,15 @@ describe('wallet passes', () => {
       passTypeId: 'pass.com.mindpros.proscard', teamId: 'TEAM123456', certPath, keyPath, keyPassphrase: '', wwdrPath: certPath,
     });
     const photo = await sharp({ create: { width: 400, height: 300, channels: 3, background: '#336699' } }).png().toBuffer();
-    const buffer = await generator.create(toWalletCard('card-1', card, profile), 'https://example.test/share/abc', { photo });
+    const buffer = await generator.create(toWalletCard('card-1', card, profile), 'https://example.test/share/abc', { photo, cover: photo });
     const zip = buffer.toString('latin1');
-    for (const file of ['pass.json', 'manifest.json', 'signature', 'icon.png', 'thumbnail@2x.png']) expect(zip).toContain(file);
+    for (const file of ['pass.json', 'manifest.json', 'signature', 'icon.png', 'strip@2x.png']) expect(zip).toContain(file);
     expect(zip).toContain('"serialNumber":"card-1"');
     expect(zip).toContain('"passTypeIdentifier":"pass.com.mindpros.proscard"');
     expect(zip).toContain('Ada Lovelace');
     expect(zip).toContain('https://example.test/share/abc');
     expect(zip).toContain('PKBarcodeFormatQR');
+    expect(zip).toContain('"storeCard"');
     // Web service token: stable for a serial, different per serial, and checked from the Authorization header.
     const token = generator.authToken('card-1');
     expect(generator.authToken('card-1')).toBe(token);
@@ -94,6 +103,7 @@ describe('wallet passes', () => {
     expect(object.header.defaultValue.value).toBe('Ada Lovelace');
     expect(object.barcode.value).toBe('https://example.test/share/abc');
     expect(object.logo.sourceUri.uri).toBe(`https://example.test/img/${MEDIA}`);
+    expect(object.heroImage.sourceUri.uri).toBe(`https://example.test/img/${MEDIA}`);
     expect(object.hexBackgroundColor).toBe('#2563eb');
   });
 });

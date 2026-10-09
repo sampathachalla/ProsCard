@@ -65,6 +65,15 @@ const SECTION_CHOICES: {
   },
 ];
 const CREATION_STEPS: CardSectionId[] = ['identity', 'professional', 'connections'];
+const CREATION_FLOW: { section: CardSectionId; tab: EditHomeTab }[] = [
+  { section: 'identity', tab: 'layout' },
+  { section: 'identity', tab: 'content' },
+  { section: 'professional', tab: 'layout' },
+  { section: 'professional', tab: 'content' },
+  { section: 'connections', tab: 'layout' },
+  { section: 'connections', tab: 'content' },
+  { section: 'connections', tab: 'styling' },
+];
 const EDIT_MODES: { id: EditHomeTab; label: string; icon: LucideIcon }[] = [
   { id: 'layout', label: 'Layout', icon: LayoutTemplate },
   { id: 'content', label: 'Content', icon: ListPlus },
@@ -132,6 +141,20 @@ export default function EditViewPage() {
     : theme === 'dark'
       ? '#020617'
       : '#ffffff';
+  const creationStepIndex = Math.max(
+    0,
+    CREATION_FLOW.findIndex(
+      ({ section, tab }) => section === activeSection && tab === activeEditTab,
+    ),
+  );
+  const creationActionLabel: 'Next' | 'Save & next' | 'Preview' =
+    activeEditTab === 'styling'
+      ? 'Preview'
+      : activeEditTab === 'layout'
+        ? 'Next'
+        : activeSection === 'connections'
+          ? 'Next'
+          : 'Save & next';
 
   useEffect(() => {
     if (!isCreateMode) return;
@@ -265,22 +288,19 @@ export default function EditViewPage() {
   }, [handleHeaderBack, isCreateMode, isEditing, previewVisible, sectionPickerOpen]);
   const saveSection = async () => {
     if (isCreateMode) {
-      if (activeEditTab === 'layout') {
-        setActiveEditTab('content');
-        setStylingOpen(false);
-        sheetRef.current?.snapToIndex(0);
+      if (activeEditTab === 'styling') {
+        previewCard();
         return;
       }
 
-      const stepIndex = CREATION_STEPS.indexOf(activeSection);
-      const nextSection = CREATION_STEPS[stepIndex + 1];
-      if (nextSection) {
-        setActiveSection(nextSection);
-        setActiveEditTab('layout');
-        setStylingOpen(false);
+      const nextStep = CREATION_FLOW[creationStepIndex + 1];
+      if (nextStep) {
+        setActiveSection(nextStep.section);
+        setActiveEditTab(nextStep.tab);
+        setStylingOpen(nextStep.tab === 'styling');
         requestAnimationFrame(() => {
           sheetRef.current?.snapToIndex(0);
-          const sectionY = sectionOffsets.current[nextSection];
+          const sectionY = sectionOffsets.current[nextStep.section];
           if (sectionY !== undefined)
             cardScrollRef.current?.scrollTo({
               y: Math.max(0, sectionY - 8),
@@ -289,11 +309,6 @@ export default function EditViewPage() {
         });
         return;
       }
-
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-      const saved = await submit();
-      if (saved) router.back();
-      return;
     }
     await submitSection(activeSection);
   };
@@ -351,7 +366,9 @@ export default function EditViewPage() {
         <PageHeader
           title={isCreateMode ? 'Add Card' : isEditing ? 'Edit Card' : 'Edit Card'}
           subtitle={
-            isEditing
+            isCreateMode && isEditing
+              ? `Step ${creationStepIndex + 1} of ${CREATION_FLOW.length} · ${SECTION_TITLES[activeSection]} ${activeEditTab}`
+              : isEditing
               ? `${activeEditTab === 'layout' ? 'Layouts' : activeEditTab === 'content' ? 'Content' : 'Styling'} · All card sections`
               : card.name || 'Choose how you want to customize the card'
           }
@@ -373,7 +390,7 @@ export default function EditViewPage() {
                     </Pressable>
                   ) : null}
                   <Pressable
-                    accessibilityLabel={isCreateMode ? 'Create card' : 'Save all card changes'}
+                    accessibilityLabel={isCreateMode ? 'Preview new card' : 'Save all card changes'}
                     accessibilityRole="button"
                     accessibilityState={{
                       busy: isSaving,
@@ -381,10 +398,10 @@ export default function EditViewPage() {
                     }}
                     className="flex-row items-center rounded-full bg-emerald-600 px-3 py-2 active:opacity-70 disabled:opacity-40"
                     disabled={isSaving || (!isCreateMode && !hasChanges)}
-                    onPress={saveAllChanges}
+                    onPress={isCreateMode ? previewCard : saveAllChanges}
                   >
-                    <SaveIcon color="#ffffff" size={17} />
-                    <Text className="ml-1.5 text-sm font-bold text-white">{isSaving ? 'Saving' : isCreateMode ? 'Create' : 'Save'}</Text>
+                    {isCreateMode ? <Eye color="#ffffff" size={17} /> : <SaveIcon color="#ffffff" size={17} />}
+                    <Text className="ml-1.5 text-sm font-bold text-white">{isSaving ? 'Saving' : isCreateMode ? 'Preview' : 'Save'}</Text>
                   </Pressable>
                 </View>
               ) : (
@@ -572,9 +589,10 @@ export default function EditViewPage() {
               <View style={{ alignSelf: 'center', maxWidth: 760, width: '100%' }}>
                 <EditHomeBar
                   activeTab={activeEditTab}
+                  actionLabel={isCreateMode ? creationActionLabel : 'Save'}
                   isSaving={isSaving}
                   onChange={changeEditTab}
-                  onSave={saveAllChanges}
+                  onSave={isCreateMode ? saveSection : saveAllChanges}
                   saveDisabled={!isCreateMode && !hasChanges}
                   showSave={isCreateMode || hasChanges || isSaving}
                 />
@@ -702,19 +720,33 @@ export default function EditViewPage() {
             <View className="ml-2 size-2 rounded-full bg-emerald-400" />
             <Text className="ml-1.5 text-sm font-bold text-white">Preview</Text>
           </Pressable>
-          <Pressable
-            accessibilityLabel="Back to edit"
-            accessibilityRole="button"
-            onPress={closePreview}
-            className="absolute right-5 flex-row items-center rounded-full border border-white/30 bg-primary px-4 py-3 shadow-xl shadow-black/30 active:scale-95 dark:bg-dark-primary"
-            style={{
-              bottom: Math.max(safeAreaInsets.bottom + 18, 24),
-              elevation: 30,
-            }}
+          <View
+            className="absolute inset-x-5 flex-row gap-3"
+            style={{ bottom: Math.max(safeAreaInsets.bottom + 18, 24), elevation: 30 }}
           >
-            <Pencil color="#ffffff" size={18} strokeWidth={2.4} />
-            <Text className="ml-2 text-sm font-bold text-white">Back to edit</Text>
-          </Pressable>
+            <Pressable
+              accessibilityLabel="Back to edit"
+              accessibilityRole="button"
+              onPress={closePreview}
+              className="min-h-[48px] flex-1 flex-row items-center justify-center rounded-full border border-white/30 bg-slate-800 px-4 active:opacity-80"
+            >
+              <Pencil color="#ffffff" size={18} strokeWidth={2.4} />
+              <Text className="ml-2 text-sm font-bold text-white">Back to edit</Text>
+            </Pressable>
+            {isCreateMode ? (
+              <Pressable
+                accessibilityLabel="Create card"
+                accessibilityRole="button"
+                accessibilityState={{ busy: isSaving, disabled: isSaving }}
+                disabled={isSaving}
+                onPress={saveAllChanges}
+                className="min-h-[48px] flex-1 flex-row items-center justify-center rounded-full bg-emerald-600 px-4 active:opacity-80 disabled:opacity-50"
+              >
+                <SaveIcon color="#ffffff" size={18} strokeWidth={2.4} />
+                <Text className="ml-2 text-sm font-bold text-white">{isSaving ? 'Creating' : 'Create card'}</Text>
+              </Pressable>
+            ) : null}
+          </View>
         </SafeAreaView>
       </Modal>
     </View>

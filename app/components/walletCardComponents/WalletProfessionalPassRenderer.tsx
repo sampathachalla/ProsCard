@@ -2,7 +2,12 @@ import React from 'react';
 import { View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { CardDetailSection } from '@/components/cardsComponents/Templates/cardDetailTemplate';
-import type { CardTemplateId, CardVisualTheme } from '@/components/cardsComponents/types/card.types';
+import {
+  resolveLayoutStyle,
+  resolveProfessionalLayoutId,
+  type CardTemplateId,
+  type CardVisualTheme,
+} from '@/components/cardsComponents/types/card.types';
 import { resolveLayoutColorSlots } from '@/utils/cardThemeColor';
 import { walletProfessionalFields } from './walletPassFields';
 import {
@@ -298,6 +303,11 @@ const PROFESSIONAL_WALLET: Record<CardTemplateId, React.ComponentType<WalletProf
 };
 
 export function WalletProfessionalPassRenderer(props: WalletProfessionalSectionProps) {
-  const Renderer = PROFESSIONAL_WALLET[props.section.templateId] ?? PROFESSIONAL_WALLET.classic;
+  // Accept either a layout id (`layout-4`) or a style name (`banner`); unknown → classic.
+  const templateId = resolveLayoutStyle(
+    resolveProfessionalLayoutId(props.section.templateId),
+    'professional',
+  );
+  const Renderer = PROFESSIONAL_WALLET[templateId] ?? PROFESSIONAL_WALLET.classic;
   return <Renderer {...props} />;
 }
