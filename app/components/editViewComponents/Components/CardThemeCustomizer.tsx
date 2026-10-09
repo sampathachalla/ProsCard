@@ -83,6 +83,60 @@ const GLOBAL_THEME_OPTIONS: GlobalThemeOption[] = [
       paletteColors: ['#fff7ed', '#ffffff', '#ea580c'],
     },
   },
+  {
+    name: 'Arctic Steel',
+    description: 'Cool silver with disciplined blue details',
+    theme: {
+      id: 'custom', backgroundColor: '#f1f5f9', surfaceColor: '#ffffff', textColor: '#172033', mutedTextColor: '#526175',
+      accentColor: '#0f6cbd', gradient: ['#64748b', '#0f6cbd'], paletteTier: 3,
+      paletteColors: ['#f1f5f9', '#ffffff', '#0f6cbd'],
+    },
+  },
+  {
+    name: 'Burgundy Reserve',
+    description: 'Deep wine with understated rose accents',
+    theme: {
+      id: 'custom', backgroundColor: '#1f0a12', surfaceColor: '#35101f', textColor: '#fff7f8', mutedTextColor: '#f0b8c5',
+      accentColor: '#e85d75', gradient: ['#4c0519', '#9f1239'], paletteTier: 3,
+      paletteColors: ['#1f0a12', '#35101f', '#e85d75'],
+    },
+  },
+  {
+    name: 'Forest Executive',
+    description: 'Rich evergreen with refined jade details',
+    theme: {
+      id: 'custom', backgroundColor: '#052e24', surfaceColor: '#0b4537', textColor: '#f0fdf9', mutedTextColor: '#a7f3d0',
+      accentColor: '#34d399', gradient: ['#064e3b', '#0f766e'], paletteTier: 3,
+      paletteColors: ['#052e24', '#0b4537', '#34d399'],
+    },
+  },
+  {
+    name: 'Rose Quartz',
+    description: 'Soft blush with confident berry details',
+    theme: {
+      id: 'custom', backgroundColor: '#fff1f2', surfaceColor: '#ffffff', textColor: '#4c0519', mutedTextColor: '#9f1239',
+      accentColor: '#e11d48', gradient: ['#be123c', '#fb7185'], paletteTier: 3,
+      paletteColors: ['#fff1f2', '#ffffff', '#e11d48'],
+    },
+  },
+  {
+    name: 'Cobalt Precision',
+    description: 'Saturated blue with a bright ice surface',
+    theme: {
+      id: 'custom', backgroundColor: '#eaf2ff', surfaceColor: '#ffffff', textColor: '#172554', mutedTextColor: '#334e8a',
+      accentColor: '#1d4ed8', gradient: ['#1e3a8a', '#2563eb'], paletteTier: 3,
+      paletteColors: ['#eaf2ff', '#ffffff', '#1d4ed8'],
+    },
+  },
+  {
+    name: 'Monochrome Paper',
+    description: 'Clean white with timeless ink contrast',
+    theme: {
+      id: 'custom', backgroundColor: '#f5f5f4', surfaceColor: '#ffffff', textColor: '#1c1917', mutedTextColor: '#57534e',
+      accentColor: '#292524', gradient: ['#44403c', '#0c0a09'], paletteTier: 3,
+      paletteColors: ['#f5f5f4', '#ffffff', '#292524'],
+    },
+  },
 ];
 
 export function CardStylingCustomizer({

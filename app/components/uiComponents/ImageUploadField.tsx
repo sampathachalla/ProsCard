@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { ImagePlus, Pencil, Trash2, Upload } from 'lucide-react-native';
+import { Check, ImagePlus, Pencil, Trash2, Upload } from 'lucide-react-native';
 import { Text } from './Text';
 import { pickImageFromLibrary } from './usePickImage';
 import { MediaImage } from './MediaImage';
+import { COVER_PHOTO_PRESETS } from '@/components/cardsComponents/Services/coverPhotoPresets';
 
 export type ImageUploadVariant = 'banner' | 'avatar' | 'logo';
 
@@ -160,6 +161,42 @@ export function ImageUploadField({
           </Pressable>
         )}
       </View>
+
+      {variant === 'banner' ? (
+        <View className="mt-3">
+          <Text className="mb-2 text-xs font-bold text-textPrimary dark:text-dark-textPrimary">Choose a professional cover</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingRight: 4 }}>
+            {COVER_PHOTO_PRESETS.map((preset) => {
+              const selected = value === preset.value;
+              return (
+                <Pressable
+                  key={preset.id}
+                  accessibilityLabel={`Use ${preset.label} cover`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  disabled={disabled || isPicking}
+                  onPress={() => {
+                    Haptics.selectionAsync().catch(() => {});
+                    onChange(preset.value);
+                  }}
+                  className={`overflow-hidden rounded-xl border-2 active:opacity-80 ${selected ? 'border-primary' : 'border-transparent'}`}
+                  style={{ height: 72, width: 124 }}
+                >
+                  <MediaImage sourceUrl={preset.value} contentFit="cover" style={{ width: '100%', height: '100%' }} />
+                  <View className="absolute inset-x-0 bottom-0 bg-black/55 px-2 py-1">
+                    <Text numberOfLines={1} className="text-[10px] font-bold text-white">{preset.label}</Text>
+                  </View>
+                  {selected ? (
+                    <View className="absolute right-1.5 top-1.5 size-6 items-center justify-center rounded-full bg-white">
+                      <Check color="#2563eb" size={14} strokeWidth={3} />
+                    </View>
+                  ) : null}
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+      ) : null}
 
       <View className="mt-3 flex-row items-center gap-2.5">
         <Pressable

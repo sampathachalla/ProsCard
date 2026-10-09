@@ -24,7 +24,7 @@ import {
 import { resolveLayoutColorSlots } from "@/utils/cardThemeColor";
 import { getCardSectionSpacing } from "./cardSectionSpacing";
 import { ConnectionsBottomDock } from "./ConnectionsBottomDock";
-import { saveOrShareContact } from "@/utils/vcard";
+import { saveDirectlyToNativeContacts } from "@/utils/nativeContacts";
 
 /** Floor only — unlike Identity/Professional/Bio, Connections legitimately
  * varies in height with the number of channels a user has added. This just
@@ -209,7 +209,7 @@ export function ConnectionsSectionRenderer({
       }
     });
 
-    void saveOrShareContact({
+    void saveDirectlyToNativeContacts({
       name: cardMetadata?.name,
       title: cardMetadata?.title,
       company: cardMetadata?.company,

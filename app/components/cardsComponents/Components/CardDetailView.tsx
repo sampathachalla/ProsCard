@@ -7,7 +7,7 @@ import { createCardDetailTemplate } from '../Templates/cardDetailTemplate';
 import { SectionTemplateRenderer } from '../Templates/SectionTemplateRenderer';
 import { getCardFontFamily, getCardLetterSpacing } from '../Templates/cardTheme';
 import { ActiveSectionHighlight } from '@/components/editViewComponents/Components/ActiveSectionHighlight';
-import { saveOrShareContact } from '@/utils/vcard';
+import { saveDirectlyToNativeContacts } from '@/utils/nativeContacts';
 import { getShareUrl } from '@/components/sharingComponents/Services/sharingService';
 
 export function CardDetailView({
@@ -71,7 +71,7 @@ export function CardDetailView({
 
     const note = [profile.tagline, profile.shortBio].filter(Boolean).join('\n\n');
 
-    void saveOrShareContact({
+    void saveDirectlyToNativeContacts({
       name: card.name || profile.fullName,
       firstName: profile.firstName,
       lastName: profile.lastName,
