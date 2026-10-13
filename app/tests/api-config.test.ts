@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveBackendConfig } from '@/services/api/config';
+import { resolveBackendConfig, resolveBackendTarget } from '@/services/api/config';
 
 describe('backend API configuration', () => {
   const env = {
@@ -22,5 +22,11 @@ describe('backend API configuration', () => {
     const result = resolveBackendConfig('local', { EXPO_PUBLIC_API_URL: 'http://127.0.0.1:8050' });
     expect(result.baseUrl).toBe('http://127.0.0.1:8050');
     expect(result.variable).toBe('EXPO_PUBLIC_LOCAL_API_URL');
+  });
+
+  it('defaults invalid or missing build configuration to the production OCI backend', () => {
+    expect(resolveBackendTarget(undefined)).toBe('oci');
+    expect(resolveBackendTarget('unexpected')).toBe('oci');
+    expect(resolveBackendTarget(' tunnel ')).toBe('tunnel');
   });
 });

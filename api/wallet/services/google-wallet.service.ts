@@ -34,6 +34,7 @@ export class GoogleWalletLinkGenerator {
     const objectId = `${this.config.issuerId}.card_${card.cardId.replace(/[^\w.-]/g, '_')}`;
     const avatar = card.photoMediaId ?? card.logoMediaId;
     const details = [
+      ['tag', 'Card tag', card.tag],
       ['email', 'Email', card.email],
       ['phone', 'Phone', card.phone],
       ['website', 'Website', card.website],

@@ -188,6 +188,9 @@ export class AppleWalletPassGenerator {
     if (card.company) {
       pass.headerFields.push({ key: 'header_company', label: 'COMPANY', value: card.company });
     }
+    if (card.tag) {
+      pass.auxiliaryFields.push({ key: 'card_tag', label: 'CARD TAG', value: card.tag });
+    }
 
     // Primary fields: Kept empty so Apple does NOT paint large text over the strip artwork,
     // keeping the user's cover photo and circular profile photo clearly visible.
@@ -202,6 +205,7 @@ export class AppleWalletPassGenerator {
       ['name', 'Preferred name', card.name],
       ['title', 'Job title', card.title],
       ['company', 'Company', card.company],
+      ['tag', 'Card tag', card.tag],
       ['email', 'Email', card.email],
       ['phone', 'Phone', card.phone],
       ['website', 'Website', card.website],

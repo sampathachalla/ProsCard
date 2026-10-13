@@ -7,6 +7,7 @@ function fakeStorage(lifetimeMs: number) {
     createUploadUrl: async (name) => ({ url: `up/${name}`, expiresAt: new Date(Date.now() + lifetimeMs) }),
     createDownloadUrl: async (name) => ({ url: `down/${name}/${++signed}`, expiresAt: new Date(Date.now() + lifetimeMs) }),
     objectExists: async () => true,
+    objectMetadata: async () => ({ sizeBytes: 1024, contentType: 'image/png' }),
     deleteObject: async () => {},
   };
   return { gateway, signedCount: () => signed };

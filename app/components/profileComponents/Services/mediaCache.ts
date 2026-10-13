@@ -7,9 +7,15 @@ type CachedDownloadUrl = {
   expiresAt: number;
 };
 
+type DownloadUrlResult = string | {
+  url: string;
+  expiresAt?: string | number | Date;
+};
+
 const SIGNED_URL_CACHE_PREFIX = 'proscard:media-download-url:';
 const FILE_CACHE_PREFIX = 'proscard:media-file:';
 const SIGNED_URL_CACHE_TTL_MS = 10 * 60 * 1000;
+const SIGNED_URL_EXPIRY_SAFETY_MS = 30 * 1000;
 const memoryCache = new Map<string, CachedDownloadUrl>();
 const pendingRequests = new Map<string, Promise<string>>();
 const memoryFileCache = new Map<string, string>();
@@ -69,6 +75,27 @@ function parseStoredEntry(value: string | null): CachedDownloadUrl | undefined {
   return undefined;
 }
 
+function cacheEntryFrom(result: DownloadUrlResult): CachedDownloadUrl {
+  const now = Date.now();
+  const url = typeof result === 'string' ? result : result.url;
+  const rawExpiry = typeof result === 'string' ? undefined : result.expiresAt;
+  const suppliedExpiry = rawExpiry instanceof Date
+    ? rawExpiry.getTime()
+    : typeof rawExpiry === 'number'
+      ? rawExpiry
+      : typeof rawExpiry === 'string'
+        ? Date.parse(rawExpiry)
+        : Number.NaN;
+  const serverSafeExpiry = Number.isFinite(suppliedExpiry)
+    ? Math.max(now, suppliedExpiry - SIGNED_URL_EXPIRY_SAFETY_MS)
+    : Number.POSITIVE_INFINITY;
+
+  return {
+    url,
+    expiresAt: Math.min(now + SIGNED_URL_CACHE_TTL_MS, serverSafeExpiry),
+  };
+}
+
 export function mediaImageCacheKey(mediaId: string): string {
   return `proscard-media:${mediaId}`;
 }
@@ -88,7 +115,7 @@ export function peekCachedMediaFileUrl(mediaId: string): string | undefined {
 
 export async function getCachedMediaDownloadUrl(
   mediaId: string,
-  load: () => Promise<string>,
+  load: () => Promise<DownloadUrlResult>,
 ): Promise<string> {
   const memoryEntry = memoryCache.get(mediaId);
   if (isUsable(memoryEntry)) return memoryEntry.url;
@@ -107,18 +134,14 @@ export async function getCachedMediaDownloadUrl(
       // Storage availability must never prevent an image from loading.
     }
 
-    const url = await load();
-    const entry: CachedDownloadUrl = {
-      url,
-      expiresAt: Date.now() + SIGNED_URL_CACHE_TTL_MS,
-    };
+    const entry = cacheEntryFrom(await load());
     memoryCache.set(mediaId, entry);
     try {
       await AsyncStorage.setItem(storageKey(mediaId), JSON.stringify(entry));
     } catch {
       // The in-memory and native image caches still provide a useful fallback.
     }
-    return url;
+    return entry.url;
   })().finally(() => {
     pendingRequests.delete(mediaId);
   });

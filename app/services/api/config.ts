@@ -1,12 +1,14 @@
 export type BackendTarget = 'local' | 'tunnel' | 'oci';
 
-/**
- * Backend switch — change only this value, then restart Expo with a cleared cache.
- *   local  → Docker backend reachable on the current network
- *   tunnel → local Docker backend exposed through a public HTTPS tunnel
- *   oci    → backend deployed on the OCI instance (deploy/oci, https://150.136.12.178.nip.io)
- */
-export const BACKEND_TARGET: BackendTarget = 'tunnel';
+const BACKEND_TARGETS: readonly BackendTarget[] = ['local', 'tunnel', 'oci'];
+
+export function resolveBackendTarget(value: string | undefined): BackendTarget {
+  const target = value?.trim().toLowerCase();
+  return BACKEND_TARGETS.includes(target as BackendTarget) ? target as BackendTarget : 'oci';
+}
+
+/** Production-safe default: builds use OCI unless their environment explicitly selects local or tunnel. */
+export const BACKEND_TARGET = resolveBackendTarget(process.env.EXPO_PUBLIC_BACKEND_TARGET);
 
 function normalize(url: string | undefined): string {
   return url?.trim().replace(/\/$/, '') ?? '';

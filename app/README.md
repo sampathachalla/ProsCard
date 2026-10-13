@@ -11,9 +11,10 @@ Copy `.env.example` to a local `.env` and set the backend URLs you use:
 - `EXPO_PUBLIC_TUNNEL_API_URL`: the current public HTTPS tunnel to the local Docker API.
 - `EXPO_PUBLIC_OCI_API_URL`: the API deployed on the OCI instance.
 
-Choose which one the app uses by changing `BACKEND_TARGET` in `services/api/config.ts`
-(`local`, `tunnel`, or `oci`), then restart Expo with `npx expo start -c` so the change is
-picked up. Each value may be either the server root (`http://192.168.1.10:8050`) or the
+Choose which one the app uses with `EXPO_PUBLIC_BACKEND_TARGET` (`local`, `tunnel`, or
+`oci`), then restart Expo with `npx expo start -c` so the change is picked up. Missing or
+invalid values default to `oci`, preventing production builds from silently using a
+temporary development tunnel. Each URL may be either the server root (`http://192.168.1.10:8050`) or the
 versioned API root (`http://192.168.1.10:8050/api/v1`).
 
 Authentication test mode is opt-in with `EXPO_PUBLIC_AUTH_TEST_MODE=true`. Normally,

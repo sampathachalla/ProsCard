@@ -116,14 +116,13 @@ export default function EditViewPage() {
   const [homeBarCollapsed, setHomeBarCollapsed] = useState(false);
   const [activeSection, setActiveSection] = useState<CardSectionId>('identity');
   const [activeEditTab, setActiveEditTab] = useState<EditHomeTab>('layout');
-  const [stylingOpen, setStylingOpen] = useState(false);
+  const [, setStylingOpen] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [sectionPickerOpen, setSectionPickerOpen] = useState(false);
   const {
     card,
     draft,
     hasChanges,
-    hasSectionChanges,
     isEditing,
     isSaving,
     startEditing,
@@ -132,7 +131,6 @@ export default function EditViewPage() {
     updateSectionLayout,
     updateSectionField,
     replaceConnectionFields,
-    resetSection,
     updateSectionTheme,
     saveCustomSectionTheme,
     submit,
@@ -172,20 +170,25 @@ export default function EditViewPage() {
   useEffect(() => {
     if (!isCreateMode || !creationSession) return;
 
-    resetEditor(buildDefaultCard(profile), true);
-    setActiveSection('identity');
-    setActiveEditTab('layout');
-    setStylingOpen(false);
-    setPreviewVisible(false);
-    setSectionPickerOpen(false);
-    setHomeBarCollapsed(false);
-    setSheetIndex(0);
-    sectionOffsets.current = {};
-    cardScrollRef.current?.scrollTo({ y: 0, animated: false });
-
-    const frame = requestAnimationFrame(() => sheetRef.current?.snapToIndex(0));
+    // A creationSession is unique for every "Add card" action. Defer the reset to
+    // the next frame so this effect coordinates the editor instead of synchronously
+    // cascading React state updates. Use the mount-time draft: a background profile
+    // refresh must never erase details the user has already entered.
+    const frame = requestAnimationFrame(() => {
+      resetEditor(creationDraft, true);
+      setActiveSection('identity');
+      setActiveEditTab('layout');
+      setStylingOpen(false);
+      setPreviewVisible(false);
+      setSectionPickerOpen(false);
+      setHomeBarCollapsed(false);
+      setSheetIndex(0);
+      sectionOffsets.current = {};
+      cardScrollRef.current?.scrollTo({ y: 0, animated: false });
+      sheetRef.current?.snapToIndex(0);
+    });
     return () => cancelAnimationFrame(frame);
-  }, [creationSession, isCreateMode, profile, resetEditor]);
+  }, [creationDraft, creationSession, isCreateMode, resetEditor]);
 
   const openSection = (section: CardSectionId) => {
     startEditing();
@@ -346,18 +349,6 @@ export default function EditViewPage() {
     Alert.alert('Discard all changes?', 'Unsaved changes to every section of this card will be lost.', [
       { text: 'Keep editing', style: 'cancel' },
       { text: 'Discard', style: 'destructive', onPress: cancelEditing },
-    ]);
-  };
-  const undoActiveSectionChanges = () => {
-    if (!hasSectionChanges(activeSection) || isSaving) return;
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
-    Alert.alert(`Discard ${SECTION_TITLES[activeSection]} changes?`, 'Unsaved changes to this section will be lost.', [
-      { text: 'Keep editing', style: 'cancel' },
-      {
-        text: 'Discard',
-        style: 'destructive',
-        onPress: () => resetSection(activeSection),
-      },
     ]);
   };
   const previewCard = () => {

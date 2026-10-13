@@ -1,8 +1,6 @@
 import React from 'react';
 import type { CardDetailSection } from './cardDetailTemplate';
 import type { CardVisualTheme } from '../types/card.types';
-import { WalletIdentityPassRenderer } from '../Wallet/WalletIdentityPassRenderer';
-import { WalletProfessionalPassRenderer } from '../Wallet/WalletProfessionalPassRenderer';
 import { IdentitySectionRenderer } from './sections/IdentitySectionRenderer';
 import { ProfessionalSectionRenderer } from './sections/ProfessionalSectionRenderer';
 import { BioSectionRenderer } from './sections/BioSectionRenderer';
@@ -15,7 +13,6 @@ export type SectionTemplateRendererProps = {
   section: CardDetailSection;
   seamless?: boolean;
   showEmpty?: boolean;
-  walletPass?: boolean;
   fullCardView?: boolean;
   homepagePreview?: boolean;
   /** Let supported full-card sections size themselves from rendered content. */
@@ -44,7 +41,6 @@ export function SectionTemplateRenderer({
   section,
   seamless = false,
   showEmpty = false,
-  walletPass = false,
   fullCardView = false,
   homepagePreview = false,
   contentDriven = false,
@@ -54,11 +50,6 @@ export function SectionTemplateRenderer({
 
   switch (section.id) {
     case 'identity':
-      if (walletPass) {
-        return (
-          <WalletIdentityPassRenderer cardTheme={cardTheme} gradient={gradient} section={section} />
-        );
-      }
       return (
         <IdentitySectionRenderer
           compact={compact}
@@ -72,11 +63,6 @@ export function SectionTemplateRenderer({
       );
 
     case 'professional':
-      if (walletPass) {
-        return (
-          <WalletProfessionalPassRenderer cardTheme={cardTheme} gradient={gradient} section={section} />
-        );
-      }
       return (
         <ProfessionalSectionRenderer
           compact={compact}

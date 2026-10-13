@@ -7,7 +7,9 @@ export const mediaRequestSchema = z.object({
   cardId: z.string().uuid().optional(),
   contactId: z.string().uuid().optional(),
   fileName: z.string().trim().min(1).max(255).transform((value) => path.basename(value)),
-  contentType: z.string().regex(/^(image|application)\/[a-z0-9.+-]+$/i),
+  // Every supported media kind is rendered as an image. Reject generic application payloads
+  // before issuing a direct OCI write URL.
+  contentType: z.string().regex(/^image\/[a-z0-9.+-]+$/i),
   sizeBytes: z.number().int().positive().max(20 * 1024 * 1024).optional(),
 }).superRefine((value, context) => {
   if (value.scope === 'card' && !value.cardId) {

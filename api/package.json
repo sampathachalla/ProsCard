@@ -59,5 +59,8 @@
   },
   "optionalDependencies": {
     "@rolldown/binding-darwin-arm64": "^1.2.11"
+  },
+  "overrides": {
+    "joi": "17.13.8"
   }
 }

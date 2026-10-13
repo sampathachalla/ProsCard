@@ -22,6 +22,11 @@ export function walletLabel(kind: WalletKind | null = walletForPlatform()): stri
 }
 
 export type WalletStatus = { apple: { enabled: boolean; inWallet: boolean; addedAt: string | null } };
+export type WalletPresentationOutcome = 'added' | 'cancelled' | 'presented';
+
+export function usesNativeAppleWalletPresenter(): boolean {
+  return Platform.OS === 'ios' && isNativeWalletPassPresenterAvailable();
+}
 
 /** Whether the card's Apple pass is in a Wallet; Wallet reports this to the API when the pass is added or removed. */
 export async function getWalletStatus(cardId: string): Promise<WalletStatus> {
@@ -34,15 +39,15 @@ export async function getWalletStatus(cardId: string): Promise<WalletStatus> {
  *  - Apple: a short-lived link to a signed .pkpass; an in-app Safari sheet shows Apple Wallet.
  *  - Google: a "Save to Google Wallet" link that opens Google's add screen.
  */
-export async function addCardToWallet(cardId: string): Promise<void> {
+export async function addCardToWallet(cardId: string): Promise<WalletPresentationOutcome> {
   const kind = walletForPlatform();
   if (!kind) throw new Error('Open ProsCard on your iPhone or Android phone to add this card to your wallet.');
   if (AUTH_TEST_MODE) throw new Error('Wallet passes need the backend; turn off auth test mode.');
   const { url } = await apiRequest<{ url: string }>(`/wallet/cards/${encodeURIComponent(cardId)}/${kind}`, { method: 'POST' });
   if (kind === 'apple') {
-    if (isNativeWalletPassPresenterAvailable()) {
-      await presentWalletPassAsync(url);
-      return;
+    if (usesNativeAppleWalletPresenter()) {
+      const result = await presentWalletPassAsync(url);
+      return result.added ? 'added' : 'cancelled';
     }
     // A raw Linking.openURL leaves the user on Safari's blank .pkpass download page after Add.
     // Expo Go cannot load the native PassKit presenter, so keep an explicit Done fallback there.
@@ -50,7 +55,8 @@ export async function addCardToWallet(cardId: string): Promise<void> {
       dismissButtonStyle: 'done',
       presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET,
     });
-    return;
+    return 'presented';
   }
   await Linking.openURL(url);
+  return 'presented';
 }

@@ -12,7 +12,7 @@ import {
   getResponsiveSingleLineFontSize,
 } from '@/utils/cardTextLayout';
 import { resolveLayoutColorSlots } from '@/utils/cardThemeColor';
-import { BOXED_SHADOW_LG, BOXED_SHADOW_MD, BOXED_SHADOW_SM } from './SectionSharedComponents';
+import { BOXED_SHADOW_MD, BOXED_SHADOW_SM } from './SectionSharedComponents';
 import { getCardSectionSpacing } from './cardSectionSpacing';
 
 /** Shared minimum height across all 12 layouts so switching between them

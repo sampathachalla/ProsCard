@@ -6,21 +6,6 @@ export {
 } from './WalletDesignEngine';
 
 export {
-  WalletCardRenderEngine,
-  type WalletCardRenderEngineProps,
-} from './WalletCardRenderEngine';
-
-export {
-  WalletIdentityPassRenderer,
-  type WalletIdentitySectionProps,
-} from './WalletIdentityPassRenderer';
-
-export {
-  WalletProfessionalPassRenderer,
-  type WalletProfessionalSectionProps,
-} from './WalletProfessionalPassRenderer';
-
-export {
   WalletQRCodeView,
   type WalletQRCodeViewProps,
 } from './WalletQRCodeView';
@@ -40,24 +25,8 @@ export {
 } from './walletCardLayout';
 
 export {
-  resolveWalletPassLayouts,
-  WALLET_IDENTITY_TEMPLATE_IDS,
-  WALLET_PROFESSIONAL_TEMPLATE_IDS,
-  type WalletIdentityTemplateId,
-  type WalletPassLayouts,
-  type WalletProfessionalTemplateId,
-} from './resolveWalletPassLayouts';
-
-export {
   walletField,
   walletFieldValue,
   walletIdentityFields,
   walletProfessionalFields,
 } from './walletPassFields';
-
-export {
-  WalletPassAccentRule,
-  WalletPassNameBlock,
-  WalletPassRoleBlock,
-  WalletPassText,
-} from './walletPassTypography';

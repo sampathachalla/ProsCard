@@ -8,6 +8,7 @@ export type WalletCard = {
   name: string;
   title: string;
   company: string;
+  tag: string;
   email: string;
   phone: string;
   website: string;
@@ -31,6 +32,16 @@ type Json = Record<string, unknown>;
 
 const str = (value: unknown) => (typeof value === 'string' ? value.trim() : '');
 const mediaId = (value: string) => value.match(/\/api\/v1\/media\/([0-9a-f-]{36})\/content/)?.[1] ?? null;
+
+/** Capitalize displayed name segments without rewriting the saved card value. */
+function formatPersonName(value: string): string {
+  return value
+    .trim()
+    .replace(/\s+/g, ' ')
+    .replace(/(^|[\s\-’'])([^\s\-’'])/gu, (_match, boundary: string, character: string) =>
+      `${boundary}${character.toLocaleUpperCase()}`,
+    );
+}
 
 function hexToRgb(hex: string): [number, number, number] | null {
   const match = hex.trim().match(/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i);
@@ -120,9 +131,10 @@ export function toWalletCard(cardId: string, card: Json, profile: Json | null): 
   const colors = passColors(card);
   return {
     cardId,
-    name: pick('preferredName', p.preferredName, card.name) || 'Business card',
+    name: formatPersonName(pick('preferredName', p.preferredName, card.name)) || 'Business card',
     title: pick('title', p.title, card.title),
     company: pick('company', p.organization, card.company),
+    tag: pick('cardTag'),
     email: str(p.email) || str(card.email),
     phone: str(p.phone) || str(card.phone),
     website: str(p.website),

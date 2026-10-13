@@ -11,7 +11,6 @@ export function CardSectionFace({
   profile,
   sectionId,
   seamless = false,
-  walletPass = false,
   width,
 }: {
   card: BusinessCard;
@@ -20,7 +19,6 @@ export function CardSectionFace({
   profile: Profile;
   sectionId: CardSectionId;
   seamless?: boolean;
-  walletPass?: boolean;
   width: number;
 }) {
   const section = createCardDetailTemplate(card, profile).find((item) => item.id === sectionId);
@@ -36,12 +34,11 @@ export function CardSectionFace({
         <SectionTemplateRenderer
           compact
           cardTheme={theme}
-          fullCardView={seamless && !walletPass}
+          fullCardView={seamless}
           gradient={theme.gradient}
           homepagePreview={homepagePreview}
           section={section}
           seamless={seamless}
-          walletPass={walletPass}
         />
       </View>
     </View>

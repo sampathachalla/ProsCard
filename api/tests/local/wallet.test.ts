@@ -16,14 +16,14 @@ const MEDIA = '11111111-2222-4333-8444-555555555555';
 const card = {
   name: 'Card Name',
   title: 'Card Title',
-  sectionOverrides: { title: 'Override Title', profilePhoto: `/api/v1/media/${MEDIA}/content` },
+  sectionOverrides: { title: 'Override Title', cardTag: 'Business', profilePhoto: `/api/v1/media/${MEDIA}/content` },
   sectionThemes: {
     professional: { surfaceColor: '#ffffff', textColor: '#0f172a', mutedTextColor: '#64748b', accentColor: '#d19000', gradient: ['#2563eb', '#00a8e8'] },
     identity: { backgroundColor: '#eff6ff', gradient: ['#111827', '#020617'] },
     connections: { accentColor: '#d19000' },
   },
 };
-const profile = { preferredName: 'Ada Lovelace', organization: 'Engines Ltd', email: 'ada@engines.io', phone: '+44 20 1234', website: 'engines.io', companyLogoUrl: '', coverPhotoUrl: `/api/v1/media/${MEDIA}/content` };
+const profile = { preferredName: 'ada lovelace', organization: 'Engines Ltd', email: 'ada@engines.io', phone: '+44 20 1234', website: 'engines.io', companyLogoUrl: '', coverPhotoUrl: `/api/v1/media/${MEDIA}/content` };
 
 /** Throwaway self-signed signer, enough to exercise the real pass builder and signer. */
 function selfSigned() {
@@ -50,6 +50,7 @@ describe('wallet passes', () => {
     expect(wallet.name).toBe('Ada Lovelace');
     expect(wallet.title).toBe('Override Title');
     expect(wallet.company).toBe('Engines Ltd');
+    expect(wallet.tag).toBe('Business');
     expect(wallet.photoMediaId).toBe(MEDIA);
     expect(wallet.logoMediaId).toBeNull();
     expect(wallet.coverMediaId).toBe(MEDIA);
@@ -73,6 +74,7 @@ describe('wallet passes', () => {
     expect(zip).toContain('"serialNumber":"card-1"');
     expect(zip).toContain('"passTypeIdentifier":"pass.com.mindpros.proscard"');
     expect(zip).toContain('Ada Lovelace');
+    expect(zip).toContain('Business');
     expect(zip).toContain('https://example.test/share/abc');
     expect(zip).toContain('PKBarcodeFormatQR');
     expect(zip).toContain('"storeCard"');
@@ -101,6 +103,7 @@ describe('wallet passes', () => {
     const object = body.payload.genericObjects[0];
     expect(object.id).toBe('3388000000012345.card_card-1');
     expect(object.header.defaultValue.value).toBe('Ada Lovelace');
+    expect(object.textModulesData).toContainEqual({ id: 'tag', header: 'Card tag', body: 'Business' });
     expect(object.barcode.value).toBe('https://example.test/share/abc');
     expect(object.logo.sourceUri.uri).toBe(`https://example.test/img/${MEDIA}`);
     expect(object.heroImage.sourceUri.uri).toBe(`https://example.test/img/${MEDIA}`);

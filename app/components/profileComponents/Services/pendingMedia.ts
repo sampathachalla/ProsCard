@@ -1,5 +1,6 @@
 import type { ImagePickerAsset } from 'expo-image-picker';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
+import { ApiError, NETWORK_ERROR_STATUS } from '@/services/api/client';
 import type { MediaKind, MediaScope } from '@/services/api/types';
 import {
   cacheMediaFileFromUri,
@@ -66,8 +67,17 @@ export async function commitPendingMedia(
   if (!isPendingMediaUrl(uri)) return uri;
   const asset = pendingAssets.get(uri);
   const optimized = await optimizeProfileMedia(uri, kind, asset);
-  const source = await fetch(optimized.uri);
-  const blob = await source.blob();
+  let blob: Blob;
+  try {
+    const source = await fetch(optimized.uri);
+    blob = await source.blob();
+  } catch (error) {
+    throw new ApiError(
+      'ProsCard couldn’t read the selected image. Select it again and retry.',
+      NETWORK_ERROR_STATUS,
+      error,
+    );
+  }
   const contentType = optimized.contentType || blob.type || 'image/jpeg';
   const fileName = optimized.fileName || `upload-${Date.now()}.${contentType.split('/')[1] || 'jpg'}`;
   const ticket = await requestMediaUpload({

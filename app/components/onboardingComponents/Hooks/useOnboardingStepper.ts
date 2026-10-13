@@ -46,6 +46,29 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
   const draftRef = useRef<OnboardingDraft>(INITIAL_ONBOARDING_DRAFT);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const finalizeInFlightRef = useRef(false);
+  const touchedFieldsRef = useRef<Set<keyof OnboardingDraft>>(new Set());
+  const cardsHydrationRef = useRef<Promise<unknown>>(Promise.resolve());
+  const draftSaveChainRef = useRef<Promise<void>>(Promise.resolve());
+  const pendingDraftSyncRef = useRef<OnboardingDraft | null>(null);
+  const draftSyncRunningRef = useRef(false);
+  const lastQueuedDraftRef = useRef('');
+
+  const flushDraftSync = useCallback((): Promise<void> => {
+    if (draftSyncRunningRef.current) return draftSaveChainRef.current;
+    draftSyncRunningRef.current = true;
+    const work = (async () => {
+      while (pendingDraftSyncRef.current) {
+        const snapshot = pendingDraftSyncRef.current;
+        pendingDraftSyncRef.current = null;
+        await saveOnboardingDraft(snapshot).catch(() => undefined);
+      }
+    })().finally(() => {
+      draftSyncRunningRef.current = false;
+    });
+    draftSaveChainRef.current = work;
+    return work;
+  }, []);
 
   const totalSteps = ONBOARDING_FLOW.length;
   const safeFlowIndex = clampFlowIndex(flowIndex);
@@ -85,7 +108,10 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
 
   useEffect(() => {
     let isMounted = true;
-    Promise.all([getStoredUser(), getProfile(), getOnboardingState().catch(() => null), hydrateCards()]).then(([user, existingProfile, onboarding]) => {
+    // Cards are needed only when the final primary card is saved. Start warming
+    // them now, but do not delay the onboarding form while that request runs.
+    cardsHydrationRef.current = hydrateCards().catch(() => []);
+    Promise.all([getStoredUser(), getProfile(), getOnboardingState().catch(() => null)]).then(([user, existingProfile, onboarding]) => {
       if (!isMounted || hasHydratedFromStorageRef.current) return;
       hasHydratedFromStorageRef.current = true;
       setDraft((prev) => {
@@ -96,19 +122,22 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
         for (const field of ['firstName', 'fullName'] as const) {
           if (loginEmail && savedDraft[field]?.trim().toLowerCase() === loginEmail) delete savedDraft[field];
         }
-        const next = {
+        const next: OnboardingDraft = {
           ...prev,
           ...profileDraft,
           ...savedDraft,
           fullName: savedDraft.fullName || profileDraft.fullName || '',
           firstName: savedDraft.firstName || profileDraft.firstName || prev.firstName,
         };
+        // A slow prefill response must not replace fields the user has already edited.
+        for (const key of touchedFieldsRef.current) {
+          Object.assign(next, { [key]: prev[key] });
+        }
         draftRef.current = next;
         return next;
       });
-    }).catch((error) => {
+    }).catch(() => {
       // Offline with nothing cached: the form simply starts empty.
-      console.warn('Could not prefill onboarding:', error);
     });
     return () => {
       isMounted = false;
@@ -117,15 +146,20 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
 
   useEffect(() => {
     if (!hasHydratedFromStorageRef.current || isSaving) return;
+    const serialized = JSON.stringify(draft);
+    if (serialized === lastQueuedDraftRef.current) return;
     const timeout = setTimeout(() => {
-      saveOnboardingDraft(draft).catch((error) => {
-        console.warn('Could not synchronize onboarding draft:', error);
-      });
-    }, 500);
+      lastQueuedDraftRef.current = serialized;
+      // Keep only the newest waiting snapshot. On a slow connection this prevents
+      // every intermediate step from becoming another request in a long queue.
+      pendingDraftSyncRef.current = draft;
+      void flushDraftSync();
+    }, 1500);
     return () => clearTimeout(timeout);
-  }, [draft, isSaving]);
+  }, [draft, flushDraftSync, isSaving]);
 
   const updateDraft = useCallback((fields: Partial<OnboardingDraft>) => {
+    Object.keys(fields).forEach((key) => touchedFieldsRef.current.add(key as keyof OnboardingDraft));
     draftRef.current = { ...draftRef.current, ...fields };
     setDraft((prev) => ({ ...prev, ...fields }));
     setErrors((prev) => {
@@ -272,7 +306,9 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
   }, [flowIndex, isSaving]);
 
   const finalizeOnboarding = useCallback(async (): Promise<boolean> => {
-    if (isSaving) return false;
+    // State updates are asynchronous, so a ref also guards rapid repeated taps
+    // before the disabled/loading state reaches the button.
+    if (isSaving || finalizeInFlightRef.current) return false;
 
     const currentDraft = draftRef.current;
 
@@ -288,31 +324,41 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
       return false;
     }
 
+    finalizeInFlightRef.current = true;
     setIsSaving(true);
     try {
       const profileToSave = mapDraftToProfile(currentDraft);
       const primaryCard = mapDraftToBusinessCard(currentDraft);
 
-      await saveProfile(profileToSave);
-      const savedCard = await savePrimaryCard(primaryCard);
+      // Usually already complete after the user traverses the flow. Awaiting it here
+      // prevents a late card hydration response from replacing the newly saved card.
+      await cardsHydrationRef.current;
+      const [, savedCard] = await Promise.all([
+        saveProfile(profileToSave),
+        savePrimaryCard(primaryCard),
+      ]);
       const completedDraft = { ...currentDraft, primaryCardId: savedCard.id };
-      await saveOnboardingDraft(completedDraft);
+      // The completion endpoint persists the final draft and completion timestamp
+      // atomically, so a separate draft-save request here would be redundant. Let
+      // any previously queued autosave finish first; it ran in parallel with the
+      // profile/card work and cannot overwrite this final draft afterward.
+      await flushDraftSync();
       await setHasCompletedOnboarding(completedDraft);
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       router.replace('/(tabs)/homepage');
       return true;
     } catch (err: unknown) {
-      console.error('Error finalizing onboarding:', err);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
       const errorMessage =
         err instanceof Error ? err.message : 'Could not save your profile. Please try again.';
-      Alert.alert('Save Failed', errorMessage);
+      Alert.alert('Couldn’t save yet', errorMessage);
       return false;
     } finally {
+      finalizeInFlightRef.current = false;
       setIsSaving(false);
     }
-  }, [isSaving, router]);
+  }, [flushDraftSync, isSaving, router]);
 
   return {
     currentStep,

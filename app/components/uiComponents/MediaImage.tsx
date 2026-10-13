@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 import { Image, type ImageProps } from 'expo-image';
 import {
   getDisplayMediaUrl,
@@ -32,7 +33,7 @@ export function MediaImage({ sourceUrl, ...props }: MediaImageProps) {
   return (
     <Image
       cachePolicy="memory-disk"
-      transition={120}
+      transition={Platform.OS === 'web' ? 0 : 120}
       recyclingKey={cacheKey ?? sourceUrl}
       {...props}
       source={coverPreset?.source ?? (displayUrl ? { uri: displayUrl, cacheKey } : undefined)}

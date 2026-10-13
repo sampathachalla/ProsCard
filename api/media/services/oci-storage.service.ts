@@ -9,6 +9,7 @@ export interface ObjectStorageGateway {
   createUploadUrl(objectName: string): Promise<{ url: string; expiresAt: Date }>;
   createDownloadUrl(objectName: string): Promise<{ url: string; expiresAt: Date }>;
   objectExists(objectName: string): Promise<boolean>;
+  objectMetadata(objectName: string): Promise<{ sizeBytes: number; contentType: string } | null>;
   deleteObject(objectName: string): Promise<void>;
 }
 
@@ -72,17 +73,23 @@ export class OciObjectStorageGateway implements ObjectStorageGateway {
     );
   }
   async objectExists(name: string) {
+    return (await this.objectMetadata(name)) !== null;
+  }
+  async objectMetadata(name: string) {
     try {
-      await this.client.headObject({
+      const response = await this.client.headObject({
         namespaceName: this.config.OCI_NAMESPACE,
         bucketName: this.config.OCI_BUCKET_NAME,
         objectName: name,
       });
-      return true;
+      return {
+        sizeBytes: Number(response.contentLength ?? 0),
+        contentType: String(response.contentType ?? '').split(';', 1)[0]!.trim().toLowerCase(),
+      };
     } catch (error) {
       const status = (error as { statusCode?: number }).statusCode;
-      if (status === 404) return false;
-      storageUnavailable(error, 'object_exists');
+      if (status === 404) return null;
+      storageUnavailable(error, 'object_metadata');
     }
   }
   async deleteObject(name: string) {
@@ -127,6 +134,10 @@ export class CachedDownloadUrlStorage implements ObjectStorageGateway {
 
   objectExists(objectName: string) {
     return this.inner.objectExists(objectName);
+  }
+
+  objectMetadata(objectName: string) {
+    return this.inner.objectMetadata(objectName);
   }
 
   async deleteObject(objectName: string) {

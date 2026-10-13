@@ -7,7 +7,6 @@ import {
   BOXED_SHADOW_LG,
   BOXED_SHADOW_MD,
   BOXED_SHADOW_SM,
-  BOXED_SHADOW_XL,
   IdentityImage,
   UniversalLogoBadge,
 } from './SectionSharedComponents';

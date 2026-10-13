@@ -41,6 +41,7 @@ export async function getShareUrl(cardId: string): Promise<string> {
 type SharedCardView = { card: BusinessCard; profile: Partial<Profile> };
 
 const SHARE_REQUEST_TIMEOUT_MS = 20_000;
+const SHARED_MEDIA_WARM_TIMEOUT_MS = 8_000;
 const SHARED_MEDIA_PATH = /\/api\/v1\/sharing\/public\/[^/]+\/media\/[^/?#]+/;
 const DIRECT_IMAGE_URL = /^https?:\/\//i;
 
@@ -64,13 +65,41 @@ function collectWarmUrls(value: unknown, urls = new Set<string>()): Set<string> 
   return urls;
 }
 
-/** Warm the image cache in the background — never blocks the card from rendering. */
-function warmSharedMedia(view: SharedCardView): void {
+function preconnectSharedMedia(urls: string[]): void {
+  if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+  const origins = new Set(urls.flatMap((url) => {
+    try {
+      return [new URL(url).origin];
+    } catch {
+      return [];
+    }
+  }));
+  origins.forEach((origin) => {
+    if (document.head.querySelector(`link[data-proscard-preconnect="${origin}"]`)) return;
+    const link = document.createElement('link');
+    link.rel = 'preconnect';
+    link.href = origin;
+    link.crossOrigin = 'anonymous';
+    link.dataset.proscardPreconnect = origin;
+    document.head.appendChild(link);
+  });
+}
+
+/** Cache shared-card images before the public card is revealed on the web. */
+async function warmSharedMedia(view: SharedCardView, waitForImages = false): Promise<void> {
   const urls = [...collectWarmUrls(view)];
   if (!urls.length) return;
-  void import('expo-image')
+  preconnectSharedMedia(urls);
+  const prefetch = import('expo-image')
     .then(({ Image }) => Image.prefetch(urls, 'memory-disk'))
+    .then(() => undefined)
     .catch(() => undefined);
+  if (waitForImages) {
+    await Promise.race([
+      prefetch,
+      new Promise<void>((resolve) => setTimeout(resolve, SHARED_MEDIA_WARM_TIMEOUT_MS)),
+    ]);
+  }
 }
 
 /**
@@ -83,7 +112,7 @@ export async function getSharedCardView(slug: string): Promise<SharedCardView> {
   const origin = Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.origin : null;
   if (!origin) {
     const view = await apiRequest<SharedCardView>(path, { authenticated: false });
-    warmSharedMedia(view);
+    void warmSharedMedia(view);
     return view;
   }
 
@@ -118,7 +147,9 @@ export async function getSharedCardView(slug: string): Promise<SharedCardView> {
   const absolute = JSON.parse(
     JSON.stringify(view).replace(/"\/api\/v1\/sharing\/public\//g, `"${origin}/api/v1/sharing/public/`),
   ) as SharedCardView;
-  warmSharedMedia(absolute);
+  // QR visitors should see the complete card, not a card whose profile photo,
+  // logo and cover pop in several moments after the text.
+  await warmSharedMedia(absolute, true);
   return absolute;
 }
 

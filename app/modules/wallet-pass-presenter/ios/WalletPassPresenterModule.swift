@@ -1,25 +1,38 @@
 import ExpoModulesCore
 import PassKit
 
-final class WalletPassDownloadException: GenericException<String> {
+final class WalletPassDownloadException: GenericException<String>, @unchecked Sendable {
   override var reason: String { "Could not download the Apple Wallet pass: \(param)" }
 }
 
-final class WalletPassInvalidException: Exception {
+final class WalletPassInvalidException: Exception, @unchecked Sendable {
   override var reason: String { "The downloaded Apple Wallet pass is invalid." }
 }
 
-final class WalletPassPresentationException: Exception {
+final class WalletPassPresentationException: Exception, @unchecked Sendable {
   override var reason: String { "ProsCard could not present the Apple Wallet screen." }
 }
 
-final class WalletPassInProgressException: Exception {
+final class WalletPassInProgressException: Exception, @unchecked Sendable {
   override var reason: String { "Another Apple Wallet pass is already being presented." }
 }
 
-public final class WalletPassPresenterModule: Module, PKAddPassesViewControllerDelegate {
+private final class WalletPassPresenterDelegate: NSObject, PKAddPassesViewControllerDelegate {
+  let onFinish: (PKAddPassesViewController) -> Void
+
+  init(onFinish: @escaping (PKAddPassesViewController) -> Void) {
+    self.onFinish = onFinish
+  }
+
+  func addPassesViewControllerDidFinish(_ controller: PKAddPassesViewController) {
+    onFinish(controller)
+  }
+}
+
+public final class WalletPassPresenterModule: Module {
   private var pendingPromise: Promise?
   private var pendingPass: PKPass?
+  private var presenterDelegate: WalletPassPresenterDelegate?
 
   public func definition() -> ModuleDefinition {
     Name("WalletPassPresenter")
@@ -59,16 +72,21 @@ public final class WalletPassPresenterModule: Module, PKAddPassesViewControllerD
       return
     }
     pendingPass = pass
-    controller.delegate = self
+    let delegate = WalletPassPresenterDelegate { [weak self] controller in
+      self?.finishPresentation(controller)
+    }
+    presenterDelegate = delegate
+    controller.delegate = delegate
     parent.present(controller, animated: true)
   }
 
-  public func addPassesViewControllerDidFinish(_ controller: PKAddPassesViewController) {
+  private func finishPresentation(_ controller: PKAddPassesViewController) {
     let added = pendingPass.map { PKPassLibrary().containsPass($0) } ?? false
     controller.dismiss(animated: true) {
       self.pendingPromise?.resolve(["added": added])
       self.pendingPromise = nil
       self.pendingPass = nil
+      self.presenterDelegate = nil
     }
   }
 
@@ -77,6 +95,7 @@ public final class WalletPassPresenterModule: Module, PKAddPassesViewControllerD
       self.pendingPromise?.reject(error)
       self.pendingPromise = nil
       self.pendingPass = nil
+      self.presenterDelegate = nil
     }
   }
 }

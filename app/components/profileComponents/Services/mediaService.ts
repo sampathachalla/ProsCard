@@ -1,4 +1,4 @@
-import { apiRequest } from '@/services/api/client';
+import { ApiError, apiRequest, NETWORK_ERROR_STATUS } from '@/services/api/client';
 import { API_BASE_URL } from '@/services/api/config';
 import type {
   ConfirmedMedia,
@@ -16,6 +16,7 @@ import {
 } from './mediaCache';
 
 const PROTECTED_MEDIA_PATTERN = /\/api\/v1\/media\/([^/]+)\/content$/;
+const OBJECT_UPLOAD_TIMEOUT_MS = 45_000;
 
 export async function requestMediaUpload(input: MediaUploadRequest): Promise<MediaUploadTicket> {
   return apiRequest('/media/upload-url', { method: 'POST', body: input });
@@ -25,12 +26,40 @@ export async function uploadToObjectStorage(
   ticket: MediaUploadTicket,
   body: Blob | ArrayBuffer,
 ): Promise<void> {
-  const response = await fetch(ticket.url, {
-    method: ticket.method,
-    headers: ticket.headers,
-    body,
-  });
-  if (!response.ok) throw new Error(`Object upload failed (${response.status}).`);
+  const controller = new AbortController();
+  let timedOut = false;
+  const timeout = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, OBJECT_UPLOAD_TIMEOUT_MS);
+  let response: Response;
+  try {
+    response = await fetch(ticket.url, {
+      method: ticket.method,
+      headers: ticket.headers,
+      body,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    throw new ApiError(
+      timedOut
+        ? 'The image upload took too long. Check your connection and try again.'
+        : 'The image upload was interrupted. Check your internet connection and try again.',
+      NETWORK_ERROR_STATUS,
+      error,
+    );
+  } finally {
+    clearTimeout(timeout);
+  }
+  if (!response.ok) {
+    throw new ApiError(
+      response.status >= 500
+        ? 'The image service is temporarily unavailable. Please try again.'
+        : 'The image could not be uploaded. Please select it again and retry.',
+      response.status,
+      null,
+    );
+  }
 }
 
 export async function confirmMedia(mediaId: string): Promise<ConfirmedMedia> {
@@ -44,8 +73,9 @@ export async function deleteMedia(mediaId: string): Promise<void> {
 
 export async function getMediaDownloadUrl(mediaId: string): Promise<string> {
   return getCachedMediaDownloadUrl(mediaId, async () => {
-    const result = await apiRequest<{ url: string }>(`/media/${encodeURIComponent(mediaId)}/download-url`);
-    return result.url;
+    return apiRequest<{ url: string; expiresAt?: string }>(
+      `/media/${encodeURIComponent(mediaId)}/download-url`,
+    );
   });
 }
 

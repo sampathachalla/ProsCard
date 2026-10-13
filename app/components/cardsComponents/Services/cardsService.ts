@@ -320,9 +320,8 @@ export async function hydrateCards(): Promise<BusinessCard[]> {
         notifyCardListeners();
         prefetchCardMedia(normalizedCards);
         return CARDS;
-      } catch (error) {
+      } catch {
         lastCardsSyncFailed = true;
-        console.warn('Using cached cards because synchronization failed:', error);
       }
     }
     // A corrupted entry is skipped (not thrown), so the primary-card fallback below still runs.
@@ -344,8 +343,9 @@ export async function hydrateCards(): Promise<BusinessCard[]> {
       prefetchCardMedia([CARDS[0]]);
       return CARDS;
     }
-  } catch (error) {
-    console.error('Failed to hydrate cards from storage:', error);
+  } catch {
+    // Corrupt or unavailable local storage is non-fatal; the empty state can recover
+    // on the next successful server synchronization.
   }
   return CARDS;
 }
@@ -393,10 +393,16 @@ export async function savePrimaryCard(profileData: Partial<BusinessCard>): Promi
 
   // 2. Persist to AsyncStorage asynchronously
   try {
-    await AsyncStorage.setItem(await scopedCardKey(PRIMARY_CARD_KEY), JSON.stringify(updatedCard));
-    await AsyncStorage.setItem(await scopedCardKey(USER_CARDS_KEY), JSON.stringify(CARDS));
-  } catch (error) {
-    console.error('Failed to persist primary card:', error);
+    const [primaryKey, cardsKey] = await Promise.all([
+      scopedCardKey(PRIMARY_CARD_KEY),
+      scopedCardKey(USER_CARDS_KEY),
+    ]);
+    await Promise.all([
+      AsyncStorage.setItem(primaryKey, JSON.stringify(CARDS[0])),
+      AsyncStorage.setItem(cardsKey, JSON.stringify(CARDS)),
+    ]);
+  } catch {
+    // The backend remains authoritative; a later hydration repopulates the cache.
   }
 
   return CARDS[0];

@@ -1,5 +1,5 @@
 // components/scannerComponents/Services/cardCaptureService.ts
-import { Alert, Platform, TurboModuleRegistry } from 'react-native';
+import { Alert, Linking, Platform, TurboModuleRegistry } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import type { CapturedCard } from '../types/scanner.types';
 
@@ -46,7 +46,9 @@ export async function scanCard(): Promise<CapturedCard | null> {
   if (isDocumentScannerAvailable()) return scanWithEdgeDetection();
   const permission = await ImagePicker.requestCameraPermissionsAsync();
   if (!permission.granted) {
-    Alert.alert('Camera access needed', 'Allow camera access in Settings to scan business cards.');
+    await Linking.openSettings().catch(() => {
+      Alert.alert('Camera access needed', 'Open ProsCard in Settings and allow camera access to scan business cards.');
+    });
     return null;
   }
   return fromPickerResult(await ImagePicker.launchCameraAsync(pickerOptions), 'camera');
@@ -57,7 +59,9 @@ export async function pickCardFromLibrary(): Promise<CapturedCard | null> {
   if (Platform.OS !== 'web') {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert('Photo access needed', 'Allow photo library access in Settings to upload a business card photo.');
+      await Linking.openSettings().catch(() => {
+        Alert.alert('Photo access needed', 'Open ProsCard in Settings and allow photo library access to upload a business card photo.');
+      });
       return null;
     }
   }

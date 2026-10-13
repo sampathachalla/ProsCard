@@ -1,4 +1,4 @@
-import { Alert, Platform } from 'react-native';
+import { Alert, Linking, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { registerPendingMedia } from '@/components/profileComponents/Services/pendingMedia';
 
@@ -13,10 +13,12 @@ export async function pickImageFromLibrary(options: PickImageOptions = {}): Prom
   if (Platform.OS !== 'web') {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert(
-        'Photo access needed',
-        'Allow photo library access in Settings to upload images for your card.',
-      );
+      await Linking.openSettings().catch(() => {
+        Alert.alert(
+          'Photo access needed',
+          'Open ProsCard in Settings and allow photo library access to upload images for your card.',
+        );
+      });
       return null;
     }
   }

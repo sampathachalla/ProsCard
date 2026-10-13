@@ -29,6 +29,7 @@ const storage:ObjectStorageGateway={
   createUploadUrl:async name=>({url:`https://oci.test/upload/${name}`,expiresAt:new Date('2030-01-01')}),
   createDownloadUrl:async name=>({url:`https://oci.test/download/${name}`,expiresAt:new Date('2030-01-01')}),
   objectExists:async()=>true,
+  objectMetadata:async()=>({sizeBytes:1024,contentType:'image/png'}),
   deleteObject:async name=>{if(failObjectDeletion)throw new Error('simulated OCI deletion failure');deletedObjects.push(name)},
 };
 

@@ -26,6 +26,8 @@ type UploadInput = {
   fileName: string; contentType: string; sizeBytes?: number;
 };
 
+const MAX_MEDIA_SIZE_BYTES = 20 * 1024 * 1024;
+
 export class MediaService {
   constructor(private readonly repo: MediaRepository, private readonly storage: ObjectStorageGateway) {}
 
@@ -43,7 +45,20 @@ export class MediaService {
       userId, objectName, input.kind, input.contentType, input.fileName,
       input.sizeBytes, input.scope, input.cardId, input.contactId,
     );
-    const signed = await this.storage.createUploadUrl(objectName);
+    let signed: Awaited<ReturnType<ObjectStorageGateway['createUploadUrl']>>;
+    try {
+      signed = await this.storage.createUploadUrl(objectName);
+    } catch (error) {
+      try {
+        await this.repo.delete(userId, row.id);
+      } catch (cleanupError) {
+        log('warn', 'media_upload_ticket_cleanup_failed', {
+          mediaId: row.id,
+          message: cleanupError instanceof Error ? cleanupError.message : String(cleanupError),
+        });
+      }
+      throw error;
+    }
     return {
       mediaId: row.id, kind: input.kind, scope: input.scope, cardId: input.cardId, contactId: input.contactId,
       status: row.status, objectName, method: 'PUT', headers: { 'Content-Type': input.contentType }, ...signed,
@@ -52,8 +67,18 @@ export class MediaService {
 
   async confirm(userId: string, id: string) {
     const row = await this.requireRow(userId, id);
-    if (!await this.storage.objectExists(row.object_name)) {
+    const uploaded = await this.storage.objectMetadata(row.object_name);
+    if (!uploaded) {
       throw new HttpError(409, 'The OCI upload has not completed.');
+    }
+    if (
+      !Number.isSafeInteger(uploaded.sizeBytes)
+      || uploaded.sizeBytes <= 0
+      || uploaded.sizeBytes > MAX_MEDIA_SIZE_BYTES
+      || !uploaded.contentType.startsWith('image/')
+    ) {
+      await this.rejectInvalidUpload(row);
+      throw new HttpError(422, 'The uploaded image type or size is not allowed.');
     }
     if (row.attachment_scope === 'card' && (!row.card_id || !await this.repo.cardOwned(userId, row.card_id))) {
       throw new HttpError(404, 'Card not found.');
@@ -65,9 +90,21 @@ export class MediaService {
     const previous = await this.repo.findAttached(userId, row.attachment_scope, field, targetIdFor(row));
     const ready = await this.repo.ready(userId, id);
     if (!ready) throw new HttpError(409, 'Media could not be confirmed.');
-    const attached = await this.repo.attach(ready, field);
-    if (!attached) {
-      throw new HttpError(409, 'The card, contact, or profile for this upload no longer exists.');
+    try {
+      const attached = await this.repo.attach(ready, field);
+      if (!attached) {
+        throw new HttpError(409, 'The card, contact, or profile for this upload no longer exists.');
+      }
+    } catch (error) {
+      try {
+        await this.repo.cleanupFailed(userId, id);
+      } catch (cleanupError) {
+        log('warn', 'media_confirm_cleanup_mark_failed', {
+          mediaId: id,
+          message: cleanupError instanceof Error ? cleanupError.message : String(cleanupError),
+        });
+      }
+      throw error;
     }
     let replacedMediaId: string | undefined;
     let cleanupPending = false;
@@ -103,6 +140,24 @@ export class MediaService {
       }
     }
     return { examined: rows.length, cleaned, failed };
+  }
+
+  private async rejectInvalidUpload(row: MediaRow) {
+    try {
+      await this.storage.deleteObject(row.object_name);
+      await this.repo.delete(row.user_id, row.id);
+    } catch (error) {
+      await this.repo.cleanupFailed(row.user_id, row.id).catch((cleanupError) => {
+        log('warn', 'invalid_media_cleanup_mark_failed', {
+          mediaId: row.id,
+          message: cleanupError instanceof Error ? cleanupError.message : String(cleanupError),
+        });
+      });
+      log('warn', 'invalid_media_cleanup_failed', {
+        mediaId: row.id,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
   retryCleanup(userId: string) { return this.repo.cleanupCandidates(userId).then((rows) => this.clean(rows)); }
   retryAllCleanup() { return this.repo.cleanupCandidatesAll().then((rows) => this.clean(rows)); }
