@@ -11,6 +11,7 @@ import { Text } from '@/components/uiComponents/Text';
 import { QRCodeModal } from '@/components/uiComponents/QRCodeModal';
 import { useShareUrl } from '@/components/sharingComponents/Hooks/useShareUrl';
 import { useAddToWallet } from '@/components/walletCardComponents/Hooks/useAddToWallet';
+import { WalletProcessingModal } from '@/components/walletCardComponents/WalletProcessingModal';
 import { getShareUrl } from '@/components/sharingComponents/Services/sharingService';
 import { queryClient, queryKeys } from '@/services/api/queryClient';
 import { useProfileSnapshot } from '@/components/profileComponents/Hooks/useProfileSnapshot';
@@ -52,7 +53,7 @@ export default function CardDetailPage() {
   const card = cardQuery.data;
   const { profile } = useProfileSnapshot();
   const [showQr, setShowQr] = useState(false);
-  const { addToWallet } = useAddToWallet();
+  const wallet = useAddToWallet();
 
   const share = useShareUrl(showQr ? cardId : null);
 
@@ -103,7 +104,7 @@ export default function CardDetailPage() {
             }
             break;
           case 'wallet':
-            await addToWallet(card.id, card.name);
+            await wallet.addToWallet(card.id, card.name);
             break;
           case 'edit':
             router.push({
@@ -138,6 +139,7 @@ export default function CardDetailPage() {
         <CardDetailView card={card} fullBleed profile={profile} />
       </ScrollView>
       <FloatingToolsButton actions={toolActions} />
+      <WalletProcessingModal label={wallet.label} visible={wallet.adding} />
       <QRCodeModal visible={showQr} cardName={card.name} url={share.url} error={share.error instanceof Error ? share.error.message : undefined} onClose={() => setShowQr(false)} />
     </CardTapGesture>
   );

@@ -13,18 +13,23 @@ import {
   ChevronLeft,
   ChevronDown,
   ChevronUp,
+  FolderKanban,
   Image as ImageIcon,
   Minus,
+  Network,
   Pencil,
   Plus,
   Quote,
   Search,
+  Tag,
   Trash2,
   Upload,
   UserRound,
+  type LucideIcon,
 } from 'lucide-react-native';
 import type { Profile } from '@/components/profileComponents/types/profile.types';
 import {
+  CARD_TAG_OPTIONS,
   resolveIdentityTemplateId,
   resolveLayoutStyle,
   type CardLayoutId,
@@ -58,6 +63,13 @@ type ProfessionalNameField = 'prefix' | 'firstName' | 'middleName' | 'lastName' 
 
 const PROFESSIONAL_NAME_FIELDS: ProfessionalNameField[] = ['prefix', 'firstName', 'middleName', 'lastName', 'suffix'];
 const PROFESSIONAL_NAME_CHARACTER_LIMIT = 32;
+
+const CARD_TAG_ICONS: Record<string, LucideIcon> = {
+  Business: Briefcase,
+  Personal: UserRound,
+  Networking: Network,
+  Portfolio: FolderKanban,
+};
 
 const AVAILABLE_CONNECTION_FIELDS: {
   title: string;
@@ -416,6 +428,7 @@ export function CardSectionEditor({
   const bioValue = card.sectionOverrides.bio ?? profile.shortBio ?? '';
   const bioEnabled = getFieldValue('bioEnabled') === 'true';
   const accreditationValue = fitAccreditationsToViewport(getFieldValue('accreditations'), width);
+  const cardTagValue = getFieldValue('cardTag');
   const professionalNameParts = Object.fromEntries(PROFESSIONAL_NAME_FIELDS.map((fieldId) => [fieldId, getFieldValue(fieldId).trim()])) as Record<
     ProfessionalNameField,
     string
@@ -514,6 +527,40 @@ export function CardSectionEditor({
     );
   };
 
+  const cardTagSelector = (
+    <CardEditorFieldGroup
+      title="Card tag"
+      description="Choose one tag for wallet views. Tap the selected tag again to remove it."
+      icon={Tag}
+    >
+      <View className="flex-row flex-wrap gap-2">
+        {CARD_TAG_OPTIONS.map((tag) => {
+          const selected = cardTagValue === tag;
+          const TagIcon = CARD_TAG_ICONS[tag];
+          return (
+            <Pressable
+              accessibilityLabel={`${selected ? 'Remove' : 'Select'} ${tag} card tag`}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+              className={`min-h-[40px] flex-row items-center rounded-full border px-3.5 active:opacity-70 ${
+                selected
+                  ? 'border-primary bg-blue-50 dark:border-dark-primary dark:bg-blue-950/40'
+                  : 'border-slate-200 bg-card dark:border-slate-700 dark:bg-dark-card'
+              }`}
+              key={tag}
+              onPress={() => onFieldChange('cardTag', selected ? '' : tag)}
+            >
+              <TagIcon color={selected ? '#3b82f6' : '#64748b'} size={15} strokeWidth={2.3} />
+              <Text className={`ml-1.5 text-sm font-bold ${selected ? 'text-primary dark:text-dark-primary' : ''}`}>
+                {tag}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </CardEditorFieldGroup>
+  );
+
   const compactIdentityContent = (
     <View>
       {selectedIdentityImage ? (
@@ -587,11 +634,14 @@ export function CardSectionEditor({
           </View>
         </View>
       )}
+      {!selectedIdentityImage ? <View className="mt-3">{cardTagSelector}</View> : null}
     </View>
   );
 
   const identityContent = (
     <View>
+      {cardTagSelector}
+
       <ImageUploadField
         label="Cover Photo"
         description="Hero image shown at the top of your identity section."
@@ -1132,8 +1182,8 @@ export function CardSectionEditor({
       <EditorPresentationCrossfade
         compact={compactIdentityContent}
         expanded={identityContent}
-        compactHeight={selectedIdentityImage ? 470 : editBarCollapsed ? 410 : 330}
-        expandedHeight={1120}
+        compactHeight={selectedIdentityImage ? 470 : editBarCollapsed ? 560 : 480}
+        expandedHeight={1280}
       />
     ) : activeSection === 'professional' ? (
       <EditorPresentationCrossfade

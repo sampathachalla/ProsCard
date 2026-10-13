@@ -42,7 +42,10 @@ export default function HomepageScreen() {
       showMessage('You are offline', 'Reconnect to create a new card.');
       return;
     }
-    router.push({ pathname: '/(tabs)/editViewPage', params: { create: '1', origin: 'home' } });
+    router.push({
+      pathname: '/(tabs)/editViewPage',
+      params: { create: '1', creationSession: Date.now().toString(), origin: 'home' },
+    });
   };
 
   const currentCard = cards[activeCardIndex] ?? cards[0];

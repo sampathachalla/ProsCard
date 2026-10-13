@@ -22,7 +22,7 @@ export function EditHomeBar({
   showSave = true,
 }: {
   activeTab: EditHomeTab;
-  actionLabel?: 'Next' | 'Save & next' | 'Preview' | 'Save';
+  actionLabel?: 'Next' | 'Save & next' | 'Preview' | 'Create card' | 'Save';
   isSaving?: boolean;
   onChange: (tab: EditHomeTab) => void;
   onSave: () => void;

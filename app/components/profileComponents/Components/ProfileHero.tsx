@@ -6,6 +6,7 @@ import { MediaImage } from '@/components/uiComponents/MediaImage';
 import { DefaultCover } from '@/components/cardsComponents/Templates/sections/SectionSharedComponents';
 import type { Profile } from '../types/profile.types';
 import { getInitials } from '../Utils/initials';
+import { formatPersonName } from '@/utils/personName';
 
 export function ProfileHero({
   profile,
@@ -38,7 +39,7 @@ export function ProfileHero({
       </View>
 
       <Text className="text-textPrimary dark:text-dark-textPrimary text-xl font-extrabold text-center">
-        {profile.preferredName || profile.fullName || 'Your name'}
+        {formatPersonName(profile.preferredName || profile.fullName) || 'Your name'}
       </Text>
 
       {profile.accreditations ? <Text className="mt-1 text-sm font-semibold text-textMuted dark:text-dark-textMuted">{profile.accreditations}</Text> : null}

@@ -8,6 +8,7 @@ import {
   type DynamicCardField,
 } from '../types/card.types';
 import type { Profile } from '@/components/profileComponents/types/profile.types';
+import { formatPersonName } from '@/utils/personName';
 
 export type CardDetailFieldType = 'text' | 'image' | 'multiline' | 'email' | 'phone' | 'url';
 
@@ -62,7 +63,7 @@ export function createCardDetailTemplate(card: BusinessCard, profile: Profile): 
           id: 'preferredName',
           title: 'Preferred name',
           type: 'text',
-          value:
+          value: formatPersonName(
             card.sectionOverrides.preferredName !== undefined
               ? card.sectionOverrides.preferredName
               : resolveIdentityPreferredName({
@@ -72,6 +73,7 @@ export function createCardDetailTemplate(card: BusinessCard, profile: Profile): 
                   profileFullName: profile.fullName,
                   cardName: card.name,
                 }),
+          ),
         },
         {
           id: 'coverPhoto',
@@ -144,19 +146,19 @@ export function createCardDetailTemplate(card: BusinessCard, profile: Profile): 
           id: 'firstName',
           title: 'First name',
           type: 'text',
-          value: override(card, 'firstName', profile.firstName || fallbackFirstName),
+          value: formatPersonName(override(card, 'firstName', profile.firstName || fallbackFirstName)),
         },
         {
           id: 'middleName',
           title: 'Middle name',
           type: 'text',
-          value: override(card, 'middleName', profile.middleName || ''),
+          value: formatPersonName(override(card, 'middleName', profile.middleName || '')),
         },
         {
           id: 'lastName',
           title: 'Last name',
           type: 'text',
-          value: override(card, 'lastName', profile.lastName || fallbackLastName),
+          value: formatPersonName(override(card, 'lastName', profile.lastName || fallbackLastName)),
         },
         {
           id: 'suffix',

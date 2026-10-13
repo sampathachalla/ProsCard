@@ -12,6 +12,7 @@ import { ThemedBottomSheet } from '@/components/uiComponents/ThemedBottomSheet';
 import { getShareUrl } from '@/components/sharingComponents/Services/sharingService';
 import { queryClient, queryKeys } from '@/services/api/queryClient';
 import { useAddToWallet } from '@/components/walletCardComponents/Hooks/useAddToWallet';
+import { WalletProcessingModal } from '@/components/walletCardComponents/WalletProcessingModal';
 
 type CardActionsBottomSheetProps = {
   card?: BusinessCard;
@@ -97,27 +98,30 @@ export const CardActionsBottomSheet = forwardRef<BottomSheet, CardActionsBottomS
     ];
 
     return (
-      <ThemedBottomSheet ref={ref} snapPoints={snapPoints}>
-        <BottomSheetView className="flex-1 px-6 pb-6 pt-2">
-          <SheetHeader
-            title="Card Options"
-            subtitle={`Manage ${card?.name ?? 'your'}'s digital card`}
-          />
+      <>
+        <ThemedBottomSheet ref={ref} snapPoints={snapPoints}>
+          <BottomSheetView className="flex-1 px-6 pb-6 pt-2">
+            <SheetHeader
+              title="Card Options"
+              subtitle={`Manage ${card?.name ?? 'your'}'s digital card`}
+            />
 
-          <View className="gap-2.5">
-            {actions.map((action) => (
-              <SheetActionRow
-                key={action.id}
-                label={action.label}
-                description={action.description}
-                icon={action.icon}
-                iconColor={action.color}
-                onPress={() => handleAction(action.id, action.onPress)}
-              />
-            ))}
-          </View>
-        </BottomSheetView>
-      </ThemedBottomSheet>
+            <View className="gap-2.5">
+              {actions.map((action) => (
+                <SheetActionRow
+                  key={action.id}
+                  label={action.label}
+                  description={action.description}
+                  icon={action.icon}
+                  iconColor={action.color}
+                  onPress={() => handleAction(action.id, action.onPress)}
+                />
+              ))}
+            </View>
+          </BottomSheetView>
+        </ThemedBottomSheet>
+        <WalletProcessingModal label={wallet.label} visible={wallet.adding} />
+      </>
     );
   },
 );

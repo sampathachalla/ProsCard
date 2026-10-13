@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, View, useWindowDimensions } from 'react-native';
-import { Plus } from 'lucide-react-native';
+import { BriefcaseBusiness, FolderKanban, Network, Plus, Tag, UserRound } from 'lucide-react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -31,6 +31,14 @@ export type WalletStackViewProps = {
 const FOCUSED_CARD_TOP = 8;
 const COLLAPSED_CARD_STEP = 34;
 const COLLAPSED_STACK_VISIBLE_HEIGHT = 42;
+
+function cardTagIcon(tag: string) {
+  if (tag === 'Business') return BriefcaseBusiness;
+  if (tag === 'Personal') return UserRound;
+  if (tag === 'Networking') return Network;
+  if (tag === 'Portfolio') return FolderKanban;
+  return Tag;
+}
 
 type StackSlotProps = {
   children: ReactNode;
@@ -141,7 +149,8 @@ export function WalletStackView({
     Math.max(0, Math.min(requestedActiveIndex, cards.length)),
   );
   const containerHeight = height;
-  const focusedCardTop = showPrimaryTag ? 26 : FOCUSED_CARD_TOP;
+  const hasVisibleTag = cards.some((card) => Boolean(card.sectionOverrides.cardTag?.trim()));
+  const focusedCardTop = showPrimaryTag || hasVisibleTag ? 26 : FOCUSED_CARD_TOP;
   const passVerticalBudget = Math.max(0, containerHeight - bottomInset - focusedCardTop - 8);
   const cardWidth = resolveWalletCardWidth({
     windowWidth,
@@ -241,6 +250,8 @@ export function WalletStackView({
         }
 
         const card = cards[index]!;
+        const cardTag = card.sectionOverrides.cardTag?.trim();
+        const CardTagIcon = cardTagIcon(cardTag ?? '');
         return (
           <StackSlot key={card.id} targetScale={targetScale} targetY={targetY} zIndex={zIndex}>
             <View style={{ position: 'relative' }}>
@@ -253,9 +264,17 @@ export function WalletStackView({
                 onSwipeDown={() => showQr(index)}
                 onSingleTap={() => selectCard(index)}
               />
+              {cardTag ? (
+                <View pointerEvents="none" className="absolute -top-3.5 left-3 flex-row items-center rounded-full bg-slate-800 px-2.5 py-0.5 shadow-sm">
+                  <CardTagIcon color="#ffffff" size={10} strokeWidth={2.5} />
+                  <Text className="ml-1 text-[10px] font-bold uppercase text-white">
+                    {cardTag}
+                  </Text>
+                </View>
+              ) : null}
               {showPrimaryTag && card.isPrimary ? (
                 <View pointerEvents="none" className="absolute -top-3.5 right-3 rounded-full bg-sky-500 px-2.5 py-0.5 shadow-sm">
-                  <Text className="text-[10px] font-bold uppercase tracking-wider text-white">PRIMARY</Text>
+                  <Text className="text-[10px] font-bold uppercase text-white">PRIMARY</Text>
                 </View>
               ) : null}
               {cardOverlay?.(card)}

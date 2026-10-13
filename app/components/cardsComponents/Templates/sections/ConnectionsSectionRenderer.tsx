@@ -325,8 +325,11 @@ export function ConnectionsSectionRenderer({
 
   if (!fields.length) return null;
 
+  const interactiveActionUrl = (field: CardDetailField) =>
+    interactiveActions === false ? null : resolveActionUrl(field);
+
   const handlePress = (field: CardDetailField) => {
-    const url = resolveActionUrl(field);
+    const url = interactiveActionUrl(field);
     if (!url) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     Linking.openURL(url).catch(() => {});
@@ -423,7 +426,7 @@ export function ConnectionsSectionRenderer({
                     key={field.id}
                     accessibilityRole="button"
                     accessibilityLabel={`${presentation.label}: ${presentation.value}`}
-                    disabled={!resolveActionUrl(field)}
+                    disabled={!interactiveActionUrl(field)}
                     onPress={() => handlePress(field)}
                     className="items-center justify-center border p-2.5 active:opacity-70"
                     style={[
@@ -496,7 +499,7 @@ export function ConnectionsSectionRenderer({
                   key={field.id}
                   accessibilityRole="button"
                   accessibilityLabel={`${presentation.label}: ${presentation.value}`}
-                  disabled={!resolveActionUrl(field)}
+                  disabled={!interactiveActionUrl(field)}
                   onPress={() => handlePress(field)}
                   className="flex-row items-center border px-3 active:opacity-70"
                   style={{
@@ -578,7 +581,7 @@ export function ConnectionsSectionRenderer({
                     key={field.id}
                     accessibilityRole="button"
                     accessibilityLabel={`${presentation.label}: ${presentation.value}`}
-                    disabled={!resolveActionUrl(field)}
+                    disabled={!interactiveActionUrl(field)}
                     onPress={() => handlePress(field)}
                     className="overflow-hidden border active:opacity-70"
                     style={[
@@ -667,7 +670,7 @@ export function ConnectionsSectionRenderer({
                   key={field.id}
                   accessibilityRole="button"
                   accessibilityLabel={`${presentation.label}: ${presentation.value}`}
-                  disabled={!resolveActionUrl(field)}
+                  disabled={!interactiveActionUrl(field)}
                   onPress={() => handlePress(field)}
                   className="min-w-0 flex-row items-center active:opacity-70"
                   style={{ gap: 12 }}
@@ -745,7 +748,7 @@ export function ConnectionsSectionRenderer({
                   key={field.id}
                   accessibilityRole="button"
                   accessibilityLabel={`${presentation.label}: ${presentation.value}`}
-                  disabled={!resolveActionUrl(field)}
+                  disabled={!interactiveActionUrl(field)}
                   onPress={() => handlePress(field)}
                   className="flex-row items-center active:opacity-70"
                   style={{
@@ -823,7 +826,7 @@ export function ConnectionsSectionRenderer({
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`${heroPresentation.label}: ${heroPresentation.value}`}
-                disabled={!resolveActionUrl(heroField)}
+                disabled={!interactiveActionUrl(heroField)}
                 onPress={() => handlePress(heroField)}
                 className="flex-row items-center justify-between rounded-2xl p-3 active:opacity-80"
                 style={{
@@ -883,7 +886,7 @@ export function ConnectionsSectionRenderer({
                       key={field.id}
                       accessibilityRole="button"
                       accessibilityLabel={`${presentation.label}: ${presentation.value}`}
-                      disabled={!resolveActionUrl(field)}
+                      disabled={!interactiveActionUrl(field)}
                       onPress={() => handlePress(field)}
                       className="flex-row items-center rounded-xl border px-3 py-2 active:opacity-70"
                       style={[
@@ -964,7 +967,7 @@ export function ConnectionsSectionRenderer({
                   key={field.id}
                   accessibilityRole="button"
                   accessibilityLabel={`${presentation.label}: ${presentation.value}`}
-                  disabled={!resolveActionUrl(field)}
+                  disabled={!interactiveActionUrl(field)}
                   onPress={() => handlePress(field)}
                   className="flex-row items-center rounded-2xl border active:opacity-70"
                   style={{
@@ -1036,7 +1039,7 @@ export function ConnectionsSectionRenderer({
                     key={field.id}
                     accessibilityRole="button"
                     accessibilityLabel={`${presentation.label}: ${presentation.value}`}
-                    disabled={!resolveActionUrl(field)}
+                    disabled={!interactiveActionUrl(field)}
                     onPress={() => handlePress(field)}
                     className="justify-center rounded-2xl border p-3 active:opacity-70"
                     style={[
@@ -1088,7 +1091,7 @@ export function ConnectionsSectionRenderer({
           key={field.id}
           accessibilityRole="button"
           accessibilityLabel={`${presentation.label}: ${presentation.value}`}
-          disabled={!resolveActionUrl(field)}
+          disabled={!interactiveActionUrl(field)}
           onPress={() => handlePress(field)}
           className={`${compact ? "px-1.5 py-2" : "px-2 py-2.5"} items-center justify-center rounded-2xl border active:opacity-70`}
           style={[
@@ -1219,7 +1222,7 @@ export function ConnectionsSectionRenderer({
                         key={field.id}
                         accessibilityRole="button"
                         accessibilityLabel={`${presentation.label}: ${presentation.value}`}
-                        disabled={!resolveActionUrl(field)}
+                        disabled={!interactiveActionUrl(field)}
                         onPress={() => handlePress(field)}
                         className="flex-row items-center active:opacity-70"
                         style={{
@@ -1317,7 +1320,7 @@ export function ConnectionsSectionRenderer({
                   key={field.id}
                   accessibilityRole="button"
                   accessibilityLabel={`${presentation.label}: ${presentation.value}`}
-                  disabled={!resolveActionUrl(field)}
+                  disabled={!interactiveActionUrl(field)}
                   onPress={() => handlePress(field)}
                   className={`flex-row items-center rounded-xl border px-3.5 active:opacity-70 ${densePreview ? "py-1.5" : "py-2"}`}
                   style={{
@@ -1396,7 +1399,7 @@ export function ConnectionsSectionRenderer({
                 key={field.id}
                 accessibilityRole="button"
                 accessibilityLabel={`${presentation.label}: ${presentation.value}`}
-                disabled={!resolveActionUrl(field)}
+                disabled={!interactiveActionUrl(field)}
                 onPress={() => handlePress(field)}
                 className="flex-row items-center active:opacity-70"
                 style={{

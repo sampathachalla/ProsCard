@@ -22,7 +22,10 @@ export default function CardsPageScreen() {
   const goBackToProfile = () => router.replace('/(tabs)/profilePage');
 
   const createCard = () => {
-    router.push({ pathname: '/(tabs)/editViewPage', params: { create: '1', origin: 'cards' } });
+    router.push({
+      pathname: '/(tabs)/editViewPage',
+      params: { create: '1', creationSession: Date.now().toString(), origin: 'cards' },
+    });
   };
 
   const editCard = (card: BusinessCard) => {

@@ -16,6 +16,7 @@ export function CardDetailView({
   card,
   fitToViewport = false,
   fullBleed = false,
+  interactiveActions = true,
   onEditSection,
   onSectionLayout,
   profile,
@@ -26,6 +27,7 @@ export function CardDetailView({
   card: BusinessCard;
   fitToViewport?: boolean;
   fullBleed?: boolean;
+  interactiveActions?: boolean;
   onEditSection?: (section: CardSectionId) => void;
   onSectionLayout?: (section: CardSectionId, y: number) => void;
   profile: Profile;
@@ -157,7 +159,7 @@ export function CardDetailView({
                 contentDriven={contentDriven}
                 fullCardView
                 gradient={[...theme.gradient]}
-                interactiveActions={!isEditing}
+                interactiveActions={interactiveActions && !isEditing}
                 onSaveContact={handleSaveContact}
                 onShareCard={handleShareCard}
                 preserveTypeScale

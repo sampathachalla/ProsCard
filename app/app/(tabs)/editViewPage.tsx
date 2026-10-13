@@ -86,10 +86,14 @@ export default function EditViewPage() {
   const params = useLocalSearchParams<{
     cardId?: string | string[];
     create?: string | string[];
+    creationSession?: string | string[];
     origin?: string | string[];
   }>();
   const cardId = Array.isArray(params.cardId) ? params.cardId[0] : params.cardId;
   const createParam = Array.isArray(params.create) ? params.create[0] : params.create;
+  const creationSession = Array.isArray(params.creationSession)
+    ? params.creationSession[0]
+    : params.creationSession;
   const isCreateMode = createParam === '1';
   const router = useRouter();
   const safeAreaInsets = useSafeAreaInsets();
@@ -133,6 +137,7 @@ export default function EditViewPage() {
     saveCustomSectionTheme,
     submit,
     submitSection,
+    resetEditor,
   } = useEditView(cardId, isCreateMode, isCreateMode ? creationDraft : undefined);
   const editorChromeBackground = glassmorphicEditorEnabled
     ? theme === 'dark'
@@ -147,9 +152,9 @@ export default function EditViewPage() {
       ({ section, tab }) => section === activeSection && tab === activeEditTab,
     ),
   );
-  const creationActionLabel: 'Next' | 'Save & next' | 'Preview' =
+  const creationActionLabel: 'Next' | 'Save & next' | 'Create card' =
     activeEditTab === 'styling'
-      ? 'Preview'
+      ? 'Create card'
       : activeEditTab === 'layout'
         ? 'Next'
         : activeSection === 'connections'
@@ -163,6 +168,24 @@ export default function EditViewPage() {
     });
     return () => cancelAnimationFrame(frame);
   }, [isCreateMode]);
+
+  useEffect(() => {
+    if (!isCreateMode || !creationSession) return;
+
+    resetEditor(buildDefaultCard(profile), true);
+    setActiveSection('identity');
+    setActiveEditTab('layout');
+    setStylingOpen(false);
+    setPreviewVisible(false);
+    setSectionPickerOpen(false);
+    setHomeBarCollapsed(false);
+    setSheetIndex(0);
+    sectionOffsets.current = {};
+    cardScrollRef.current?.scrollTo({ y: 0, animated: false });
+
+    const frame = requestAnimationFrame(() => sheetRef.current?.snapToIndex(0));
+    return () => cancelAnimationFrame(frame);
+  }, [creationSession, isCreateMode, profile, resetEditor]);
 
   const openSection = (section: CardSectionId) => {
     startEditing();
@@ -289,7 +312,7 @@ export default function EditViewPage() {
   const saveSection = async () => {
     if (isCreateMode) {
       if (activeEditTab === 'styling') {
-        previewCard();
+        await saveAllChanges();
         return;
       }
 
@@ -721,7 +744,7 @@ export default function EditViewPage() {
             <Text className="ml-1.5 text-sm font-bold text-white">Preview</Text>
           </Pressable>
           <View
-            className="absolute inset-x-5 flex-row gap-3"
+            className="absolute inset-x-5"
             style={{ bottom: Math.max(safeAreaInsets.bottom + 18, 24), elevation: 30 }}
           >
             <Pressable
@@ -733,19 +756,6 @@ export default function EditViewPage() {
               <Pencil color="#ffffff" size={18} strokeWidth={2.4} />
               <Text className="ml-2 text-sm font-bold text-white">Back to edit</Text>
             </Pressable>
-            {isCreateMode ? (
-              <Pressable
-                accessibilityLabel="Create card"
-                accessibilityRole="button"
-                accessibilityState={{ busy: isSaving, disabled: isSaving }}
-                disabled={isSaving}
-                onPress={saveAllChanges}
-                className="min-h-[48px] flex-1 flex-row items-center justify-center rounded-full bg-emerald-600 px-4 active:opacity-80 disabled:opacity-50"
-              >
-                <SaveIcon color="#ffffff" size={18} strokeWidth={2.4} />
-                <Text className="ml-2 text-sm font-bold text-white">{isSaving ? 'Creating' : 'Create card'}</Text>
-              </Pressable>
-            ) : null}
           </View>
         </SafeAreaView>
       </Modal>

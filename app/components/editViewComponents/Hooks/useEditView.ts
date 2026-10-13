@@ -1,5 +1,5 @@
 // components/editViewComponents/Hooks/useEditView.ts
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Alert } from 'react-native';
 import type { CardFieldKey, EditableCard } from '../types/editView.types';
 import {
@@ -17,7 +17,7 @@ import { getEditableCard, saveCard } from '../Services/editViewService';
 import { validateCard } from '../Utils/validateCard';
 
 const SECTION_FIELD_IDS: Record<Exclude<CardSectionId, 'connections'>, CardSectionFieldId[]> = {
-  identity: ['preferredName', 'coverPhoto', 'profilePhoto', 'logo'],
+  identity: ['preferredName', 'cardTag', 'coverPhoto', 'profilePhoto', 'logo'],
   professional: ['accreditations', 'prefix', 'suffix', 'firstName', 'middleName', 'lastName', 'title', 'company', 'tagline', 'bio', 'bioEnabled'],
   bio: ['tagline', 'bio'],
 };
@@ -47,6 +47,12 @@ export function useEditView(cardId?: string, startInEditMode = false, initialCar
   const [draft, setDraft] = useState<EditableCard>(() => initialCard ?? getEditableCard(cardId));
   const [isEditing, setIsEditing] = useState(startInEditMode);
   const [isSaving, setIsSaving] = useState(false);
+  const resetEditor = useCallback((nextCard: EditableCard, editMode = false) => {
+    setCard(nextCard);
+    setDraft(nextCard);
+    setIsEditing(editMode);
+    setIsSaving(false);
+  }, []);
   const hasChanges = JSON.stringify(editableSnapshot(draft)) !== JSON.stringify(editableSnapshot(card));
   const hasSectionChanges = (section: CardSectionId) => {
     const commonChanged =
@@ -334,5 +340,6 @@ export function useEditView(cardId?: string, startInEditMode = false, initialCar
     saveCustomSectionTheme,
     submit,
     submitSection,
+    resetEditor,
   };
 }

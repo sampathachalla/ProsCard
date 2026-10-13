@@ -273,6 +273,7 @@ export type DynamicCardField = {
 
 export type CardSectionFieldId =
   | 'preferredName'
+  | 'cardTag'
   | 'coverPhoto'
   | 'profilePhoto'
   | 'logo'
@@ -291,6 +292,13 @@ export type CardSectionFieldId =
 export type CardSectionLayouts = Record<CardSectionId, CardLayoutId>;
 export type CardSectionThemes = Record<CardSectionId, CardVisualTheme>;
 export type CardSectionOverrides = Partial<Record<CardSectionFieldId, string>>;
+
+export const CARD_TAG_OPTIONS = [
+  'Business',
+  'Personal',
+  'Networking',
+  'Portfolio',
+] as const;
 
 export const DEFAULT_CARD_SECTION_LAYOUTS: CardSectionLayouts = {
   identity: 'layout-1',

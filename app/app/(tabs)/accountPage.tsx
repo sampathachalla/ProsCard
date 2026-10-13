@@ -9,6 +9,7 @@ import { MediaImage } from '@/components/uiComponents/MediaImage';
 import { getInitials } from '@/components/profileComponents/Utils/initials';
 import { PROFILE_SECTIONS, ProfileSectionEditor, ProfileSectionGrid, type ProfileSectionId } from '@/components/profileComponents/Components/ProfileForm';
 import { useProfileEditor } from '@/components/profileComponents/Hooks/useProfileEditor';
+import { formatPersonName } from '@/utils/personName';
 
 export default function AccountScreen() {
   const router = useRouter();
@@ -52,7 +53,7 @@ export default function AccountScreen() {
               </View>
               <View className="ml-4 min-w-0 flex-1">
                 <Text className="text-xl font-bold text-textPrimary dark:text-dark-textPrimary" numberOfLines={2}>
-                  {draft.preferredName || draft.fullName || 'Your name'}
+                  {formatPersonName(draft.preferredName || draft.fullName) || 'Your name'}
                 </Text>
               </View>
             </View>

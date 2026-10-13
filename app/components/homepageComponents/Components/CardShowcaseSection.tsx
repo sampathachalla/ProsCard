@@ -4,7 +4,7 @@ import type { BusinessCard } from '@/components/cardsComponents/types/card.types
 import type { Profile } from '@/components/profileComponents/types/profile.types';
 import { BusinessCardCarousel } from './BusinessCardCarousel';
 import type { CardViewMode } from '../types/cardViewMode';
-import { StackedCardView } from './StackedCardView';
+import { WalletStackView } from '@/components/walletCardComponents';
 
 type CardShowcaseSectionProps = {
   activeIndex: number;
@@ -42,7 +42,7 @@ export function CardShowcaseSection({
         exiting={FadeOut.duration(120)}
         style={{ height: contentHeight }}
       >
-        {/* Carousel: horizontal `BusinessCard`. Stack: vertically stacked `BusinessCard`. */}
+        {/* Carousel keeps the full-card preview. Stack reuses the wallet cards from Manage Cards. */}
         {viewMode === 'carousel' ? (
           <BusinessCardCarousel
             activeIndex={activeIndex}
@@ -57,7 +57,7 @@ export function CardShowcaseSection({
             profile={profile}
           />
         ) : (
-          <StackedCardView
+          <WalletStackView
             activeIndex={activeIndex}
             addingCard={addingCard}
             bottomInset={0}
@@ -68,6 +68,7 @@ export function CardShowcaseSection({
             onCardDoubleTap={onCardDoubleTap}
             onCardSwipeDown={onCardSwipeDown}
             profile={profile}
+            showPrimaryTag
           />
         )}
       </Animated.View>

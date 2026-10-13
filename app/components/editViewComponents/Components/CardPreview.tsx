@@ -3,6 +3,7 @@ import { View, Text } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '@/constants/Colors';
 import type { EditableCard } from '../types/editView.types';
+import { formatPersonName } from '@/utils/personName';
 
 export function CardPreview({ card }: { card: EditableCard }) {
   return (
@@ -20,7 +21,7 @@ export function CardPreview({ card }: { card: EditableCard }) {
     >
       <View>
         <Text style={{ color: Colors.palette.primaryWhite, fontSize: 20, fontWeight: '800' }}>
-          {card.name}
+          {formatPersonName(card.name)}
         </Text>
         <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 14, marginTop: 2 }}>
           {card.title}

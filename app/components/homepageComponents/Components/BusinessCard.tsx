@@ -20,10 +20,7 @@ export function BusinessCard({ card, height, onDoubleTap, onSwipeDown, profile, 
   const [contentHeight, setContentHeight] = useState(0);
   const sourceWidth = Math.max(viewportWidth, 320);
   const widthScale = width / sourceWidth;
-  const scale = contentHeight > 0
-    ? Math.min(widthScale, height / contentHeight)
-    : widthScale;
-  const scaledWidth = sourceWidth * scale;
+  const heightScale = contentHeight > 0 ? height / contentHeight : widthScale;
 
   const measureContent = (event: LayoutChangeEvent) => {
     const nextHeight = event.nativeEvent.layout.height;
@@ -48,14 +45,14 @@ export function BusinessCard({ card, height, onDoubleTap, onSwipeDown, profile, 
         style={{
           position: 'absolute',
           top: 0,
-          left: (width - scaledWidth) / 2,
+          left: 0,
           width: sourceWidth,
-          transform: [{ scale }],
+          transform: [{ scaleX: widthScale }, { scaleY: heightScale }],
           transformOrigin: 'top left',
         }}
       >
         <View onLayout={measureContent} style={{ width: sourceWidth }}>
-          <CardDetailView card={card} fullBleed profile={profile} />
+          <CardDetailView card={card} fullBleed interactiveActions={false} profile={profile} />
         </View>
       </View>
     </View>
