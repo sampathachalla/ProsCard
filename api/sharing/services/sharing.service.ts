@@ -44,6 +44,11 @@ function isUniqueViolation(error: unknown) {
 export class SharingService {
   constructor(private readonly repo: SharingRepository, private readonly storage?: ObjectStorageGateway) {}
 
+  /** The card's current non-expiring share link, without creating one. */
+  findActive(u: string, c: string) {
+    return this.repo.findReusable(u, c);
+  }
+
   async create(u: string, c: string, e?: string | null) {
     if (e) {
       const expires = new Date(e);

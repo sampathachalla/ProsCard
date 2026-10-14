@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { AppleWalletPassGenerator } from '../../wallet/services/apple-pass.service.js';
 import { GoogleWalletLinkGenerator } from '../../wallet/services/google-wallet.service.js';
 import { toWalletCard } from '../../wallet/utils/wallet-card.js';
+import { WalletService } from '../../wallet/services/wallet.service.js';
 
 const forge = createRequire(import.meta.url)('node-forge');
 const dir = mkdtempSync(path.join(tmpdir(), 'wallet-test-'));
@@ -108,5 +109,24 @@ describe('wallet passes', () => {
     expect(object.logo.sourceUri.uri).toBe(`https://example.test/img/${MEDIA}`);
     expect(object.heroImage.sourceUri.uri).toBe(`https://example.test/img/${MEDIA}`);
     expect(object.hexBackgroundColor).toBe('#2563eb');
+  });
+
+  it('only accepts plain cover preset names, so a cover cannot read files outside the covers folder', () => {
+    const withCover = (coverPhotoUrl: string) => toWalletCard('c', { name: 'Card' }, { coverPhotoUrl }).coverPresetId;
+    expect(withCover('proscard-cover:amber-horizon')).toBe('amber-horizon');
+    expect(withCover('proscard-cover:../../../../etc/secret')).toBeNull();
+    expect(withCover('proscard-cover:covers/../x')).toBeNull();
+  });
+
+  it('never creates a share link when Wallet refreshes a pass after the owner revoked every link', async () => {
+    let created = 0;
+    const service = new WalletService({
+      repo: { cardOwner: async () => 'owner-1', cardWithProfile: async () => ({ card_data: card, profile_data: profile }) },
+      sharing: { create: async () => { created++; return { slug: 'new' }; }, findActive: async () => null },
+      storage: {},
+      apple: { passTypeId: 'pass.test', verifyAuth: () => true },
+    } as unknown as ConstructorParameters<typeof WalletService>[0]);
+    await expect(service.latestApplePass('pass.test', 'card-1', 'ApplePass token', 'https://example.test')).rejects.toMatchObject({ status: 410 });
+    expect(created).toBe(0);
   });
 });

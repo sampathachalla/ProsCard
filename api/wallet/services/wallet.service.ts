@@ -77,13 +77,10 @@ export class WalletService {
       return this.image(owner, card.coverMediaId);
     }
     if (card.coverPresetId) {
-      const presetPath = path.join(
-        path.dirname(fileURLToPath(import.meta.url)),
-        '..',
-        'assets',
-        'card-covers',
-        `${card.coverPresetId}.jpg`,
-      );
+      const coversDir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'assets', 'card-covers');
+      const presetPath = path.join(coversDir, `${card.coverPresetId}.jpg`);
+      // Defense in depth: the id is already restricted to [a-z0-9-], but never read outside the covers folder.
+      if (path.dirname(presetPath) !== coversDir) return null;
       try {
         return readFileSync(presetPath);
       } catch {
@@ -93,9 +90,9 @@ export class WalletService {
     return null;
   }
 
-  private async buildApplePass(userId: string, cardId: string, base: string) {
+  private async buildApplePass(userId: string, cardId: string, base: string, { createShare = true } = {}) {
     const apple = this.deps.apple!;
-    const { card, slug, userId: owner } = await this.load(userId, cardId);
+    const { card, slug, userId: owner } = await this.load(userId, cardId, { createShare });
     const images: PassImages = {
       photo: card.photoMediaId ? await this.image(owner, card.photoMediaId) : null,
       logo: card.logoMediaId ? await this.image(owner, card.logoMediaId) : null,
@@ -147,7 +144,9 @@ export class WalletService {
     this.requireApplePass(passTypeId, serial, authorization);
     const owner = await this.deps.repo.cardOwner(serial);
     if (!owner) throw new HttpError(404, 'Pass not found.');
-    return this.buildApplePass(owner, serial, base);
+    // Refreshes are authorized only by the token inside the pass, which can be passed around, so they
+    // must never create a share link: that would undo the owner revoking all of the card's links.
+    return this.buildApplePass(owner, serial, base, { createShare: false });
   }
 
   /** Whether the user's card is currently in an Apple Wallet, for the app's "added" confirmation. */
@@ -180,11 +179,19 @@ export class WalletService {
     }
   }
 
-  private async load(userId: string, cardId: string): Promise<{ card: WalletCard; slug: string; userId: string }> {
+  private async load(
+    userId: string,
+    cardId: string,
+    { createShare = true } = {},
+  ): Promise<{ card: WalletCard; slug: string; userId: string }> {
     const row = await this.deps.repo.cardWithProfile(userId, cardId);
     if (!row) throw new HttpError(404, 'Card not found.');
-    // The pass QR opens the public share page; reuse the card's active share link or create one.
-    const share = await this.deps.sharing.create(userId, cardId);
+    // The pass QR opens the public share page; reuse the card's active share link, and create one
+    // only for requests made by the signed-in owner.
+    const share = createShare
+      ? await this.deps.sharing.create(userId, cardId)
+      : await this.deps.sharing.findActive(userId, cardId);
+    if (!share) throw new HttpError(410, 'This card is no longer shared.');
     return { card: toWalletCard(cardId, row.card_data, row.profile_data), slug: share.slug, userId };
   }
 

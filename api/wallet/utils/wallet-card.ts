@@ -127,7 +127,8 @@ export function toWalletCard(cardId: string, card: Json, profile: Json | null): 
   const photo = pick('profilePhoto', p.photoUrl);
   const logo = pick('logo', p.companyLogoUrl);
   const cover = pick('coverPhoto', p.coverPhotoUrl);
-  const coverPresetMatch = cover.match(/^proscard-cover:(.+)$/);
+  // Preset ids are file names under wallet/assets/card-covers; anything else (e.g. '../') is ignored.
+  const coverPresetMatch = cover.match(/^proscard-cover:([a-z0-9-]{1,64})$/);
   const colors = passColors(card);
   return {
     cardId,
