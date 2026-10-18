@@ -135,7 +135,13 @@ export class MediaService {
         await this.repo.delete(row.user_id, row.id);
         cleaned++;
       } catch {
-        await this.repo.cleanupFailed(row.user_id, row.id);
+        // Marking can fail too (database blip); keep going so one row doesn't abandon the batch.
+        await this.repo.cleanupFailed(row.user_id, row.id).catch((error) => {
+          log('warn', 'media_cleanup_mark_failed', {
+            mediaId: row.id,
+            message: error instanceof Error ? error.message : String(error),
+          });
+        });
         failed++;
       }
     }

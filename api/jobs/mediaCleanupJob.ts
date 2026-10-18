@@ -20,8 +20,9 @@ export function startMediaCleanupJob(service: MediaService, intervalSeconds: num
         totalExamined += result.examined;
         totalCleaned += result.cleaned;
         totalFailed += result.failed;
-        // Empty batch means the queue is caught up for now.
-        if (result.examined === 0) break;
+        // Stop when the queue is caught up, or when a batch made no progress: failed items stay queued,
+        // so another batch this tick would only retry the same rows (e.g. during a storage outage).
+        if (result.examined === 0 || result.cleaned === 0) break;
       }
       if (totalExamined > 0) {
         log('info', 'media_cleanup', {

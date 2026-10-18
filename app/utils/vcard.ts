@@ -180,6 +180,9 @@ export async function saveOrShareContact(contact: VCardContact) {
       title: `${contact.name || 'Contact'} vCard`,
     });
   } catch (error) {
-    Alert.alert('Unable to save contact', error instanceof Error ? error.message : 'Please try again.');
+    const message = error instanceof Error ? error.message : 'Please try again.';
+    // React Native's Alert does nothing on web (the public share page), so use the browser dialog there.
+    if (Platform.OS === 'web' && typeof window !== 'undefined') window.alert(`Unable to save contact. ${message}`);
+    else Alert.alert('Unable to save contact', message);
   }
 }
