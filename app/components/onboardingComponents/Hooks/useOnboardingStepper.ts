@@ -37,6 +37,34 @@ import {
   mapDraftToBusinessCard,
   mapProfileToDraft,
 } from '../Utils/onboardingMappers';
+import {
+  clearPendingMedia,
+  isPendingMediaUrl,
+} from '@/components/profileComponents/Services/pendingMedia';
+
+const MEDIA_DRAFT_FIELDS = ['photoUrl', 'coverPhotoUrl', 'companyLogoUrl'] as const;
+
+function firstPendingMediaField(
+  draft: OnboardingDraft,
+): (typeof MEDIA_DRAFT_FIELDS)[number] | null {
+  for (const key of MEDIA_DRAFT_FIELDS) {
+    const value = draft[key]?.trim() || '';
+    if (value && isPendingMediaUrl(value)) return key;
+  }
+  return null;
+}
+
+function isMediaUploadError(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes('image type or size') ||
+    lower.includes('too large') ||
+    lower.includes('couldn’t read the selected image') ||
+    lower.includes('could not be read') ||
+    lower.includes('upload has not completed') ||
+    lower.includes('media could not')
+  );
+}
 
 export function useOnboardingStepper(): UseOnboardingStepperReturn {
   const router = useRouter();
@@ -352,13 +380,35 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
       const errorMessage =
         err instanceof Error ? err.message : 'Could not save your profile. Please try again.';
+      const pendingField = firstPendingMediaField(currentDraft);
+      if (pendingField || isMediaUploadError(errorMessage)) {
+        const field = pendingField ?? 'photoUrl';
+        const mediaClear: Partial<OnboardingDraft> = {};
+        for (const key of MEDIA_DRAFT_FIELDS) {
+          const value = currentDraft[key]?.trim() || '';
+          if (value && isPendingMediaUrl(value)) {
+            clearPendingMedia(value);
+            mediaClear[key] = '';
+          }
+        }
+        if (Object.keys(mediaClear).length > 0) {
+          updateDraft(mediaClear);
+        }
+        setErrors({ [field]: errorMessage });
+        setFlowIndex(clampFlowIndex(flowIndexForField(field)));
+        Alert.alert(
+          'Couldn’t upload image',
+          `${errorMessage}\n\nChoose a different photo on this step, then continue.`,
+        );
+        return false;
+      }
       Alert.alert('Couldn’t save yet', errorMessage);
       return false;
     } finally {
       finalizeInFlightRef.current = false;
       setIsSaving(false);
     }
-  }, [flushDraftSync, isSaving, router]);
+  }, [flushDraftSync, isSaving, router, updateDraft]);
 
   return {
     currentStep,

@@ -1,13 +1,25 @@
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Check, ImagePlus, Pencil, Trash2, Upload } from 'lucide-react-native';
 import { Text } from './Text';
 import { pickImageFromLibrary } from './usePickImage';
 import { MediaImage } from './MediaImage';
 import { COVER_PHOTO_PRESETS } from '@/components/cardsComponents/Services/coverPhotoPresets';
+import { AUTH_TEST_MODE } from '@/components/authComponents/Config/authMode';
+import {
+  clearPendingMedia,
+  commitPendingMedia,
+} from '@/components/profileComponents/Services/pendingMedia';
+import type { MediaKind } from '@/services/api/types';
 
 export type ImageUploadVariant = 'banner' | 'avatar' | 'logo';
+
+const VARIANT_MEDIA_KIND: Record<ImageUploadVariant, Exclude<MediaKind, 'contactCard'>> = {
+  avatar: 'profilePhoto',
+  banner: 'coverPhoto',
+  logo: 'companyLogo',
+};
 
 type ImageUploadFieldProps = {
   label: string;
@@ -65,7 +77,24 @@ export function ImageUploadField({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     try {
       const uri = await pickImageFromLibrary({ aspect: config.aspect, allowsEditing: true });
-      if (uri) onChange(uri);
+      if (!uri) return;
+      if (AUTH_TEST_MODE) {
+        onChange(uri);
+        return;
+      }
+      try {
+        const remoteUrl = await commitPendingMedia(uri, VARIANT_MEDIA_KIND[variant]);
+        onChange(remoteUrl);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      } catch (error) {
+        clearPendingMedia(uri);
+        const message =
+          error instanceof Error && error.message.trim()
+            ? error.message
+            : 'The uploaded image type or size is not allowed.';
+        Alert.alert('Couldn’t upload image', message);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+      }
     } finally {
       setIsPicking(false);
     }

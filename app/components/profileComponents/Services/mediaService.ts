@@ -22,9 +22,15 @@ export async function requestMediaUpload(input: MediaUploadRequest): Promise<Med
   return apiRequest('/media/upload-url', { method: 'POST', body: input });
 }
 
+/** Reads a local or remote URI as bytes without Response.blob() (avoids RN Blob / expo-blob warning). */
+export async function readUriAsArrayBuffer(uri: string): Promise<ArrayBuffer> {
+  const response = await fetch(uri);
+  return response.arrayBuffer();
+}
+
 export async function uploadToObjectStorage(
   ticket: MediaUploadTicket,
-  body: Blob | ArrayBuffer,
+  body: ArrayBuffer,
 ): Promise<void> {
   const controller = new AbortController();
   let timedOut = false;

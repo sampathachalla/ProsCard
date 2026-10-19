@@ -21,9 +21,12 @@ export class AuthService {
   async googleOAuthUrl(redirectTo: string) {
     return { url: await this.repository.googleOAuthUrl(redirectTo) };
   }
-  async forgotPassword(email: string) {
-    await this.repository.requestPasswordReset(email);
+  async forgotPassword(email: string, redirectTo?: string) {
+    await this.repository.requestPasswordReset(email, redirectTo);
     return { message: 'If an account exists, password reset instructions have been sent.' };
+  }
+  async verifyRecoveryCode(email: string, code: string) {
+    return responsePayload(await this.repository.verifyRecoveryCode(email, code));
   }
   async refresh(refreshToken: string) {
     return responsePayload(await this.repository.refresh(refreshToken));

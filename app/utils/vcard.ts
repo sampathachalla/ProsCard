@@ -94,20 +94,14 @@ async function fetchPhotoAsBase64(photoUrl: string): Promise<string | undefined>
     clearTimeout(timeout);
     if (!response.ok) return undefined;
 
-    const blob = await response.blob();
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const res = reader.result as string;
-        if (res && res.includes(',')) {
-          resolve(res.split(',')[1]);
-        } else {
-          resolve(undefined);
-        }
-      };
-      reader.onerror = () => resolve(undefined);
-      reader.readAsDataURL(blob);
-    });
+    const buffer = await response.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    const chunkSize = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+    }
+    return btoa(binary);
   } catch {
     return undefined;
   }

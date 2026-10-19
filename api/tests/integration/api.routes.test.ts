@@ -13,12 +13,14 @@ const userId='11111111-1111-4111-8111-111111111111';
 const deletedAuthUsers:string[]=[];
 const fakeUser={id:userId,email:'test@proscard.dev',app_metadata:{},user_metadata:{},aud:'authenticated',created_at:new Date().toISOString()};
 const fakeSession={access_token:'test-token',refresh_token:'refresh-token',expires_in:3600,token_type:'bearer',user:fakeUser};
+let passwordResetRedirectTo:string|undefined;
 const supabase={auth:{
   getUser:async(token:string)=>token==='test-token'?{data:{user:fakeUser},error:null}:{data:{user:null},error:{message:'invalid'}},
   signUp:async()=>({data:{user:fakeUser,session:fakeSession},error:null}),
   signInWithPassword:async()=>({data:{user:fakeUser,session:fakeSession},error:null}),
   signInWithOAuth:async()=>({data:{provider:'google',url:'https://supabase.test/auth/v1/authorize?provider=google'},error:null}),
-  resetPasswordForEmail:async()=>({data:{},error:null}),
+  resetPasswordForEmail:async(_email:string,options?:{redirectTo?:string})=>{passwordResetRedirectTo=options?.redirectTo;return{data:{},error:null}},
+  verifyOtp:async({token}:{token:string})=>token==='123456'?{data:{user:fakeUser,session:fakeSession},error:null}:{data:{user:null,session:null},error:{status:400,message:'invalid'}},
   refreshSession:async()=>({data:{user:fakeUser,session:fakeSession},error:null}),
   admin:{signOut:async()=>({data:{},error:null}),updateUserById:async()=>({data:{user:fakeUser},error:null}),deleteUser:async()=>{deletedAuthUsers.push(userId);return{data:{user:fakeUser},error:null}}},
 }} as unknown as SupabaseClient;
@@ -57,8 +59,10 @@ describe('VC Pros API routes',()=>{
   it('supports signup, login, and password reset',async()=>{
     const signup=await request(app).post('/api/v1/auth/signup').send({email:'test@proscard.dev',password:'password123'});expect(signup.status).toBe(201);expect(signup.body.token).toBe('test-token');
     expect((await request(app).post('/api/v1/auth/login').send({email:'test@proscard.dev',password:'password123'})).status).toBe(200);
-    const google=await request(app).post('/api/v1/auth/google').send({redirectTo:'proscard://auth/callback'});expect(google.status).toBe(200);expect(google.body.url).toContain('provider=google');
-    expect((await request(app).post('/api/v1/auth/forgot-password').send({email:'test@proscard.dev'})).status).toBe(202);
+    const google=await request(app).post('/api/v1/auth/google').send({redirectTo:'vcpros://auth/callback'});expect(google.status).toBe(200);expect(google.body.url).toContain('provider=google');
+    expect((await request(app).post('/api/v1/auth/forgot-password').send({email:'test@proscard.dev',redirectTo:'vcpros://auth/reset-password'})).status).toBe(202);
+    expect(passwordResetRedirectTo).toBe('vcpros://auth/reset-password');
+    expect((await request(app).post('/api/v1/auth/verify-recovery-code').send({email:'test@proscard.dev',code:'123456'})).body.token).toBe('test-token');
     expect((await request(app).post('/api/v1/auth/refresh').send({refreshToken:'refresh-token'})).body.token).toBe('test-token');
     expect((await request(app).post('/api/v1/auth/logout').set(auth)).status).toBe(200);
     expect((await request(app).post('/api/v1/auth/reset-password').set(auth).send({password:'new-password-123'})).status).toBe(200);

@@ -1,6 +1,6 @@
 // app/(tabs)/onboardingPage.tsx
 import React, { useMemo } from 'react';
-import { View } from 'react-native';
+import { KeyboardAvoidingView, Platform, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useOnboardingStepper } from '@/components/onboardingComponents/Hooks/useOnboardingStepper';
@@ -52,24 +52,30 @@ export function OnboardingScreen() {
         />
       ) : null}
 
-      <View className="flex-1">
-        <OnboardingFlowRenderer
-          currentItem={currentItem}
-          draft={draft}
-          errors={errors}
-          isSaving={isSaving}
-          updateDraft={updateDraft}
-          onWelcomeNext={nextStep}
-          onWelcomeSkip={skipStep}
-          onFinish={finalizeOnboarding}
-        />
-      </View>
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 4 : 0}
+      >
+        <View className="flex-1">
+          <OnboardingFlowRenderer
+            currentItem={currentItem}
+            draft={draft}
+            errors={errors}
+            isSaving={isSaving}
+            updateDraft={updateDraft}
+            onWelcomeNext={nextStep}
+            onWelcomeSkip={skipStep}
+            onFinish={finalizeOnboarding}
+          />
+        </View>
 
-      <OnboardingFlowFooter
-        currentItem={currentItem}
-        isSaving={isSaving}
-        onContinue={nextStep}
-      />
+        <OnboardingFlowFooter
+          currentItem={currentItem}
+          isSaving={isSaving}
+          onContinue={nextStep}
+        />
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

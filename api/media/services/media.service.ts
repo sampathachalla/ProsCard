@@ -71,11 +71,21 @@ export class MediaService {
     if (!uploaded) {
       throw new HttpError(409, 'The OCI upload has not completed.');
     }
+    // React Native / some PAR PUTs store application/octet-stream (or omit Content-Type).
+    // Trust the ticket's declared image type when OCI metadata is missing or generic.
+    const declaredType = String(row.content_type ?? '').split(';', 1)[0]!.trim().toLowerCase();
+    const storedType = String(uploaded.contentType ?? '').split(';', 1)[0]!.trim().toLowerCase();
+    const effectiveType =
+      storedType.startsWith('image/')
+        ? storedType
+        : declaredType.startsWith('image/')
+          ? declaredType
+          : storedType;
     if (
       !Number.isSafeInteger(uploaded.sizeBytes)
       || uploaded.sizeBytes <= 0
       || uploaded.sizeBytes > MAX_MEDIA_SIZE_BYTES
-      || !uploaded.contentType.startsWith('image/')
+      || !effectiveType.startsWith('image/')
     ) {
       await this.rejectInvalidUpload(row);
       throw new HttpError(422, 'The uploaded image type or size is not allowed.');

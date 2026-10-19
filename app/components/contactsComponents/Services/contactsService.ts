@@ -2,7 +2,13 @@ import { Colors } from '@/constants/Colors';
 import { apiRequest } from '@/services/api/client';
 import { AUTH_TEST_MODE } from '@/components/authComponents/Config/authMode';
 import { Alert } from 'react-native';
-import { cacheMediaFileFromUri, confirmMedia, requestMediaUpload, uploadToObjectStorage } from '@/components/profileComponents/Services/mediaService';
+import {
+  cacheMediaFileFromUri,
+  confirmMedia,
+  readUriAsArrayBuffer,
+  requestMediaUpload,
+  uploadToObjectStorage,
+} from '@/components/profileComponents/Services/mediaService';
 import { prepareCardPhotoForUpload } from '@/components/scannerComponents/Services/cardReaderService';
 import { queryClient, queryKeys } from '@/services/api/queryClient';
 import type { CapturedCard } from '@/components/scannerComponents/types/scanner.types';
@@ -71,13 +77,18 @@ export async function uploadContactCardImage(contactId: string, image: CardPhoto
   if (AUTH_TEST_MODE) return image.uri;
   // Camera-sized photos (native scanner, unread photos) are shrunk first; already-small ones are sent as is.
   const photo = await prepareCardPhotoForUpload(image);
-  const blob = await (await fetch(photo.uri)).blob();
-  const contentType = photo.mimeType || blob.type || 'image/jpeg';
+  const bytes = await readUriAsArrayBuffer(photo.uri);
+  const contentType = photo.mimeType || 'image/jpeg';
   const fileName = photo.fileName || `business-card-${Date.now()}.${contentType.split('/')[1] || 'jpg'}`;
   const ticket = await requestMediaUpload({
-    kind: 'contactCard', scope: 'contact', contactId, fileName, contentType, sizeBytes: blob.size,
+    kind: 'contactCard',
+    scope: 'contact',
+    contactId,
+    fileName,
+    contentType,
+    sizeBytes: bytes.byteLength,
   });
-  await uploadToObjectStorage(ticket, blob);
+  await uploadToObjectStorage(ticket, bytes);
   const confirmed = await confirmMedia(ticket.mediaId);
   // The photo is already on the phone: seed the media cache so screens never download it again.
   await cacheMediaFileFromUri(ticket.mediaId, photo.uri);

@@ -275,11 +275,17 @@ export function flowIndexForField(fieldKey: string): number {
     );
     if (socialIndex >= 0) return socialIndex;
   }
-  if (fieldKey === 'tagline') {
+  if (fieldKey === 'tagline' || fieldKey === 'photoUrl' || fieldKey === 'coverPhotoUrl') {
     const presenceIndex = ONBOARDING_FLOW.findIndex(
       (item) => item.kind === 'group' && item.groupId === 'presence'
     );
     if (presenceIndex >= 0) return presenceIndex;
+  }
+  if (fieldKey === 'companyLogoUrl') {
+    const logoIndex = ONBOARDING_FLOW.findIndex(
+      (item) => item.kind === 'group' && item.groupId === 'work_logo_website'
+    );
+    if (logoIndex >= 0) return logoIndex;
   }
   for (let i = 0; i < ONBOARDING_FLOW.length; i++) {
     const item = ONBOARDING_FLOW[i];

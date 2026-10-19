@@ -84,6 +84,48 @@ function structuredNamePresentation(spec: FieldSpec): { label: string; placehold
   };
 }
 
+function TaglineField({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  error,
+  required,
+  hint,
+  maxLength,
+  autoCapitalize,
+}: {
+  label: string;
+  value: string;
+  onChangeText: (text: string) => void;
+  placeholder?: string;
+  error?: string;
+  required?: boolean;
+  hint?: string;
+  maxLength?: number;
+  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+}) {
+  return (
+    <OnboardingFormField
+      label={label}
+      value={value}
+      onChangeText={onChangeText}
+      placeholder={placeholder}
+      error={error}
+      required={required}
+      hint={hint}
+      maxLength={maxLength}
+      multiline
+      numberOfLines={3}
+      autoCapitalize={autoCapitalize}
+      showCharacterCount
+      hideClear
+      compact
+      centerAlign
+    />
+  );
+}
+
 export function PresenceFieldsBlock({
   draft,
   updateDraft,
@@ -136,7 +178,6 @@ export function PresenceFieldsBlock({
           hideClear
         />
       </View>
-
     </View>
   );
 }
@@ -203,7 +244,7 @@ export function renderOnboardingField(
 
   if (spec.key === 'tagline') {
     return (
-      <OnboardingFormField
+      <TaglineField
         key={spec.key}
         label={spec.label}
         value={value}
@@ -213,13 +254,7 @@ export function renderOnboardingField(
         required={spec.required}
         hint={spec.hint}
         maxLength={spec.maxLength ?? 120}
-        multiline
-        numberOfLines={3}
         autoCapitalize={spec.autoCapitalize ?? 'sentences'}
-        showCharacterCount
-        hideClear
-        compact
-        centerAlign
       />
     );
   }

@@ -5,6 +5,7 @@ import type { MediaKind, MediaScope } from '@/services/api/types';
 import {
   cacheMediaFileFromUri,
   confirmMedia,
+  readUriAsArrayBuffer,
   requestMediaUpload,
   uploadToObjectStorage,
 } from './mediaService';
@@ -18,12 +19,23 @@ const MAX_MEDIA_EDGE: Record<Exclude<MediaKind, 'contactCard'>, number> = {
   companyLogo: 800,
 };
 
+const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
+
 export function registerPendingMedia(asset: ImagePickerAsset): void {
   pendingAssets.set(asset.uri, asset);
 }
 
+export function clearPendingMedia(uri: string): void {
+  pendingAssets.delete(uri);
+}
+
 export function isPendingMediaUrl(value: string): boolean {
   return localPattern.test(value);
+}
+
+function isHeicLike(mimeType?: string | null): boolean {
+  const normalized = (mimeType ?? '').toLowerCase().split(';', 1)[0]!.trim();
+  return normalized === 'image/heic' || normalized === 'image/heif';
 }
 
 export function mediaIdFromContentUrl(value: string): string | null {
@@ -37,12 +49,20 @@ export function isMediaReference(value: string): boolean {
 
 async function optimizeProfileMedia(uri: string, kind: MediaKind, asset?: ImagePickerAsset) {
   if (kind === 'contactCard' || !asset?.width || !asset.height) {
-    return { uri, contentType: asset?.mimeType, fileName: asset?.fileName };
+    return {
+      uri,
+      contentType: asset?.mimeType || 'image/jpeg',
+      fileName: asset?.fileName,
+    };
   }
   const maxEdge = MAX_MEDIA_EDGE[kind];
   const longest = Math.max(asset.width, asset.height);
-  if (longest <= maxEdge && asset.mimeType !== 'image/heic' && asset.mimeType !== 'image/heif') {
-    return { uri, contentType: asset.mimeType, fileName: asset.fileName };
+  if (longest <= maxEdge && !isHeicLike(asset.mimeType)) {
+    return {
+      uri,
+      contentType: asset.mimeType || 'image/jpeg',
+      fileName: asset.fileName,
+    };
   }
   const context = ImageManipulator.manipulate(uri);
   context.resize(asset.width >= asset.height ? { width: maxEdge } : { height: maxEdge });
@@ -67,10 +87,9 @@ export async function commitPendingMedia(
   if (!isPendingMediaUrl(uri)) return uri;
   const asset = pendingAssets.get(uri);
   const optimized = await optimizeProfileMedia(uri, kind, asset);
-  let blob: Blob;
+  let bytes: ArrayBuffer;
   try {
-    const source = await fetch(optimized.uri);
-    blob = await source.blob();
+    bytes = await readUriAsArrayBuffer(optimized.uri);
   } catch (error) {
     throw new ApiError(
       'VC Pros couldn’t read the selected image. Select it again and retry.',
@@ -78,15 +97,48 @@ export async function commitPendingMedia(
       error,
     );
   }
-  const contentType = optimized.contentType || blob.type || 'image/jpeg';
+  const knownSize =
+    bytes.byteLength > 0
+      ? bytes.byteLength
+      : typeof asset?.fileSize === 'number' && asset.fileSize > 0
+        ? asset.fileSize
+        : undefined;
+  if (knownSize != null && knownSize > MAX_UPLOAD_BYTES) {
+    pendingAssets.delete(uri);
+    throw new ApiError(
+      'That image is too large. Choose a photo under 20 MB.',
+      422,
+      null,
+    );
+  }
+  if (!knownSize) {
+    pendingAssets.delete(uri);
+    throw new ApiError(
+      'The selected image could not be read. Choose a different photo and try again.',
+      422,
+      null,
+    );
+  }
+  const rawType = (optimized.contentType || 'image/jpeg').toLowerCase().split(';', 1)[0]!.trim();
+  const contentType = rawType.startsWith('image/') ? rawType : 'image/jpeg';
   const fileName = optimized.fileName || `upload-${Date.now()}.${contentType.split('/')[1] || 'jpg'}`;
-  const ticket = await requestMediaUpload({
-    kind, scope, cardId, fileName, contentType, sizeBytes: blob.size,
-  });
-  await uploadToObjectStorage(ticket, blob);
-  const confirmed = await confirmMedia(ticket.mediaId);
-  await cacheMediaFileFromUri(ticket.mediaId, optimized.uri);
-  if (confirmed.replacedMediaId) await invalidateCachedMedia(confirmed.replacedMediaId);
-  pendingAssets.delete(uri);
-  return confirmed.contentUrl;
+  try {
+    const ticket = await requestMediaUpload({
+      kind,
+      scope,
+      cardId,
+      fileName,
+      contentType,
+      sizeBytes: knownSize,
+    });
+    await uploadToObjectStorage(ticket, bytes);
+    const confirmed = await confirmMedia(ticket.mediaId);
+    await cacheMediaFileFromUri(ticket.mediaId, optimized.uri);
+    if (confirmed.replacedMediaId) await invalidateCachedMedia(confirmed.replacedMediaId);
+    pendingAssets.delete(uri);
+    return confirmed.contentUrl;
+  } catch (error) {
+    pendingAssets.delete(uri);
+    throw error;
+  }
 }

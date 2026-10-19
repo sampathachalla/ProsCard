@@ -8,6 +8,7 @@ export function createAuthRouter(controller: AuthController,authenticate:Request
   router.post('/login', asyncHandler(controller.login));
   router.post('/google', asyncHandler(controller.google));
   router.post('/forgot-password', asyncHandler(controller.forgotPassword));
+  router.post('/verify-recovery-code', asyncHandler(controller.verifyRecoveryCode));
   router.post('/refresh', asyncHandler(controller.refresh));
   router.post('/logout', asyncHandler(controller.logout));
   router.post('/reset-password',authenticate,asyncHandler(controller.updatePassword));

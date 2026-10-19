@@ -1,15 +1,12 @@
-import {
-  View,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
+import { useCallback, useMemo, useRef } from 'react';
+import { View, ScrollView } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { Text } from '@/components/uiComponents/Text';
 import type { OnboardingDraft } from '../types/onboardingStepper.types';
 import type { FieldSpec } from '../types/onboardingFlow.types';
 import { renderOnboardingField } from './onboardingFieldRegistry';
 import { OnboardingRotatingWord } from './OnboardingRotatingWord';
+import { OnboardingScrollContext } from './onboardingScrollContext';
 
 const LEGAL_NAME_KEYS = ['firstName', 'lastName'] as const;
 const FORMAL_NAME_KEYS = ['prefix', 'middleName', 'suffix'] as const;
@@ -63,25 +60,49 @@ export function OnboardingAnswerSlide({
 
   const hasHighlightWords = Boolean(highlightWords && highlightWords.length > 0);
   const subcopy = funTag || subtitle;
+  const scrollRef = useRef<ScrollView>(null);
+
+  const ensureFocusedVisible = useCallback((target?: number) => {
+    // Re-run after the keyboard changes the viewport so fields near the bottom remain visible.
+    const scroll = () => {
+      if (target != null) {
+        scrollRef.current
+          ?.getScrollResponder()
+          ?.scrollResponderScrollNativeHandleToKeyboard(target, 24, true);
+        return;
+      }
+      scrollRef.current?.scrollToEnd({ animated: true });
+    };
+    requestAnimationFrame(scroll);
+    setTimeout(scroll, 120);
+    setTimeout(scroll, 320);
+  }, []);
+
+  const scrollApi = useMemo(
+    () => ({ ensureFocusedVisible }),
+    [ensureFocusedVisible],
+  );
 
   return (
-    <KeyboardAvoidingView
-      className="flex-1 bg-background dark:bg-dark-background"
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
-    >
-      <Animated.View entering={FadeInDown.duration(320)} className="flex-1">
+    <OnboardingScrollContext.Provider value={scrollApi}>
+      <Animated.View
+        entering={FadeInDown.duration(320)}
+        className="flex-1 bg-background dark:bg-dark-background"
+      >
         <ScrollView
+          ref={scrollRef}
           className="flex-1"
           contentContainerStyle={{
-            flexGrow: 1,
             paddingHorizontal: 24,
-            paddingTop: 28,
-            paddingBottom: 28,
+            paddingTop: 16,
+            paddingBottom: 24,
           }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
+          keyboardDismissMode="interactive"
+          automaticallyAdjustKeyboardInsets
+          bounces={false}
+          overScrollMode="never"
         >
           <View className="w-full max-w-[400px] self-center">
             <Animated.View entering={FadeIn.duration(280)} className="items-center">
@@ -95,121 +116,121 @@ export function OnboardingAnswerSlide({
               {subcopy ? (
                 <Text
                   variant="none"
-                  className="mt-3 text-center text-[16px] font-medium leading-6 text-textMuted dark:text-dark-textMuted"
+                  className="mt-2.5 text-center text-[16px] font-medium leading-6 text-textMuted dark:text-dark-textMuted"
                 >
                   {subcopy}
                 </Text>
               ) : null}
 
-              {hasHighlightWords ? (
-                <View className="mt-4 items-center">
-                  {subtitleLines ? (
-                    <View className="items-center">
-                      <Text
-                        variant="none"
-                        className="text-center text-xl font-medium leading-snug text-textMuted dark:text-dark-textMuted"
-                      >
-                        {subtitleLines[0]}
-                      </Text>
-                      <Text
-                        variant="none"
-                        className="mt-1 text-center text-xl font-medium leading-snug text-textMuted dark:text-dark-textMuted"
-                      >
-                        {subtitleLines[1]}
-                      </Text>
-                    </View>
-                  ) : null}
-                  <OnboardingRotatingWord className="mt-2" words={highlightWords!} />
-                </View>
-              ) : subtitleLines && !subcopy ? (
-                <View className="mt-3 items-center">
-                  <Text
-                    variant="none"
-                    className="text-center text-[16px] font-medium leading-6 text-textMuted dark:text-dark-textMuted"
-                  >
-                    {subtitleLines[0]}
-                  </Text>
-                  <Text
-                    variant="none"
-                    className="mt-1 text-center text-[16px] font-medium leading-6 text-textMuted dark:text-dark-textMuted"
-                  >
-                    {subtitleLines[1]}
-                  </Text>
-                </View>
-              ) : null}
-            </Animated.View>
-
-            <View className="mt-10 w-full gap-1 pb-2">
-              {isCombinedNameStep ? (
-                <>
-                  <View className="flex-row" style={{ gap: 12 }}>
-                    <View className="flex-1">
-                      {renderOnboardingField(
-                        formalFields.find((f) => f.key === 'prefix')!,
-                        draft,
-                        updateDraft,
-                        errors
-                      )}
-                    </View>
-                    <View className="flex-1">
-                      {renderOnboardingField(
-                        formalFields.find((f) => f.key === 'suffix')!,
-                        draft,
-                        updateDraft,
-                        errors
-                      )}
-                    </View>
+            {hasHighlightWords ? (
+              <View className="mt-3 items-center">
+                {subtitleLines ? (
+                  <View className="items-center">
+                    <Text
+                      variant="none"
+                      className="text-center text-xl font-medium leading-snug text-textMuted dark:text-dark-textMuted"
+                    >
+                      {subtitleLines[0]}
+                    </Text>
+                    <Text
+                      variant="none"
+                      className="mt-1 text-center text-xl font-medium leading-snug text-textMuted dark:text-dark-textMuted"
+                    >
+                      {subtitleLines[1]}
+                    </Text>
                   </View>
-                  {legalFields
-                    .filter((f) => f.key === 'firstName')
-                    .map((spec) => (
-                      <View key={spec.key}>
-                        {renderOnboardingField(spec, draft, updateDraft, errors)}
-                      </View>
-                    ))}
-                  {formalFields
-                    .filter((f) => f.key === 'middleName')
-                    .map((spec) => (
-                      <View key={spec.key}>
-                        {renderOnboardingField(spec, draft, updateDraft, errors)}
-                      </View>
-                    ))}
-                  {legalFields
-                    .filter((f) => f.key === 'lastName')
-                    .map((spec) => (
-                      <View key={spec.key}>
-                        {renderOnboardingField(spec, draft, updateDraft, errors)}
-                      </View>
-                    ))}
-                  {accreditationField ? (
-                    <View className="mt-2" key={accreditationField.key}>
-                      {renderOnboardingField(accreditationField, draft, updateDraft, errors)}
-                    </View>
-                  ) : null}
-                </>
-              ) : isNameFormalRow ? (
+                ) : null}
+                <OnboardingRotatingWord className="mt-2" words={highlightWords!} />
+              </View>
+            ) : subtitleLines && !subcopy ? (
+              <View className="mt-2 items-center">
+                <Text
+                  variant="none"
+                  className="text-center text-[15px] font-medium leading-5 text-textMuted dark:text-dark-textMuted"
+                >
+                  {subtitleLines[0]}
+                </Text>
+                <Text
+                  variant="none"
+                  className="mt-1 text-center text-[15px] font-medium leading-5 text-textMuted dark:text-dark-textMuted"
+                >
+                  {subtitleLines[1]}
+                </Text>
+              </View>
+            ) : null}
+          </Animated.View>
+
+          <View className="mt-6 w-full">
+            {isCombinedNameStep ? (
+              <>
                 <View className="flex-row" style={{ gap: 12 }}>
-                  <View className="w-24">
-                    {renderOnboardingField(fields[0], draft, updateDraft, errors)}
+                  <View className="flex-1">
+                    {renderOnboardingField(
+                      formalFields.find((f) => f.key === 'prefix')!,
+                      draft,
+                      updateDraft,
+                      errors
+                    )}
                   </View>
                   <View className="flex-1">
-                    {renderOnboardingField(fields[1], draft, updateDraft, errors)}
-                  </View>
-                  <View className="w-24">
-                    {renderOnboardingField(fields[2], draft, updateDraft, errors)}
+                    {renderOnboardingField(
+                      formalFields.find((f) => f.key === 'suffix')!,
+                      draft,
+                      updateDraft,
+                      errors
+                    )}
                   </View>
                 </View>
-              ) : (
-                fields.map((spec) => (
-                  <View key={String(spec.key)}>
-                    {renderOnboardingField(spec, draft, updateDraft, errors)}
+                {legalFields
+                  .filter((f) => f.key === 'firstName')
+                  .map((spec) => (
+                    <View key={spec.key}>
+                      {renderOnboardingField(spec, draft, updateDraft, errors)}
+                    </View>
+                  ))}
+                {formalFields
+                  .filter((f) => f.key === 'middleName')
+                  .map((spec) => (
+                    <View key={spec.key}>
+                      {renderOnboardingField(spec, draft, updateDraft, errors)}
+                    </View>
+                  ))}
+                {legalFields
+                  .filter((f) => f.key === 'lastName')
+                  .map((spec) => (
+                    <View key={spec.key}>
+                      {renderOnboardingField(spec, draft, updateDraft, errors)}
+                    </View>
+                  ))}
+                {accreditationField ? (
+                  <View className="mt-1" key={accreditationField.key}>
+                    {renderOnboardingField(accreditationField, draft, updateDraft, errors)}
                   </View>
-                ))
-              )}
-            </View>
+                ) : null}
+              </>
+            ) : isNameFormalRow ? (
+              <View className="flex-row" style={{ gap: 12 }}>
+                <View className="w-24">
+                  {renderOnboardingField(fields[0], draft, updateDraft, errors)}
+                </View>
+                <View className="flex-1">
+                  {renderOnboardingField(fields[1], draft, updateDraft, errors)}
+                </View>
+                <View className="w-24">
+                  {renderOnboardingField(fields[2], draft, updateDraft, errors)}
+                </View>
+              </View>
+            ) : (
+              fields.map((spec) => (
+                <View key={String(spec.key)}>
+                  {renderOnboardingField(spec, draft, updateDraft, errors)}
+                </View>
+              ))
+            )}
           </View>
-        </ScrollView>
+        </View>
+      </ScrollView>
       </Animated.View>
-    </KeyboardAvoidingView>
+    </OnboardingScrollContext.Provider>
   );
 }

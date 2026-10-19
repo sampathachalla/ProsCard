@@ -7,6 +7,7 @@ import { AuthSoftInput } from '@/components/authComponents/Components/AuthSoftIn
 import { Button } from '@/components/uiComponents/Button';
 import { Text } from '@/components/uiComponents/Text';
 import { establishRecoverySession, logout, resetPassword } from '@/components/authComponents/Services/authService';
+import { getSession } from '@/services/api/session';
 
 function recoveryTokens(url: string | null) {
   if (!url) return null;
@@ -28,9 +29,14 @@ export default function ResetPasswordScreen() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!tokens) return;
-    establishRecoverySession(tokens.accessToken, tokens.refreshToken)
-      .then(() => setReady(true))
+    const prepareRecovery = tokens
+      ? establishRecoverySession(tokens.accessToken, tokens.refreshToken).then(() => true)
+      : getSession().then((session) => Boolean(session?.token));
+    prepareRecovery
+      .then((valid) => {
+        if (!valid) throw new Error('No recovery session.');
+        setReady(true);
+      })
       .catch(() => Alert.alert('Invalid link', 'This password-reset link is invalid or expired.'));
   }, [tokens]);
 
@@ -50,8 +56,8 @@ export default function ResetPasswordScreen() {
     }
   };
 
-  if (!tokens || !ready) {
-    return <AuthScreenShell><View className="items-center gap-4"><ActivityIndicator /><Text>{tokens ? 'Verifying reset link…' : 'Open the reset link from your email.'}</Text></View></AuthScreenShell>;
+  if (!ready) {
+    return <AuthScreenShell><View className="items-center gap-4"><ActivityIndicator /><Text>Verifying password recovery…</Text></View></AuthScreenShell>;
   }
   return (
     <AuthScreenShell>

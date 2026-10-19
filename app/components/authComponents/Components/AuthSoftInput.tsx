@@ -20,6 +20,9 @@ export interface AuthSoftInputProps {
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   autoCorrect?: boolean;
   accessibilityLabel?: string;
+  maxLength?: number;
+  textContentType?: 'oneTimeCode';
+  autoComplete?: 'one-time-code';
 }
 
 /** Instagram-style soft filled input — placeholder-first, no loud labels. */
@@ -33,6 +36,9 @@ export function AuthSoftInput({
   autoCapitalize = 'none',
   autoCorrect = false,
   accessibilityLabel,
+  maxLength,
+  textContentType,
+  autoComplete,
 }: AuthSoftInputProps) {
   const { theme } = useThemeContext();
   const [showSecret, setShowSecret] = useState(false);
@@ -47,7 +53,7 @@ export function AuthSoftInput({
             : 'border-black/8 bg-[#fafafa] dark:border-white/10 dark:bg-slate-900/70'
         }`}
         style={[
-          { minHeight: 48 },
+          { minHeight: 52 },
           Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null,
         ]}
       >
@@ -61,8 +67,22 @@ export function AuthSoftInput({
           autoCorrect={autoCorrect}
           secureTextEntry={isSecure}
           accessibilityLabel={accessibilityLabel || placeholder}
-          className="flex-1 border-0 bg-transparent py-3 text-[15px] text-textPrimary outline-none dark:text-dark-textPrimary"
-          style={Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : undefined}
+          maxLength={maxLength}
+          textContentType={textContentType}
+          autoComplete={autoComplete}
+          textAlignVertical="center"
+          className="flex-1 border-0 bg-transparent text-[15px] text-textPrimary outline-none dark:text-dark-textPrimary"
+          style={[
+            {
+              // No lineHeight — RN TextInput + lineHeight often clips descenders when focused.
+              minHeight: 40,
+              paddingTop: 10,
+              paddingBottom: 10,
+              fontSize: 15,
+              ...(Platform.OS === 'android' ? { includeFontPadding: false } : null),
+            },
+            Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null,
+          ]}
           underlineColorAndroid="transparent"
         />
         {secureTextEntry ? (

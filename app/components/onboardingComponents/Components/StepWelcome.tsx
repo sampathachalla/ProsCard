@@ -13,7 +13,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { ArrowRight, Clock3 } from 'lucide-react-native';
+import { ArrowRight, Clock3, CreditCard, QrCode, Sparkles, type LucideIcon } from 'lucide-react-native';
 
 import { BrandLogo } from '@/components/uiComponents/BrandLogo';
 import { Text } from '@/components/uiComponents/Text';
@@ -25,6 +25,27 @@ export interface StepWelcomeProps {
   onSkip: () => void;
   isSaving?: boolean;
 }
+
+const BENEFITS: { id: string; icon: LucideIcon; title: string; detail: string }[] = [
+  {
+    id: 'card',
+    icon: CreditCard,
+    title: 'Build your digital card',
+    detail: 'Name, role, and contacts in one place',
+  },
+  {
+    id: 'share',
+    icon: QrCode,
+    title: 'Share with a QR code',
+    detail: 'People save your info in seconds',
+  },
+  {
+    id: 'edit',
+    icon: Sparkles,
+    title: 'Update anytime',
+    detail: 'Change look, links, and details later',
+  },
+];
 
 function GetStartedButton({
   onPress,
@@ -89,6 +110,7 @@ export function StepWelcome({ onGetStarted, onSkip, isSaving = false }: StepWelc
   const ctaWidth = Math.min(Math.round(screenWidth * 0.88), 380);
   const { theme } = useThemeContext();
   const isDark = theme === 'dark';
+  const iconColor = isDark ? Colors.palette.brandCyanLight : Colors.palette.brandCyan;
 
   const gradientColors: [string, string, string] = isDark
     ? ['#020617', '#0a1128', '#0f172a']
@@ -131,36 +153,71 @@ export function StepWelcome({ onGetStarted, onSkip, isSaving = false }: StepWelc
       <View
         className="flex-1 px-6"
         style={{
-          paddingTop: 12,
-          paddingBottom: Math.max(insets.bottom, 16) + 20,
+          paddingTop: 8,
+          paddingBottom: Math.max(insets.bottom, 16) + 16,
         }}
       >
-        {/* Top heat-map zone: brand logo */}
-        <Animated.View entering={FadeIn.duration(400)} style={styles.brandZone}>
-          <View style={styles.brandMark}>
-            <BrandLogo accessibilityLabel="VCPROS logo" size="xxl" variant="wordmark" />
-          </View>
+        {/* Brand + value prop stacked tightly — no flex-centered dead space */}
+        <Animated.View entering={FadeIn.duration(400)} className="w-full items-center pt-2">
+          <BrandLogo accessibilityLabel="VCPROS logo" size="xxl" variant="wordmark" />
         </Animated.View>
 
-        {/* Mid zone: welcome message */}
-        <View className="flex-1 items-center justify-center px-2">
-          <Animated.View entering={FadeInDown.delay(80).duration(450)} className="items-center">
-            <Text
-              variant="none"
-              className="text-center text-[44px] font-bold leading-[48px] tracking-tight text-textPrimary dark:text-dark-textPrimary"
-            >
-              Welcome
-            </Text>
-            <Text className="mt-3 text-center text-[15px] font-medium leading-[22px] text-slate-600 dark:text-slate-300">
-              You made a great choice.
-            </Text>
-          </Animated.View>
-        </View>
-
-        {/* Bottom zone: primary actions */}
         <Animated.View
-          entering={FadeInDown.delay(180).duration(450)}
-          className="w-full items-center"
+          entering={FadeInDown.delay(60).duration(420)}
+          className="mt-7 w-full items-center px-1"
+        >
+          <Text
+            variant="none"
+            className="text-center text-[34px] font-bold leading-[40px] tracking-tight text-textPrimary dark:text-dark-textPrimary"
+          >
+            Your card, ready fast
+          </Text>
+          <Text className="mt-2.5 max-w-[320px] text-center text-[15px] font-medium leading-[22px] text-slate-600 dark:text-slate-300">
+            Set up your professional card in about a minute—then share it anytime.
+          </Text>
+        </Animated.View>
+
+        <Animated.View
+          entering={FadeInDown.delay(120).duration(420)}
+          className="mt-8 w-full gap-3"
+        >
+          {BENEFITS.map((item) => {
+            const Icon = item.icon;
+            return (
+              <View
+                key={item.id}
+                className={`flex-row items-center gap-3.5 rounded-2xl border px-3.5 py-3 ${
+                  isDark
+                    ? 'border-white/10 bg-white/[0.04]'
+                    : 'border-slate-200/90 bg-white/80'
+                }`}
+              >
+                <View
+                  className={`h-11 w-11 items-center justify-center rounded-xl ${
+                    isDark ? 'bg-sky-400/15' : 'bg-sky-500/10'
+                  }`}
+                >
+                  <Icon color={iconColor} size={22} strokeWidth={2.1} />
+                </View>
+                <View className="min-w-0 flex-1">
+                  <Text className="text-[15px] font-semibold text-textPrimary dark:text-dark-textPrimary">
+                    {item.title}
+                  </Text>
+                  <Text className="mt-0.5 text-[13px] leading-5 text-textMuted dark:text-dark-textMuted">
+                    {item.detail}
+                  </Text>
+                </View>
+              </View>
+            );
+          })}
+        </Animated.View>
+
+        <View className="flex-1" />
+
+        {/* CTA pinned toward the bottom without stretching mid content */}
+        <Animated.View
+          entering={FadeInDown.delay(180).duration(420)}
+          className="w-full items-center pt-4"
         >
           <GetStartedButton onPress={handleGetStarted} isSaving={isSaving} width={ctaWidth} />
 
@@ -169,14 +226,14 @@ export function StepWelcome({ onGetStarted, onSkip, isSaving = false }: StepWelc
             accessibilityLabel="Skip for now"
             disabled={isSaving}
             onPress={handleSkip}
-            className={`mt-5 items-center py-2 ${isSaving ? 'opacity-50' : 'active:opacity-70'}`}
+            className={`mt-4 items-center py-2 ${isSaving ? 'opacity-50' : 'active:opacity-70'}`}
           >
             <Text className="text-[15px] font-medium text-slate-500 dark:text-slate-400">
               Skip for now
             </Text>
           </Pressable>
 
-          <View className="mt-3 flex-row items-center justify-center gap-1.5">
+          <View className="mt-2 flex-row items-center justify-center gap-1.5">
             <Clock3
               size={13}
               color={isDark ? Colors.palette.mutedLight : Colors.palette.muted}
@@ -193,23 +250,6 @@ export function StepWelcome({ onGetStarted, onSkip, isSaving = false }: StepWelc
 }
 
 const styles = StyleSheet.create({
-  brandZone: {
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 8,
-  },
-  brandMark: {
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  productTitle: {
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 8,
-  },
   ctaGradient: {
     borderRadius: 16,
     overflow: 'hidden',

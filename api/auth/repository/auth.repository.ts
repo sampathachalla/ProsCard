@@ -44,12 +44,20 @@ export class AuthRepository {
     return data.url;
   }
 
-  async requestPasswordReset(email: string) {
+  async requestPasswordReset(email: string, redirectTo?: string) {
+    const callbackUrl = redirectTo || this.resetRedirectUrl;
     const { error } = await this.supabase.auth.resetPasswordForEmail(
       email,
-      this.resetRedirectUrl ? { redirectTo: this.resetRedirectUrl } : undefined,
+      callbackUrl ? { redirectTo: callbackUrl } : undefined,
     );
     if (error) throw authError(error, 400, 'Could not start password reset.');
+  }
+
+  async verifyRecoveryCode(email: string, code: string) {
+    const { data, error } = await this.supabase.auth.verifyOtp({ email, token: code, type: 'recovery' });
+    if (error) throw authError(error, 400, 'The verification code is invalid or expired.');
+    if (!data.user || !data.session) throw new HttpError(400, 'The verification code is invalid or expired.');
+    return { user: data.user, session: data.session };
   }
 
   async refresh(refreshToken: string) {

@@ -325,8 +325,8 @@ export function SocialLinksFieldsBlock({
           ) : null}
 
           {selectedKey && selectedPlatform ? (
-            <View className="mt-4">
-              <View className="mb-2 flex-row items-center justify-between">
+            <View className="mt-4 overflow-visible">
+              <View className="mb-1 flex-row items-center justify-between">
                 <Text
                   variant="none"
                   className="text-sm font-medium text-textMuted dark:text-dark-textMuted"
@@ -359,6 +359,7 @@ export function SocialLinksFieldsBlock({
                 autoCapitalize="none"
                 autoCorrect={false}
                 hideClear
+                compact
               />
             </View>
           ) : null}

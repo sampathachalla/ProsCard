@@ -6,11 +6,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import { Colors } from '@/constants/Colors';
 import { useThemeContext } from '../../context/ThemeContext';
-import { Bell, ChevronRight, CreditCard, Focus, HelpCircle, Info, Layers3, LogOut, Moon, Sparkles, Trash2, User } from 'lucide-react-native';
+import { ChevronRight, CreditCard, Focus, HelpCircle, Info, Layers3, LogOut, Moon, Sparkles, Trash2, User } from 'lucide-react-native';
 import { useCardViewPreference } from '@/components/homepageComponents/Hooks/useCardViewPreference';
 import { SettingsRow } from '../../components/profileComponents/Components/SettingsRow';
 import { useProfile } from '../../components/profileComponents/Hooks/useProfile';
-import { useNotificationPreference } from '../../components/profileComponents/Hooks/useNotificationPreference';
 import { PageHeader } from '@/components/uiComponents/PageHeader';
 import { useFloatingTools } from '@/components/toolsButton';
 import { QuickToolsSection } from '../../components/profileComponents/Components/QuickToolsSection';
@@ -32,11 +31,6 @@ export default function ProfileScreen() {
     setEnabled: setToolsEnabled,
     toggleTool,
   } = useFloatingTools();
-  const {
-    enabled: notificationsEnabled,
-    hydrated: notificationsHydrated,
-    setEnabled: setNotificationsEnabled,
-  } = useNotificationPreference();
   const {
     glassmorphicEditorEnabled,
     hydrated: editorPreferencesHydrated,
@@ -157,19 +151,6 @@ export default function ProfileScreen() {
       <Text className="text-textMuted dark:text-dark-textMuted text-xs font-semibold uppercase mb-2 mt-4 px-4">
         Preferences
       </Text>
-      <SettingsRow
-        icon={Bell}
-        label="Notifications"
-        right={
-          <Switch
-            disabled={!notificationsHydrated}
-            value={notificationsEnabled}
-            onValueChange={setNotificationsEnabled}
-            trackColor={{ false: Colors.light.border, true: Colors.light.tint }}
-            thumbColor={Colors.palette.primaryWhite}
-          />
-        }
-      />
       <SettingsRow
         icon={Layers3}
         label="Wallet stack on homepage"

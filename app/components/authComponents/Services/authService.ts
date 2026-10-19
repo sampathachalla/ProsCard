@@ -6,6 +6,7 @@ import type { AuthSession } from '@/services/api/types';
 import { queryClient } from '@/services/api/queryClient';
 import { clearCardState } from '@/components/cardsComponents/Services/cardsService';
 import { clearMediaCache } from '@/components/profileComponents/Services/mediaCache';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 
@@ -69,9 +70,22 @@ function oauthTokens(callbackUrl: string): { accessToken: string; refreshToken?:
   return { accessToken, refreshToken: parameters.get('refresh_token') ?? undefined };
 }
 
+/** Keep OAuth independent of the selected API host (local, tunnel, or OCI).
+ * OAuth needs the stable scheme owned by the installed VC Pros app. Expo Go's exp:// URL is
+ * session-specific and is not supported for local OAuth/OIDC callbacks.
+ */
+function googleRedirectUrl(): string {
+  if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient) {
+    throw new Error(
+      'Google login and signup require the VC Pros development build. Run `npm run ios`, then open VC Pros instead of Expo Go.',
+    );
+  }
+  return Linking.createURL('auth/callback', { scheme: 'vcpros' });
+}
+
 export async function signInWithGoogle(): Promise<StoredUser | null> {
   if (AUTH_TEST_MODE) return mockAuthentication(AUTH_TEST_FIXTURES.user.username);
-  const redirectTo = Linking.createURL('auth/callback');
+  const redirectTo = googleRedirectUrl();
   const { url } = await apiRequest<{ url: string }>('/auth/google', {
     method: 'POST', authenticated: false, body: { redirectTo },
   });
@@ -92,9 +106,20 @@ export async function requestPasswordReset(email: string): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, 350));
     return;
   }
+  const redirectTo = Linking.createURL('auth/reset-password');
   await apiRequest('/auth/forgot-password', {
-    method: 'POST', authenticated: false, body: { email: email.trim() },
+    method: 'POST', authenticated: false, body: { email: email.trim(), redirectTo },
   });
+}
+
+export async function verifyPasswordResetCode(email: string, code: string): Promise<StoredUser> {
+  const session = await apiRequest<AuthSession>('/auth/verify-recovery-code', {
+    method: 'POST',
+    authenticated: false,
+    body: { email: email.trim(), code: code.trim() },
+  });
+  await setSession(session);
+  return toStoredUser(session);
 }
 
 export async function resetPassword(password: string): Promise<void> {

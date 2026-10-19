@@ -2,7 +2,7 @@ import type { Request, Response } from 'express';
 import type { AuthenticatedRequest } from '../../src/types.js';
 import type { AuthService } from '../services/auth.service.js';
 import { HttpError } from '../../src/errors.js';
-import { credentialsSchema, forgotPasswordSchema, newPasswordSchema, oauthRedirectSchema, refreshSchema } from '../utils/auth.schemas.js';
+import { credentialsSchema, forgotPasswordSchema, newPasswordSchema, oauthRedirectSchema, recoveryCodeSchema, refreshSchema } from '../utils/auth.schemas.js';
 
 export class AuthController {
   constructor(private readonly service: AuthService) {}
@@ -20,7 +20,11 @@ export class AuthController {
   };
   forgotPassword = async (request: Request, response: Response) => {
     const input = forgotPasswordSchema.parse(request.body);
-    response.status(202).json(await this.service.forgotPassword(input.email));
+    response.status(202).json(await this.service.forgotPassword(input.email, input.redirectTo));
+  };
+  verifyRecoveryCode = async (request: Request, response: Response) => {
+    const input = recoveryCodeSchema.parse(request.body);
+    response.json(await this.service.verifyRecoveryCode(input.email, input.code));
   };
   refresh = async (request: Request, response: Response) => {
     const input = refreshSchema.parse(request.body);

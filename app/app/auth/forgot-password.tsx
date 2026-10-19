@@ -17,7 +17,12 @@ export default function ForgotPasswordScreen() {
     errors,
     isSubmitting,
     sentTo,
+    recoveryCode,
+    setRecoveryCode,
+    codeError,
+    isVerifying,
     handleSendResetLink,
+    handleVerifyCode,
   } = useForgotPassword();
 
   return (
@@ -38,26 +43,41 @@ export default function ForgotPasswordScreen() {
           </Text>
           <Text className="mt-2 px-2 text-center text-[14px] leading-5 text-[#8e8e8e] dark:text-slate-400">
             {sentTo
-              ? `If an account exists for ${sentTo}, you’ll receive a link to choose a new password.`
-              : 'Enter the email on your account and we’ll send you a reset link.'}
+              ? `Enter the verification code sent to ${sentTo}. You can also open the reset link if your email includes one.`
+              : 'Enter the email on your account and we’ll send password-reset instructions.'}
           </Text>
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(80).duration(400)} className="w-full">
           {sentTo ? (
             <>
+              <AuthSoftInput
+                value={recoveryCode}
+                onChangeText={setRecoveryCode}
+                placeholder="Verification code"
+                error={codeError}
+                keyboardType="number-pad"
+                maxLength={8}
+                textContentType="oneTimeCode"
+                autoComplete="one-time-code"
+                accessibilityLabel="Password reset verification code"
+              />
               <Button
-                label="Back to log in"
+                label={isVerifying ? 'Verifying…' : 'Verify code'}
                 variant="primary"
                 size="lg"
-                onPress={() => router.push('/auth/login')}
+                loading={isVerifying}
+                disabled={isVerifying}
+                onPress={async () => {
+                  if (await handleVerifyCode()) router.push('/auth/reset-password');
+                }}
                 className="mt-2 w-full rounded-xl"
               />
               <Pressable
                 onPress={handleSendResetLink}
                 disabled={isSubmitting}
                 accessibilityRole="button"
-                accessibilityLabel="Resend reset link"
+                accessibilityLabel="Resend password reset email"
                 className="mt-4 items-center py-1 active:opacity-70"
               >
                 <Text className="text-[13px] font-medium text-sky-600 dark:text-sky-400">

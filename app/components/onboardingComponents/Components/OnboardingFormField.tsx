@@ -6,12 +6,15 @@ import {
   Pressable,
   Platform,
   type KeyboardTypeOptions,
+  type StyleProp,
+  type TextStyle,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import type { LucideIcon } from 'lucide-react-native';
 import { X, AlertCircle } from 'lucide-react-native';
 import { useThemeContext } from '@/context/ThemeContext';
 import { Colors } from '@/constants/Colors';
+import { useOnboardingScroll } from './onboardingScrollContext';
 
 export interface OnboardingFormFieldProps {
   label: string;
@@ -40,6 +43,36 @@ export interface OnboardingFormFieldProps {
   characterCountPlacement?: 'top' | 'bottom';
   /** Center input text and character count (tagline-style steps). */
   centerAlign?: boolean;
+  onFocus?: () => void;
+  onBlur?: () => void;
+}
+
+/**
+ * Shared metrics so focused inputs never clip descenders (g/p/y).
+ * Avoid setting `lineHeight` on TextInput — on iOS it often crops glyphs when focused.
+ */
+function singleLineInputStyle(fontSize: number): TextStyle {
+  return {
+    minHeight: 44,
+    paddingTop: 10,
+    paddingBottom: 10,
+    fontSize,
+    ...(Platform.OS === 'android' ? { includeFontPadding: false } : null),
+  };
+}
+
+function multilineInputStyle(fontSize: number): TextStyle {
+  return {
+    minHeight: 88,
+    paddingTop: 10,
+    paddingBottom: 10,
+    fontSize,
+    ...(Platform.OS === 'android' ? { includeFontPadding: false } : null),
+  };
+}
+
+function webOutlineStyle(): StyleProp<TextStyle> {
+  return Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null;
 }
 
 export function OnboardingFormField({
@@ -65,8 +98,11 @@ export function OnboardingFormField({
   showCharacterCount = false,
   characterCountPlacement = 'bottom',
   centerAlign = false,
+  onFocus,
+  onBlur,
 }: OnboardingFormFieldProps) {
   const { theme } = useThemeContext();
+  const onboardingScroll = useOnboardingScroll();
   const [isFocused, setIsFocused] = useState(false);
 
   const hasError = Boolean(error);
@@ -96,9 +132,40 @@ export function OnboardingFormField({
   const countLabel =
     showCharacterCount && maxLength != null ? `${value.length}/${maxLength}` : null;
 
+  const underlineFontSize = isMinimal ? 18 : compact ? 16 : 17;
+  const boxedFontSize = 16;
+
+  const sharedInputProps = {
+    value,
+    onChangeText,
+    placeholder: placeholder || label,
+    placeholderTextColor: theme === 'dark' ? '#64748b' : '#94a3b8',
+    keyboardType,
+    autoCapitalize,
+    autoCorrect,
+    secureTextEntry,
+    editable,
+    multiline,
+    numberOfLines,
+    maxLength,
+    onFocus: (event: { nativeEvent: { target: number } }) => {
+      setIsFocused(true);
+      onboardingScroll?.ensureFocusedVisible(event.nativeEvent.target);
+      onFocus?.();
+    },
+    onBlur: () => {
+      setIsFocused(false);
+      onBlur?.();
+    },
+    textAlignVertical: (multiline ? 'top' : 'center') as 'top' | 'center',
+    accessibilityLabel: fieldLabel,
+    accessibilityHint: hint || placeholder,
+    underlineColorAndroid: 'transparent' as const,
+  };
+
   if (isBoxed) {
     return (
-      <View className={`w-full ${isMinimal ? 'mb-4' : 'mb-4'}`}>
+      <View className="mb-4 w-full">
         {label.trim().length > 0 ? (
           <View className="mb-1.5 px-0.5">
             <Text className="text-xs font-semibold uppercase tracking-wider text-textMuted dark:text-dark-textMuted">
@@ -109,14 +176,19 @@ export function OnboardingFormField({
         ) : null}
 
         <View
-          className={`rounded-2xl border px-4 py-3 ${
+          className={`rounded-2xl border px-4 ${
             hasError
               ? 'border-error bg-red-50/80 dark:border-dark-error dark:bg-red-950/25'
               : isFocused
-              ? 'border-primary bg-white dark:border-dark-primary dark:bg-slate-900'
-              : 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/80'
+                ? 'border-primary bg-white dark:border-dark-primary dark:bg-slate-900'
+                : 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/80'
           }`}
-          style={{ minHeight: multiline ? 112 : 52 }}
+          style={{
+            minHeight: multiline ? 120 : 56,
+            paddingTop: multiline ? 12 : 8,
+            paddingBottom: multiline ? 12 : 8,
+            justifyContent: multiline ? 'flex-start' : 'center',
+          }}
         >
           {countLabel && characterCountPlacement === 'top' ? (
             <Text className="mb-1 self-end text-xs font-medium text-textMuted dark:text-dark-textMuted">
@@ -124,28 +196,11 @@ export function OnboardingFormField({
             </Text>
           ) : null}
           <TextInput
-            value={value}
-            onChangeText={onChangeText}
-            placeholder={placeholder || label}
-            placeholderTextColor={theme === 'dark' ? '#64748b' : '#94a3b8'}
-            keyboardType={keyboardType}
-            autoCapitalize={autoCapitalize}
-            autoCorrect={autoCorrect}
-            secureTextEntry={secureTextEntry}
-            editable={editable}
-            multiline={multiline}
-            numberOfLines={numberOfLines}
-            maxLength={maxLength}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-            textAlignVertical={multiline ? 'top' : 'center'}
-            accessibilityLabel={fieldLabel}
-            accessibilityHint={hint || placeholder}
-            underlineColorAndroid="transparent"
-            className="flex-1 border-0 bg-transparent text-base leading-6 text-textPrimary dark:text-dark-textPrimary outline-none"
+            {...sharedInputProps}
+            className="w-full border-0 bg-transparent text-textPrimary dark:text-dark-textPrimary outline-none"
             style={[
-              multiline ? { minHeight: 72 } : null,
-              Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null,
+              multiline ? multilineInputStyle(boxedFontSize) : singleLineInputStyle(boxedFontSize),
+              webOutlineStyle(),
             ]}
           />
           {countLabel && characterCountPlacement === 'bottom' ? (
@@ -172,8 +227,10 @@ export function OnboardingFormField({
     );
   }
 
+  const underlineRowMinHeight = multiline ? 108 : compact ? 52 : 58;
+
   return (
-    <View className={`w-full ${isMinimal ? (compact ? 'mb-4' : 'mb-6') : 'mb-5'}`}>
+    <View className={`w-full ${isMinimal ? (compact ? 'mb-3' : 'mb-6') : 'mb-5'}`}>
       {label.trim().length > 0 ? (
         <View className="mb-1.5 px-0.5">
           <Text
@@ -181,8 +238,8 @@ export function OnboardingFormField({
               hasError
                 ? 'text-error dark:text-dark-error'
                 : isFocused
-                ? 'text-primary dark:text-dark-primary'
-                : 'text-textMuted dark:text-dark-textMuted'
+                  ? 'text-primary dark:text-dark-primary'
+                  : 'text-textMuted dark:text-dark-textMuted'
             }`}
           >
             {label}
@@ -191,10 +248,10 @@ export function OnboardingFormField({
         </View>
       ) : null}
 
-      <View className="pb-1">
+      <View className="overflow-visible pb-2">
         <View
-          className={`flex-row items-center ${multiline ? 'items-start pt-1' : ''}`}
-          style={multiline ? { minHeight: 96 } : { minHeight: 44 }}
+          className={`flex-row items-center overflow-visible ${multiline ? 'items-start pt-1' : ''}`}
+          style={{ minHeight: underlineRowMinHeight }}
         >
           {Icon ? (
             <View className={`mr-2.5 ${multiline ? 'mt-1' : ''}`}>
@@ -203,31 +260,14 @@ export function OnboardingFormField({
           ) : null}
 
           <TextInput
-            value={value}
-            onChangeText={onChangeText}
-            placeholder={placeholder || label}
-            placeholderTextColor={theme === 'dark' ? '#64748b' : '#94a3b8'}
-            keyboardType={keyboardType}
-            autoCapitalize={autoCapitalize}
-            autoCorrect={autoCorrect}
-            secureTextEntry={secureTextEntry}
-            editable={editable}
-            multiline={multiline}
-            numberOfLines={numberOfLines}
-            maxLength={maxLength}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-            textAlignVertical={multiline ? 'top' : 'center'}
-            accessibilityLabel={fieldLabel}
-            accessibilityHint={hint || placeholder}
-            underlineColorAndroid="transparent"
-            className={`flex-1 border-0 bg-transparent font-normal text-textPrimary dark:text-dark-textPrimary py-1.5 outline-none ${
-              isMinimal ? 'text-lg' : 'text-[17px]'
-            }`}
+            {...sharedInputProps}
+            className="flex-1 border-0 bg-transparent font-normal text-textPrimary dark:text-dark-textPrimary outline-none"
             style={[
-              multiline ? { minHeight: 72 } : null,
+              multiline
+                ? multilineInputStyle(underlineFontSize)
+                : singleLineInputStyle(underlineFontSize),
               centerAlign ? { textAlign: 'center' as const } : null,
-              Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null,
+              webOutlineStyle(),
             ]}
           />
 
@@ -253,8 +293,8 @@ export function OnboardingFormField({
             hasError
               ? 'bg-error dark:bg-dark-error'
               : isFocused
-              ? 'bg-primary dark:bg-dark-primary'
-              : 'bg-slate-300 dark:bg-slate-600'
+                ? 'bg-primary dark:bg-dark-primary'
+                : 'bg-slate-300 dark:bg-slate-600'
           }`}
         />
         {countLabel ? (

@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { CheckCircle2, Home } from 'lucide-react-native';
+import { CheckCircle2, Home, Pencil, QrCode, Share2, type LucideIcon } from 'lucide-react-native';
 
 import { BrandLogo } from '@/components/uiComponents/BrandLogo';
 import { Text } from '@/components/uiComponents/Text';
@@ -16,6 +16,27 @@ export interface StepOnboardingCompleteProps {
   isSaving?: boolean;
 }
 
+const NEXT_STEPS: { id: string; icon: LucideIcon; title: string; detail: string }[] = [
+  {
+    id: 'view',
+    icon: Share2,
+    title: 'Open your card',
+    detail: 'Preview how others will see you',
+  },
+  {
+    id: 'share',
+    icon: QrCode,
+    title: 'Share with QR',
+    detail: 'Let people scan and save your info',
+  },
+  {
+    id: 'edit',
+    icon: Pencil,
+    title: 'Edit anytime',
+    detail: 'Update details, theme, and links later',
+  },
+];
+
 export function StepOnboardingComplete({
   onGoHome,
   isSaving = false,
@@ -25,6 +46,8 @@ export function StepOnboardingComplete({
   const ctaWidth = Math.min(Math.round(screenWidth * 0.88), 380);
   const { theme } = useThemeContext();
   const isDark = theme === 'dark';
+  const iconColor = isDark ? Colors.palette.brandCyanLight : Colors.palette.brandCyan;
+  const successColor = isDark ? '#34d399' : '#059669';
 
   const gradientColors: [string, string, string] = isDark
     ? ['#020617', '#0a1128', '#0f172a']
@@ -54,53 +77,92 @@ export function StepOnboardingComplete({
       <View
         style={{ pointerEvents: 'none' }}
         className={`absolute -bottom-16 -left-16 h-64 w-64 rounded-full opacity-35 ${
-          isDark ? 'bg-indigo-600/15' : 'bg-blue-300/25'
+          isDark ? 'bg-emerald-600/12' : 'bg-emerald-300/20'
         }`}
       />
 
       <View
         className="flex-1 px-6"
         style={{
-          paddingTop: 12,
-          paddingBottom: Math.max(insets.bottom, 16) + 20,
+          paddingTop: 8,
+          paddingBottom: Math.max(insets.bottom, 16) + 16,
         }}
       >
-        {/* Top heat-map zone: brand + product */}
-        <Animated.View
-          entering={FadeIn.duration(400)}
-          style={styles.brandZone}
-        >
-          <View style={styles.brandMark}>
-            <BrandLogo accessibilityLabel="VCPROS logo" size="xl" variant="wordmark" />
-          </View>
+        <Animated.View entering={FadeIn.duration(400)} className="w-full items-center pt-2">
+          <BrandLogo accessibilityLabel="VCPROS logo" size="xxl" variant="wordmark" />
         </Animated.View>
 
-        {/* Mid zone: success message */}
-        <View style={styles.messageZone}>
-          <Animated.View entering={FadeInDown.delay(80).duration(450)} style={styles.messageBlock}>
-            <View style={[styles.badgeHalo, { backgroundColor: isDark ? 'rgba(52,211,153,0.08)' : 'rgba(16,185,129,0.10)' }]}>
-              <View style={[styles.badge, { backgroundColor: isDark ? 'rgba(52,211,153,0.16)' : 'rgba(16,185,129,0.16)' }]}>
-                <CheckCircle2 color={isDark ? '#34d399' : '#059669'} size={40} strokeWidth={2.2} />
-              </View>
+        <Animated.View
+          entering={FadeInDown.delay(60).duration(420)}
+          className="mt-8 w-full items-center"
+        >
+          <View
+            className="mb-5 h-[88px] w-[88px] items-center justify-center rounded-full"
+            style={{ backgroundColor: isDark ? 'rgba(52,211,153,0.10)' : 'rgba(16,185,129,0.12)' }}
+          >
+            <View
+              className="h-[64px] w-[64px] items-center justify-center rounded-full"
+              style={{ backgroundColor: isDark ? 'rgba(52,211,153,0.18)' : 'rgba(16,185,129,0.18)' }}
+            >
+              <CheckCircle2 color={successColor} size={36} strokeWidth={2.2} />
             </View>
+          </View>
 
-            <Text
-              variant="none"
-              className="text-center text-[38px] font-bold leading-[42px] tracking-tight text-textPrimary dark:text-dark-textPrimary"
-            >
-              You&apos;re all set
-            </Text>
-            <Text
-              variant="none"
-              className="mt-4 max-w-[320px] text-center text-[15px] font-medium leading-[22px] text-slate-600 dark:text-slate-300"
-            >
-              Your card is ready. Open your homepage to view, edit, and share it anytime.
-            </Text>
-          </Animated.View>
-        </View>
+          <Text
+            variant="none"
+            className="text-center text-[34px] font-bold leading-[40px] tracking-tight text-textPrimary dark:text-dark-textPrimary"
+          >
+            You&apos;re all set
+          </Text>
+          <Text
+            variant="none"
+            className="mt-2.5 max-w-[320px] text-center text-[15px] font-medium leading-[22px] text-slate-600 dark:text-slate-300"
+          >
+            Your professional card is ready. Here&apos;s what you can do next.
+          </Text>
+        </Animated.View>
 
-        {/* Bottom zone: primary CTA */}
-        <Animated.View entering={FadeInDown.delay(180).duration(450)} style={styles.ctaZone}>
+        <Animated.View
+          entering={FadeInDown.delay(120).duration(420)}
+          className="mt-7 w-full gap-3"
+        >
+          {NEXT_STEPS.map((item) => {
+            const Icon = item.icon;
+            return (
+              <View
+                key={item.id}
+                className={`flex-row items-center gap-3.5 rounded-2xl border px-3.5 py-3 ${
+                  isDark
+                    ? 'border-white/10 bg-white/[0.04]'
+                    : 'border-slate-200/90 bg-white/80'
+                }`}
+              >
+                <View
+                  className={`h-11 w-11 items-center justify-center rounded-xl ${
+                    isDark ? 'bg-sky-400/15' : 'bg-sky-500/10'
+                  }`}
+                >
+                  <Icon color={iconColor} size={21} strokeWidth={2.1} />
+                </View>
+                <View className="min-w-0 flex-1">
+                  <Text className="text-[15px] font-semibold text-textPrimary dark:text-dark-textPrimary">
+                    {item.title}
+                  </Text>
+                  <Text className="mt-0.5 text-[13px] leading-5 text-textMuted dark:text-dark-textMuted">
+                    {item.detail}
+                  </Text>
+                </View>
+              </View>
+            );
+          })}
+        </Animated.View>
+
+        <View className="flex-1" />
+
+        <Animated.View
+          entering={FadeInDown.delay(180).duration(420)}
+          className="w-full items-center pt-4"
+        >
           <LinearGradient
             colors={['#2563eb', '#0284c7', '#00a8e8']}
             start={{ x: 0, y: 0.5 }}
@@ -135,52 +197,6 @@ export function StepOnboardingComplete({
 }
 
 const styles = StyleSheet.create({
-  brandZone: {
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 8,
-  },
-  brandMark: {
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  productTitle: {
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 24,
-  },
-  messageZone: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 8,
-  },
-  messageBlock: {
-    width: '100%',
-    alignItems: 'center',
-  },
-  badgeHalo: {
-    width: 104,
-    height: 104,
-    borderRadius: 52,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 28,
-  },
-  badge: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ctaZone: {
-    width: '100%',
-    alignItems: 'center',
-  },
   ctaGradient: {
     borderRadius: 16,
     overflow: 'hidden',

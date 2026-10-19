@@ -22,7 +22,7 @@ the backend is authoritative for sessions, profiles, onboarding drafts, cards, a
 media. AsyncStorage stores the current session and local caches; it is not the source
 of truth.
 
-Password recovery uses `/auth/reset-password` on web and the `proscard://auth/reset-password`
+Password recovery uses `/auth/reset-password` on web and the `vcpros://auth/reset-password`
 deep link in native builds. The matching URL must be configured as
 `PASSWORD_RESET_REDIRECT_URL` in the API and allowed in Supabase Auth settings.
 

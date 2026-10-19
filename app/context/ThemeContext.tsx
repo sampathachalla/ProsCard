@@ -34,7 +34,7 @@ const ThemeContext = createContext<ThemeContextProps>({
   toggleTheme: () => {},
 });
 
-function schemeToTheme(scheme: ColorSchemeName): Theme {
+function schemeToTheme(scheme: ColorSchemeName | null | undefined): Theme {
   return scheme === 'dark' ? 'dark' : 'light';
 }
 

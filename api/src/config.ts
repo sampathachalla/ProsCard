@@ -33,7 +33,7 @@ const schema = z.object({
   DB_PASSWORD: z.string().min(1),
   SUPABASE_URL: z.string().transform(plainUrl).pipe(z.string().url()),
   SUPABASE_SECRET_KEY: z.string().min(1),
-  PASSWORD_RESET_REDIRECT_URL: z.string().url().default('http://localhost:8081/auth/reset-password'),
+  PASSWORD_RESET_REDIRECT_URL: z.string().url().default('vcpros://auth/reset-password'),
   OCI_REGION: z.string().min(1),
   OCI_NAMESPACE: z.string().min(1),
   OCI_BUCKET_NAME: z.string().min(1),
