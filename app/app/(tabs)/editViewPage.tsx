@@ -119,6 +119,7 @@ export default function EditViewPage() {
   const [, setStylingOpen] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [sectionPickerOpen, setSectionPickerOpen] = useState(false);
+  const [cardTagRequiredError, setCardTagRequiredError] = useState(false);
   const {
     card,
     draft,
@@ -181,6 +182,7 @@ export default function EditViewPage() {
       setStylingOpen(false);
       setPreviewVisible(false);
       setSectionPickerOpen(false);
+      setCardTagRequiredError(false);
       setHomeBarCollapsed(false);
       setSheetIndex(0);
       sectionOffsets.current = {};
@@ -314,6 +316,7 @@ export default function EditViewPage() {
   }, [handleHeaderBack, isCreateMode, isEditing, previewVisible, sectionPickerOpen]);
   const saveSection = async () => {
     if (isCreateMode) {
+      if (activeSection === 'identity' && activeEditTab === 'content' && !requireCardTag()) return;
       if (activeEditTab === 'styling') {
         await saveAllChanges();
         return;
@@ -338,7 +341,27 @@ export default function EditViewPage() {
     }
     await submitSection(activeSection);
   };
+  const requireCardTag = () => {
+    if (draft.sectionOverrides.cardTag?.trim()) {
+      setCardTagRequiredError(false);
+      return true;
+    }
+
+    setCardTagRequiredError(true);
+    setActiveSection('identity');
+    setActiveEditTab('content');
+    setStylingOpen(false);
+    setSectionPickerOpen(false);
+    setPreviewVisible(false);
+    requestAnimationFrame(() => sheetRef.current?.snapToIndex(0));
+    Alert.alert(
+      'Select a card tag',
+      'A card tag is required. Choose Business, Personal, Networking, or Portfolio before continuing.',
+    );
+    return false;
+  };
   const saveAllChanges = async () => {
+    if (isCreateMode && !requireCardTag()) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     const saved = await submit({ keepEditing: !isCreateMode });
     if (saved && isCreateMode) router.back();
@@ -352,6 +375,7 @@ export default function EditViewPage() {
     ]);
   };
   const previewCard = () => {
+    if (isCreateMode && !requireCardTag()) return;
     Haptics.selectionAsync().catch(() => {});
     setPreviewVisible(true);
   };
@@ -672,13 +696,18 @@ export default function EditViewPage() {
                       activeEditTab={activeEditTab}
                       activeSection={sectionId}
                       card={draft}
+                      cardTagRequired={isCreateMode && sectionId === 'identity'}
+                      cardTagRequiredError={isCreateMode && sectionId === 'identity' && cardTagRequiredError}
                       editBarCollapsed={homeBarCollapsed}
                       fullOpen={sheetIndex === 1}
                       profile={profile}
                       showSectionNavigation={false}
                       onActiveSectionChange={setActiveSection}
                       onConnectionsChange={replaceConnectionFields}
-                      onFieldChange={updateSectionField}
+                      onFieldChange={(field, value) => {
+                        updateSectionField(field, value);
+                        if (field === 'cardTag' && value.trim()) setCardTagRequiredError(false);
+                      }}
                       onLayoutChange={updateSectionLayout}
                       onCloseStyling={() => changeEditTab('layout')}
                       onOpenStyling={() => changeEditTab('styling')}

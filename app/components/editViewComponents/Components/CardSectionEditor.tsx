@@ -369,6 +369,8 @@ export function CardSectionEditor({
   activeEditTab,
   activeSection,
   card,
+  cardTagRequired = false,
+  cardTagRequiredError = false,
   editBarCollapsed = false,
   fullOpen = false,
   onActiveSectionChange,
@@ -387,6 +389,8 @@ export function CardSectionEditor({
   activeEditTab: EditHomeTab;
   activeSection: CardSectionId;
   card: EditableCard;
+  cardTagRequired?: boolean;
+  cardTagRequiredError?: boolean;
   editBarCollapsed?: boolean;
   fullOpen?: boolean;
   profile: Profile;
@@ -529,11 +533,17 @@ export function CardSectionEditor({
 
   const cardTagSelector = (
     <CardEditorFieldGroup
-      title="Card tag"
-      description="Choose one tag for wallet views. Tap the selected tag again to remove it."
+      title={`Card tag${cardTagRequired ? ' *' : ''}`}
+      description={
+        cardTagRequired
+          ? 'Required when creating a card. Choose the tag that best describes this card.'
+          : 'Choose the tag that best describes this card.'
+      }
       icon={Tag}
     >
-      <View className="flex-row flex-wrap gap-2">
+      <View
+        className={`flex-row flex-wrap gap-2 rounded-2xl ${cardTagRequiredError ? 'border border-rose-500 bg-rose-50 p-3 dark:bg-rose-950/20' : ''}`}
+      >
         {CARD_TAG_OPTIONS.map((tag) => {
           const selected = cardTagValue === tag;
           const TagIcon = CARD_TAG_ICONS[tag];
@@ -558,6 +568,14 @@ export function CardSectionEditor({
           );
         })}
       </View>
+      {cardTagRequiredError ? (
+        <Text
+          accessibilityLiveRegion="polite"
+          className="mt-2 text-sm font-bold text-rose-600 dark:text-rose-400"
+        >
+          Select a card tag before continuing.
+        </Text>
+      ) : null}
     </CardEditorFieldGroup>
   );
 
