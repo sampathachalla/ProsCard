@@ -8,7 +8,7 @@ const admin=createClient(config.SUPABASE_URL,config.SUPABASE_SECRET_KEY,{auth:{p
 const email=`proscard-card-media-${randomUUID()}@example.com`;const password=randomBytes(24).toString('base64url');
 const image=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=','base64');
 let userId='',cardId='',mediaId='',token='';
-const card={category:'Professional',name:'Media Card',title:'Engineer',company:'ProsCard',phone:'',email:'live@example.com',gradient:['#2563eb','#00a8e8'],sectionLayouts:{identity:'classic',professional:'classic',bio:'classic',connections:'classic'},sectionThemes:{identity:{},professional:{},bio:{},connections:{}},sectionOverrides:{},connectionFields:[],connectionFieldsCustomized:false,cardTheme:{id:'ocean'}};
+const card={category:'Professional',name:'Media Card',title:'Engineer',company:'VC Pros',phone:'',email:'live@example.com',gradient:['#2563eb','#00a8e8'],sectionLayouts:{identity:'classic',professional:'classic',bio:'classic',connections:'classic'},sectionThemes:{identity:{},professional:{},bio:{},connections:{}},sectionOverrides:{},connectionFields:[],connectionFieldsCustomized:false,cardTheme:{id:'ocean'}};
 async function json(response:Response){const body=await response.json().catch(()=>({})) as Record<string,unknown>;if(!response.ok)throw new Error(`${response.status} ${String(body.message??response.statusText)}`);return body;}
 try{
   const signup=await json(await fetch(`${api}/api/v1/auth/signup`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})}));userId=String((signup.user as Record<string,unknown>)?.id??'');

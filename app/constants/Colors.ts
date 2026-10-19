@@ -1,4 +1,4 @@
-/** Shared ProsCard color palette. */
+/** Shared VC Pros color palette. */
 export const Colors = {
   palette: {
     midnightBase: '#020617',

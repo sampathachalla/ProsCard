@@ -41,7 +41,7 @@ export async function getWalletStatus(cardId: string): Promise<WalletStatus> {
  */
 export async function addCardToWallet(cardId: string): Promise<WalletPresentationOutcome> {
   const kind = walletForPlatform();
-  if (!kind) throw new Error('Open ProsCard on your iPhone or Android phone to add this card to your wallet.');
+  if (!kind) throw new Error('Open VC Pros on your iPhone or Android phone to add this card to your wallet.');
   if (AUTH_TEST_MODE) throw new Error('Wallet passes need the backend; turn off auth test mode.');
   const { url } = await apiRequest<{ url: string }>(`/wallet/cards/${encodeURIComponent(cardId)}/${kind}`, { method: 'POST' });
   if (kind === 'apple') {

@@ -50,7 +50,7 @@ export const API_V1_URL = backend.apiV1Url;
 
 export function requireApiUrl(): string {
   if (!API_BASE_URL) {
-    throw new Error(`${backend.variable} must point to the ProsCard backend (BACKEND_TARGET=${BACKEND_TARGET}).`);
+    throw new Error(`${backend.variable} must point to the VC Pros backend (BACKEND_TARGET=${BACKEND_TARGET}).`);
   }
   return API_V1_URL;
 }

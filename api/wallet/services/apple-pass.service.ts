@@ -22,7 +22,7 @@ export type PassWebService = { url: string; token: string };
 /** Images shown on the pass; any can be missing. */
 export type PassImages = { photo?: Buffer | null; logo?: Buffer | null; cover?: Buffer | null };
 
-const DEFAULT_ICON = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'assets', 'proscard-logo.png');
+const DEFAULT_ICON = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'assets', 'vcpros-logo.png');
 
 export function appleWalletConfigured(config: AppleWalletConfig): boolean {
   return Boolean(config.passTypeId && config.teamId && config.certPath && config.keyPath && config.wwdrPath);
@@ -173,7 +173,7 @@ export class AppleWalletPassGenerator {
       passTypeIdentifier: this.config.passTypeId,
       teamIdentifier: this.config.teamId,
       serialNumber: card.cardId,
-      organizationName: card.company || 'ProsCard',
+      organizationName: card.company || 'VC Pros',
       description: `${card.name} — business card`,
       backgroundColor: card.colors.background,
       foregroundColor: card.colors.foreground,

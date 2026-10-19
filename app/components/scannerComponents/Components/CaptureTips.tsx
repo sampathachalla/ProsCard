@@ -13,7 +13,7 @@ export const CAPTURE_TIPS: CaptureTip[] = [
   { id: 'surface', icon: Contrast, text: 'Place the card on a plain, contrasting surface' },
   { id: 'angle', icon: Smartphone, text: 'Hold your phone flat, directly above the card' },
   { id: 'corners', icon: Scan, text: 'Keep all four corners in view, then tap the shutter' },
-  { id: 'qr', icon: QrCode, text: 'Got a ProsCard QR? Just point the camera at it' },
+  { id: 'qr', icon: QrCode, text: 'Got a VC Pros QR? Just point the camera at it' },
 ];
 
 /** Steps through the tips on a timer while `enabled`; `select` jumps to one and restarts the timer. */

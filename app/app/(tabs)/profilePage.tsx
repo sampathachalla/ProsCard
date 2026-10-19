@@ -22,7 +22,7 @@ const SUPPORT_EMAIL = 'support@proscard.app';
 export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { theme, toggleTheme } = useThemeContext();
+  const { theme, setPreference } = useThemeContext();
   const { logout, deleteAccount } = useProfile();
   const [accountAction, setAccountAction] = useState<'logout' | 'delete' | null>(null);
   const {
@@ -82,7 +82,7 @@ export default function ProfileScreen() {
   };
 
   const handleHelpAndSupport = async () => {
-    const mailUrl = `mailto:${SUPPORT_EMAIL}?subject=ProsCard%20Support`;
+    const mailUrl = `mailto:${SUPPORT_EMAIL}?subject=VC%20Pros%20Support`;
     const canOpen = await Linking.canOpenURL(mailUrl);
     if (canOpen) {
       Linking.openURL(mailUrl).catch(() => showMessage('Help & support', `Reach us at ${SUPPORT_EMAIL}.`));
@@ -93,7 +93,7 @@ export default function ProfileScreen() {
 
   const handleAbout = () => {
     const version = Constants.expoConfig?.version ?? '1.0.0';
-    showMessage('ProsCard', `Version ${version}`);
+    showMessage('VC Pros', `Version ${version}`);
   };
 
   return (
@@ -189,7 +189,7 @@ export default function ProfileScreen() {
         right={
           <Switch
             value={theme === 'dark'}
-            onValueChange={toggleTheme}
+            onValueChange={(enabled) => setPreference(enabled ? 'dark' : 'light')}
             trackColor={{ false: Colors.light.border, true: Colors.light.tint }}
             thumbColor={Colors.palette.primaryWhite}
           />
@@ -226,7 +226,7 @@ export default function ProfileScreen() {
         Support
       </Text>
       <SettingsRow icon={HelpCircle} label="Help & support" onPress={handleHelpAndSupport} />
-      <SettingsRow icon={Info} label="About ProsCard" onPress={handleAbout} />
+      <SettingsRow icon={Info} label="About VC Pros" onPress={handleAbout} />
 
       <View className="mb-2 mt-6 flex-row gap-3 px-4">
         <TouchableOpacity

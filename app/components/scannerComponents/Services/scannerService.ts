@@ -5,10 +5,10 @@ import { initialsFor, saveContact } from '@/components/contactsComponents/Servic
 import type { Contact } from '@/components/contactsComponents/types/contact.types';
 import { queryClient, queryKeys } from '@/services/api/queryClient';
 
-/** Resolves a scanned QR payload to the shared ProsCard it points at. */
+/** Resolves a scanned QR payload to the shared VC Pros card it points at. */
 export async function lookupScannedCard(data: string): Promise<SharedCard> {
   const slug = parseShareSlug(data);
-  if (!slug) throw new Error('This QR code is not a ProsCard share link.');
+  if (!slug) throw new Error('This QR code is not a VC Pros share link.');
   return resolveSharedCard(slug);
 }
 

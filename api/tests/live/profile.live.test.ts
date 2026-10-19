@@ -29,7 +29,7 @@ const testProfile = {
   fullName: 'Dr. Live Profile',
   title: 'Integration Tester',
   department: 'Quality Engineering',
-  organization: 'ProsCard',
+  organization: 'VC Pros',
   companyLogoUrl: '',
   coverPhotoUrl: '',
   email,

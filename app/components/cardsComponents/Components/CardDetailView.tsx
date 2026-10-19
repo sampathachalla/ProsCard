@@ -104,10 +104,10 @@ export function CardDetailView({
       }
       const message = shareUrl
         ? `Check out ${card.name}'s digital business card: ${shareUrl}`
-        : `Check out ${card.name}'s digital business card on ProsCard!`;
+        : `Check out ${card.name}'s digital business card on VC Pros!`;
       await Share.share({
         message,
-        title: `${card.name} | ProsCard`,
+        title: `${card.name} | VC Pros`,
         url: shareUrl || undefined,
       });
     } catch {

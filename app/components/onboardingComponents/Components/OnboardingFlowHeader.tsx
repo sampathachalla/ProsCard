@@ -65,7 +65,7 @@ export function OnboardingFlowHeader({
 
         <View className="min-w-0 flex-1 items-center justify-center px-2">
           <Text
-            accessibilityLabel="ProsCard"
+            accessibilityLabel="VC Pros"
             accessibilityRole="header"
             numberOfLines={1}
             style={{
@@ -75,10 +75,9 @@ export function OnboardingFlowHeader({
               letterSpacing: -0.3,
             }}
           >
-            <Text style={{ color: tint, fontSize: 18, fontWeight: '700' }}>P</Text>
-            ros
-            <Text style={{ color: tint, fontSize: 18, fontWeight: '700' }}>C</Text>
-            ard
+            <Text style={{ color: tint, fontSize: 18, fontWeight: '700' }}>VC</Text>
+            {' '}
+            Pros
           </Text>
         </View>
 

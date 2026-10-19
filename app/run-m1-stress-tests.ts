@@ -150,7 +150,7 @@ require.cache[asPath] = {
 
 async function runAll() {
   console.log('====================================================');
-  console.log('   PROSCARD MILESTONE 1 EMPIRICAL STRESS HARNESS    ');
+  console.log('   VC PROS MILESTONE 1 EMPIRICAL STRESS HARNESS    ');
   console.log('====================================================\n');
 
   // A. Baseline worker tests

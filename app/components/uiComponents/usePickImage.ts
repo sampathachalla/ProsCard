@@ -16,7 +16,7 @@ export async function pickImageFromLibrary(options: PickImageOptions = {}): Prom
       await Linking.openSettings().catch(() => {
         Alert.alert(
           'Photo access needed',
-          'Open ProsCard in Settings and allow photo library access to upload images for your card.',
+          'Open VC Pros in Settings and allow photo library access to upload images for your card.',
         );
       });
       return null;

@@ -20,12 +20,13 @@ type ProsCardTitleProps = {
   /** When false, renders a solid wordmark with no accent bar. */
   accent?: boolean;
   /**
-   * `initials` — only P and C use MindPROS cyan; remaining letters stay white.
-   * `default` — Pros neutral, Card cyan when accent is on.
+   * `initials` — VC uses brand cyan; Pros stays primary text.
+   * `default` — VC Pros with Pros cyan when accent is on.
    */
   tone?: 'default' | 'initials';
 };
 
+/** Text wordmark for VC Pros (kept export name for existing imports). */
 export function ProsCardTitle({
   size = 'lg',
   accent = true,
@@ -42,27 +43,23 @@ export function ProsCardTitle({
   const white = 'text-textPrimary dark:text-dark-textPrimary';
 
   return (
-    <View accessibilityRole="header" accessibilityLabel="ProsCard" className="items-center">
+    <View accessibilityRole="header" accessibilityLabel="VC Pros" className="items-center">
       {tone === 'initials' ? (
         <Text variant="none" className={`text-center ${white}`} style={typeStyle}>
           <Text variant="none" className={cyan} style={typeStyle}>
-            P
-          </Text>
-          ros
-          <Text variant="none" className={cyan} style={typeStyle}>
-            C
-          </Text>
-          ard
+            VC
+          </Text>{' '}
+          Pros
         </Text>
       ) : (
         <Text variant="none" className={`text-center ${white}`} style={typeStyle}>
-          Pros
+          VC{' '}
           <Text
             variant="none"
             className={accent ? cyan : white}
             style={typeStyle}
           >
-            Card
+            Pros
           </Text>
         </Text>
       )}

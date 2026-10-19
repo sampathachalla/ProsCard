@@ -2,7 +2,6 @@ import { Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { BrandLogo } from '@/components/uiComponents/BrandLogo';
-import { ProsCardTitle } from '@/components/uiComponents/ProsCardTitle';
 import { Button } from '@/components/uiComponents/Button';
 import { Text } from '@/components/uiComponents/Text';
 import { AuthScreenShell } from '@/components/authComponents/Components/AuthScreenShell';
@@ -33,10 +32,7 @@ export default function ForgotPasswordScreen() {
     >
       <View className="w-full gap-14" style={{ gap: 56 }}>
         <Animated.View entering={FadeIn.duration(400)} className="items-center">
-          <BrandLogo accessibilityLabel="MindPROS company logo" size="xxl" variant="wordmark" />
-          <View className="-mt-1">
-            <ProsCardTitle accent={false} size="lg" tone="initials" />
-          </View>
+          <BrandLogo accessibilityLabel="VCPROS logo" size="xxl" variant="wordmark" />
           <Text className="mt-3 text-center text-[22px] font-bold text-[#1c1c1c] dark:text-white">
             {sentTo ? 'Check your inbox' : 'Reset your password'}
           </Text>

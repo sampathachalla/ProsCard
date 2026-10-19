@@ -16,7 +16,6 @@ import * as Haptics from 'expo-haptics';
 import { ArrowRight, Clock3 } from 'lucide-react-native';
 
 import { BrandLogo } from '@/components/uiComponents/BrandLogo';
-import { ProsCardTitle } from '@/components/uiComponents/ProsCardTitle';
 import { Text } from '@/components/uiComponents/Text';
 import { Colors } from '@/constants/Colors';
 import { useThemeContext } from '@/context/ThemeContext';
@@ -136,13 +135,10 @@ export function StepWelcome({ onGetStarted, onSkip, isSaving = false }: StepWelc
           paddingBottom: Math.max(insets.bottom, 16) + 20,
         }}
       >
-        {/* Top heat-map zone: brand logo + product title */}
+        {/* Top heat-map zone: brand logo */}
         <Animated.View entering={FadeIn.duration(400)} style={styles.brandZone}>
           <View style={styles.brandMark}>
-            <BrandLogo accessibilityLabel="MindPROS company logo" size="xl" variant="wordmark" />
-          </View>
-          <View style={styles.productTitle}>
-            <ProsCardTitle accent={false} size="md" tone="initials" />
+            <BrandLogo accessibilityLabel="VCPROS logo" size="xxl" variant="wordmark" />
           </View>
         </Animated.View>
 

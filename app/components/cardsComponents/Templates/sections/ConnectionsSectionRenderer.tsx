@@ -249,13 +249,13 @@ export function ConnectionsSectionRenderer({
       return;
     }
     const shareMessage = cardMetadata?.name
-      ? `Check out ${cardMetadata.name}'s digital business card on ProsCard!`
-      : "Check out this digital business card on ProsCard!";
+      ? `Check out ${cardMetadata.name}'s digital business card on VC Pros!`
+      : "Check out this digital business card on VC Pros!";
     void Share.share({
       message: shareMessage,
       title: cardMetadata?.name
-        ? `${cardMetadata.name} | ProsCard`
-        : "ProsCard",
+        ? `${cardMetadata.name} | VC Pros`
+        : "VC Pros",
     });
   };
 

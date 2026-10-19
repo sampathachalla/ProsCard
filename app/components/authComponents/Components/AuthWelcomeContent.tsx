@@ -5,7 +5,6 @@ import * as Haptics from 'expo-haptics';
 
 import { BrandLogo } from '@/components/uiComponents/BrandLogo';
 import { Button } from '@/components/uiComponents/Button';
-import { ProsCardTitle } from '@/components/uiComponents/ProsCardTitle';
 import { Text } from '@/components/uiComponents/Text';
 import { AuthWelcomeFeatureCarousel } from '@/components/authComponents/Components/AuthWelcomeFeatureCarousel';
 
@@ -14,7 +13,7 @@ export interface AuthWelcomeContentProps {
   footer?: ReactNode;
 }
 
-/** App entry welcome — MindPROS mark stacked tightly over ProsCard wordmark. */
+/** App entry welcome — VCPROS brand mark. */
 export function AuthWelcomeContent({ onGetStarted, footer }: AuthWelcomeContentProps) {
   const handleGetStarted = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
@@ -32,10 +31,7 @@ export function AuthWelcomeContent({ onGetStarted, footer }: AuthWelcomeContentP
         alwaysBounceVertical={false}
       >
         <Animated.View entering={FadeIn.duration(500)} className="shrink-0 items-center">
-          <BrandLogo accessibilityLabel="MindPROS company logo" size="xxl" variant="wordmark" />
-          <View className="-mt-1">
-            <ProsCardTitle accent={false} size="xl" tone="initials" />
-          </View>
+          <BrandLogo accessibilityLabel="VCPROS logo" size="xxl" variant="wordmark" />
           <Text
             variant="none"
             className="mt-4 max-w-[300px] text-center text-[17px] leading-7 text-textMuted dark:text-dark-textMuted"

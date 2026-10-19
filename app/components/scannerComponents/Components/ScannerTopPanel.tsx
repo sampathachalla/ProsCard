@@ -27,7 +27,7 @@ export function ScannerTopPanel({ stage, hasScanData, copy }: ScannerTopPanelPro
       ? 'Extracting contact details and links…'
       : stage === 'result'
         ? hasScanData
-          ? 'ProsCard link found successfully'
+          ? 'VC Pros link found successfully'
           : 'Review the capture below, then continue'
         : 'Edges are detected automatically';
 

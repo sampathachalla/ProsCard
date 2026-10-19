@@ -19,7 +19,7 @@ describe('share links', () => {
     expect(parseShareSlug('https://proscard.app/share/abc123?ref=qr')).toBe('abc123');
   });
 
-  it('rejects QR codes that are not ProsCard share links', () => {
+  it('rejects QR codes that are not VC Pros share links', () => {
     expect(parseShareSlug('https://example.com/some/page')).toBeNull();
     expect(parseShareSlug('WIFI:S:home;T:WPA;P:secret;;')).toBeNull();
     expect(parseShareSlug('https://proscard.app/card/123e4567')).toBeNull();

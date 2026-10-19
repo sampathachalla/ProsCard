@@ -117,7 +117,7 @@ export async function saveOrShareContact(contact: VCardContact) {
   try {
     // Keep the public card page alive underneath iOS/Android's contact importer.
     // Navigating the current page to a .vcf leaves the user inside the native
-    // preview with no ProsCard browser history to return to.
+    // preview with no VC Pros browser history to return to.
     if (
       Platform.OS === 'web' &&
       contact.vcardDownloadUrl &&

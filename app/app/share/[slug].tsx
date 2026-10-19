@@ -37,7 +37,7 @@ export default function SharedCardPage() {
   const cardName = view.data?.card.name;
   useEffect(() => {
     if (Platform.OS === 'web' && cardName && typeof document !== 'undefined') {
-      document.title = `${cardName} | ProsCard`;
+      document.title = `${cardName} | VC Pros`;
     }
   }, [cardName]);
 
@@ -64,7 +64,7 @@ export default function SharedCardPage() {
         </Text>
         <Text variant="muted" className="mt-2 text-center">
           {linkGone
-            ? 'This ProsCard link has expired or was turned off by its owner.'
+            ? 'This VC Pros link has expired or was turned off by its owner.'
             : view.error instanceof Error
               ? view.error.message
               : 'Something went wrong. Please try again.'}
@@ -99,7 +99,7 @@ export default function SharedCardPage() {
           profile={view.data.profile}
           vcardDownloadUrl={vcardUrlForSlug(slug)}
         />
-        <Text variant="muted" className="mt-6 text-center text-xs">Shared with ProsCard</Text>
+        <Text variant="muted" className="mt-6 text-center text-xs">Shared with VC Pros</Text>
       </View>
     </ScrollView>
   );

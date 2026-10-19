@@ -49,7 +49,7 @@ export default function HomepageScreen() {
   };
 
   const currentCard = cards[activeCardIndex] ?? cards[0];
-  const userName = currentCard?.name ?? 'ProsCard User';
+  const userName = currentCard?.name ?? 'VC Pros User';
 
   const handleShowcaseLayout = (event: LayoutChangeEvent) => {
     const nextHeight = Math.round(event.nativeEvent.layout.height);
@@ -68,7 +68,7 @@ export default function HomepageScreen() {
   return (
     <View className="flex-1 bg-background dark:bg-dark-background">
       <View
-        className="px-5 pb-3"
+        className="px-5 pb-1"
         style={{ paddingTop: Math.max(insets.top, 12) }}
       >
         <HomeHeader userName={userName} />
@@ -76,7 +76,7 @@ export default function HomepageScreen() {
 
       <View
         className="flex-1 overflow-hidden"
-        style={{ marginTop: 8 }}
+        style={{ marginTop: 0 }}
         onLayout={handleShowcaseLayout}
       >
         {showcaseHeight > 0 && viewModeHydrated ? (
@@ -108,7 +108,7 @@ export default function HomepageScreen() {
 
       <QRCodeModal
         visible={Boolean(qrCardId)}
-        cardName={cards.find((card) => card.id === qrCardId)?.name ?? 'ProsCard'}
+        cardName={cards.find((card) => card.id === qrCardId)?.name ?? 'VC Pros'}
         url={share.url}
         error={share.error instanceof Error ? share.error.message : undefined}
         onClose={() => setQrCardId(null)}

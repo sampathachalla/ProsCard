@@ -217,7 +217,7 @@ export function runStepCardCustomizationTests(): { passed: number; failed: numbe
           ...INITIAL_ONBOARDING_DRAFT,
           fullName: 'John Architect',
           title: 'Staff Architect',
-          organization: 'ProsCard',
+          organization: 'VC Pros',
           phone: '+1 (555) 234-5678',
           businessAddress: 'San Francisco, CA',
           email: 'john@proscard.app',

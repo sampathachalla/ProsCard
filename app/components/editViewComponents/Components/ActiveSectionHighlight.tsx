@@ -75,7 +75,7 @@ function OrbitingGlow({
   );
 }
 
-/** A Gemini-inspired moving perimeter glow using only ProsCard brand colors. */
+/** A Gemini-inspired moving perimeter glow using only VC Pros brand colors. */
 export function ActiveSectionHighlight() {
   const progress = useSharedValue(0);
   const [frame, setFrame] = useState({ height: 0, width: 0 });

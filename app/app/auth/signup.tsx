@@ -2,7 +2,6 @@ import { useRouter } from 'expo-router';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { Pressable, View } from 'react-native';
 import { BrandLogo } from '@/components/uiComponents/BrandLogo';
-import { ProsCardTitle } from '@/components/uiComponents/ProsCardTitle';
 import { Button } from '@/components/uiComponents/Button';
 import { Text } from '@/components/uiComponents/Text';
 import { AuthScreenShell } from '@/components/authComponents/Components/AuthScreenShell';
@@ -40,13 +39,10 @@ export default function SignupScreen() {
       <View className="w-full gap-14" style={{ gap: 56 }}>
         <Animated.View entering={FadeIn.duration(400)} className="items-center">
           <BrandLogo
-            accessibilityLabel="MindPROS company logo"
+            accessibilityLabel="VCPROS logo"
             size="xxl"
             variant="wordmark"
           />
-          <View className="-mt-1">
-            <ProsCardTitle accent={false} size="lg" tone="initials" />
-          </View>
           <Text className="mt-3 text-center text-[22px] font-bold text-[#1c1c1c] dark:text-white">
             Sign up to create your card
           </Text>
@@ -91,7 +87,7 @@ export default function SignupScreen() {
         />
 
         <Text className="mt-4 text-center text-[12px] leading-4 text-[#8e8e8e] dark:text-slate-500">
-          By signing up, you agree to ProsCard’s Terms and Privacy Policy.
+          By signing up, you agree to VC Pros’s Terms and Privacy Policy.
         </Text>
 
         <View className="my-6 flex-row items-center">

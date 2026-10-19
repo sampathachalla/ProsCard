@@ -228,7 +228,7 @@ export default function ScannerScreen() {
   if (!permission.granted && !photo) {
     return (
       <View className="flex-1 bg-background dark:bg-dark-background">
-        <PageHeader title="Scan a Card" subtitle="Capture a card or scan its ProsCard QR code" />
+        <PageHeader title="Scan a Card" subtitle="Capture a card or scan its VC Pros QR code" />
         <PermissionGate canAskAgain={permission.canAskAgain} onRequestPermission={requestPermission} />
       </View>
     );
@@ -280,7 +280,7 @@ export default function ScannerScreen() {
       ) : (
         <View style={styles.detectedPlaceholder}>
           <ScanLine color={Colors.palette.brandCyanLight} size={52} strokeWidth={1.4} />
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.detectedText}>ProsCard QR detected</Text>
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.detectedText}>VC Pros QR detected</Text>
         </View>
       )}
 

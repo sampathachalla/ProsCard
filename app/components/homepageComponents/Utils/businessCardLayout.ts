@@ -1,9 +1,9 @@
 const MIN_CARD_HEIGHT = 340;
-const MAX_CARD_HEIGHT = 760;
+const MAX_CARD_HEIGHT = 900;
 const HOME_CARD_ASPECT_RATIO = 1.68;
-// Homepage cards are intentionally taller than a conventional business-card
-// ratio so the full Identity, Professional, and Connections face stays visible.
-const HOME_CARD_MAX_EXPANDED_ASPECT_RATIO = 2.15;
+// Homepage cards stretch taller than a conventional ratio so the preview can
+// fill the showcase (no empty band above/below) while keeping sections readable.
+const HOME_CARD_MAX_EXPANDED_ASPECT_RATIO = 2.6;
 const MULTI_CARD_SIDE_SPACE = 28;
 const SINGLE_CARD_SIDE_SPACE = 28;
 

@@ -18,7 +18,7 @@ export function PermissionGate({
       </Text>
       <Text className="text-textMuted dark:text-dark-textMuted text-sm mt-2 text-center">
         {canAskAgain
-          ? 'ProsCard needs your camera to scan QR codes on other business cards.'
+          ? 'VC Pros needs your camera to scan QR codes on other business cards.'
           : 'Camera access was denied. Enable it in Settings to scan QR codes on other business cards.'}
       </Text>
       <TouchableOpacity

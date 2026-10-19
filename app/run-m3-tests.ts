@@ -265,7 +265,7 @@ require.cache[asPath] = {
 
 async function runM3Tests() {
   console.log('====================================================');
-  console.log('   PROSCARD MILESTONE 3 COMPONENT TEST HARNESS      ');
+  console.log('   VC PROS MILESTONE 3 COMPONENT TEST HARNESS      ');
   console.log('====================================================\n');
 
   const { runStepCardCustomizationTests } = await import(

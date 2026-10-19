@@ -151,7 +151,7 @@ require.cache[asPath] = {
 
 async function runM2Tests() {
   console.log('====================================================');
-  console.log('   PROSCARD MILESTONE 2 COMPONENT TEST HARNESS      ');
+  console.log('   VC PROS MILESTONE 2 COMPONENT TEST HARNESS      ');
   console.log('====================================================\n');
 
   const { runOnboardingComponentsTests } = await import(

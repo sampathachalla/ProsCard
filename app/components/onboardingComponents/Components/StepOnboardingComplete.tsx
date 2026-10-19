@@ -7,7 +7,6 @@ import * as Haptics from 'expo-haptics';
 import { CheckCircle2, Home } from 'lucide-react-native';
 
 import { BrandLogo } from '@/components/uiComponents/BrandLogo';
-import { ProsCardTitle } from '@/components/uiComponents/ProsCardTitle';
 import { Text } from '@/components/uiComponents/Text';
 import { Colors } from '@/constants/Colors';
 import { useThemeContext } from '@/context/ThemeContext';
@@ -72,10 +71,7 @@ export function StepOnboardingComplete({
           style={styles.brandZone}
         >
           <View style={styles.brandMark}>
-            <BrandLogo accessibilityLabel="MindPROS company logo" size="xl" variant="wordmark" />
-          </View>
-          <View style={styles.productTitle}>
-            <ProsCardTitle accent={false} size="md" tone="initials" />
+            <BrandLogo accessibilityLabel="VCPROS logo" size="xl" variant="wordmark" />
           </View>
         </Animated.View>
 

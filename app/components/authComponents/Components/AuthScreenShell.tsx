@@ -19,7 +19,7 @@ export interface AuthScreenShellProps {
 
 /**
  * Soft Canva-like atmosphere + Instagram-like centered content.
- * Gradient follows theme so MindPros light/dark logos stay readable.
+ * Gradient follows theme so VCPROS light/dark logos stay readable.
  */
 export function AuthScreenShell({
   children,

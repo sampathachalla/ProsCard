@@ -49,7 +49,7 @@ beforeAll(async()=>{
 });
 afterAll(async()=>{await pool.end()});
 
-describe('ProsCard API routes',()=>{
+describe('VC Pros API routes',()=>{
   it('reports health',async()=>{const r=await request(app).get('/health');expect(r.status).toBe(200);expect(r.body.status).toBe('ok')});
   it('reports readiness, request IDs, and API documentation',async()=>{const ready=await request(app).get('/ready');expect(ready.status).toBe(200);expect(ready.headers['x-request-id']).toBeTruthy();expect(ready.body.database).toBe('ok');const docs=await request(app).get('/api-docs.json');expect(docs.status).toBe(200);expect(docs.body.openapi).toBe('3.1.0');expect(docs.body.paths['/cards']).toBeTruthy()});
   it('rejects protected routes without a bearer token',async()=>{expect((await request(app).get('/api/v1/profiles/me')).status).toBe(401)});

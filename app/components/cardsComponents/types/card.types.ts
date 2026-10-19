@@ -100,7 +100,7 @@ export function resolveLayoutStyle(id: CardLayoutId, section?: CardSectionId): C
 }
 
 /** Default card title when no personal name is set — not shown on the identity face. */
-export const DEFAULT_CARD_DISPLAY_NAME = 'My ProsCard';
+export const DEFAULT_CARD_DISPLAY_NAME = 'My VC Pros';
 
 export function resolveIdentityPreferredName(input: {
   override?: string;

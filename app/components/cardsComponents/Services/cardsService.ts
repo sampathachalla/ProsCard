@@ -255,14 +255,14 @@ export function clearCardState(): void {
   notifyCardListeners();
 }
 
-/** A new card in the standard ProsCard design (default theme and layouts), filled from the profile. */
+/** A new card in the standard VC Pros design (default theme and layouts), filled from the profile. */
 export function buildDefaultCard(profile: Partial<Profile>): BusinessCard {
   const gradient: [string, string] = [DEFAULT_CARD_THEME.gradient[0], DEFAULT_CARD_THEME.gradient[1]];
   const fullName = [profile.firstName, profile.lastName].filter(Boolean).join(' ').trim();
   return normalizeCard({
     id: `new-${Date.now()}`,
     category: 'Professional',
-    name: profile.preferredName?.trim() || fullName || profile.fullName?.trim() || 'My ProsCard',
+    name: profile.preferredName?.trim() || fullName || profile.fullName?.trim() || 'My VC Pros',
     title: profile.title?.trim() ?? '',
     company: profile.organization?.trim() ?? '',
     phone: profile.phone?.trim() ?? '',

@@ -69,7 +69,7 @@ export const CardActionsBottomSheet = forwardRef<BottomSheet, CardActionsBottomS
                 await navigator.clipboard.writeText(url);
                 Alert.alert('Link Copied', 'Your public card link has been copied to clipboard.');
               } else {
-                await Share.share({ message: url, title: `${card.name} | ProsCard`, url });
+                await Share.share({ message: url, title: `${card.name} | VC Pros`, url });
               }
             })
             .catch((reason) => Alert.alert('Share link unavailable', reason instanceof Error ? reason.message : 'Try again.'));

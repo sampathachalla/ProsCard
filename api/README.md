@@ -1,4 +1,4 @@
-# ProsCard API
+# VC Pros API
 
 The local Node API uses Supabase Auth for identity, PostgreSQL for application data, and OCI Object Storage for media.
 

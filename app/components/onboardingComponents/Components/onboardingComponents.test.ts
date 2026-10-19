@@ -195,8 +195,8 @@ export function runOnboardingComponentsTests(): { passed: number; failed: number
           draft = { ...draft, ...fields };
         };
 
-        updateDraft({ organization: 'ProsCard Inc' });
-        assertEqual(draft.organization, 'ProsCard Inc');
+        updateDraft({ organization: 'VC Pros Inc' });
+        assertEqual(draft.organization, 'VC Pros Inc');
 
         updateDraft({ email: 'john@proscard.app' });
         assertEqual(draft.email, 'john@proscard.app');

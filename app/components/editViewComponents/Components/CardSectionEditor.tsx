@@ -737,7 +737,7 @@ export function CardSectionEditor({
             value={getFieldValue('company')}
             onChangeText={(val) => onFieldChange('company', val)}
             onFocus={onProfessionalFieldFocus}
-            placeholder="ProsCard"
+            placeholder="VC Pros"
           />
         </View>
       </View>
@@ -859,7 +859,7 @@ export function CardSectionEditor({
           value={getFieldValue('company')}
           onChangeText={(val) => onFieldChange('company', val)}
           onFocus={onProfessionalFieldFocus}
-          placeholder="e.g. ProsCard"
+          placeholder="e.g. VC Pros"
         />
       </CardEditorFieldGroup>
 

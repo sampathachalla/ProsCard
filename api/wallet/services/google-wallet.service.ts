@@ -6,7 +6,7 @@ export type GoogleWalletConfig = { issuerId: string; serviceAccountPath: string 
 
 type ServiceAccount = { client_email: string; private_key: string; private_key_id?: string };
 
-/** Pass class every ProsCard business card belongs to; created on first save through the JWT. */
+/** Pass class every VC Pros business card belongs to; created on first save through the JWT. */
 const CLASS_SUFFIX = 'proscard_business_card';
 
 export function googleWalletConfigured(config: GoogleWalletConfig): boolean {
@@ -45,7 +45,7 @@ export class GoogleWalletLinkGenerator {
       id: objectId,
       classId,
       state: 'ACTIVE',
-      cardTitle: text(card.company || 'ProsCard'),
+      cardTitle: text(card.company || 'VC Pros'),
       header: text(card.name),
       ...(card.title ? { subheader: text(card.title) } : {}),
       ...(avatar ? { logo: { sourceUri: { uri: imageUrl(avatar) }, contentDescription: text(card.name) } } : {}),

@@ -24,7 +24,7 @@ import {
   type LucideIcon,
 } from 'lucide-react-native';
 
-import { getMindProsLogoSource } from '@/components/uiComponents/BrandLogo';
+import { getVcProsLogoSource } from '@/components/uiComponents/BrandLogo';
 import { isRgbaOrHexLight } from '@/utils/cardThemeColor';
 import { FlippableCard } from '@/components/gestures/FlippableCard';
 import {
@@ -207,7 +207,7 @@ export function StepCardCustomization({
                 category={safeCategory}
                 company={safeCompany}
                 gradient={safeGradient}
-                logoSource={getMindProsLogoSource(isRgbaOrHexLight(safeGradient[0]) ? 'light' : 'dark')}
+                logoSource={getVcProsLogoSource(isRgbaOrHexLight(safeGradient[0]) ? 'light' : 'dark')}
                 name={safeName}
                 title={safeTitle}
                 width={cardWidth}

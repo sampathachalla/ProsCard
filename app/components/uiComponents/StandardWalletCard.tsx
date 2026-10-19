@@ -58,7 +58,7 @@ export function StandardWalletCard({
 
       <View style={styles.topRow}>
         <BrandLogo
-          accessibilityLabel="MindPROS company logo"
+          accessibilityLabel="VCPROS logo"
           size="sm"
           source={logoSource}
           variant="wordmark"

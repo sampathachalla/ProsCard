@@ -25,8 +25,8 @@ import {
 } from 'lucide-react-native';
 import { Text } from '@/components/uiComponents/Text';
 import { Colors } from '@/constants/Colors';
-import mindProsLogoForDarkTheme from '@/assets/mindpros-logo-dark.png'; // White text (for dark backgrounds)
-import mindProsLogoForLightTheme from '@/assets/mindpros-logo-light.png'; // Dark navy text (for light backgrounds)
+import vcProsLogoForDarkTheme from '@/assets/vcpros-logo-dark.png'; // White text (for dark backgrounds)
+import vcProsLogoForLightTheme from '@/assets/vcpros-logo-light.png'; // Dark navy text (for light backgrounds)
 import type { CardDetailField } from '../cardDetailTemplate';
 import type { CardTemplateId, CardVisualTheme, ResolvedLayoutSlots } from '../../types/card.types';
 import { getCardFontFamily, getCardLetterSpacing } from '../cardTheme';
@@ -246,7 +246,7 @@ export function UniversalLogoBadge({
   const isEffectiveBgLight = isRgbaOrHexLight(logoContrastSample);
 
   // Dark text on light backdrop; White text on dark backdrop
-  const defaultBrandLogo = isEffectiveBgLight ? mindProsLogoForLightTheme : mindProsLogoForDarkTheme;
+  const defaultBrandLogo = isEffectiveBgLight ? vcProsLogoForLightTheme : vcProsLogoForDarkTheme;
 
   return (
     <View

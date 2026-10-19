@@ -58,7 +58,7 @@ export function useAddToWallet() {
       // Snapshot before opening, so a pass that was already in Wallet is not mistaken for a new add.
       const before = wallet === 'apple' ? await getWalletStatus(cardId).catch(() => null) : null;
       // Start observing before the browser fallback opens. This allows Wallet's
-      // registration callback to dismiss the browser and return to ProsCard.
+      // registration callback to dismiss the browser and return to VC Pros.
       const observeWhilePresented = wallet === 'apple' && !usesNativeAppleWalletPresenter();
       const confirmation = before?.apple.enabled && observeWhilePresented
         ? confirmAdded(cardId, before, cardName, confirmationSignal)

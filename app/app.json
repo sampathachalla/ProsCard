@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Pros Card",
+    "name": "VC Pros",
     "slug": "ProsCard",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -39,7 +39,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/mindpros-logo.png",
+          "image": "./assets/vcpros-logo.png",
           "imageWidth": 240,
           "resizeMode": "contain",
           "backgroundColor": "#020617"
@@ -48,19 +48,19 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "ProsCard uses the camera to scan business cards and ProsCard QR codes."
+          "cameraPermission": "VC Pros uses the camera to scan business cards and VC Pros QR codes."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "ProsCard needs access to your photo library to upload profile images and business-card photos."
+          "photosPermission": "VC Pros needs access to your photo library to upload profile images and business-card photos."
         }
       ],
       [
         "react-native-document-scanner-plugin",
         {
-          "cameraPermission": "ProsCard uses the camera to scan business cards and ProsCard QR codes."
+          "cameraPermission": "VC Pros uses the camera to scan business cards and VC Pros QR codes."
         }
       ],
       "expo-sharing"

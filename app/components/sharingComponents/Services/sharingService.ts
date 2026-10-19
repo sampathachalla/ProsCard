@@ -26,7 +26,7 @@ export function vcardUrlForSlug(slug: string): string {
   return `${origin}/api/v1/sharing/public/${encodeURIComponent(slug)}/vcard`;
 }
 
-/** Extracts the share slug from a scanned QR payload (a ProsCard share URL). */
+/** Extracts the share slug from a scanned QR payload (a VC Pros share URL). */
 export function parseShareSlug(data: string): string | null {
   return data.trim().match(/\/share\/([A-Za-z0-9_-]+)\/?(?:[?#].*)?$/)?.[1] ?? null;
 }
@@ -137,7 +137,7 @@ export async function getSharedCardView(slug: string): Promise<SharedCardView> {
   } catch (error) {
     if (controller.signal.aborted) throw new Error('The card took too long to load. Check your connection and try again.');
     if (error instanceof SyntaxError) throw new Error('The card could not be loaded. Please try again.');
-    if (error instanceof TypeError) throw new Error('Can’t reach ProsCard. Check your internet connection and try again.');
+    if (error instanceof TypeError) throw new Error('Can’t reach VC Pros. Check your internet connection and try again.');
     throw error;
   } finally {
     clearTimeout(timer);

@@ -10,7 +10,7 @@ final class WalletPassInvalidException: Exception, @unchecked Sendable {
 }
 
 final class WalletPassPresentationException: Exception, @unchecked Sendable {
-  override var reason: String { "ProsCard could not present the Apple Wallet screen." }
+  override var reason: String { "VC Pros could not present the Apple Wallet screen." }
 }
 
 final class WalletPassInProgressException: Exception, @unchecked Sendable {

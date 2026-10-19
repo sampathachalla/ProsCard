@@ -10,7 +10,7 @@ type WalletPassPresenterModule = {
 
 const nativeModule = requireOptionalNativeModule<WalletPassPresenterModule>('WalletPassPresenter');
 
-/** False in Expo Go, Android, and web; true in a ProsCard iOS development or production build. */
+/** False in Expo Go, Android, and web; true in a VC Pros iOS development or production build. */
 export function isNativeWalletPassPresenterAvailable(): boolean {
   return nativeModule != null;
 }

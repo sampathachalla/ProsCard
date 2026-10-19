@@ -7,7 +7,7 @@ type AppWordmarkProps = {
 export function AppWordmark({ className = '' }: AppWordmarkProps) {
   return (
     <Text
-      accessibilityLabel="ProsCard"
+      accessibilityLabel="VC Pros"
       accessibilityRole="header"
       adjustsFontSizeToFit
       className={`text-left font-extrabold text-textPrimary dark:text-dark-textPrimary ${className}`}
@@ -21,13 +21,9 @@ export function AppWordmark({ className = '' }: AppWordmarkProps) {
       }}
     >
       <Text variant="none" className="text-primary dark:text-dark-primary">
-        P
-      </Text>
-      ros
-      <Text variant="none" className="text-primary dark:text-dark-primary">
-        C
-      </Text>
-      ard
+        VC
+      </Text>{' '}
+      Pros
     </Text>
   );
 }

@@ -12,7 +12,7 @@ import type { EditableCard } from '../types/editView.types';
 const DEFAULT_CARD: EditableCard = {
   id: '1',
   category: 'Professional',
-  name: 'My ProsCard',
+  name: 'My VC Pros',
   title: '',
   company: '',
   phone: '',

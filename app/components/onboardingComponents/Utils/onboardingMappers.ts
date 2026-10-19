@@ -88,7 +88,7 @@ export function mapDraftToBusinessCard(
   return {
     id: existingCard?.id || '1',
     category: (draft.cardCategory ?? '').trim() || existingCard?.category || 'Professional',
-    name: draft.preferredName.trim() || buildFullName(draft) || 'ProsCard Member',
+    name: draft.preferredName.trim() || buildFullName(draft) || 'VC Pros Member',
     title: (draft.title ?? '').trim() || 'Professional',
     company: (draft.organization ?? '').trim() || 'Independent',
     phone: (draft.phone ?? '').trim(),

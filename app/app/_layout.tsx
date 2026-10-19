@@ -1,7 +1,7 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Platform, View } from 'react-native';
+import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { ThemeProvider, useThemeContext } from '../context/ThemeContext';
@@ -46,7 +46,7 @@ function ThemedLayoutWrapper() {
             }}
           />
         </Stack>
-        <StatusBar style={Platform.OS === 'android' ? 'light' : 'auto'} />
+        <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
       </BottomSheetModalProvider>
     </View>
   );

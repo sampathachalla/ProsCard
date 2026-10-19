@@ -27,18 +27,18 @@ export const generateMetadata: GenerateMetadataFunction = async (_request, param
 
   if (!card) {
     return {
-      title: 'Card not found | ProsCard',
-      description: 'This ProsCard is no longer available.',
+      title: 'Card not found | VC Pros',
+      description: 'This VC Pros card is no longer available.',
     };
   }
 
   const description = `${card.name}, ${card.title} at ${card.company}. View and scan this digital business card.`;
 
   return {
-    title: `${card.name} | ProsCard`,
+    title: `${card.name} | VC Pros`,
     description,
     openGraph: {
-      title: `${card.name} | ProsCard`,
+      title: `${card.name} | VC Pros`,
       description,
       type: 'profile',
     },
@@ -100,7 +100,7 @@ export default function CardDetailPage() {
               await navigator.clipboard.writeText(url);
               Alert.alert('Link copied', 'The card URL was copied to your clipboard.');
             } else {
-              await Share.share({ message: url, title: `${card.name} | ProsCard`, url });
+              await Share.share({ message: url, title: `${card.name} | VC Pros`, url });
             }
             break;
           case 'wallet':

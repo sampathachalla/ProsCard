@@ -73,7 +73,7 @@ export async function commitPendingMedia(
     blob = await source.blob();
   } catch (error) {
     throw new ApiError(
-      'ProsCard couldn’t read the selected image. Select it again and retry.',
+      'VC Pros couldn’t read the selected image. Select it again and retry.',
       NETWORK_ERROR_STATUS,
       error,
     );

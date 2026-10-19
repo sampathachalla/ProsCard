@@ -150,7 +150,7 @@ final class CardScannerView: ExpoView, AVCaptureVideoDataOutputSampleBufferDeleg
         DispatchQueue.main.async { self.updateRunning() }
       }
     default:
-      onCameraError(["message": "Camera access is turned off for ProsCard."])
+      onCameraError(["message": "Camera access is turned off for VC Pros."])
     }
   }
 

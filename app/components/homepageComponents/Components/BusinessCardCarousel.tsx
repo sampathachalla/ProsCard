@@ -29,7 +29,9 @@ type BusinessCardCarouselProps = {
 
 const CARD_GAP = 14;
 const SIDE_PADDING = 20;
-const CARD_VERTICAL_PADDING = 12;
+/** Small top inset only — card fills the rest so no empty band under the header or above actions. */
+const CARD_TOP_PADDING = 4;
+const CARD_BOTTOM_PADDING = 0;
 const ADD_CARD_KEY = '__add-card__';
 
 type CarouselItem = { kind: 'card'; card: BusinessCardData } | { kind: 'add' };
@@ -101,9 +103,13 @@ export function BusinessCardCarousel({
   const { width: windowWidth } = useWindowDimensions();
 
   const items: CarouselItem[] = [...cards.map((card) => ({ kind: 'card' as const, card })), { kind: 'add' }];
-  const cardAvailableHeight = Math.max(0, height - CARD_VERTICAL_PADDING * 2);
+  const cardAvailableHeight = Math.max(0, height - CARD_TOP_PADDING - CARD_BOTTOM_PADDING);
   const cardWidth = getBusinessCardWidth(windowWidth, items.length, cardAvailableHeight);
-  const cardHeight = getBusinessCardHeight(cardWidth, cardAvailableHeight);
+  // Prefer the full showcase height so the preview sits flush (no centered dead space).
+  const cardHeight = Math.max(
+    getBusinessCardHeight(cardWidth, cardAvailableHeight),
+    cardAvailableHeight,
+  );
   const interval = cardWidth + CARD_GAP;
   useEffect(() => {
     const boundedIndex = Math.max(0, Math.min(items.length - 1, activeIndex));
@@ -138,7 +144,14 @@ export function BusinessCardCarousel({
   };
 
   return (
-    <View style={{ height, paddingVertical: CARD_VERTICAL_PADDING }} className="justify-center">
+    <View
+      style={{
+        height,
+        paddingTop: CARD_TOP_PADDING,
+        paddingBottom: CARD_BOTTOM_PADDING,
+      }}
+      className="justify-start"
+    >
       <FlashList
         ref={listRef}
         accessibilityLabel="Business card carousel"
@@ -184,7 +197,7 @@ export function BusinessCardCarousel({
         ListHeaderComponent={<View style={{ width: SIDE_PADDING }} />}
         ListFooterComponent={<View style={{ width: SIDE_PADDING }} />}
         ItemSeparatorComponent={() => <View style={{ width: CARD_GAP }} />}
-        contentContainerStyle={{ alignItems: 'center' }}
+        contentContainerStyle={{ alignItems: 'flex-start' }}
       />
     </View>
   );

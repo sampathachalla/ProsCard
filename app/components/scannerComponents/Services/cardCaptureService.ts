@@ -47,7 +47,7 @@ export async function scanCard(): Promise<CapturedCard | null> {
   const permission = await ImagePicker.requestCameraPermissionsAsync();
   if (!permission.granted) {
     await Linking.openSettings().catch(() => {
-      Alert.alert('Camera access needed', 'Open ProsCard in Settings and allow camera access to scan business cards.');
+      Alert.alert('Camera access needed', 'Open VC Pros in Settings and allow camera access to scan business cards.');
     });
     return null;
   }
@@ -60,7 +60,7 @@ export async function pickCardFromLibrary(): Promise<CapturedCard | null> {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       await Linking.openSettings().catch(() => {
-        Alert.alert('Photo access needed', 'Open ProsCard in Settings and allow photo library access to upload a business card photo.');
+        Alert.alert('Photo access needed', 'Open VC Pros in Settings and allow photo library access to upload a business card photo.');
       });
       return null;
     }

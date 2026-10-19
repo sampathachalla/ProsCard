@@ -61,7 +61,7 @@ if [[ "${API_TUNNEL_URL}" != https://* ]]; then
   exit 1
 fi
 
-print "\nProsCard Expo Go tunnel QR:\n"
+print "\nVC Pros Expo Go tunnel QR:\n"
 npx -y qrcode --small "${EXPO_URL}"
 print "Tunnel URL: ${EXPO_URL}\n"
 print "Backend API URL: ${API_TUNNEL_URL}\n"

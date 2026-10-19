@@ -88,7 +88,7 @@ export async function runCardsServiceTests(): Promise<{ passed: number; failed: 
   await savePrimaryCard({
     name: 'Sampath Achalla',
     title: 'FDE',
-    company: 'ProsCard',
+    company: 'VC Pros',
   });
 
   return { passed, failed };

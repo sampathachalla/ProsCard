@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Deploys the ProsCard backend (Postgres + API + share page) to the OCI instance.
+# Deploys the VC Pros backend (Postgres + API + share page) to the OCI instance.
 #
 #   zsh deploy/oci/deploy.sh               # code changes: sync, rebuild, migrate, health check
 #   zsh deploy/oci/deploy.sh --web         # also rebuild the public share page first (app → api/web)
