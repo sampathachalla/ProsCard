@@ -43,7 +43,14 @@ const pickerOptions: ImagePicker.ImagePickerOptions = {
 
 /** Takes a photo of a card, preferring the edge-detecting scanner and falling back to the system camera. */
 export async function scanCard(): Promise<CapturedCard | null> {
-  if (isDocumentScannerAvailable()) return scanWithEdgeDetection();
+  if (isDocumentScannerAvailable()) {
+    try {
+      return await scanWithEdgeDetection();
+    } catch {
+      // Some Android development clients cannot resume correctly from ML Kit's separate scanner
+      // activity. Fall back to the system camera instead of surfacing its internal `reload` error.
+    }
+  }
   const permission = await ImagePicker.requestCameraPermissionsAsync();
   if (!permission.granted) {
     await Linking.openSettings().catch(() => {

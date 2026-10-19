@@ -6,8 +6,12 @@ export type GoogleWalletConfig = { issuerId: string; serviceAccountPath: string 
 
 type ServiceAccount = { client_email: string; private_key: string; private_key_id?: string };
 
-/** Pass class every VC Pros business card belongs to; created on first save through the JWT. */
-const CLASS_SUFFIX = 'proscard_business_card';
+/**
+ * Version the class and object together when the front-of-pass template changes. Google keeps
+ * previously saved objects, so a new id guarantees that an existing tester sees the redesign.
+ */
+const PASS_VERSION = 'v2';
+const CLASS_SUFFIX = `vcpros_business_card_${PASS_VERSION}`;
 
 export function googleWalletConfigured(config: GoogleWalletConfig): boolean {
   return Boolean(config.issuerId && config.serviceAccountPath);
@@ -15,6 +19,15 @@ export function googleWalletConfigured(config: GoogleWalletConfig): boolean {
 
 const base64url = (value: string | Buffer) => Buffer.from(value).toString('base64url');
 const text = (value: string) => ({ defaultValue: { language: 'en-US', value } });
+const templateField = (id: string) => ({
+  firstValue: { fields: [{ fieldPath: `object.textModulesData['${id}']` }] },
+});
+
+export type GoogleWalletImages = {
+  media: (mediaId: string) => string;
+  brandLogo: string;
+  presetCover: (presetId: string) => string;
+};
 
 /**
  * Builds a "Save to Google Wallet" link: a JWT signed with the issuer's service account that carries the
@@ -27,13 +40,20 @@ export class GoogleWalletLinkGenerator {
     this.account = JSON.parse(readFileSync(config.serviceAccountPath, 'utf8')) as ServiceAccount;
   }
 
-  /** `imageUrl(mediaId)` must return a public HTTPS URL; Google downloads the images itself. */
-  createSaveUrl(card: WalletCard, shareUrl: string, imageUrl: (mediaId: string) => string): string {
+  /** Every image URL must be public HTTPS; Google downloads the images itself. */
+  createSaveUrl(card: WalletCard, shareUrl: string, images: GoogleWalletImages): string {
     const classId = `${this.config.issuerId}.${CLASS_SUFFIX}`;
-    // Same object id for the same card, so saving again updates the existing pass.
-    const objectId = `${this.config.issuerId}.card_${card.cardId.replace(/[^\w.-]/g, '_')}`;
-    const avatar = card.photoMediaId ?? card.logoMediaId;
+    const objectId = `${this.config.issuerId}.card_${PASS_VERSION}_${card.cardId.replace(/[^\w.-]/g, '_')}`;
+    const heroUrl = card.coverMediaId
+      ? images.media(card.coverMediaId)
+      : card.coverPresetId
+        ? images.presetCover(card.coverPresetId)
+        : card.photoMediaId
+          ? images.media(card.photoMediaId)
+          : null;
     const details = [
+      ['company', 'Company', card.company],
+      ['title', 'Job title', card.title],
       ['tag', 'Card tag', card.tag],
       ['email', 'Email', card.email],
       ['phone', 'Phone', card.phone],
@@ -48,10 +68,8 @@ export class GoogleWalletLinkGenerator {
       cardTitle: text(card.company || 'VC Pros'),
       header: text(card.name),
       ...(card.title ? { subheader: text(card.title) } : {}),
-      ...(avatar ? { logo: { sourceUri: { uri: imageUrl(avatar) }, contentDescription: text(card.name) } } : {}),
-      ...(card.coverMediaId
-        ? { heroImage: { sourceUri: { uri: imageUrl(card.coverMediaId) }, contentDescription: text(`${card.name} card cover`) } }
-        : {}),
+      logo: { sourceUri: { uri: images.brandLogo }, contentDescription: text('VC Pros') },
+      ...(heroUrl ? { heroImage: { sourceUri: { uri: heroUrl }, contentDescription: text(`${card.name} card cover`) } } : {}),
       hexBackgroundColor: backgroundHex(card),
       barcode: { type: 'QR_CODE', value: shareUrl, alternateText: 'Scan to view card' },
       textModulesData: details.map(([id, header, body]) => ({ id, header, body })),
@@ -65,7 +83,23 @@ export class GoogleWalletLinkGenerator {
       typ: 'savetowallet',
       iat: Math.floor(Date.now() / 1000),
       origins: [],
-      payload: { genericClasses: [{ id: classId }], genericObjects: [passObject] },
+      payload: {
+        genericClasses: [{
+          id: classId,
+          classTemplateInfo: {
+            cardTemplateOverride: {
+              cardRowTemplateInfos: [{
+                threeItems: {
+                  startItem: templateField('company'),
+                  middleItem: templateField('title'),
+                  endItem: templateField('tag'),
+                },
+              }],
+            },
+          },
+        }],
+        genericObjects: [passObject],
+      },
     };
     const unsigned = `${base64url(JSON.stringify(header))}.${base64url(JSON.stringify(claims))}`;
     const signature = createSign('RSA-SHA256').update(unsigned).sign(this.account.private_key);

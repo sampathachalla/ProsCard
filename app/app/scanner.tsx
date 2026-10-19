@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -28,7 +27,6 @@ import { useScanner } from '../components/scannerComponents/Hooks/useScanner';
 import { PageHeader } from '@/components/uiComponents/PageHeader';
 import { useCardCapture } from '../components/scannerComponents/Hooks/useCardCapture';
 import { useCardReader } from '../components/scannerComponents/Hooks/useCardReader';
-import { isDocumentScannerAvailable } from '../components/scannerComponents/Services/cardCaptureService';
 import { saveScanResult, type ScanResult } from '../components/scannerComponents/Services/scanHandoff';
 import type { CapturedCard } from '../components/scannerComponents/types/scanner.types';
 import { lookupScannedCard } from '../components/scannerComponents/Services/scannerService';
@@ -136,18 +134,15 @@ export default function ScannerScreen() {
   };
 
   /**
-   * iOS uses the live Vision scanner (or the plain preview when the build lacks it), never the
-   * document scanner; Android uses the native document scanner; Expo Go uses the plain preview.
+   * Development builds with the live detector use its perspective-corrected capture. Android and
+   * Expo Go use the embedded Expo camera; the card reader detects and crops its edges after capture.
+   * Keeping capture in this screen also avoids the separate ML Kit activity, which is unstable with
+   * the current Android development client.
    */
   const captureCard = async () => {
     if (stage !== 'camera' || capturing || shooting) return;
     if (liveCardDetection) {
       await captureFromCardScanner();
-      return;
-    }
-    if (Platform.OS === 'android' && isDocumentScannerAvailable()) {
-      const card = await capturePhoto('scan');
-      if (card) await processPhoto(card);
       return;
     }
     if (!cameraRef.current) return;
@@ -257,14 +252,17 @@ export default function ScannerScreen() {
           </View>
         </>
       ) : stage === 'camera' ? (
-        <CameraView
-          ref={cameraRef}
-          style={StyleSheet.absoluteFill}
-          facing="back"
-          active={!capturing}
-          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-          onBarcodeScanned={isActive ? ({ data }) => processDetectedCode(data) : undefined}
-        />
+        <>
+          <CameraView
+            ref={cameraRef}
+            style={StyleSheet.absoluteFill}
+            facing="back"
+            active={!capturing}
+            barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+            onBarcodeScanned={isActive ? ({ data }) => processDetectedCode(data) : undefined}
+          />
+          <ScannerOverlay isActive={!capturing && !shooting} hintBottom={controlsBottom + 96} />
+        </>
       ) : photo ? (
         <>
           <Image

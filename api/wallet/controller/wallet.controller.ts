@@ -11,6 +11,24 @@ export class WalletController {
 
   status = async (_request: Request, response: Response) => response.json(this.service.status());
 
+  brandLogo = async (_request: Request, response: Response) => {
+    response.set({
+      'Content-Type': 'image/png',
+      'Cache-Control': 'public, max-age=86400',
+      'Cross-Origin-Resource-Policy': 'cross-origin',
+    });
+    response.send(this.service.brandLogo());
+  };
+
+  presetCover = async (request: Request, response: Response) => {
+    response.set({
+      'Content-Type': 'image/jpeg',
+      'Cache-Control': 'public, max-age=86400',
+      'Cross-Origin-Resource-Policy': 'cross-origin',
+    });
+    response.send(this.service.presetCover(request.params.presetId as string));
+  };
+
   appleLink = async (request: AuthenticatedRequest, response: Response) =>
     response.json(await this.service.appleLink(request.user.id, request.params.cardId as string, this.service.baseUrl(requestBase(request))));
 

@@ -14,6 +14,9 @@ import type { GoogleWalletLinkGenerator } from './google-wallet.service.js';
 /** Apple pass links are opened in Safari, which cannot send the app's login token, so they carry a signed token. */
 const APPLE_LINK_TTL_SECONDS = 300;
 const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
+const WALLET_ASSETS_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'assets');
+const CARD_COVERS_DIR = path.join(WALLET_ASSETS_DIR, 'card-covers');
+const VCPROS_LOGO = path.join(WALLET_ASSETS_DIR, 'vcpros-logo.png');
 
 type WalletDeps = {
   repo: WalletRepository;
@@ -77,10 +80,9 @@ export class WalletService {
       return this.image(owner, card.coverMediaId);
     }
     if (card.coverPresetId) {
-      const coversDir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'assets', 'card-covers');
-      const presetPath = path.join(coversDir, `${card.coverPresetId}.jpg`);
+      const presetPath = path.join(CARD_COVERS_DIR, `${card.coverPresetId}.jpg`);
       // Defense in depth: the id is already restricted to [a-z0-9-], but never read outside the covers folder.
-      if (path.dirname(presetPath) !== coversDir) return null;
+      if (path.dirname(presetPath) !== CARD_COVERS_DIR) return null;
       try {
         return readFileSync(presetPath);
       } catch {
@@ -166,7 +168,11 @@ export class WalletService {
       const url = this.deps.google.createSaveUrl(
         card,
         `${base}/share/${slug}`,
-        (mediaId) => `${base}/api/v1/sharing/public/${slug}/media/${mediaId}`,
+        {
+          media: (mediaId) => `${base}/api/v1/sharing/public/${slug}/media/${mediaId}`,
+          brandLogo: `${base}/api/v1/wallet/assets/vcpros-logo.png`,
+          presetCover: (presetId) => `${base}/api/v1/wallet/assets/card-covers/${encodeURIComponent(presetId)}.jpg`,
+        },
       );
       return { url };
     } catch (error) {
@@ -176,6 +182,23 @@ export class WalletService {
         message: error instanceof Error ? error.message : String(error),
       });
       throw new HttpError(503, 'Could not create the Google Wallet link. Try again later.');
+    }
+  }
+
+  /** Public brand artwork fetched by Google Wallet while it renders the pass. */
+  brandLogo() {
+    return readFileSync(VCPROS_LOGO);
+  }
+
+  /** Public bundled cover artwork. Only known, simple preset ids may be read. */
+  presetCover(presetId: string) {
+    if (!/^[a-z0-9-]{1,64}$/.test(presetId)) throw new HttpError(404, 'Card cover not found.');
+    const presetPath = path.join(CARD_COVERS_DIR, `${presetId}.jpg`);
+    if (path.dirname(presetPath) !== CARD_COVERS_DIR) throw new HttpError(404, 'Card cover not found.');
+    try {
+      return readFileSync(presetPath);
+    } catch {
+      throw new HttpError(404, 'Card cover not found.');
     }
   }
 

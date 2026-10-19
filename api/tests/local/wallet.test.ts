@@ -94,7 +94,11 @@ describe('wallet passes', () => {
     const accountPath = path.join(dir, 'service-account.json');
     writeFileSync(accountPath, JSON.stringify({ client_email: 'wallet@test.iam.gserviceaccount.com', private_key: privateKey.export({ type: 'pkcs8', format: 'pem' }), private_key_id: 'kid-1' }));
     const url = new GoogleWalletLinkGenerator({ issuerId: '3388000000012345', serviceAccountPath: accountPath })
-      .createSaveUrl(toWalletCard('card-1', card, profile), 'https://example.test/share/abc', (id) => `https://example.test/img/${id}`);
+      .createSaveUrl(toWalletCard('card-1', card, profile), 'https://example.test/share/abc', {
+        media: (id) => `https://example.test/img/${id}`,
+        brandLogo: 'https://example.test/assets/vcpros-logo.png',
+        presetCover: (id) => `https://example.test/assets/covers/${id}.jpg`,
+      });
     expect(url.startsWith('https://pay.google.com/gp/v/save/')).toBe(true);
     const [header, claims, signature] = url.split('/').pop()!.split('.');
     expect(createVerify('RSA-SHA256').update(`${header}.${claims}`).verify(publicKey, Buffer.from(signature!, 'base64url'))).toBe(true);
@@ -102,13 +106,41 @@ describe('wallet passes', () => {
     expect(body.aud).toBe('google');
     expect(body.typ).toBe('savetowallet');
     const object = body.payload.genericObjects[0];
-    expect(object.id).toBe('3388000000012345.card_card-1');
+    expect(object.id).toBe('3388000000012345.card_v2_card-1');
     expect(object.header.defaultValue.value).toBe('Ada Lovelace');
     expect(object.textModulesData).toContainEqual({ id: 'tag', header: 'Card tag', body: 'Business' });
     expect(object.barcode.value).toBe('https://example.test/share/abc');
-    expect(object.logo.sourceUri.uri).toBe(`https://example.test/img/${MEDIA}`);
+    expect(object.logo.sourceUri.uri).toBe('https://example.test/assets/vcpros-logo.png');
     expect(object.heroImage.sourceUri.uri).toBe(`https://example.test/img/${MEDIA}`);
     expect(object.hexBackgroundColor).toBe('#2563eb');
+    expect(body.payload.genericClasses[0].id).toBe('3388000000012345.vcpros_business_card_v2');
+    expect(body.payload.genericClasses[0].classTemplateInfo.cardTemplateOverride.cardRowTemplateInfos[0])
+      .toEqual({
+        threeItems: {
+          startItem: { firstValue: { fields: [{ fieldPath: "object.textModulesData['company']" }] } },
+          middleItem: { firstValue: { fields: [{ fieldPath: "object.textModulesData['title']" }] } },
+          endItem: { firstValue: { fields: [{ fieldPath: "object.textModulesData['tag']" }] } },
+        },
+      });
+  });
+
+  it('uses a bundled card cover in Google Wallet when the card selected a preset', () => {
+    const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
+    const accountPath = path.join(dir, 'preset-service-account.json');
+    writeFileSync(accountPath, JSON.stringify({ client_email: 'wallet@test.iam.gserviceaccount.com', private_key: privateKey.export({ type: 'pkcs8', format: 'pem' }) }));
+    const presetCard = toWalletCard('card-2', card, { ...profile, coverPhotoUrl: 'proscard-cover:ocean-glass' });
+    const url = new GoogleWalletLinkGenerator({ issuerId: '3388000000012345', serviceAccountPath: accountPath }).createSaveUrl(
+      presetCard,
+      'https://example.test/share/abc',
+      {
+        media: (id) => `https://example.test/img/${id}`,
+        brandLogo: 'https://example.test/assets/vcpros-logo.png',
+        presetCover: (id) => `https://example.test/assets/covers/${id}.jpg`,
+      },
+    );
+    const claims = url.split('/').pop()!.split('.')[1]!;
+    const object = JSON.parse(Buffer.from(claims, 'base64url').toString()).payload.genericObjects[0];
+    expect(object.heroImage.sourceUri.uri).toBe('https://example.test/assets/covers/ocean-glass.jpg');
   });
 
   it('only accepts plain cover preset names, so a cover cannot read files outside the covers folder', () => {
