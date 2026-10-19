@@ -42,3 +42,7 @@ yarn-error.*
 *.tsbuildinfo
 
 app-example
+
+# Gradle output from building local native modules
+modules/*/android/build/
+modules/*/android/.gradle/

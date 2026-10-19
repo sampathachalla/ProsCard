@@ -41,8 +41,8 @@ function nativeView() {
 }
 
 /**
- * Live camera that outlines a business card as Apple Vision (VNDetectRectanglesRequest) finds it.
- * iOS development builds only; check isCardRectangleDetectorAvailable() before rendering it.
+ * Live camera that outlines a business card with Apple Vision on iOS or CameraX/OpenCV on Android.
+ * Development builds only; check isCardRectangleDetectorAvailable() before rendering it.
  */
 export const CardScannerView = forwardRef<CardScannerViewRef, CardScannerViewProps>(function CardScannerView(props, ref) {
   const NativeView = nativeView();

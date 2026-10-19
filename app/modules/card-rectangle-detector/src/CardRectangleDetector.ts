@@ -33,7 +33,7 @@ type CardRectangleDetectorModule = {
   detectCardAsync(uri: string, options: DetectCardOptions): Promise<DetectedCard | null>;
 };
 
-// Native iOS only: missing in Expo Go, on Android and on web.
+// Native iOS and Android development builds only; missing in Expo Go and on web.
 const nativeModule = requireOptionalNativeModule<CardRectangleDetectorModule>('CardRectangleDetector');
 
 export function isCardRectangleDetectorAvailable(): boolean {
@@ -41,7 +41,7 @@ export function isCardRectangleDetectorAvailable(): boolean {
 }
 
 /**
- * Finds a business card in a photo with Apple Vision (VNDetectRectanglesRequest) and returns it
+ * Finds a business card in a photo with Apple Vision on iOS or OpenCV on Android and returns it
  * perspective-corrected. Resolves to null when no card-shaped rectangle is found or the module is missing.
  */
 export async function detectCardAsync(uri: string, options: DetectCardOptions = {}): Promise<DetectedCard | null> {

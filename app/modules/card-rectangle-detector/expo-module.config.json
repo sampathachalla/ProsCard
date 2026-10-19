@@ -1,6 +1,9 @@
 {
-  "platforms": ["apple"],
+  "platforms": ["apple", "android"],
   "apple": {
     "modules": ["CardRectangleDetectorModule"]
+  },
+  "android": {
+    "modules": ["com.mindpros.cardrectangledetector.CardRectangleDetectorModule"]
   }
 }
