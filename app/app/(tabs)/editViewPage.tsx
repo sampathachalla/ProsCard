@@ -26,12 +26,25 @@ import { EditHomeBar, type EditHomeTab } from '@/components/uiComponents/EditHom
 import { FloatingEditBarButton } from '@/components/uiComponents/FloatingEditBarButton';
 import { CardDetailView } from '@/components/cardsComponents/Components/CardDetailView';
 import { CardSectionEditor } from '@/components/editViewComponents/Components/CardSectionEditor';
+import { ContactMethodsRequiredModal } from '@/components/editViewComponents/Components/ContactMethodsRequiredModal';
 import { useProfileSnapshot } from '@/components/profileComponents/Hooks/useProfileSnapshot';
+import { saveProfile } from '@/components/profileComponents/Services/profileService';
+import {
+  connectionCounts,
+  connectionProfileKey,
+  MINIMUM_CARD_CONNECTION_FIELDS,
+  profileValueForConnection,
+  profileConnectionsChanged,
+  profileWithConnectionFields,
+  reusableConnectionValue,
+} from '@/components/profileComponents/Services/profileConnections';
 import { useEditorPreferences } from '@/components/profileComponents/Hooks/useEditorPreferences';
-import type { CardSectionId } from '@/components/cardsComponents/types/card.types';
-import { buildDefaultCard } from '@/components/cardsComponents/Services/cardsService';
+import type { CardSectionId, DynamicCardField } from '@/components/cardsComponents/types/card.types';
+import { buildDefaultCard, getCards } from '@/components/cardsComponents/Services/cardsService';
+import { createCardDetailTemplate } from '@/components/cardsComponents/Templates/cardDetailTemplate';
 import { useEditView } from '@/components/editViewComponents/Hooks/useEditView';
 import { useThemeContext } from '@/context/ThemeContext';
+import type { EditableCard } from '@/components/editViewComponents/types/editView.types';
 
 const SECTION_TITLES: Record<CardSectionId, string> = {
   identity: 'Identity',
@@ -120,6 +133,31 @@ export default function EditViewPage() {
   const [previewVisible, setPreviewVisible] = useState(false);
   const [sectionPickerOpen, setSectionPickerOpen] = useState(false);
   const [cardTagRequiredError, setCardTagRequiredError] = useState(false);
+  const [missingContactMethodCount, setMissingContactMethodCount] = useState<number | null>(null);
+  const connectionScopeChoices = useRef<Record<string, 'card' | 'account'>>({});
+  const recordConnectionScope = useCallback((field: DynamicCardField, scope: 'card' | 'account') => {
+    const key = connectionProfileKey(field);
+    if (key) connectionScopeChoices.current[key] = scope;
+  }, []);
+  const syncProfileConnections = useCallback(async (candidate: EditableCard) => {
+    if (!candidate.connectionFieldsCustomized) return;
+    const fieldsToSync: EditableCard['connectionFields'] = [];
+    for (const field of candidate.connectionFields) {
+      const value = field.value.trim();
+      if (!value || !connectionProfileKey(field)) continue;
+      const savedValue = reusableConnectionValue(profile, getCards(), undefined, field);
+      const profileKey = connectionProfileKey(field)!;
+      if (savedValue && savedValue !== value && connectionScopeChoices.current[profileKey] === 'card') {
+        if (!profileValueForConnection(profile, field).trim()) {
+          fieldsToSync.push({ ...field, value: savedValue });
+        }
+        continue;
+      }
+      fieldsToSync.push(field);
+    }
+    const nextProfile = profileWithConnectionFields(profile, fieldsToSync);
+    if (profileConnectionsChanged(profile, nextProfile)) await saveProfile(nextProfile);
+  }, [profile]);
   const {
     card,
     draft,
@@ -137,7 +175,12 @@ export default function EditViewPage() {
     submit,
     submitSection,
     resetEditor,
-  } = useEditView(cardId, isCreateMode, isCreateMode ? creationDraft : undefined);
+  } = useEditView(
+    cardId,
+    isCreateMode,
+    isCreateMode ? creationDraft : undefined,
+    syncProfileConnections,
+  );
   const editorChromeBackground = glassmorphicEditorEnabled
     ? theme === 'dark'
       ? 'rgba(2, 6, 23, 0.74)'
@@ -169,6 +212,10 @@ export default function EditViewPage() {
   }, [isCreateMode]);
 
   useEffect(() => {
+    connectionScopeChoices.current = {};
+  }, [cardId]);
+
+  useEffect(() => {
     if (!isCreateMode || !creationSession) return;
 
     // A creationSession is unique for every "Add card" action. Defer the reset to
@@ -183,6 +230,7 @@ export default function EditViewPage() {
       setPreviewVisible(false);
       setSectionPickerOpen(false);
       setCardTagRequiredError(false);
+      connectionScopeChoices.current = {};
       setHomeBarCollapsed(false);
       setSheetIndex(0);
       sectionOffsets.current = {};
@@ -314,7 +362,29 @@ export default function EditViewPage() {
     });
     return () => subscription.remove();
   }, [handleHeaderBack, isCreateMode, isEditing, previewVisible, sectionPickerOpen]);
+  const requireContactFields = () => {
+    const fields = createCardDetailTemplate(draft, profile)
+      .find((section) => section.id === 'connections')
+      ?.fields.map((field) => ({
+        id: field.id,
+        title: field.title,
+        type: field.type === 'image' || field.type === 'multiline' ? 'text' as const : field.type,
+        value: field.value,
+      })) ?? [];
+    const { total } = connectionCounts(fields);
+    if (total >= MINIMUM_CARD_CONNECTION_FIELDS) return true;
+
+    setActiveSection('connections');
+    setActiveEditTab('content');
+    setStylingOpen(false);
+    setSectionPickerOpen(false);
+    setPreviewVisible(false);
+    requestAnimationFrame(() => sheetRef.current?.snapToIndex(0));
+    setMissingContactMethodCount(MINIMUM_CARD_CONNECTION_FIELDS - total);
+    return false;
+  };
   const saveSection = async () => {
+    if (activeSection === 'connections' && activeEditTab === 'content' && !requireContactFields()) return;
     if (isCreateMode) {
       if (activeSection === 'identity' && activeEditTab === 'content' && !requireCardTag()) return;
       if (activeEditTab === 'styling') {
@@ -362,6 +432,7 @@ export default function EditViewPage() {
   };
   const saveAllChanges = async () => {
     if (isCreateMode && !requireCardTag()) return;
+    if (!requireContactFields()) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     const saved = await submit({ keepEditing: !isCreateMode });
     if (saved && isCreateMode) router.back();
@@ -376,6 +447,7 @@ export default function EditViewPage() {
   };
   const previewCard = () => {
     if (isCreateMode && !requireCardTag()) return;
+    if (isCreateMode && !requireContactFields()) return;
     Haptics.selectionAsync().catch(() => {});
     setPreviewVisible(true);
   };
@@ -703,6 +775,7 @@ export default function EditViewPage() {
                       profile={profile}
                       showSectionNavigation={false}
                       onActiveSectionChange={setActiveSection}
+                      onConnectionScopeDecision={recordConnectionScope}
                       onConnectionsChange={replaceConnectionFields}
                       onFieldChange={(field, value) => {
                         updateSectionField(field, value);
@@ -725,6 +798,13 @@ export default function EditViewPage() {
           </EditorAnimatedPresentationProvider>
         </View>
       </ThemedBottomSheet>
+
+      <ContactMethodsRequiredModal
+        minimumCount={MINIMUM_CARD_CONNECTION_FIELDS}
+        missingCount={missingContactMethodCount ?? 0}
+        visible={missingContactMethodCount !== null}
+        onContinue={() => setMissingContactMethodCount(null)}
+      />
 
       {isEditing && sheetIndex >= 0 ? (
         <FloatingEditBarButton

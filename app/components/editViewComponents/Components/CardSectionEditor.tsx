@@ -46,11 +46,18 @@ import { Text } from '@/components/uiComponents/Text';
 import type { EditHomeTab } from '@/components/uiComponents/EditHomeBar';
 import type { EditableCard } from '../types/editView.types';
 import { CardStylingCustomizer } from './CardThemeCustomizer';
+import { ConnectionScopeModal } from './ConnectionScopeModal';
 import { LayoutTemplatePicker } from './LayoutTemplatePicker';
 import { EditorPresentationCrossfade } from '@/components/uiComponents/editor/EditorPresentationCrossfade';
 import { EditorSectionLabel } from '@/components/uiComponents/editor/EditorSectionLabel';
 import { getFieldIcon } from '@/components/cardsComponents/Templates/sections/SectionSharedComponents';
 import { fitAccreditationsToViewport, fitTaglineToViewport, getResponsiveAccreditationLimit, getResponsiveTaglineLimit } from '@/utils/cardTextLayout';
+import {
+  connectionCounts,
+  MINIMUM_CARD_CONNECTION_FIELDS,
+  reusableConnectionValue,
+} from '@/components/profileComponents/Services/profileConnections';
+import { getCards } from '@/components/cardsComponents/Services/cardsService';
 
 const SECTIONS: { id: CardSectionId; label: string }[] = [
   { id: 'identity', label: 'Identity' },
@@ -374,6 +381,7 @@ export function CardSectionEditor({
   editBarCollapsed = false,
   fullOpen = false,
   onActiveSectionChange,
+  onConnectionScopeDecision,
   onConnectionsChange,
   onFieldChange,
   onLayoutChange,
@@ -395,6 +403,7 @@ export function CardSectionEditor({
   fullOpen?: boolean;
   profile: Profile;
   onActiveSectionChange: (section: CardSectionId) => void;
+  onConnectionScopeDecision?: (field: DynamicCardField, scope: 'card' | 'account') => void;
   onConnectionsChange: (fields: DynamicCardField[]) => void;
   onFieldChange: (field: CardSectionFieldId, value: string) => void;
   onLayoutChange: (section: CardSectionId, template: CardLayoutId) => void;
@@ -422,6 +431,15 @@ export function CardSectionEditor({
     type: DynamicCardFieldType;
   } | null>(null);
   const [pendingConnectionValue, setPendingConnectionValue] = useState('');
+  const [connectionScopePrompt, setConnectionScopePrompt] = useState<{
+    field: DynamicCardField;
+    savedValue: string;
+    mode: 'add' | 'edit';
+  } | null>(null);
+  const pendingScopedAddRef = useRef<{
+    option: { title: string; type: DynamicCardFieldType };
+    value: string;
+  } | null>(null);
   const activeConnectionDragIndex = useSharedValue(-1);
   const connectionDragOffsetY = useSharedValue(0);
 
@@ -458,18 +476,23 @@ export function CardSectionEditor({
   };
   const professionalNameCountLabel = `${professionalNameCharacterCount}/${PROFESSIONAL_NAME_CHARACTER_LIMIT}`;
 
-  const connectionFields = card.connectionFieldsCustomized
-    ? card.connectionFields
-    : section.fields.map(
-        (field) =>
-          ({
-            id: field.id,
-            title: field.title,
-            type: field.type === 'image' || field.type === 'multiline' ? 'text' : field.type,
-            value: field.value,
-          }) as DynamicCardField,
-      );
+  // Match the card renderer: the editor should contain only fields that are
+  // actually present on this card, not every empty field available on the profile.
+  const connectionFields = (
+    card.connectionFieldsCustomized
+      ? card.connectionFields
+      : section.fields.map(
+          (field) =>
+            ({
+              id: field.id,
+              title: field.title,
+              type: field.type === 'image' || field.type === 'multiline' ? 'text' : field.type,
+              value: field.value,
+            }) as DynamicCardField,
+        )
+  ).filter((field) => field.value.trim().length > 0 || field.id === editingConnectionId);
   const connectionFieldsRef = useRef(connectionFields);
+  const contactCounts = connectionCounts(connectionFields);
   useEffect(() => {
     connectionFieldsRef.current = connectionFields;
   }, [connectionFields]);
@@ -477,8 +500,16 @@ export function CardSectionEditor({
   const changeConnection = (index: number, patch: Partial<DynamicCardField>) =>
     onConnectionsChange(connectionFields.map((field, i) => (i === index ? { ...field, ...patch } : field)));
 
-  const setEditingConnection = (fieldId: string | null) => {
-    setEditingConnectionId(fieldId);
+  const finishEditingConnection = (field: DynamicCardField) => {
+    setEditingConnectionId(null);
+    const value = field.value.trim();
+    if (!value) return;
+    const savedValue = reusableConnectionValue(profile, getCards(), undefined, field).trim();
+    if (savedValue && savedValue !== value) {
+      setConnectionScopePrompt({ field: { ...field, value }, savedValue, mode: 'edit' });
+      return;
+    }
+    onConnectionScopeDecision?.({ ...field, value }, 'account');
   };
   const moveConnection = (from: number, to: number) => {
     if (from === to) return;
@@ -494,7 +525,7 @@ export function CardSectionEditor({
       option.title.toLowerCase().includes(customFieldSearch.trim().toLowerCase()) &&
       !connectionFields.some((field) => normalizeConnectionTitle(field.title) === normalizeConnectionTitle(option.title)),
   );
-  const addConnectionField = (option: { title: string; type: DynamicCardFieldType }, value: string) => {
+  const commitConnectionField = (option: { title: string; type: DynamicCardFieldType }, value: string) => {
     const idBase = normalizeConnectionTitle(option.title) || 'custom';
     onConnectionsChange([
       ...connectionFields,
@@ -509,6 +540,37 @@ export function CardSectionEditor({
     setPendingConnectionField(null);
     setPendingConnectionValue('');
     setCustomFieldPickerOpen(false);
+  };
+  const requestAddConnectionField = (option: { title: string; type: DynamicCardFieldType }, rawValue: string) => {
+    const value = rawValue.trim();
+    if (!value) return;
+    const field: DynamicCardField = {
+      id: `${normalizeConnectionTitle(option.title) || 'custom'}-${Date.now()}`,
+      title: option.title,
+      type: option.type,
+      value,
+    };
+    const savedValue = reusableConnectionValue(profile, getCards(), card.id, field).trim();
+    if (savedValue && savedValue !== value) {
+      pendingScopedAddRef.current = { option, value };
+      setPendingConnectionField(null);
+      setCustomFieldPickerOpen(false);
+      setConnectionScopePrompt({ field, savedValue, mode: 'add' });
+      return;
+    }
+    onConnectionScopeDecision?.(field, 'account');
+    commitConnectionField(option, value);
+  };
+  const chooseConnectionScope = (scope: 'card' | 'account') => {
+    const prompt = connectionScopePrompt;
+    if (!prompt) return;
+    onConnectionScopeDecision?.(prompt.field, scope);
+    if (prompt.mode === 'add' && pendingScopedAddRef.current) {
+      const { option, value } = pendingScopedAddRef.current;
+      commitConnectionField(option, value);
+    }
+    pendingScopedAddRef.current = null;
+    setConnectionScopePrompt(null);
   };
   const toggleCustomFieldPicker = () => {
     setEditingConnectionId(null);
@@ -536,8 +598,8 @@ export function CardSectionEditor({
       title={`Card tag${cardTagRequired ? ' *' : ''}`}
       description={
         cardTagRequired
-          ? 'Required when creating a card. Choose the tag that best describes this card.'
-          : 'Choose the tag that best describes this card.'
+          ? 'Required when creating a card. Choose one tag; selecting another replaces it.'
+          : 'Choose one tag for this card. Selecting another replaces it.'
       }
       icon={Tag}
     >
@@ -549,7 +611,7 @@ export function CardSectionEditor({
           const TagIcon = CARD_TAG_ICONS[tag];
           return (
             <Pressable
-              accessibilityLabel={`${selected ? 'Remove' : 'Select'} ${tag} card tag`}
+              accessibilityLabel={`${selected ? 'Selected' : 'Select'} ${tag} card tag`}
               accessibilityRole="button"
               accessibilityState={{ selected }}
               className={`min-h-[40px] flex-row items-center rounded-full border px-3.5 active:opacity-70 ${
@@ -558,7 +620,9 @@ export function CardSectionEditor({
                   : 'border-slate-200 bg-card dark:border-slate-700 dark:bg-dark-card'
               }`}
               key={tag}
-              onPress={() => onFieldChange('cardTag', selected ? '' : tag)}
+              onPress={() => {
+                if (!selected) onFieldChange('cardTag', tag);
+              }}
             >
               <TagIcon color={selected ? '#3b82f6' : '#64748b'} size={15} strokeWidth={2.3} />
               <Text className={`ml-1.5 text-sm font-bold ${selected ? 'text-primary dark:text-dark-primary' : ''}`}>
@@ -971,6 +1035,24 @@ export function CardSectionEditor({
   // 4. CONNECTIONS CONTENT ZONE
   const connectionsContent = (
     <View>
+      <View className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/60">
+        <View className="flex-row items-center justify-between">
+          <Text className="font-bold text-textPrimary dark:text-white">Contact methods</Text>
+          <Text
+            accessibilityLabel={`${contactCounts.total} of ${MINIMUM_CARD_CONNECTION_FIELDS} required contact methods`}
+            className={`text-sm font-black ${
+              contactCounts.total >= MINIMUM_CARD_CONNECTION_FIELDS
+                ? 'text-emerald-600 dark:text-emerald-400'
+                : 'text-amber-600 dark:text-amber-400'
+            }`}
+          >
+            {contactCounts.total}/{MINIMUM_CARD_CONNECTION_FIELDS}
+          </Text>
+        </View>
+        <Text className="mt-1 text-xs leading-5 text-textMuted dark:text-slate-400">
+          {contactCounts.social} social {contactCounts.social === 1 ? 'link' : 'links'} on this card. Saved account values are filled in automatically.
+        </Text>
+      </View>
       <View className="mb-4">
         <Pressable
           accessibilityLabel={`${customFieldPickerOpen ? 'Close' : 'Open'} add custom field list`}
@@ -1014,7 +1096,14 @@ export function CardSectionEditor({
                     accessibilityRole="button"
                     onPress={() => {
                       setPendingConnectionField(option);
-                      setPendingConnectionValue('');
+                      setPendingConnectionValue(
+                        reusableConnectionValue(
+                          profile,
+                          getCards(),
+                          card.id,
+                          { id: option.title, title: option.title },
+                        ),
+                      );
                     }}
                     className="mb-2 flex-row items-center rounded-xl border border-slate-200 bg-white px-3 py-2.5 active:border-blue-400 active:bg-blue-50 dark:border-slate-800 dark:bg-slate-900/70"
                   >
@@ -1072,7 +1161,7 @@ export function CardSectionEditor({
                         autoFocus
                         value={field.value}
                         onChangeText={(value) => changeConnection(index, { value })}
-                        onSubmitEditing={() => setEditingConnection(null)}
+                        onSubmitEditing={() => finishEditingConnection(field)}
                         placeholder={placeholder}
                         placeholderTextColor="#64748b"
                         className="min-h-[42px] rounded-lg bg-white px-3 text-sm font-semibold text-textPrimary dark:bg-[#060a14] dark:text-white"
@@ -1087,7 +1176,10 @@ export function CardSectionEditor({
                   <Pressable
                     accessibilityLabel={`${editing ? 'Finish editing' : 'Edit'} ${field.title}`}
                     accessibilityRole="button"
-                    onPress={() => setEditingConnection(editing ? null : field.id)}
+                    onPress={() => {
+                      if (editing) finishEditingConnection(field);
+                      else setEditingConnectionId(field.id);
+                    }}
                     className={`ml-2 h-9 w-9 items-center justify-center rounded-lg ${editing ? 'bg-blue-500' : 'bg-slate-100 dark:bg-slate-800'}`}
                   >
                     {editing ? <Check color="#ffffff" size={17} strokeWidth={2.7} /> : <Pencil color="#3b82f6" size={16} />}
@@ -1142,7 +1234,7 @@ export function CardSectionEditor({
                 onChangeText={setPendingConnectionValue}
                 onSubmitEditing={() => {
                   if (pendingConnectionValue.trim()) {
-                    addConnectionField(pendingConnectionField, pendingConnectionValue);
+                    requestAddConnectionField(pendingConnectionField, pendingConnectionValue);
                   }
                 }}
                 placeholder={
@@ -1182,7 +1274,7 @@ export function CardSectionEditor({
                 <Pressable
                   accessibilityRole="button"
                   disabled={!pendingConnectionValue.trim()}
-                  onPress={() => addConnectionField(pendingConnectionField, pendingConnectionValue)}
+                  onPress={() => requestAddConnectionField(pendingConnectionField, pendingConnectionValue)}
                   className="min-h-[44px] items-center justify-center rounded-xl bg-blue-500 px-6 active:opacity-70 disabled:opacity-40"
                 >
                   <Text className="font-bold text-white">Add</Text>
@@ -1192,6 +1284,13 @@ export function CardSectionEditor({
           ) : null}
         </KeyboardAvoidingView>
       </Modal>
+      <ConnectionScopeModal
+        fieldLabel={connectionScopePrompt?.field.title ?? ''}
+        newValue={connectionScopePrompt?.field.value ?? ''}
+        savedValue={connectionScopePrompt?.savedValue ?? ''}
+        visible={Boolean(connectionScopePrompt)}
+        onChoose={chooseConnectionScope}
+      />
     </View>
   );
 

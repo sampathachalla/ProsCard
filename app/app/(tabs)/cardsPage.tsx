@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Alert, Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Edit3, Plus, Star, Trash2, X } from 'lucide-react-native';
+import { CheckCircle2, Edit3, Plus, Star, Trash2, X } from 'lucide-react-native';
 import { useCards } from '@/components/cardsComponents/Hooks/useCards';
 import type { BusinessCard } from '@/components/cardsComponents/types/card.types';
 import { useProfileSnapshot } from '@/components/profileComponents/Hooks/useProfileSnapshot';
@@ -19,6 +19,7 @@ export default function CardsPageScreen() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [stackHeight, setStackHeight] = useState(0);
   const [actionCardId, setActionCardId] = useState<string | null>(null);
+  const [deletedCardName, setDeletedCardName] = useState<string | null>(null);
   const goBackToProfile = () => router.replace('/(tabs)/profilePage');
 
   const createCard = () => {
@@ -41,9 +42,15 @@ export default function CardsPageScreen() {
       {
         text: 'Delete',
         style: 'destructive',
-        onPress: () => {
+        onPress: async () => {
           setActionCardId(null);
-          deleteCard(card.id).catch((reason) => Alert.alert('Delete failed', reason instanceof Error ? reason.message : 'Try again.'));
+          try {
+            await deleteCard(card.id);
+            setActiveIndex(0);
+            setDeletedCardName(card.name || 'Card');
+          } catch (reason) {
+            Alert.alert('Delete failed', reason instanceof Error ? reason.message : 'Try again.');
+          }
         },
       },
     ],
@@ -71,6 +78,27 @@ export default function CardsPageScreen() {
           </Pressable>
         }
       />
+
+      {deletedCardName ? (
+        <View
+          accessibilityLiveRegion="polite"
+          className="mx-6 mb-2 flex-row items-center rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3"
+        >
+          <CheckCircle2 color="#059669" size={19} strokeWidth={2.4} />
+          <Text className="ml-2.5 flex-1 text-sm font-bold text-emerald-700 dark:text-emerald-400">
+            {deletedCardName} was deleted.
+          </Text>
+          <Pressable
+            accessibilityLabel="Dismiss deleted card message"
+            accessibilityRole="button"
+            hitSlop={8}
+            onPress={() => setDeletedCardName(null)}
+            className="size-8 items-center justify-center rounded-full active:bg-emerald-500/10"
+          >
+            <X color="#059669" size={17} />
+          </Pressable>
+        </View>
+      ) : null}
 
       <View className="flex-1" onLayout={(event) => setStackHeight(event.nativeEvent.layout.height)}>
         {loading || error ? (

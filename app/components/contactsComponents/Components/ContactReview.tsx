@@ -1,5 +1,5 @@
 // components/contactsComponents/Components/ContactReview.tsx
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -35,6 +35,7 @@ import {
   Sparkles,
   Trash2,
   User,
+  UserRoundCheck,
   UserPlus,
   type LucideIcon,
 } from 'lucide-react-native';
@@ -48,6 +49,8 @@ import { rotateCardPhoto } from '@/components/scannerComponents/Services/cardRea
 import { initialsFor } from '@/components/contactsComponents/Services/contactsService';
 import { saveDirectlyToNativeContacts } from '@/utils/nativeContacts';
 import type { CardContactFields, ProcessedCard } from '@/components/scannerComponents/types/scanner.types';
+import type { Contact } from '@/components/contactsComponents/types/contact.types';
+import { DuplicateContactModal } from './DuplicateContactModal';
 
 export type ContactFieldKey = keyof CardContactFields;
 export type ContactFormValues = Record<ContactFieldKey, string>;
@@ -118,8 +121,31 @@ type ContactReviewProps = {
   editing?: boolean;
   /** `newCard` is set only when the user added or replaced the card photo. */
   onSave: (values: ContactFormValues, newCard: ProcessedCard | null) => Promise<void>;
+  existingContacts?: Contact[];
+  onDiscardDuplicate?: () => void;
+  onReplaceDuplicate?: (contactId: string, values: ContactFormValues, newCard: ProcessedCard | null) => Promise<void>;
   onDelete?: () => Promise<void>;
 };
+
+const normalizedText = (value: string | undefined) => (value ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+const normalizedPhone = (value: string | undefined) => (value ?? '').replace(/\D/g, '');
+
+export function findDuplicateContact(
+  contacts: Contact[],
+  values: Pick<ContactFormValues, 'name' | 'company' | 'phone' | 'email'>,
+  excludedContactId?: string,
+): Contact | undefined {
+  const email = normalizedText(values.email);
+  const phone = normalizedPhone(values.phone);
+  const name = normalizedText(values.name);
+  const company = normalizedText(values.company);
+  return contacts.find((contact) => {
+    if (contact.id === excludedContactId) return false;
+    if (email && email === normalizedText(contact.email)) return true;
+    if (phone.length >= 7 && phone === normalizedPhone(contact.phone)) return true;
+    return Boolean(name && company && name === normalizedText(contact.name) && company === normalizedText(contact.company));
+  });
+}
 
 // Generates consistent warm avatar tone based on name
 function getAvatarBgColor(name: string): string {
@@ -143,7 +169,10 @@ export function ContactReview({
   initialAutoFilled = [],
   initialNotice = null,
   editing = true,
+  existingContacts = [],
   onSave,
+  onDiscardDuplicate,
+  onReplaceDuplicate,
   onDelete,
 }: ContactReviewProps) {
   const insets = useSafeAreaInsets();
@@ -157,9 +186,14 @@ export function ContactReview({
   const [rotating, setRotating] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [savingToPhone, setSavingToPhone] = useState(false);
+  const [duplicatePromptOpen, setDuplicatePromptOpen] = useState(false);
   const { busy: capturing, captureCard } = useCardCapture();
   const reader = useCardReader();
   const formRef = useRef(form);
+  const duplicateContact = useMemo(
+    () => mode === 'create' ? findDuplicateContact(existingContacts, form, contactId) : undefined,
+    [contactId, existingContacts, form, mode],
+  );
 
   const handleSaveToPhoneContacts = async () => {
     if (savingToPhone) return;
@@ -262,6 +296,10 @@ export function ContactReview({
 
   const save = async () => {
     if (busy || !validate()) return;
+    if (duplicateContact && onReplaceDuplicate && onDiscardDuplicate) {
+      setDuplicatePromptOpen(true);
+      return;
+    }
     setSaving(true);
     try {
       const values = Object.fromEntries(
@@ -270,6 +308,22 @@ export function ContactReview({
       await onSave(values, card);
     } catch (reason) {
       Alert.alert('Save failed', reason instanceof Error ? reason.message : 'Could not save this contact. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const replaceDuplicate = async () => {
+    if (!duplicateContact || !onReplaceDuplicate || saving) return;
+    setDuplicatePromptOpen(false);
+    setSaving(true);
+    try {
+      const values = Object.fromEntries(
+        Object.entries(form).map(([key, value]) => [key, value.trim()]),
+      ) as ContactFormValues;
+      await onReplaceDuplicate(duplicateContact.id, values, card);
+    } catch (reason) {
+      Alert.alert('Replace failed', reason instanceof Error ? reason.message : 'Could not replace this contact. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -432,6 +486,18 @@ export function ContactReview({
           </View>
         ) : null}
 
+        {duplicateContact ? (
+          <View className="mb-4 flex-row items-center rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+            <UserRoundCheck color="#d97706" size={17} strokeWidth={2.3} />
+            <View className="ml-2.5 flex-1">
+              <Text className="text-xs font-bold text-amber-700 dark:text-amber-400">Already saved</Text>
+              <Text className="mt-0.5 text-xs text-textMuted dark:text-slate-400">
+                Matches {duplicateContact.name} in your contacts.
+              </Text>
+            </View>
+          </View>
+        ) : null}
+
         {/* ===================== INSET GROUPED DETAILS ===================== */}
         <View className="space-y-4">
           {/* GROUP 1: Contact Methods (Phone, Email, Website) */}
@@ -446,8 +512,8 @@ export function ContactReview({
                 >
                   <View className="flex-1 pr-2">
                     <View className="flex-row items-center">
-                      <Text className="text-xs font-medium text-primary dark:text-[#38bdf8]">phone</Text>
-                      {autoFilled.includes('phone') && <Sparkles color="#059669" size={11} style={{ marginLeft: 4 }} />}
+                      <Phone color={autoFilled.includes('phone') ? '#059669' : Colors.light.tint} size={13} strokeWidth={2.2} />
+                      <Text className="ml-1.5 text-xs font-medium text-primary dark:text-[#38bdf8]">Phone</Text>
                     </View>
                     {editing ? (
                       <TextInput
@@ -484,8 +550,8 @@ export function ContactReview({
                 >
                   <View className="flex-1 pr-2">
                     <View className="flex-row items-center">
-                      <Text className="text-xs font-medium text-primary dark:text-[#38bdf8]">email</Text>
-                      {autoFilled.includes('email') && <Sparkles color="#059669" size={11} style={{ marginLeft: 4 }} />}
+                      <Mail color={autoFilled.includes('email') ? '#059669' : Colors.light.tint} size={13} strokeWidth={2.2} />
+                      <Text className="ml-1.5 text-xs font-medium text-primary dark:text-[#38bdf8]">Email</Text>
                     </View>
                     {editing ? (
                       <TextInput
@@ -525,8 +591,8 @@ export function ContactReview({
                 >
                   <View className="flex-1 pr-2">
                     <View className="flex-row items-center">
-                      <Text className="text-xs font-medium text-primary dark:text-[#38bdf8]">website</Text>
-                      {autoFilled.includes('website') && <Sparkles color="#059669" size={11} style={{ marginLeft: 4 }} />}
+                      <Globe color={autoFilled.includes('website') ? '#059669' : Colors.light.tint} size={13} strokeWidth={2.2} />
+                      <Text className="ml-1.5 text-xs font-medium text-primary dark:text-[#38bdf8]">Website</Text>
                     </View>
                     {editing ? (
                       <TextInput
@@ -597,8 +663,8 @@ export function ContactReview({
               >
                 <View className="flex-1 pr-2">
                   <View className="flex-row items-center">
-                    <Text className="text-xs font-medium text-primary dark:text-[#38bdf8]">address</Text>
-                    {autoFilled.includes('address') && <Sparkles color="#059669" size={11} style={{ marginLeft: 4 }} />}
+                    <MapPin color={autoFilled.includes('address') ? '#059669' : Colors.light.tint} size={13} strokeWidth={2.2} />
+                    <Text className="ml-1.5 text-xs font-medium text-primary dark:text-[#38bdf8]">Address</Text>
                   </View>
                   {editing ? (
                     <TextInput
@@ -626,7 +692,10 @@ export function ContactReview({
           {(editing || form.notes.trim()) && (
             <View className="rounded-2xl bg-card dark:bg-[#1c1c1e] border border-black/5 dark:border-white/10 overflow-hidden shadow-sm mb-3">
               <View className="px-4 py-3">
-                <Text className="text-xs font-medium text-textMuted dark:text-dark-textMuted">notes</Text>
+                <View className="flex-row items-center">
+                  <Notebook color="#94a3b8" size={13} strokeWidth={2.2} />
+                  <Text className="ml-1.5 text-xs font-medium text-textMuted dark:text-dark-textMuted">Notes</Text>
+                </View>
                 {editing ? (
                   <TextInput
                     value={form.notes}
@@ -761,6 +830,15 @@ export function ContactReview({
             onClose={() => setViewerOpen(false)}
             localUri={card?.uri}
             storedUrl={card ? undefined : storedImageUrl}
+          />
+          <DuplicateContactModal
+            contactName={duplicateContact?.name ?? form.name}
+            visible={duplicatePromptOpen && Boolean(duplicateContact)}
+            onDiscard={() => {
+              setDuplicatePromptOpen(false);
+              onDiscardDuplicate?.();
+            }}
+            onReplace={() => { void replaceDuplicate(); }}
           />
         </View>
 

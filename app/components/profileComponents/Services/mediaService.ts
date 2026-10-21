@@ -115,6 +115,15 @@ export function prefetchMedia(storedUrls: (string | undefined)[]): void {
   unique.forEach((url) => { void getDisplayMediaUrl(url).catch(() => {}); });
 }
 
+/** Resolves protected media to stable display URLs so a screen can wait before revealing content. */
+export async function resolveDisplayMediaUrls(storedUrls: (string | undefined)[]): Promise<string[]> {
+  const unique = [...new Set(storedUrls.filter((url): url is string => Boolean(url)))];
+  const resolved = await Promise.all(
+    unique.map((url) => getDisplayMediaUrl(url).catch(() => '')),
+  );
+  return resolved.filter(Boolean);
+}
+
 export { cacheMediaFileFromUri };
 
 export async function retryMediaCleanup(): Promise<{ examined: number; cleaned: number; failed: number }> {

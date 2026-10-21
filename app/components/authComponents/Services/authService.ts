@@ -12,6 +12,8 @@ import * as WebBrowser from 'expo-web-browser';
 
 WebBrowser.maybeCompleteAuthSession();
 
+const GOOGLE_OAUTH_CALLBACK = 'vcpros://auth/callback';
+
 function toStoredUser(session: AuthSession): StoredUser {
   return {
     ...session.user,
@@ -80,7 +82,10 @@ function googleRedirectUrl(): string {
       'Google login and signup require the VC Pros development build. Run `npm run ios`, then open VC Pros instead of Expo Go.',
     );
   }
-  return Linking.createURL('auth/callback', { scheme: 'vcpros' });
+  // Keep this exact value in Supabase Authentication > URL Configuration. Building it through
+  // Linking can produce a localhost/dev-client URL in some development environments, which sends
+  // the browser to a server that does not exist on the phone after Google completes authentication.
+  return GOOGLE_OAUTH_CALLBACK;
 }
 
 export async function signInWithGoogle(): Promise<StoredUser | null> {

@@ -12,13 +12,28 @@ import { ContactRow } from '../../components/contactsComponents/Components/Conta
 import { useContacts } from '../../components/contactsComponents/Hooks/useContacts';
 import { deleteContact } from '../../components/contactsComponents/Services/contactsService';
 import type { Contact } from '../../components/contactsComponents/types/contact.types';
+import { useCardCapture } from '@/components/scannerComponents/Hooks/useCardCapture';
 
 export default function ContactsScreen() {
   const { query, setQuery, contacts, filtered, loading, refreshing, error, refresh } = useContacts();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const addSheetRef = useRef<BottomSheet>(null);
+  const { captureCard: chooseCardPhoto } = useCardCapture();
   const addContact = () => addSheetRef.current?.snapToIndex(0);
+  const uploadCard = async () => {
+    const card = await chooseCardPhoto('library');
+    if (!card) return;
+    router.push({
+      pathname: '/scanner',
+      params: {
+        source: 'upload',
+        imageUri: card.uri,
+        mimeType: card.mimeType ?? '',
+        fileName: card.fileName ?? '',
+      },
+    });
+  };
   const removeContact = (contact: Contact) => {
     deleteContact(contact.id)
       .then(() => refresh())
@@ -81,7 +96,7 @@ export default function ContactsScreen() {
       <AddContactBottomSheet
         ref={addSheetRef}
         onScan={() => router.push('/scanner')}
-        onUpload={() => router.push({ pathname: '/scanner', params: { source: 'library' } })}
+        onUpload={() => { void uploadCard(); }}
         onManual={() => router.push('/contacts/new')}
       />
     </KeyboardAvoidingView>

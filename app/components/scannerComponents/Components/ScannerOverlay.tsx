@@ -6,6 +6,8 @@ import { MAX_FONT_SCALE } from '@/components/uiComponents/Text';
 type ScannerOverlayProps = {
   isActive: boolean;
   isProcessing?: boolean;
+  /** Show the fixed card-shaped guide. Keep this off for the live Expo camera. */
+  showFrame?: boolean;
   /**
    * Width ÷ height of a photo shown with contentFit="contain" under the overlay. The frame then covers
    * exactly the photo and the scan line sweeps all of it; without it a card-shaped guide is shown.
@@ -26,7 +28,7 @@ function fitFrame(container: Size, aspectRatio: number): Size {
   return { width, height: width / aspectRatio };
 }
 
-export function ScannerOverlay({ isActive, isProcessing = false, imageAspectRatio, hintBottom }: ScannerOverlayProps) {
+export function ScannerOverlay({ isActive, isProcessing = false, showFrame = true, imageAspectRatio, hintBottom }: ScannerOverlayProps) {
   const [scanProgress] = useState(() => new Animated.Value(0));
   const [container, setContainer] = useState<Size | null>(null);
 
@@ -42,7 +44,7 @@ export function ScannerOverlay({ isActive, isProcessing = false, imageAspectRati
     : null;
 
   useEffect(() => {
-    if (!isActive && !isProcessing) {
+    if (!showFrame || (!isActive && !isProcessing)) {
       scanProgress.stopAnimation();
       scanProgress.setValue(0);
       return;
@@ -67,7 +69,7 @@ export function ScannerOverlay({ isActive, isProcessing = false, imageAspectRati
 
     animation.start();
     return () => animation.stop();
-  }, [isActive, isProcessing, scanProgress]);
+  }, [isActive, isProcessing, scanProgress, showFrame]);
 
   // The line sweeps from the top edge of the frame to the bottom edge.
   const travel = Math.max(0, (frame?.height ?? 0) - SCAN_LINE_HEIGHT);
@@ -78,22 +80,24 @@ export function ScannerOverlay({ isActive, isProcessing = false, imageAspectRati
 
   return (
     <View style={styles.overlay} onLayout={onLayout}>
-      <View
-        style={[
-          styles.frame,
-          frame ?? styles.hidden,
-          imageAspectRatio ? styles.photoFrame : null,
-          isProcessing && styles.processingFrame,
-        ]}
-      >
-        <View style={[styles.corner, styles.topLeft]} />
-        <View style={[styles.corner, styles.topRight]} />
-        <View style={[styles.corner, styles.bottomLeft]} />
-        <View style={[styles.corner, styles.bottomRight]} />
-        {(isActive || isProcessing) && <Animated.View style={[styles.scanLine, scanLineStyle]} />}
-      </View>
+      {showFrame && (
+        <View
+          style={[
+            styles.frame,
+            frame ?? styles.hidden,
+            imageAspectRatio ? styles.photoFrame : null,
+            isProcessing && styles.processingFrame,
+          ]}
+        >
+          <View style={[styles.corner, styles.topLeft]} />
+          <View style={[styles.corner, styles.topRight]} />
+          <View style={[styles.corner, styles.bottomLeft]} />
+          <View style={[styles.corner, styles.bottomRight]} />
+          {(isActive || isProcessing) && <Animated.View style={[styles.scanLine, scanLineStyle]} />}
+        </View>
+      )}
       <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.hint, hintBottom != null && { position: 'absolute', bottom: hintBottom }]}>
-        {isProcessing ? 'Reading card details…' : 'Fit the whole card inside the guides'}
+        {isProcessing ? 'Reading card details…' : showFrame ? 'Fit the whole card inside the guides' : 'Point the camera at a business card'}
       </Text>
     </View>
   );

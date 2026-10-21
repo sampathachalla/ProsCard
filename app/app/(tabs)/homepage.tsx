@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
-import { View, type LayoutChangeEvent } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, View, type LayoutChangeEvent } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCards } from '@/components/cardsComponents/Hooks/useCards';
@@ -12,17 +13,71 @@ import { QRCodeModal } from '@/components/uiComponents/QRCodeModal';
 import { useShareUrl } from '@/components/sharingComponents/Hooks/useShareUrl';
 import { ensureDefaultCard } from '@/components/cardsComponents/Services/cardsService';
 import { showMessage } from '@/components/uiComponents/confirmAction';
+import { BrandLogo } from '@/components/uiComponents/BrandLogo';
+import { Text } from '@/components/uiComponents/Text';
+import { resolveDisplayMediaUrls } from '@/components/profileComponents/Services/mediaService';
+import { resolveCoverPhotoPreset } from '@/components/cardsComponents/Services/coverPhotoPresets';
+
+function HomeLoadingScreen() {
+  const insets = useSafeAreaInsets();
+  return (
+    <View
+      accessibilityLabel="Loading your VC Pros cards"
+      accessibilityRole="progressbar"
+      className="flex-1 items-center justify-center bg-background px-8 dark:bg-dark-background"
+      style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
+    >
+      <BrandLogo size="xl" />
+      <ActivityIndicator className="mt-8" size="large" />
+      <Text className="mt-4 text-center text-base font-semibold">Preparing your cards…</Text>
+      <Text className="mt-1 text-center text-sm text-textMuted dark:text-dark-textMuted">
+        Loading your profile, photos, and logos
+      </Text>
+    </View>
+  );
+}
 
 export default function HomepageScreen() {
-  const { cards, fetched, error: cardsError, offline } = useCards();
+  const { cards, fetched, initialFetchComplete: cardsFetched, error: cardsError, offline } = useCards();
   const [activeCardIndex, setActiveCardIndex] = useState(0);
   const [showcaseHeight, setShowcaseHeight] = useState(0);
   const { hydrated: viewModeHydrated, viewMode } = useCardViewPreference();
   const [qrCardId, setQrCardId] = useState<string | null>(null);
   const share = useShareUrl(qrCardId);
-  const { profile } = useProfileSnapshot();
+  const { profile, fetched: profileFetched } = useProfileSnapshot();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const [readyMediaKey, setReadyMediaKey] = useState<string | null>(null);
+
+  const initialMediaUrls = useMemo(() => [
+    profile.photoUrl,
+    profile.coverPhotoUrl,
+    profile.companyLogoUrl,
+    ...cards.flatMap((card) => [
+      card.sectionOverrides.profilePhoto,
+      card.sectionOverrides.coverPhoto,
+      card.sectionOverrides.logo,
+    ]),
+  ].filter(
+    (url): url is string =>
+      typeof url === 'string' && url.length > 0 && !resolveCoverPhotoPreset(url),
+  ), [cards, profile]);
+  const mediaKey = useMemo(() => JSON.stringify(initialMediaUrls), [initialMediaUrls]);
+  const mediaReady = readyMediaKey === mediaKey;
+
+  useEffect(() => {
+    if (!cardsFetched || !profileFetched) return;
+    let active = true;
+    resolveDisplayMediaUrls(initialMediaUrls)
+      .then(async (urls) => {
+        await Promise.all(urls.map((url) => Image.prefetch(url, 'memory-disk').catch(() => false)));
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setReadyMediaKey(mediaKey);
+      });
+    return () => { active = false; };
+  }, [cardsFetched, initialMediaUrls, mediaKey, profileFetched]);
 
   // Every account starts with one default card; this covers users who reach home without one.
   const [defaultCardFailed, setDefaultCardFailed] = useState(false);
@@ -64,6 +119,10 @@ export default function HomepageScreen() {
       params: { cardId },
     });
   };
+
+  if (!cardsFetched || !profileFetched || !viewModeHydrated || !mediaReady) {
+    return <HomeLoadingScreen />;
+  }
 
   return (
     <View className="flex-1 bg-background dark:bg-dark-background">

@@ -11,7 +11,8 @@ import {
   fillEmptyFields,
   type ContactFormValues,
 } from '@/components/contactsComponents/Components/ContactReview';
-import { createContactWithCard, initialsFor } from '@/components/contactsComponents/Services/contactsService';
+import { createContactWithCard, initialsFor, updateContactWithCard } from '@/components/contactsComponents/Services/contactsService';
+import { useContacts } from '@/components/contactsComponents/Hooks/useContacts';
 import { clearScanResult, getScanResult } from '@/components/scannerComponents/Services/scanHandoff';
 import type { ProcessedCard } from '@/components/scannerComponents/types/scanner.types';
 
@@ -19,6 +20,7 @@ import type { ProcessedCard } from '@/components/scannerComponents/types/scanner
 export default function NewContactScreen() {
   const router = useRouter();
   const { scanId } = useLocalSearchParams<{ scanId?: string }>();
+  const { contacts } = useContacts();
   const [scan] = useState(() => getScanResult(scanId));
   const [initial] = useState(() =>
     scan?.reading ? fillEmptyFields(EMPTY_CONTACT_FORM, scan.reading.contact) : { values: EMPTY_CONTACT_FORM, filled: [] }
@@ -33,6 +35,18 @@ export default function NewContactScreen() {
     clearScanResult(scanId);
     router.dismissTo('/(tabs)/contactsPage');
   };
+  const finish = () => {
+    clearScanResult(scanId);
+    router.dismissTo('/(tabs)/contactsPage');
+  };
+  const replaceDuplicate = async (contactId: string, values: ContactFormValues, card: ProcessedCard | null) => {
+    await updateContactWithCard(
+      contactId,
+      { ...values, initials: initialsFor(values.name), color: Colors.light.tint, sourceCardId: null },
+      card,
+    );
+    finish();
+  };
 
   return (
     <View className="flex-1 bg-background dark:bg-dark-background">
@@ -41,6 +55,7 @@ export default function NewContactScreen() {
         mode="create"
         initialValues={initial.values}
         initialCard={scan?.card ?? null}
+        existingContacts={contacts}
         initialAutoFilled={initial.filled}
         initialNotice={
           scan && !scan.reading
@@ -48,6 +63,8 @@ export default function NewContactScreen() {
             : initial.filled.length ? AUTOFILL_NOTICE : null
         }
         onSave={save}
+        onDiscardDuplicate={finish}
+        onReplaceDuplicate={replaceDuplicate}
       />
     </View>
   );

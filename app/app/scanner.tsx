@@ -47,16 +47,32 @@ type PhotoIssue = { kind: 'notACard' | 'failed'; title: string; message: string 
 
 export default function ScannerScreen() {
   const router = useRouter();
-  const { source } = useLocalSearchParams<{ source?: string }>();
+  const { source, imageUri, mimeType, fileName } = useLocalSearchParams<{
+    source?: string;
+    imageUri?: string;
+    mimeType?: string;
+    fileName?: string;
+  }>();
+  const initialUploadedCard: CapturedCard | null =
+    source === 'upload' && imageUri
+      ? {
+          uri: imageUri,
+          source: 'library',
+          edgeDetected: false,
+          mimeType: mimeType || undefined,
+          fileName: fileName || undefined,
+        }
+      : null;
+  const uploadedCardRef = useRef<CapturedCard | null>(initialUploadedCard);
   const insets = useSafeAreaInsets();
   const cameraRef = useRef<CameraView>(null);
   const cardScannerRef = useRef<CardScannerViewRef>(null);
   const processingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [stage, setStage] = useState<ScanStage>('camera');
+  const [stage, setStage] = useState<ScanStage>(initialUploadedCard ? 'processing' : 'camera');
   const [scannedCard, setScannedCard] = useState<SharedCard | null>(null);
   const [lookupError, setLookupError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [photo, setPhoto] = useState<CapturedCard | null>(null);
+  const [photo, setPhoto] = useState<CapturedCard | null>(initialUploadedCard);
   const [photoIssue, setPhotoIssue] = useState<PhotoIssue | null>(null);
   const [cardState, setCardState] = useState<CardScanState>('none');
   const [shooting, setShooting] = useState(false);
@@ -161,6 +177,17 @@ export default function ScannerScreen() {
     if (card) await processPhoto(card);
   };
 
+  // Photos selected from the Contacts screen enter the same edge detection, OCR,
+  // processing animation, and review flow as a photo chosen from the scanner.
+  useEffect(() => {
+    const uploadedCard = uploadedCardRef.current;
+    if (!uploadedCard) return;
+    uploadedCardRef.current = null;
+    void processPhoto(uploadedCard);
+    // Process the route handoff once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Opened from "Upload card photo" on the contacts page: go straight to the photo library once the
   // screen has finished sliding in (iOS cannot present the picker during that transition).
   useEffect(() => {
@@ -217,10 +244,10 @@ export default function ScannerScreen() {
     router.replace('/(tabs)/contactsPage');
   };
 
-  if (!permission) return <View style={styles.screen} />;
+  if (!permission && !photo) return <View style={styles.screen} />;
 
   // Library uploads work without camera access, so keep showing their progress.
-  if (!permission.granted && !photo) {
+  if (permission && !permission.granted && !photo) {
     return (
       <View className="flex-1 bg-background dark:bg-dark-background">
         <PageHeader title="Scan a Card" subtitle="Capture a card or scan its VC Pros QR code" />
@@ -261,7 +288,7 @@ export default function ScannerScreen() {
             barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
             onBarcodeScanned={isActive ? ({ data }) => processDetectedCode(data) : undefined}
           />
-          <ScannerOverlay isActive={!capturing && !shooting} hintBottom={controlsBottom + 96} />
+          <ScannerOverlay showFrame={false} isActive={!capturing && !shooting} hintBottom={controlsBottom + 96} />
         </>
       ) : photo ? (
         <>

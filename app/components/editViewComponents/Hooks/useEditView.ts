@@ -42,7 +42,12 @@ function editableSnapshot(card: EditableCard) {
   };
 }
 
-export function useEditView(cardId?: string, startInEditMode = false, initialCard?: EditableCard) {
+export function useEditView(
+  cardId?: string,
+  startInEditMode = false,
+  initialCard?: EditableCard,
+  beforeSave?: (card: EditableCard) => Promise<void>,
+) {
   const [card, setCard] = useState<EditableCard>(() => initialCard ?? getEditableCard(cardId));
   const [draft, setDraft] = useState<EditableCard>(() => initialCard ?? getEditableCard(cardId));
   const [isEditing, setIsEditing] = useState(startInEditMode);
@@ -215,6 +220,7 @@ export function useEditView(cardId?: string, startInEditMode = false, initialCar
     }
     setIsSaving(true);
     try {
+      await beforeSave?.(draft);
       const saved = await saveCard(draft);
       setCard(saved);
       setDraft(saved);
@@ -268,6 +274,7 @@ export function useEditView(cardId?: string, startInEditMode = false, initialCar
 
     setIsSaving(true);
     try {
+      if (section === 'connections') await beforeSave?.(candidate);
       const saved = await saveCard(candidate);
       setCard(saved);
       // Keep unsaved work in other sections, but replace the section that the
