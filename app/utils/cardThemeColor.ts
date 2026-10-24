@@ -5,7 +5,7 @@ import {
   type ResolvedLayoutSlots,
   type ThemePaletteTier,
   getTemplatePaletteTier,
-} from '@/components/cardsComponents/types/card.types';
+} from '@/pages/cards/types/card.types';
 
 type SavedSectionThemeMeta = {
   customThemeId?: string;

@@ -1,0 +1,25 @@
+import { View } from 'react-native';
+import { Text } from '@/common/ui/Text';
+
+type CarouselFooterProps = {
+  activeIndex: number;
+  count: number;
+};
+
+export function CarouselFooter({ activeIndex, count }: CarouselFooterProps) {
+  if (count === 0) return null;
+  const onAddSlot = activeIndex >= count;
+
+  return (
+    <View className="items-center pb-1 pt-2">
+      <Text
+        accessibilityLabel={onAddSlot ? 'Add a new card' : `Card ${activeIndex + 1} of ${count}`}
+        variant="caption"
+        className="rounded-full bg-slate-100 px-3 py-1 font-bold tabular-nums text-textMuted dark:bg-slate-800 dark:text-dark-textMuted"
+      >
+        {onAddSlot ? 'New card' : `${activeIndex + 1} / ${count}`}
+      </Text>
+    </View>
+  );
+}
+

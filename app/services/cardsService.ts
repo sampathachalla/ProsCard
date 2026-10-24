@@ -1,2 +1,2 @@
-export * from '@/components/cardsComponents/Services/cardsService';
-export * from '@/components/cardsComponents/types/card.types';
+export * from '@/pages/cards/Services/cardsService';
+export * from '@/pages/cards/types/card.types';

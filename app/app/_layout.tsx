@@ -7,7 +7,7 @@ import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { ThemeProvider, useThemeContext } from '../context/ThemeContext';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/services/api/queryClient';
-import { AppErrorBoundary } from '@/components/uiComponents/AppErrorBoundary';
+import { AppErrorBoundary } from '@/common/ui/AppErrorBoundary';
 import { installGlobalErrorHandler } from '@/utils/globalErrorHandler';
 
 // Errors outside rendering (tap handlers, timers) show an alert instead of closing the app.

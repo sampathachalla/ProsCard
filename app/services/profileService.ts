@@ -1,2 +1,2 @@
-export * from '@/components/profileComponents/Services/profileService';
-export * from '@/components/profileComponents/types/profile.types';
+export * from '@/pages/profile/Services/profileService';
+export * from '@/pages/profile/types/profile.types';

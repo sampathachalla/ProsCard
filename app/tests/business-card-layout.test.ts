@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getBusinessCardHeight } from '@/components/homepageComponents/Utils/businessCardLayout';
+import { getBusinessCardHeight } from '@/pages/home/Utils/businessCardLayout';
 
 describe('homepage business-card sizing', () => {
   it('uses the taller preview range when vertical space is available', () => {

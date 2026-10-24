@@ -3,7 +3,7 @@ import { Redirect, Tabs } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 import { Colors } from '@/constants/Colors';
 import { useThemeContext } from '../../context/ThemeContext';
-import { useAuthSession } from '@/components/authComponents/Hooks/useAuthSession';
+import { useAuthSession } from '@/pages/auth/Hooks/useAuthSession';
 
 export default function TabsLayout() {
   const { isAuthenticated, isHydrating } = useAuthSession();

@@ -154,12 +154,12 @@ async function runAll() {
   console.log('====================================================\n');
 
   // A. Baseline worker tests
-  const { runValidateOnboardingTests } = await import('./components/onboardingComponents/Utils/validateOnboarding.test');
+  const { runValidateOnboardingTests } = await import('./pages/onboarding/Utils/validateOnboarding.test');
   const { runValidateOnboardingFlowGroupTests } = await import(
-    './components/onboardingComponents/Utils/validateOnboardingFlowGroup.test'
+    './pages/onboarding/Utils/validateOnboardingFlowGroup.test'
   );
-  const { runOnboardingMappersTests } = await import('./components/onboardingComponents/Utils/onboardingMappers.test');
-  const { runCardsServiceTests } = await import('./components/cardsComponents/Services/cardsService.test');
+  const { runOnboardingMappersTests } = await import('./pages/onboarding/Utils/onboardingMappers.test');
+  const { runCardsServiceTests } = await import('./pages/cards/Services/cardsService.test');
 
   console.log('--- Executing Baseline Worker Tests ---');
   const baselineValidation = runValidateOnboardingTests();
@@ -174,7 +174,7 @@ async function runAll() {
 
   // B. Cards Service Stress Tests
   console.log('--- Executing Cards Service Stress Tests ---');
-  const { runCardsServiceStressTests } = await import('./components/cardsComponents/Services/cardsService.stress.test');
+  const { runCardsServiceStressTests } = await import('./pages/cards/Services/cardsService.stress.test');
   const cardsStress = await runCardsServiceStressTests(mockStorage);
   console.log(`Cards Service Stress: ${cardsStress.passed} passed, ${cardsStress.failed} failed`);
   if (cardsStress.errors.length > 0) {
@@ -183,7 +183,7 @@ async function runAll() {
 
   // C. Profile Service Stress Tests
   console.log('\n--- Executing Profile Service Stress Tests ---');
-  const { runProfileServiceStressTests } = await import('./components/profileComponents/Services/profileService.stress.test');
+  const { runProfileServiceStressTests } = await import('./pages/profile/Services/profileService.stress.test');
   const profileStress = await runProfileServiceStressTests(mockStorage);
   console.log(`Profile Service Stress: ${profileStress.passed} passed, ${profileStress.failed} failed`);
   if (profileStress.errors.length > 0) {
@@ -191,10 +191,10 @@ async function runAll() {
   }
 
   // D. useOnboardingStepper Hook Stress Tests
-  const modStepper = await import('./components/onboardingComponents/Hooks/useOnboardingStepper');
+  const modStepper = await import('./pages/onboarding/Hooks/useOnboardingStepper');
   const useOnboardingStepper = (modStepper as any).default?.useOnboardingStepper || (modStepper as any).useOnboardingStepper;
 
-  const { runStepperStressTests } = await import('./components/onboardingComponents/Hooks/useOnboardingStepper.stress.test');
+  const { runStepperStressTests } = await import('./pages/onboarding/Hooks/useOnboardingStepper.stress.test');
   const stepperStress = await runStepperStressTests({
     useOnboardingStepper,
     createRoot,

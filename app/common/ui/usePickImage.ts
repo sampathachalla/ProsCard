@@ -1,0 +1,39 @@
+import { Alert, Linking, Platform } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { registerPendingMedia } from '@/pages/profile/Services/pendingMedia';
+
+type PickImageOptions = {
+  aspect?: [number, number];
+  allowsEditing?: boolean;
+};
+
+export async function pickImageFromLibrary(options: PickImageOptions = {}): Promise<string | null> {
+  const { aspect, allowsEditing = true } = options;
+
+  if (Platform.OS !== 'web') {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      await Linking.openSettings().catch(() => {
+        Alert.alert(
+          'Photo access needed',
+          'Open VC Pros in Settings and allow photo library access to upload images for your card.',
+        );
+      });
+      return null;
+    }
+  }
+
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ['images'],
+    allowsEditing,
+    aspect,
+    quality: 0.88,
+  });
+
+  if (result.canceled || !result.assets[0]?.uri) {
+    return null;
+  }
+
+  registerPendingMedia(result.assets[0]);
+  return result.assets[0].uri;
+}

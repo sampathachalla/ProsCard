@@ -269,7 +269,7 @@ async function runM3Tests() {
   console.log('====================================================\n');
 
   const { runStepCardCustomizationTests } = await import(
-    './components/onboardingComponents/Components/stepCardCustomization.test'
+    './pages/onboarding/Components/stepCardCustomization.test'
   );
 
   console.log('--- Executing M3 StepCardCustomization Unit Tests ---');
@@ -284,10 +284,10 @@ async function runM3Tests() {
   // Also test direct React element rendering of StepCardCustomization
   console.log('--- Testing StepCardCustomization Component Instantiation ---');
   const { StepCardCustomization } = await import(
-    './components/onboardingComponents/Components/StepCardCustomization'
+    './pages/onboarding/Components/StepCardCustomization'
   );
   const { INITIAL_ONBOARDING_DRAFT } = await import(
-    './components/onboardingComponents/types/onboardingStepper.types'
+    './pages/onboarding/types/onboardingStepper.types'
   );
 
   const mockDraft = {

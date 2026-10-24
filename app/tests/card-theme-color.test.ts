@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { CardVisualTheme } from '@/components/cardsComponents/types/card.types';
+import type { CardVisualTheme } from '@/pages/cards/types/card.types';
 import { contrastRatio, resolveLayoutColorSlots } from '@/utils/cardThemeColor';
 
 const theme: CardVisualTheme = {

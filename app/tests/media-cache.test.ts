@@ -43,7 +43,7 @@ import {
   getCachedMediaDownloadUrl,
   invalidateCachedMedia,
   mediaImageCacheKey,
-} from '@/components/profileComponents/Services/mediaCache';
+} from '@/pages/profile/Services/mediaCache';
 
 describe('media cache', () => {
   beforeEach(() => {

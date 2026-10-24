@@ -1,2 +1,2 @@
-export * from '@/components/onboardingComponents/Services/onboardingService';
-export * from '@/components/onboardingComponents/types/onboarding.types';
+export * from '@/pages/onboarding/Services/onboardingService';
+export * from '@/pages/onboarding/types/onboarding.types';

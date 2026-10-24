@@ -3,7 +3,8 @@ module.exports = {
   content: [
     "./App.tsx",
     "./app/**/*.{js,jsx,ts,tsx}",
-    "./components/**/*.{js,jsx,ts,tsx}"
+    "./pages/**/*.{js,jsx,ts,tsx}",
+    "./common/**/*.{js,jsx,ts,tsx}"
   ],
   presets: [require("nativewind/preset")],
   darkMode: 'class', // Enables class-based dark mode (toggle with a class)

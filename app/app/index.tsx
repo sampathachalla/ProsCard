@@ -1,9 +1,9 @@
 // app/index.tsx
 import { Redirect } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
-import { useAuthSession } from '@/components/authComponents/Hooks/useAuthSession';
+import { useAuthSession } from '@/pages/auth/Hooks/useAuthSession';
 import { useQuery } from '@tanstack/react-query';
-import { getHasCompletedOnboarding } from '@/components/onboardingComponents/Services/onboardingService';
+import { getHasCompletedOnboarding } from '@/pages/onboarding/Services/onboardingService';
 import { queryKeys } from '@/services/api/queryClient';
 
 export default function IndexScreen() {

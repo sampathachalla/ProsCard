@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import type { Profile } from '@/components/profileComponents/types/profile.types';
-import type { BusinessCard } from '@/components/cardsComponents/types/card.types';
+import type { Profile } from '@/pages/profile/types/profile.types';
+import type { BusinessCard } from '@/pages/cards/types/card.types';
 import {
   connectionCounts,
   profileValueForConnection,
   profileWithConnectionFields,
   reusableConnectionValue,
-} from '@/components/profileComponents/Services/profileConnections';
+} from '@/pages/profile/Services/profileConnections';
 
 describe('profile connection fields', () => {
   const emptyProfile: Profile = {

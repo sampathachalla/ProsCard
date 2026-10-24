@@ -155,7 +155,7 @@ async function runM2Tests() {
   console.log('====================================================\n');
 
   const { runOnboardingComponentsTests } = await import(
-    './components/onboardingComponents/Components/onboardingComponents.test'
+    './pages/onboarding/Components/onboardingComponents.test'
   );
 
   console.log('--- Executing M2 Component Unit Tests ---');

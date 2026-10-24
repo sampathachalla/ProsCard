@@ -1,0 +1,402 @@
+import React from 'react';
+import { View } from 'react-native';
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
+import { MediaImage } from '@/common/ui/MediaImage';
+import {
+  AtSign,
+  Award,
+  Briefcase,
+  Building2,
+  Camera,
+  ExternalLink,
+  FileText,
+  GitFork,
+  Globe,
+  ImageIcon,
+  Link2,
+  Mail,
+  MapPin,
+  MessageCircle,
+  Play,
+  Phone,
+  Sparkles,
+  type LucideIcon,
+} from 'lucide-react-native';
+import { Text } from '@/common/ui/Text';
+import { Colors } from '@/constants/Colors';
+import vcProsLogoForDarkTheme from '@/assets/vcpros-logo-dark.png'; // White text (for dark backgrounds)
+import vcProsLogoForLightTheme from '@/assets/vcpros-logo-light.png'; // Dark navy text (for light backgrounds)
+import type { CardDetailField } from '../cardDetailTemplate';
+import type { CardTemplateId, CardVisualTheme, ResolvedLayoutSlots } from '../../types/card.types';
+import { getCardFontFamily, getCardLetterSpacing } from '../cardTheme';
+import {
+  type LogoPlacementContext,
+  isRgbaOrHexLight,
+  resolveLogoBoxStyle,
+} from '@/utils/cardThemeColor';
+
+/**
+ * Plain style shadow presets (not NativeWind `shadow-*` classNames).
+ * Applied via `style` instead of a dynamic className because interpolating
+ * `shadow-*`/`opacity-*` inside a template-literal className races with Expo
+ * Router's navigation context on mount, throwing a spurious
+ * "Couldn't find a navigation context" error.
+ */
+export const BOXED_SHADOW_XS = {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 1 },
+  shadowOpacity: 0.04,
+  shadowRadius: 1,
+  elevation: 1,
+} as const;
+
+export const BOXED_SHADOW_SM = {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 1 },
+  shadowOpacity: 0.06,
+  shadowRadius: 2,
+  elevation: 1,
+} as const;
+
+export const BOXED_SHADOW_MD = {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.1,
+  shadowRadius: 6,
+  elevation: 3,
+} as const;
+
+export const BOXED_SHADOW_LG = {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 10 },
+  shadowOpacity: 0.12,
+  shadowRadius: 15,
+  elevation: 6,
+} as const;
+
+export const BOXED_SHADOW_XL = {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 20 },
+  shadowOpacity: 0.15,
+  shadowRadius: 25,
+  elevation: 10,
+} as const;
+
+export function resolveActionUrl(field: CardDetailField): string | null {
+  if (!field.value || !field.value.trim()) return null;
+  const val = field.value.trim();
+  if (field.type === 'email' || field.id === 'email') return `mailto:${val}`;
+  if (field.type === 'phone' || field.id === 'phone') return `tel:${val}`;
+  if (field.id === 'whatsapp') {
+    const cleanNumber = val.replace(/[^0-9]/g, '');
+    return cleanNumber ? `https://wa.me/${cleanNumber}` : null;
+  }
+  if (
+    field.type === 'url' ||
+    field.id === 'website' ||
+    field.id === 'linkedin' ||
+    field.id === 'facebook' ||
+    field.id === 'x' ||
+    field.id === 'instagram' ||
+    field.id === 'github' ||
+    field.id === 'portfolio' ||
+    field.id === 'youtube' ||
+    field.id === 'tiktok'
+  ) {
+    return val.startsWith('http://') || val.startsWith('https://') ? val : `https://${val}`;
+  }
+  return null;
+}
+
+export function formatDisplayValue(field: CardDetailField): string {
+  if (!field.value) return '';
+  let str = field.value.trim();
+  str = str.replace(/^https?:\/\/(www\.)?/, '');
+  str = str.replace(/^mailto:/, '');
+  str = str.replace(/^tel:/, '');
+  return str.endsWith('/') ? str.slice(0, -1) : str;
+}
+
+export function getFieldIcon(fieldId: string, fieldType?: string): LucideIcon {
+  const normalized = fieldId.toLowerCase();
+  if (normalized.includes('email') || fieldType === 'email') return Mail;
+  if (
+    normalized.includes('phone') ||
+    normalized.includes('mobile') ||
+    normalized.includes('tel') ||
+    fieldType === 'phone'
+  )
+    return Phone;
+  if (normalized.includes('address') || normalized.includes('location')) return MapPin;
+  if (normalized.includes('website') || normalized.includes('site') || normalized.includes('web'))
+    return Globe;
+  if (normalized.includes('linkedin')) return Link2;
+  if (normalized.includes('x') || normalized.includes('twitter')) return AtSign;
+  if (normalized.includes('instagram')) return Camera;
+  if (normalized.includes('github')) return GitFork;
+  if (normalized.includes('youtube') || normalized.includes('tiktok')) return Play;
+  if (normalized.includes('whatsapp')) return MessageCircle;
+  if (normalized.includes('portfolio')) return FileText;
+  if (normalized.includes('company') || normalized.includes('org')) return Building2;
+  if (normalized.includes('title') || normalized.includes('job') || normalized.includes('role'))
+    return Briefcase;
+  if (normalized.includes('accreditation') || normalized.includes('cert')) return Award;
+  return ExternalLink;
+}
+
+/** Branded backdrop shown when the user has not uploaded a cover photo. */
+export function DefaultCover({ style }: { style: object }) {
+  return (
+    <View style={[style, { overflow: 'hidden' }]} accessibilityLabel="Default cover">
+      <LinearGradient
+        colors={[Colors.palette.navyGradient, Colors.palette.primaryCta, Colors.palette.brandCyan]}
+        locations={[0, 0.6, 1]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
+      />
+      {/* Soft shapes keep the default from looking like a flat fill at any card size. */}
+      <View style={{ position: 'absolute', width: '70%', aspectRatio: 1, borderRadius: 9999, right: '-22%', top: '-55%', backgroundColor: 'rgba(255,255,255,0.10)' }} />
+      <View style={{ position: 'absolute', width: '45%', aspectRatio: 1, borderRadius: 9999, left: '-12%', bottom: '-50%', backgroundColor: 'rgba(56,189,248,0.22)' }} />
+      <View style={{ position: 'absolute', width: '28%', aspectRatio: 1, borderRadius: 9999, right: '18%', bottom: '-30%', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.18)' }} />
+    </View>
+  );
+}
+
+export function IdentityImage({
+  field,
+  fit = 'cover',
+  iconColor = '#94a3b8',
+  placeholderColor = '#1e293b',
+  style,
+}: {
+  field?: CardDetailField;
+  fit?: 'contain' | 'cover';
+  iconColor?: string;
+  placeholderColor?: string;
+  style: object;
+}) {
+  if (!field?.value) {
+    if (field?.id === 'coverPhoto') return <DefaultCover style={style} />;
+    return (
+      <View style={[style, { backgroundColor: placeholderColor }]} className="items-center justify-center">
+        <ImageIcon color={iconColor} size={22} />
+      </View>
+    );
+  }
+  return <MediaImage sourceUrl={field.value} contentFit={fit} style={style} />;
+}
+
+export function UniversalLogoBadge({
+  bare = true,
+  backdropColor,
+  borderColor,
+  cardTheme,
+  compact = false,
+  field,
+  logoSize,
+  placement,
+  slots,
+  style,
+  templateId,
+}: {
+  bare?: boolean;
+  backdropColor?: string;
+  borderColor?: string;
+  cardTheme?: CardVisualTheme;
+  compact?: boolean;
+  field?: CardDetailField;
+  logoSize?: { width: number; height: number };
+  placement?: LogoPlacementContext;
+  slots?: ResolvedLayoutSlots;
+  style?: object;
+  templateId?: CardTemplateId;
+}) {
+  const logoWidth = logoSize?.width ?? (compact ? 100 : 152);
+  const logoHeight = logoSize?.height ?? (compact ? 38 : 56);
+
+  // Uploaded logos are protected backend paths; MediaImage resolves them to a signed URL.
+  const customLogo = typeof field?.value === 'string' ? field.value.trim() : '';
+
+  // Determine container and brand logo based on surrounding surface & backdrop contrast
+  const surroundingIsLight = slots ? isRgbaOrHexLight(slots.surface) : false;
+  const isBackdropExplicitlyLight = backdropColor ? isRgbaOrHexLight(backdropColor) : undefined;
+
+  // If a backdrop is explicitly given, logo adapts to it.
+  // Otherwise, the container adapts to provide high-contrast for the logo against the card.
+  const isLightLogo = isBackdropExplicitlyLight !== undefined ? !isBackdropExplicitlyLight : !surroundingIsLight;
+
+  const engineStyle = resolveLogoBoxStyle({
+    compact,
+    logoTone: isLightLogo ? 'light' : 'dark',
+    placement,
+    slots,
+    templateId,
+    theme: cardTheme,
+  });
+
+  const logoContrastSample =
+    bare && placement === 'on-cover' && slots?.background
+      ? slots.background
+      : bare && placement === 'on-surface' && slots?.surface
+        ? slots.surface
+        : backdropColor || (bare ? slots?.background ?? slots?.surface : undefined) || engineStyle.backgroundColor;
+  const effectiveBg = bare ? 'transparent' : backdropColor || engineStyle.backgroundColor;
+  const isEffectiveBgLight = isRgbaOrHexLight(logoContrastSample);
+
+  // Dark text on light backdrop; White text on dark backdrop
+  const defaultBrandLogo = isEffectiveBgLight ? vcProsLogoForLightTheme : vcProsLogoForDarkTheme;
+
+  return (
+    <View
+      style={[
+        {
+          alignItems: 'center',
+          backgroundColor: bare ? 'transparent' : effectiveBg,
+          borderColor: borderColor || engineStyle.borderColor,
+          borderRadius: bare ? 0 : engineStyle.borderRadius,
+          borderWidth: bare ? 0 : engineStyle.borderWidth,
+          height: bare ? logoHeight : logoHeight + (compact ? 8 : 12),
+          justifyContent: 'center',
+          paddingHorizontal: bare ? 0 : compact ? 8 : 12,
+          paddingVertical: bare ? 0 : compact ? 4 : 6,
+          shadowColor: engineStyle.shadowColor,
+          shadowOffset: engineStyle.shadowOffset,
+          shadowOpacity: bare ? 0 : engineStyle.shadowOpacity,
+          shadowRadius: bare ? 0 : engineStyle.shadowRadius,
+          elevation: bare ? 0 : engineStyle.elevation,
+          width: bare ? logoWidth : logoWidth + (compact ? 14 : 22),
+        },
+        style,
+      ]}
+    >
+      {customLogo ? (
+        <MediaImage sourceUrl={customLogo} contentFit="contain" style={{ width: logoWidth, height: logoHeight }} />
+      ) : (
+        <Image source={defaultBrandLogo} contentFit="contain" style={{ width: logoWidth, height: logoHeight }} />
+      )}
+    </View>
+  );
+}
+
+export function AccreditationPills({
+  accreditations,
+  cardTheme,
+  compact = false,
+  light = false,
+}: {
+  accreditations?: string;
+  cardTheme: CardVisualTheme;
+  compact?: boolean;
+  light?: boolean;
+}) {
+  if (!accreditations || !accreditations.trim()) return null;
+  const items = accreditations
+    .split(/[,|•;]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  if (!items.length) return null;
+
+  const fontFamily = getCardFontFamily(cardTheme.fontStyle);
+  const letterSpacing = getCardLetterSpacing(cardTheme.fontStyle);
+
+  return (
+    <View className="flex-row flex-wrap gap-1.5">
+      {items.map((item, idx) => (
+        <View
+          key={idx}
+          className="flex-row items-center rounded-full px-2.5 py-0.5"
+          style={{
+            backgroundColor: light ? 'rgba(255, 255, 255, 0.22)' : `${cardTheme.accentColor}18`,
+            borderColor: light ? 'rgba(255, 255, 255, 0.4)' : `${cardTheme.accentColor}44`,
+            borderWidth: 1,
+          }}
+        >
+          <Award color={light ? '#ffffff' : cardTheme.accentColor} size={compact ? 10 : 12} />
+          <Text
+            variant="none"
+            className={`ml-1 font-bold ${compact ? 'text-[11px]' : 'text-[11px]'}`}
+            style={{
+              color: light ? '#ffffff' : cardTheme.textColor,
+              fontFamily,
+              letterSpacing,
+            }}
+          >
+            {item}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+export function SectionHeaderBadge({
+  icon: Icon,
+  title,
+  cardTheme,
+  light = false,
+  badgeText,
+}: {
+  icon?: LucideIcon;
+  title: string;
+  cardTheme: CardVisualTheme;
+  light?: boolean;
+  badgeText?: string;
+}) {
+  const fontFamily = getCardFontFamily(cardTheme.fontStyle);
+  const letterSpacing = getCardLetterSpacing(cardTheme.fontStyle);
+
+  return (
+    <View className="mb-3 flex-row items-center justify-between">
+      <View className="flex-row items-center">
+        {Icon ? (
+          <View
+            className="mr-2 h-6 w-6 items-center justify-center rounded-lg"
+            style={[
+              { backgroundColor: light ? 'rgba(255, 255, 255, 0.2)' : `${cardTheme.accentColor}20` },
+              BOXED_SHADOW_SM,
+            ]}
+          >
+            <Icon color={light ? '#ffffff' : cardTheme.accentColor} size={13} />
+          </View>
+        ) : null}
+        <Text
+          variant="none"
+          className="text-[11px] font-extrabold uppercase tracking-wider"
+          style={{
+            color: light ? 'rgba(255, 255, 255, 0.85)' : cardTheme.mutedTextColor,
+            fontFamily,
+            letterSpacing,
+          }}
+        >
+          {title}
+        </Text>
+      </View>
+      {badgeText ? (
+        <View
+          className="flex-row items-center rounded-full px-2.5 py-0.5"
+          style={{
+            backgroundColor: light ? 'rgba(255, 255, 255, 0.18)' : `${cardTheme.accentColor}15`,
+            borderColor: light ? 'rgba(255, 255, 255, 0.3)' : `${cardTheme.accentColor}30`,
+            borderWidth: 1,
+          }}
+        >
+          <Sparkles color={light ? '#ffffff' : cardTheme.accentColor} size={10} />
+          <Text
+            variant="none"
+            className="ml-1 text-[11px] font-bold"
+            style={{
+              color: light ? '#ffffff' : cardTheme.accentColor,
+              fontFamily,
+              letterSpacing,
+            }}
+          >
+            {badgeText}
+          </Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}

@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@/components/profileComponents/Services/mediaService', () => ({
+vi.mock('@/pages/profile/Services/mediaService', () => ({
   cacheMediaFileFromUri: vi.fn(), requestMediaUpload: vi.fn(), uploadToObjectStorage: vi.fn(), confirmMedia: vi.fn(),
 }));
 
-vi.mock('@/components/profileComponents/Services/mediaCache', () => ({
+vi.mock('@/pages/profile/Services/mediaCache', () => ({
   invalidateCachedMedia: vi.fn(),
 }));
 
@@ -12,7 +12,7 @@ vi.mock('expo-image-manipulator', () => ({
   ImageManipulator: { manipulate: vi.fn() }, SaveFormat: { JPEG: 'jpeg', PNG: 'png' },
 }));
 
-import { isPendingMediaUrl, mediaIdFromContentUrl } from '@/components/profileComponents/Services/pendingMedia';
+import { isPendingMediaUrl, mediaIdFromContentUrl } from '@/pages/profile/Services/pendingMedia';
 
 describe('media model helpers', () => {
   it('recognizes device-local selections but not server references', () => {

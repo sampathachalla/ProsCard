@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@/components/walletCardComponents', () => ({}));
-vi.mock('@/components/homepageComponents/Components/BusinessCard', () => ({ BusinessCard: () => null }));
-vi.mock('@/components/uiComponents/Text', () => ({}));
+vi.mock('@/common/wallet', () => ({}));
+vi.mock('@/pages/home/Components/BusinessCard', () => ({ BusinessCard: () => null }));
+vi.mock('@/common/ui/Text', () => ({}));
 vi.mock('lucide-react-native', () => ({}));
 vi.mock('react-native', () => ({}));
 vi.mock('react-native-reanimated', () => ({}));
 
-import { stackRankFor } from '@/components/homepageComponents/Components/StackedCardView';
+import { stackRankFor } from '@/pages/home/Components/StackedCardView';
 
 const ranks = (active: number, cards: number) =>
   Array.from({ length: cards + 1 }, (_, index) => stackRankFor(index, active, cards));
