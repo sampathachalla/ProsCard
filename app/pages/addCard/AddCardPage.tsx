@@ -6,12 +6,17 @@ import {
   Pressable,
   ScrollView,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LayoutTemplate, Palette, Plus } from 'lucide-react-native';
 
 import { Text } from '@/common/ui/Text';
+import { DraggablePreviewButton } from '@/common/ui/DraggablePreviewButton';
+import { CardPreviewModal } from '@/pages/previewCard/Components/CardPreviewModal';
+import { useProfileSnapshot } from '@/pages/profile/Hooks/useProfileSnapshot';
 import type { DynamicCardField } from '@/pages/cards/types/card.types';
 import { AddCardHeader } from './Components/AddCardHeader';
 import { AddContactSheet } from './Components/AddContactSheet';
@@ -56,6 +61,9 @@ function contactConfig(field: DynamicCardField) {
 
 export default function AddCardPage() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { height: viewportHeight } = useWindowDimensions();
+  const { profile } = useProfileSnapshot();
   const params = useLocalSearchParams<{
     cardId?: string | string[];
     create?: string | string[];
@@ -70,6 +78,7 @@ export default function AddCardPage() {
     creationSession: isCreateFlow ? creationSession : undefined,
   });
   const [panel, setPanel] = useState<AddCardPanel>(null);
+  const [previewVisible, setPreviewVisible] = useState(false);
 
   const primaryContacts = useMemo(
     () => PRIMARY_CONTACTS.map((config) =>
@@ -151,7 +160,7 @@ export default function AddCardPage() {
             <EditorRow
               icon={LayoutTemplate}
               label="Layout"
-              value={`${editor.draft.sectionLayouts.identity} · ${editor.draft.sectionLayouts.professional}`}
+              value={`${editor.draft.sectionLayouts.identity} · ${editor.draft.sectionLayouts.professional} · ${editor.draft.sectionLayouts.connections}`}
               onPress={() => setPanel('layout')}
             />
             <EditorRow
@@ -246,6 +255,8 @@ export default function AddCardPage() {
         </ScrollView>
       </KeyboardAvoidingView>
 
+      <DraggablePreviewButton bottomOffset={82} onPress={() => setPreviewVisible(true)} />
+
       <LayoutSheet
         card={editor.draft}
         visible={panel === 'layout'}
@@ -264,6 +275,14 @@ export default function AddCardPage() {
         visible={panel === 'contacts'}
         onClose={() => setPanel(null)}
         onAdd={addContact}
+      />
+      <CardPreviewModal
+        card={editor.draft}
+        insets={insets}
+        profile={profile}
+        viewportHeight={viewportHeight}
+        visible={previewVisible}
+        onClose={() => setPreviewVisible(false)}
       />
     </View>
   );

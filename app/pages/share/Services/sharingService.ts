@@ -5,11 +5,26 @@ import { AUTH_TEST_MODE } from '@/pages/auth/Config/authMode';
 import type { BusinessCard } from '@/pages/cards/types/card.types';
 import type { Profile } from '@/pages/profile/types/profile.types';
 
+function normalizePublicWebUrl(url: string): string {
+  return url.trim().replace(/\/$/, '');
+}
+
 /**
- * Where QR codes and share links point. The API serves the public share page, so by default this is
- * the API's own address; set EXPO_PUBLIC_WEB_URL once a dedicated domain exists.
+ * Public origin for `/share/:slug` (QR + Preview in browser).
+ * Prefer EXPO_PUBLIC_WEB_URL; on OCI, bare IP:port API URLs map to https://{ip}.nip.io (Caddy).
  */
-export const PUBLIC_WEB_URL = (process.env.EXPO_PUBLIC_WEB_URL || API_BASE_URL || 'http://localhost:8050').trim().replace(/\/$/, '');
+export function resolvePublicWebUrl(): string {
+  const configured = process.env.EXPO_PUBLIC_WEB_URL?.trim();
+  if (configured) return normalizePublicWebUrl(configured);
+
+  const apiOrigin = normalizePublicWebUrl(API_BASE_URL || 'http://localhost:8050');
+  const ociIp = apiOrigin.match(/^https?:\/\/(\d{1,3}(?:\.\d{1,3}){3})(?::\d+)?$/);
+  if (ociIp) return `https://${ociIp[1]}.nip.io`;
+
+  return apiOrigin;
+}
+
+export const PUBLIC_WEB_URL = resolvePublicWebUrl();
 
 type ShareRecord = { id: string; slug: string };
 export type SharedCard = Pick<BusinessCard, 'id' | 'name'> & Partial<Pick<BusinessCard, 'title' | 'company' | 'phone' | 'email' | 'gradient'>>;
@@ -31,11 +46,17 @@ export function parseShareSlug(data: string): string | null {
   return data.trim().match(/\/share\/([A-Za-z0-9_-]+)\/?(?:[?#].*)?$/)?.[1] ?? null;
 }
 
+/** Creates or reuses the backend share link and returns its slug. */
+export async function getShareSlug(cardId: string): Promise<string> {
+  if (AUTH_TEST_MODE) return cardId;
+  const share = await apiRequest<ShareRecord>(`/sharing/cards/${encodeURIComponent(cardId)}`, { method: 'POST', body: {} });
+  return share.slug;
+}
+
 /** Returns the card's public share URL, reusing its active share link on the backend. */
 export async function getShareUrl(cardId: string): Promise<string> {
   if (AUTH_TEST_MODE) return `${PUBLIC_WEB_URL}/cards/${cardId}`;
-  const share = await apiRequest<ShareRecord>(`/sharing/cards/${encodeURIComponent(cardId)}`, { method: 'POST', body: {} });
-  return shareUrlForSlug(share.slug);
+  return shareUrlForSlug(await getShareSlug(cardId));
 }
 
 type SharedCardView = { card: BusinessCard; profile: Partial<Profile> };

@@ -22,6 +22,7 @@ export type WalletStackViewProps = {
   onActiveIndexChange: (index: number) => void;
   onAddCard?: () => void;
   onCardDoubleTap?: (card: BusinessCard) => void;
+  onCardSingleTap?: (card: BusinessCard) => void;
   onCardSwipeDown?: (card: BusinessCard) => void;
   profile: Profile;
   showAddCardPass?: boolean;

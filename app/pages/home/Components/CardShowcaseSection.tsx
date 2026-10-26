@@ -14,6 +14,7 @@ type CardShowcaseSectionProps = {
   onActiveIndexChange: (index: number) => void;
   onAddCard?: () => void;
   onCardDoubleTap?: (card: BusinessCard) => void;
+  onCardSingleTap?: (card: BusinessCard) => void;
   onCardSwipeDown?: (card: BusinessCard) => void;
   profile: Profile;
   viewMode: CardViewMode;
@@ -28,6 +29,7 @@ export function CardShowcaseSection({
   onActiveIndexChange,
   onAddCard,
   onCardDoubleTap,
+  onCardSingleTap,
   onCardSwipeDown,
   profile,
   viewMode,
@@ -55,6 +57,7 @@ export function CardShowcaseSection({
             onActiveIndexChange={onActiveIndexChange}
             onAddCard={onAddCard}
             onCardDoubleTap={onCardDoubleTap}
+            onCardSingleTap={onCardSingleTap}
             onCardSwipeDown={onCardSwipeDown}
             profile={profile}
             includeAddTile={includeAddTile}
@@ -69,6 +72,7 @@ export function CardShowcaseSection({
             onActiveIndexChange={onActiveIndexChange}
             onAddCard={onAddCard}
             onCardDoubleTap={onCardDoubleTap}
+            onCardSingleTap={onCardSingleTap}
             onCardSwipeDown={onCardSwipeDown}
             profile={profile}
             showAddCardPass={includeAddTile}

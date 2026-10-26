@@ -7,6 +7,7 @@ import { AddCardSheet } from './AddCardSheet';
 const LAYOUT_SECTIONS: { id: CardSectionId; title: string; hint: string }[] = [
   { id: 'identity', title: 'Header', hint: 'How the cover, photo and logo are arranged.' },
   { id: 'professional', title: 'Details', hint: 'How your name, title and company are presented.' },
+  { id: 'connections', title: 'Contact & links', hint: 'How contact methods and social links are arranged.' },
 ];
 
 type Props = {
@@ -16,7 +17,7 @@ type Props = {
   onChange: (section: CardSectionId, layout: CardLayoutId) => void;
 };
 
-/** Reuses the card editor's layout picker for the header and details sections. */
+/** Reuses the card editor's layout picker for all three rendered card sections. */
 export function LayoutSheet({ card, visible, onClose, onChange }: Props) {
   return (
     <AddCardSheet title="Layout" visible={visible} onClose={onClose}>

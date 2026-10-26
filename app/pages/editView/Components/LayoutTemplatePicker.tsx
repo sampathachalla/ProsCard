@@ -99,7 +99,6 @@ const PROFESSIONAL_TEMPLATES: { id: CardLayoutId; label: string }[] =
   }));
 
 const HIDDEN_CONNECTION_TEMPLATE_IDS = new Set<CardTemplateId>([
-  "classic",
   "minimal",
   "bold",
   "glass",
@@ -110,12 +109,14 @@ const HIDDEN_CONNECTION_TEMPLATE_IDS = new Set<CardTemplateId>([
 ]);
 
 const CONNECTION_TEMPLATE_ORDER: CardTemplateId[] = [
+  "classic",
   "banner",
   "editorial",
   "compact",
 ];
 
 const CONNECTION_TEMPLATE_LABELS: Partial<Record<CardTemplateId, string>> = {
+  classic: "Action Tiles",
   banner: "Executive Directory",
   editorial: "Contact Ledger",
   compact: "Direct Contact List",

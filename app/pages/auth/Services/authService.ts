@@ -6,6 +6,7 @@ import type { AuthSession } from '@/services/api/types';
 import { queryClient, queryKeys } from '@/services/api/queryClient';
 import { clearCardState } from '@/pages/cards/Services/cardsService';
 import { clearMediaCache } from '@/pages/profile/Services/mediaCache';
+import { setHasCompletedOnboarding } from '@/pages/onboarding/Services/onboardingService';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
@@ -42,8 +43,15 @@ async function mockAuthentication(email: string): Promise<StoredUser> {
   return toStoredUser(session);
 }
 
+/** Test login represents an existing user, so it must always bypass onboarding. */
+async function startTestLogin(email: string): Promise<StoredUser> {
+  const user = await mockAuthentication(email);
+  await setHasCompletedOnboarding();
+  return user;
+}
+
 export async function login(credentials: LoginCredentials): Promise<StoredUser> {
-  return AUTH_TEST_MODE ? mockAuthentication(credentials.email) : authenticate('/auth/login', credentials);
+  return AUTH_TEST_MODE ? startTestLogin(credentials.email) : authenticate('/auth/login', credentials);
 }
 
 /**
@@ -108,7 +116,7 @@ export async function signInWithGoogle(action: 'login' | 'signup' = 'login'): Pr
     // Google sign-up starts a fresh test account like email sign-up; Google login keeps the existing one.
     return action === 'signup'
       ? startTestSignup(AUTH_TEST_FIXTURES.user.username)
-      : mockAuthentication(AUTH_TEST_FIXTURES.user.username);
+      : startTestLogin(AUTH_TEST_FIXTURES.user.username);
   }
   const redirectTo = googleRedirectUrl();
   const { url } = await apiRequest<{ url: string }>('/auth/google', {

@@ -7,6 +7,7 @@ import { CardSectionEditor } from '@/pages/editView/Components/CardSectionEditor
 import { ContactMethodsRequiredModal } from '@/pages/editView/Components/ContactMethodsRequiredModal';
 import { CardPreviewModal } from '@/pages/previewCard/Components/CardPreviewModal';
 import { EditCardFormHeader } from '@/pages/editView/Components/EditCardFormHeader';
+import { DraggablePreviewButton } from '@/common/ui/DraggablePreviewButton';
 import type { EditHomeTab } from '@/common/ui/EditHomeBar';
 import { useProfileSnapshot } from '@/pages/profile/Hooks/useProfileSnapshot';
 import { saveProfile } from '@/pages/profile/Services/profileService';
@@ -190,8 +191,6 @@ export default function EditViewPage() {
   };
 
   const previewCard = () => {
-    if (isCreateMode && !requireCardTag()) return;
-    if (!requireContactFields()) return;
     Haptics.selectionAsync().catch(() => {});
     setPreviewVisible(true);
   };
@@ -246,13 +245,14 @@ export default function EditViewPage() {
             }}
             onLayoutChange={updateSectionLayout}
             onCloseStyling={() => {}}
-            onOpenPreview={previewCard}
             onOpenStyling={() => {}}
             onThemeChange={updateSectionTheme}
             onSaveCustomTheme={saveCustomSectionTheme}
           />
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <DraggablePreviewButton onPress={previewCard} />
 
       <ContactMethodsRequiredModal
         minimumCount={MINIMUM_CARD_CONNECTION_FIELDS}

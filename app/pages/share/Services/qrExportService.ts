@@ -1,5 +1,6 @@
 import { Alert, Platform, Share } from 'react-native';
 import { File, Paths } from 'expo-file-system';
+import * as MediaLibrary from 'expo-media-library';
 import * as Sharing from 'expo-sharing';
 
 export interface QrSvgRef {
@@ -36,7 +37,8 @@ function decodeBase64ToBytes(base64: string): Uint8Array {
 }
 
 /**
- * Exports the active QR code SVG as a PNG file and triggers the native share / save-to-photos sheet.
+ * Exports the active QR code SVG as a PNG file and saves it to the device photo library.
+ * Falls back to the native share sheet only when direct photo-library saving is unavailable.
  */
 export async function saveOrShareQrCodePng({
   qrSvg,
@@ -69,6 +71,18 @@ export async function saveOrShareQrCodePng({
       if (bytes.length > 0) {
         const file = new File(Paths.cache, fileName);
         file.write(bytes);
+        const permission = await MediaLibrary.requestPermissionsAsync(true);
+        if (permission.granted) {
+          await MediaLibrary.saveToLibraryAsync(file.uri);
+          Alert.alert('QR code saved', 'The QR code is now available in Photos.');
+          return;
+        }
+        if (!permission.canAskAgain) {
+          Alert.alert(
+            'Photos permission required',
+            'Allow VC Pros to add photos in Settings, then try again.',
+          );
+        }
         if (await Sharing.isAvailableAsync()) {
           await Sharing.shareAsync(file.uri, {
             mimeType: 'image/png',

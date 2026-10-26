@@ -42,9 +42,14 @@ export function mediaIdFromContentUrl(value: string): string | null {
   return value.match(/\/api\/v1\/media\/([^/]+)\/content$/)?.[1] ?? null;
 }
 
-/** A just-picked local image or an already uploaded backend image — not a user-typed URL. */
+/** A just-picked local image, bundled preset, or an already uploaded backend image — not a user-typed URL. */
 export function isMediaReference(value: string): boolean {
-  return isPendingMediaUrl(value) || mediaIdFromContentUrl(value) !== null;
+  return (
+    isPendingMediaUrl(value) ||
+    mediaIdFromContentUrl(value) !== null ||
+    value.startsWith('proscard-cover:') ||
+    value.startsWith('proscard-logo:')
+  );
 }
 
 async function optimizeProfileMedia(uri: string, kind: MediaKind, asset?: ImagePickerAsset) {

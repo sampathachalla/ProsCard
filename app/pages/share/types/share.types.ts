@@ -1,19 +1,7 @@
 import type { LucideIcon } from 'lucide-react-native';
+import type { ShareActionId } from '../Config/shareActionIds';
 
-export type ShareActionId =
-  | 'share_card'
-  | 'copy_link'
-  | 'add_to_wallet'
-  | 'add_qr_lockscreen'
-  | 'add_qr_homescreen'
-  | 'share_email'
-  | 'share_namedrop'
-  | 'share_linkedin'
-  | 'share_whatsapp'
-  | 'share_instagram'
-  | 'share_x'
-  | 'save_qr_photos'
-  | 'customize_qr';
+export type { ShareActionId } from '../Config/shareActionIds';
 
 export interface ShareActionItemConfig {
   id: ShareActionId;

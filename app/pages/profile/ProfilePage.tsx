@@ -6,8 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import { Colors } from '@/constants/Colors';
 import { useThemeContext } from '../../context/ThemeContext';
-import { ChevronRight, CreditCard, Focus, HelpCircle, Info, Layers3, LogOut, Moon, Sparkles, Trash2, User } from 'lucide-react-native';
-import { useCardViewPreference } from '@/pages/home/Hooks/useCardViewPreference';
+import { ChevronRight, CreditCard, Focus, HelpCircle, Info, LogOut, Moon, Sparkles, Trash2, User } from 'lucide-react-native';
 import { SettingsRow } from './Components/SettingsRow';
 import { useProfile } from './Hooks/useProfile';
 import { PageHeader } from '@/common/ui/PageHeader';
@@ -38,11 +37,6 @@ export default function ProfileScreen() {
     setGlassmorphicEditorEnabled,
     setSectionHighlightEnabled,
   } = useEditorPreferences();
-  const {
-    hydrated: cardViewHydrated,
-    setViewMode,
-    viewMode,
-  } = useCardViewPreference();
 
   const handleLogout = async () => {
     if (accountAction) return;
@@ -151,19 +145,6 @@ export default function ProfileScreen() {
       <Text className="text-textMuted dark:text-dark-textMuted text-xs font-semibold uppercase mb-2 mt-4 px-4">
         Preferences
       </Text>
-      <SettingsRow
-        icon={Layers3}
-        label="Wallet stack on homepage"
-        right={
-          <Switch
-            disabled={!cardViewHydrated}
-            value={viewMode === 'stack'}
-            onValueChange={(enabled) => setViewMode(enabled ? 'stack' : 'carousel')}
-            trackColor={{ false: Colors.light.border, true: Colors.light.tint }}
-            thumbColor={Colors.palette.primaryWhite}
-          />
-        }
-      />
       <SettingsRow
         icon={Moon}
         label="Dark mode"

@@ -3,9 +3,11 @@ import { ActivityIndicator, Alert, Pressable, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Building2, ImagePlus, UserRound } from 'lucide-react-native';
+import { CompanyLogoPickerModal } from '@/common/ui/CompanyLogoPickerModal';
 import { MediaImage } from '@/common/ui/MediaImage';
 import { Text } from '@/common/ui/Text';
 import { pickImageFromLibrary } from '@/common/ui/usePickImage';
+import { recordCommunityUploadedLogo } from '@/pages/cards/Services/companyLogoPresets';
 import { IMAGE_ASPECTS, IMAGE_LABELS } from '../Config/addCardFields';
 import { uploadCardImage } from '../Services/addCardService';
 import type { AddCardImageField } from '../types/addCard.types';
@@ -21,6 +23,7 @@ type Props = {
 /** Cover banner with the profile photo on the left and the logo on the right, each tappable. */
 export function CardMediaHeader({ coverPhoto, profilePhoto, logo, gradient, onChange }: Props) {
   const [busyField, setBusyField] = useState<AddCardImageField | null>(null);
+  const [logoModalVisible, setLogoModalVisible] = useState(false);
 
   const pick = async (field: AddCardImageField) => {
     setBusyField(field);
@@ -28,7 +31,12 @@ export function CardMediaHeader({ coverPhoto, profilePhoto, logo, gradient, onCh
     try {
       const uri = await pickImageFromLibrary({ aspect: IMAGE_ASPECTS[field], allowsEditing: true });
       if (!uri) return;
-      onChange(field, await uploadCardImage(uri, field));
+      const uploadedUrl = await uploadCardImage(uri, field);
+      onChange(field, uploadedUrl);
+      if (field === 'logo') {
+        void recordCommunityUploadedLogo({ value: uploadedUrl, isOwn: true });
+        setLogoModalVisible(false);
+      }
     } catch (error) {
       Alert.alert(
         'Couldn’t upload image',
@@ -41,6 +49,11 @@ export function CardMediaHeader({ coverPhoto, profilePhoto, logo, gradient, onCh
 
   const edit = (field: AddCardImageField, current: string) => {
     if (busyField) return;
+    if (field === 'logo') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      setLogoModalVisible(true);
+      return;
+    }
     if (!current.trim()) {
       void pick(field);
       return;
@@ -94,6 +107,16 @@ export function CardMediaHeader({ coverPhoto, profilePhoto, logo, gradient, onCh
           onPress={() => edit('logo', logo)}
         />
       </View>
+
+      <CompanyLogoPickerModal
+        visible={logoModalVisible}
+        value={logo}
+        isUploading={busyField === 'logo'}
+        onClose={() => setLogoModalVisible(false)}
+        onSelectLogo={(logoValue) => onChange('logo', logoValue)}
+        onUploadFromDevice={() => void pick('logo')}
+        onRemoveLogo={logo.trim() ? () => onChange('logo', '') : undefined}
+      />
     </View>
   );
 }

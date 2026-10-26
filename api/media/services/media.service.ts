@@ -218,9 +218,32 @@ export class MediaService {
   }
 
   async download(userId: string, id: string) {
-    const row = await this.requireRow(userId, id);
+    const row = this.repo.findForDownload
+      ? await this.repo.findForDownload(userId, id)
+      : await this.repo.find(userId, id);
+    if (!row) throw new HttpError(404, 'Media not found.');
     if (row.status !== 'ready') throw new HttpError(409, 'Media upload is not confirmed.');
     return this.storage.createDownloadUrl(row.object_name);
+  }
+
+  async listCompanyLogos(userId: string, query?: string) {
+    if (!this.repo.listCommunityCompanyLogos) return { items: [] };
+    const rows = await this.repo.listCommunityCompanyLogos(userId, query);
+    const items = rows.map((row) => {
+      const fallbackLabel = String(row.original_name || 'Company Logo')
+        .replace(/\.[a-z0-9]+$/i, '')
+        .replace(/^companyLogo-\d+$/i, 'Uploaded Logo')
+        .replace(/[-_]+/g, ' ')
+        .trim();
+      return {
+        mediaId: row.id,
+        name: row.company_name?.trim() || fallbackLabel || 'Company Logo',
+        contentUrl: `/api/v1/media/${row.id}/content`,
+        isOwn: row.user_id === userId,
+        createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at),
+      };
+    });
+    return { items };
   }
   async delete(userId: string, id: string) {
     const row = await this.requireRow(userId, id);

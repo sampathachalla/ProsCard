@@ -7,22 +7,24 @@ import {
   getMediaImageCacheKey,
 } from '@/pages/profile/Services/mediaService';
 import { resolveCoverPhotoPreset } from '@/pages/cards/Services/coverPhotoPresets';
+import { resolveCompanyLogoPreset } from '@/pages/cards/Services/companyLogoPresets';
 
 type MediaImageProps = Omit<ImageProps, 'source'> & { sourceUrl: string };
 
 export function MediaImage({ sourceUrl, ...props }: MediaImageProps) {
-  const coverPreset = resolveCoverPhotoPreset(sourceUrl);
+  const bundledPreset =
+    resolveCoverPhotoPreset(sourceUrl) ?? resolveCompanyLogoPreset(sourceUrl);
   const [resolved, setResolved] = useState(() => ({
     sourceUrl,
-    displayUrl: coverPreset ? '' : getImmediateDisplayMediaUrl(sourceUrl),
+    displayUrl: bundledPreset ? '' : getImmediateDisplayMediaUrl(sourceUrl),
   }));
-  const cacheKey = coverPreset ? coverPreset.value : getMediaImageCacheKey(sourceUrl);
+  const cacheKey = bundledPreset ? bundledPreset.value : getMediaImageCacheKey(sourceUrl);
   const displayUrl = resolved.sourceUrl === sourceUrl
     ? resolved.displayUrl
-    : coverPreset ? '' : getImmediateDisplayMediaUrl(sourceUrl);
+    : bundledPreset ? '' : getImmediateDisplayMediaUrl(sourceUrl);
 
   useEffect(() => {
-    if (resolveCoverPhotoPreset(sourceUrl)) return;
+    if (resolveCoverPhotoPreset(sourceUrl) || resolveCompanyLogoPreset(sourceUrl)) return;
     let active = true;
     getDisplayMediaUrl(sourceUrl).then((url) => {
       if (active) setResolved({ sourceUrl, displayUrl: url });
@@ -36,7 +38,7 @@ export function MediaImage({ sourceUrl, ...props }: MediaImageProps) {
       transition={Platform.OS === 'web' ? 0 : 120}
       recyclingKey={cacheKey ?? sourceUrl}
       {...props}
-      source={coverPreset?.source ?? (displayUrl ? { uri: displayUrl, cacheKey } : undefined)}
+      source={bundledPreset?.source ?? (displayUrl ? { uri: displayUrl, cacheKey } : undefined)}
     />
   );
 }

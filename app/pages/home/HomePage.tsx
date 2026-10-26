@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, View, type LayoutChangeEvent } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, View, type LayoutChangeEvent } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,12 +15,15 @@ import { useCardViewPreference } from '@/pages/home/Hooks/useCardViewPreference'
 import { useProfileSnapshot } from '@/pages/profile/Hooks/useProfileSnapshot';
 import { ensureDefaultCard } from '@/pages/cards/Services/cardsService';
 import { navigateToCardEditor } from '@/pages/cards/Utils/navigateToCardEditor';
+import { resolveCardTagLabel } from '@/pages/cards/Utils/resolveCardTagLabel';
 import { getHomeTabBarLayoutHeight } from '@/pages/home/Utils/homeTabBarLayout';
 import { showMessage } from '@/common/ui/confirmAction';
 import { BrandLogo } from '@/common/ui/BrandLogo';
 import { Text } from '@/common/ui/Text';
 import { resolveDisplayMediaUrls } from '@/pages/profile/Services/mediaService';
 import { resolveCoverPhotoPreset } from '@/pages/cards/Services/coverPhotoPresets';
+import type { BusinessCard } from '@/pages/cards/types/card.types';
+import { navigateToSharePreview } from '@/pages/share/Utils/navigateToSharePreview';
 
 function HomeLoadingScreen() {
   const insets = useSafeAreaInsets();
@@ -108,8 +111,7 @@ export default function HomepageScreen() {
 
   const cardTag = useMemo(() => {
     if (!currentCard) return needsDefaultCard ? 'Creating card…' : 'My card';
-    const tag = currentCard.category?.trim();
-    return tag || currentCard.name || 'My card';
+    return resolveCardTagLabel(currentCard);
   }, [currentCard, needsDefaultCard]);
 
   const handleAddCard = () => {
@@ -125,12 +127,33 @@ export default function HomepageScreen() {
     navigateToCardEditor(router, { cardId: currentCard.id });
   };
 
+  const handleOpenCardInApp = useCallback(
+    (card: BusinessCard) => {
+      router.push({
+        pathname: '/cards/[cardId]',
+        params: { cardId: card.id },
+      });
+    },
+    [router],
+  );
+
+  const handleOpenWebPreview = useCallback(
+    async (card: BusinessCard) => {
+      try {
+        await navigateToSharePreview(card.id);
+      } catch (reason) {
+        Alert.alert(
+          'Could not open preview',
+          reason instanceof Error ? reason.message : 'Try again in a moment.',
+        );
+      }
+    },
+    [],
+  );
+
   const handlePreviewCard = () => {
     if (!currentCard) return;
-    router.push({
-      pathname: '/cards/[cardId]',
-      params: { cardId: currentCard.id },
-    });
+    void handleOpenWebPreview(currentCard);
   };
 
   const handleShowcaseLayout = (event: LayoutChangeEvent) => {
@@ -188,7 +211,7 @@ export default function HomepageScreen() {
             includeAddTile={false}
             onActiveIndexChange={setActiveCardIndex}
             onAddCard={handleAddCard}
-            onCardDoubleTap={handlePreviewCard}
+            onCardSingleTap={handleOpenCardInApp}
             profile={profile}
             viewMode="carousel"
           />

@@ -23,6 +23,7 @@ type BusinessCardCarouselProps = {
   onActiveIndexChange?: (index: number) => void;
   onAddCard?: () => void;
   onCardDoubleTap?: (card: BusinessCardData) => void;
+  onCardSingleTap?: (card: BusinessCardData) => void;
   onCardSwipeDown?: (card: BusinessCardData) => void;
   profile: Profile;
   /** When false, add-card tile is omitted (e.g. add lives in the header). */
@@ -96,6 +97,7 @@ export function BusinessCardCarousel({
   onActiveIndexChange,
   onAddCard,
   onCardDoubleTap,
+  onCardSingleTap,
   onCardSwipeDown,
   profile,
   includeAddTile = true,
@@ -185,7 +187,7 @@ export function BusinessCardCarousel({
               <PreviewCard
                 card={item.card}
                 height={cardHeight}
-                onDoubleTap={() => onCardDoubleTap?.(item.card)}
+                onSingleTap={() => onCardSingleTap?.(item.card)}
                 onSwipeDown={() => onCardSwipeDown?.(item.card)}
                 profile={profile}
                 width={cardWidth}

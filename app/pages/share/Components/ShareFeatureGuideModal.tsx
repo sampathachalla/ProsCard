@@ -20,6 +20,7 @@ export interface ShareFeatureGuideModalProps {
   shareUrl: string;
   onClose: () => void;
   onExportWalletPass: () => void;
+  onOpenHomeScreenPage: () => void;
   onSaveQrImage: (dialogTitle?: string) => void;
 }
 
@@ -37,11 +38,11 @@ const GUIDE_CONTENT: Record<Exclude<ShareGuideModalKind, null>, GuideCopy> = {
     subtitle: 'Save your VC Pros contact pass for instant offline access.',
     icon: Wallet,
     steps: [
-      'Tap "Export Contact Pass" below to generate your VC Pros vCard pass.',
-      'Confirm "Add to Contacts / Wallet" in the native system sheet.',
-      'Share your card anytime directly from your phone wallet or contacts.',
+      'Tap "Add to Wallet" below to generate your signed VC Pros pass.',
+      'Review the pass in the Apple Wallet or Google Wallet system screen.',
+      'Approve the system prompt to save the pass to your wallet.',
     ],
-    primaryLabel: 'Export Contact Pass',
+    primaryLabel: 'Add to Wallet',
   },
   lockscreen: {
     title: 'Add QR to lockscreen',
@@ -59,11 +60,11 @@ const GUIDE_CONTENT: Record<Exclude<ShareGuideModalKind, null>, GuideCopy> = {
     subtitle: 'Pin your digital business card QR to your home screen for 1-tap access.',
     icon: LayoutGrid,
     steps: [
-      'Tap "Save QR for Homescreen" to save your QR image or copy your card link.',
-      'On iOS: Open Safari with your card link → Share → "Add to Home Screen".',
-      'On Android: Open Chrome with your card link → Menu → "Add to Home screen".',
+      'Tap "Open Card in Browser" below to open your public card page.',
+      'On iOS: Tap Share in Safari, then choose "Add to Home Screen".',
+      'On Android: Open the browser menu, then choose "Add to Home screen".',
     ],
-    primaryLabel: 'Save QR for Homescreen',
+    primaryLabel: 'Open Card in Browser',
   },
   namedrop: {
     title: 'Share with NameDrop',
@@ -84,6 +85,7 @@ export function ShareFeatureGuideModal({
   shareUrl,
   onClose,
   onExportWalletPass,
+  onOpenHomeScreenPage,
   onSaveQrImage,
 }: ShareFeatureGuideModalProps) {
   const { theme } = useThemeContext();
@@ -105,7 +107,7 @@ export function ShareFeatureGuideModal({
       return;
     }
     if (kind === 'homescreen') {
-      onSaveQrImage('Save QR for Homescreen');
+      onOpenHomeScreenPage();
       return;
     }
     if (kind === 'namedrop' && shareUrl) {

@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 
 export function buildCardShareMessage(cardName: string, shareUrl: string): string {
   const cleanName = cardName?.trim() || 'My';
@@ -65,14 +66,10 @@ export async function copyTextToClipboard(text: string): Promise<boolean> {
   }
 
   try {
-    // React Native internal Clipboard or global navigator clipboard if available
-    const rn = require('react-native');
-    if (rn?.Clipboard?.setString) {
-      rn.Clipboard.setString(text);
-      return true;
-    }
+    await Clipboard.setStringAsync(text);
+    return true;
   } catch {
-    // Ignore
+    // The caller can fall back to a share sheet.
   }
 
   return false;

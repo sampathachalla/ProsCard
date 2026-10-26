@@ -1,7 +1,6 @@
 import { useRef, useState } from 'react';
 import { Alert, Linking, Platform, ScrollView, Share, View } from 'react-native';
 import BottomSheet from '@gorhom/bottom-sheet';
-import * as WebBrowser from 'expo-web-browser';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import type { GenerateMetadataFunction } from 'expo-router/server';
 import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
@@ -22,6 +21,8 @@ import { useAddToWallet } from '@/pages/walletCard/Hooks/useAddToWallet';
 import { WalletProcessingModal } from '@/pages/walletCard/Components/WalletProcessingModal';
 import { getShareUrl } from '@/pages/share/Services/sharingService';
 import { navigateToCardEditorAfterSheet } from '@/pages/cards/Utils/navigateToCardEditor';
+import { navigateToSharePreview } from '@/pages/share/Utils/navigateToSharePreview';
+import { resolveCardTagLabel } from '@/pages/cards/Utils/resolveCardTagLabel';
 import { queryClient, queryKeys } from '@/services/api/queryClient';
 import { useProfileSnapshot } from '@/pages/profile/Hooks/useProfileSnapshot';
 import {
@@ -92,7 +93,7 @@ export default function CardDetailPage() {
     );
   }
 
-  const cardTitle = card.sectionOverrides.cardTag?.trim() || card.name || 'My card';
+  const cardTitle = resolveCardTagLabel(card);
 
   const fetchShareUrl = () =>
     queryClient
@@ -109,11 +110,9 @@ export default function CardDetailPage() {
         case 'edit':
           navigateToCardEditorAfterSheet(router, { cardId: card.id });
           break;
-        case 'preview': {
-          const url = await fetchShareUrl();
-          if (url) await WebBrowser.openBrowserAsync(url);
+        case 'preview':
+          await navigateToSharePreview(card.id);
           break;
-        }
         case 'share': {
           const url = await fetchShareUrl();
           if (url) {
@@ -176,7 +175,7 @@ export default function CardDetailPage() {
 
   return (
     <View className="flex-1 bg-background dark:bg-dark-background">
-      <CardTitleBadge title={cardTitle} topInset={insets.top} />
+      <CardTitleBadge title={cardTitle} topInset={insets.top} onBackPress={goBackToCaller} />
       <CardTapGesture
         containerClassName="flex-1 bg-background dark:bg-dark-background"
         onDoubleTap={goBackToCaller}

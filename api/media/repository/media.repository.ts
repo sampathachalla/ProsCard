@@ -27,6 +27,43 @@ export class MediaRepository {
       .then((result) => result.rows[0] ?? null);
   }
 
+  findForDownload(userId: string, id: string) {
+    return this.db.query<MediaRow>(
+      "SELECT * FROM media WHERE id=$1 AND (user_id=$2 OR (kind='companyLogo' AND status='ready'))",
+      [id, userId],
+    ).then((result) => result.rows[0] ?? null);
+  }
+
+  listCommunityCompanyLogos(userId: string, query?: string, limit = 48) {
+    const cleanQuery = (query ?? '').trim();
+    const likePattern = `%${cleanQuery}%`;
+    return this.db.query<{
+      id: string;
+      user_id: string;
+      original_name: string;
+      created_at: Date;
+      company_name: string | null;
+    }>(
+      `SELECT m.id, m.user_id, m.original_name, m.created_at,
+              COALESCE(
+                NULLIF(TRIM(c.data->>'company'), ''),
+                NULLIF(TRIM(p.data->>'organization'), '')
+              ) AS company_name
+       FROM media m
+       LEFT JOIN cards c ON c.id = m.card_id AND c.user_id = m.user_id
+       LEFT JOIN profiles p ON p.user_id = m.user_id
+       WHERE m.kind = 'companyLogo'
+         AND m.status = 'ready'
+         AND ($1::text = ''
+              OR COALESCE(c.data->>'company', '') ILIKE $2
+              OR COALESCE(p.data->>'organization', '') ILIKE $2
+              OR COALESCE(m.original_name, '') ILIKE $2)
+       ORDER BY (m.user_id = $3) DESC, m.created_at DESC
+       LIMIT $4`,
+      [cleanQuery, likePattern, userId, limit],
+    ).then((result) => result.rows);
+  }
+
   cardOwned(userId: string, cardId: string) {
     return this.db.query('SELECT 1 FROM cards WHERE id=$1 AND user_id=$2', [cardId, userId])
       .then((result) => (result.rowCount ?? 0) > 0);

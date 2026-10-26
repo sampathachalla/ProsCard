@@ -1,11 +1,16 @@
 import { useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { Check, ImagePlus, Pencil, Trash2, Upload } from 'lucide-react-native';
+import { Check, ImagePlus, Pencil, Search, Trash2, Upload } from 'lucide-react-native';
 import { Text } from './Text';
 import { pickImageFromLibrary } from './usePickImage';
 import { MediaImage } from './MediaImage';
+import { CompanyLogoPickerModal } from './CompanyLogoPickerModal';
 import { COVER_PHOTO_PRESETS } from '@/pages/cards/Services/coverPhotoPresets';
+import {
+  COMPANY_LOGO_PRESETS,
+  recordCommunityUploadedLogo,
+} from '@/pages/cards/Services/companyLogoPresets';
 import { AUTH_TEST_MODE } from '@/pages/auth/Config/authMode';
 import {
   clearPendingMedia,
@@ -52,7 +57,7 @@ const VARIANT_CONFIG: Record<
   logo: {
     aspect: [1, 1],
     previewClass: 'h-24 w-44 rounded-2xl',
-    hint: 'Company or personal mark displayed on the card.',
+    hint: 'Search famous company logos, browse community uploads, or upload your own.',
     contentFit: 'contain',
   },
 };
@@ -68,10 +73,11 @@ export function ImageUploadField({
   presentation = 'default',
 }: ImageUploadFieldProps) {
   const [isPicking, setIsPicking] = useState(false);
+  const [logoModalVisible, setLogoModalVisible] = useState(false);
   const config = VARIANT_CONFIG[variant];
   const hasImage = Boolean(value?.trim());
 
-  const handlePick = async () => {
+  const handlePickFromDevice = async () => {
     if (disabled || isPicking) return;
     setIsPicking(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
@@ -80,11 +86,19 @@ export function ImageUploadField({
       if (!uri) return;
       if (AUTH_TEST_MODE) {
         onChange(uri);
+        if (variant === 'logo') {
+          void recordCommunityUploadedLogo({ value: uri, isOwn: true });
+          setLogoModalVisible(false);
+        }
         return;
       }
       try {
         const remoteUrl = await commitPendingMedia(uri, VARIANT_MEDIA_KIND[variant]);
         onChange(remoteUrl);
+        if (variant === 'logo') {
+          void recordCommunityUploadedLogo({ value: remoteUrl, isOwn: true });
+          setLogoModalVisible(false);
+        }
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       } catch (error) {
         clearPendingMedia(uri);
@@ -98,6 +112,16 @@ export function ImageUploadField({
     } finally {
       setIsPicking(false);
     }
+  };
+
+  const handlePrimaryPress = () => {
+    if (disabled || isPicking) return;
+    if (variant === 'logo') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      setLogoModalVisible(true);
+      return;
+    }
+    void handlePickFromDevice();
   };
 
   const handleRemove = () => {
@@ -114,7 +138,7 @@ export function ImageUploadField({
           accessibilityLabel={hasImage ? `Edit ${label || 'profile photo'}` : `Upload ${label || 'profile photo'}`}
           accessibilityRole="button"
           disabled={disabled || isPicking}
-          onPress={handlePick}
+          onPress={handlePrimaryPress}
           className="relative active:opacity-90"
         >
           <View
@@ -163,9 +187,11 @@ export function ImageUploadField({
         </Text>
       </View>
 
-      <View
-        className={`overflow-hidden border border-dashed border-slate-300 bg-slate-100/70 dark:border-slate-700 dark:bg-[#060a14] ${
-          variant === 'avatar' ? 'self-center items-center justify-center my-2' : 'w-full items-center justify-center my-1'
+      <Pressable
+        disabled={disabled || isPicking}
+        onPress={handlePrimaryPress}
+        className={`overflow-hidden border border-dashed border-slate-300 bg-slate-100/70 active:opacity-90 dark:border-slate-700 dark:bg-[#060a14] ${
+          variant === 'avatar' ? 'my-2 items-center justify-center self-center' : 'my-1 w-full items-center justify-center'
         } ${config.previewClass}`}
       >
         {isPicking ? (
@@ -178,18 +204,25 @@ export function ImageUploadField({
             accessibilityLabel={`${label} preview`}
           />
         ) : (
-          <Pressable
-            disabled={disabled || isPicking}
-            onPress={handlePick}
-            className="h-full w-full items-center justify-center px-4 py-6"
-          >
-            <ImagePlus color="#64748b" size={32} strokeWidth={1.8} />
-            <Text className="mt-2 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">
-              Tap to upload or select photo
-            </Text>
-          </Pressable>
+          <View className="h-full w-full items-center justify-center px-4 py-6">
+            {variant === 'logo' ? (
+              <>
+                <Search color="#38bdf8" size={28} strokeWidth={2} />
+                <Text className="mt-2 text-center text-xs font-semibold text-slate-600 dark:text-slate-300">
+                  Tap to search company logos or upload
+                </Text>
+              </>
+            ) : (
+              <>
+                <ImagePlus color="#64748b" size={32} strokeWidth={1.8} />
+                <Text className="mt-2 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">
+                  Tap to upload or select photo
+                </Text>
+              </>
+            )}
+          </View>
         )}
-      </View>
+      </Pressable>
 
       {variant === 'banner' ? (
         <View className="mt-3">
@@ -227,16 +260,80 @@ export function ImageUploadField({
         </View>
       ) : null}
 
+      {variant === 'logo' ? (
+        <View className="mt-3">
+          <View className="mb-2 flex-row items-center justify-between">
+            <Text className="text-xs font-bold text-textPrimary dark:text-dark-textPrimary">
+              Popular companies
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setLogoModalVisible(true)}
+            >
+              <Text className="text-xs font-bold text-sky-500 dark:text-sky-400">
+                Search all & community →
+              </Text>
+            </Pressable>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 8, paddingRight: 4 }}
+          >
+            {COMPANY_LOGO_PRESETS.slice(0, 10).map((preset) => {
+              const selected = value === preset.value;
+              return (
+                <Pressable
+                  key={preset.id}
+                  accessibilityLabel={`Use ${preset.label} logo`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  disabled={disabled || isPicking}
+                  onPress={() => {
+                    Haptics.selectionAsync().catch(() => {});
+                    onChange(preset.value);
+                  }}
+                  className={`items-center justify-center rounded-xl border px-2.5 py-2 active:opacity-80 ${
+                    selected
+                      ? 'border-sky-400 bg-sky-500/15 dark:border-sky-400 dark:bg-[#132038]'
+                      : 'border-slate-200 bg-slate-900 dark:border-slate-700 dark:bg-[#070d19]'
+                  }`}
+                  style={{ height: 54, width: 108 }}
+                >
+                  <MediaImage
+                    sourceUrl={preset.value}
+                    contentFit="contain"
+                    style={{ width: '100%', height: 34 }}
+                  />
+                  {selected ? (
+                    <View className="absolute right-1 top-1 size-4 items-center justify-center rounded-full bg-sky-500">
+                      <Check color="#ffffff" size={10} strokeWidth={3} />
+                    </View>
+                  ) : null}
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+      ) : null}
+
       <View className="mt-3 flex-row items-center gap-2.5">
         <Pressable
           accessibilityLabel={hasImage ? `Replace ${label}` : `Upload ${label}`}
           accessibilityRole="button"
           disabled={disabled || isPicking}
-          onPress={handlePick}
+          onPress={handlePrimaryPress}
           className="min-h-11 flex-1 flex-row items-center justify-center gap-2 rounded-2xl bg-[#0284c7] px-4 active:opacity-85 dark:bg-[#0284c7]"
         >
           {isPicking ? (
             <ActivityIndicator color="#ffffff" size="small" />
+          ) : variant === 'logo' ? (
+            <>
+              <Search color="#ffffff" size={17} strokeWidth={2.4} />
+              <Text className="text-sm font-bold text-white">
+                {hasImage ? 'Change / Search Logo' : 'Search or Upload Logo'}
+              </Text>
+            </>
           ) : (
             <>
               <Upload color="#ffffff" size={17} strokeWidth={2.4} />
@@ -258,6 +355,18 @@ export function ImageUploadField({
           </Pressable>
         ) : null}
       </View>
+
+      {variant === 'logo' ? (
+        <CompanyLogoPickerModal
+          visible={logoModalVisible}
+          value={value}
+          isUploading={isPicking}
+          onClose={() => setLogoModalVisible(false)}
+          onSelectLogo={(logoUri) => onChange(logoUri)}
+          onUploadFromDevice={() => void handlePickFromDevice()}
+          onRemoveLogo={hasImage ? handleRemove : undefined}
+        />
+      ) : null}
     </View>
   );
 }

@@ -58,6 +58,14 @@
         }
       ],
       [
+        "expo-media-library",
+        {
+          "photosPermission": "VC Pros needs access to Photos so you can select images for your cards.",
+          "savePhotosPermission": "VC Pros saves your card QR code to Photos when you request it.",
+          "isAccessMediaLocationEnabled": false
+        }
+      ],
+      [
         "react-native-document-scanner-plugin",
         {
           "cameraPermission": "VC Pros uses the camera to scan business cards and VC Pros QR codes."

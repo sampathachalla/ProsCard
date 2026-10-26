@@ -93,12 +93,14 @@ export function QRCodeView({
     }
   }, [value, showCenterLogo]);
 
-  const isLightBg = isRgbaOrHexLight(backgroundColor);
+  const isTransparentBg =
+    !backgroundColor ||
+    backgroundColor.trim().toLowerCase() === 'transparent';
+  const isLightBg = isTransparentBg
+    ? !isRgbaOrHexLight(foregroundColor)
+    : isRgbaOrHexLight(backgroundColor);
   const vcTheme = isLightBg ? 'light' : 'dark';
-  const vcGradStart = isLightBg ? '#1E293B' : '#FFFFFF';
-  const vcGradMid = isLightBg ? '#0F172A' : '#F1F5F9';
-  const vcGradEnd = isLightBg ? '#090D16' : '#CBD5E1';
-  const vcStroke = '#040B1A';
+  const vcStroke = isLightBg ? '#00A8E8' : '#E2E8F0';
   const centerIconSize = Math.round(size * 0.27);
 
   const content =
@@ -111,15 +113,21 @@ export function QRCodeView({
           ref={(ref) => getRef?.(ref as unknown as QrSvgRef | null)}
         >
           <Defs>
+            {/* Enterprise Dark Navy-Slate Fill (keeps the dark color in the theme) */}
             <SvgLinearGradient id="qrVcGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-              <Stop offset="0%" stopColor={vcGradStart} />
-              <Stop offset="55%" stopColor={vcGradMid} />
-              <Stop offset="100%" stopColor={vcGradEnd} />
+              <Stop offset="0%" stopColor="#1E293B" />
+              <Stop offset="50%" stopColor="#0F172A" />
+              <Stop offset="100%" stopColor="#060D1A" />
+            </SvgLinearGradient>
+            <SvgLinearGradient id="qrTieGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <Stop offset="0%" stopColor="#334155" />
+              <Stop offset="45%" stopColor="#1E293B" />
+              <Stop offset="100%" stopColor="#090F1E" />
             </SvgLinearGradient>
             <SvgLinearGradient id="qrWingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <Stop offset="0%" stopColor="#22D3EE" />
+              <Stop offset="0%" stopColor="#38BDF8" />
               <Stop offset="55%" stopColor={accentColor} />
-              <Stop offset="100%" stopColor="#1D4ED8" />
+              <Stop offset="100%" stopColor="#1E3A8A" />
             </SvgLinearGradient>
           </Defs>
 
@@ -180,72 +188,74 @@ export function QRCodeView({
           {showCenterLogo && !useBrandIconAsset ? (
             <G
               transform={`translate(${qrData.matrixSize / 2}, ${qrData.matrixSize / 2}) scale(${
-                (qrData.matrixSize * 0.29) / 356
-              }) translate(-222, -165)`}
+                (qrData.matrixSize * 0.29) / 348
+              }) translate(-224, -162)`}
             >
-              {/* Sleek Executive Collar Wings above Tie Knot */}
+              {/* Geometric C (Right side of VC monogram) */}
               <Path
-                d="M 212 120 C 160 98, 128 74, 120 30 C 156 58, 192 66, 218 92 C 222 98, 218 110, 212 120 Z"
-                fill="url(#qrWingGrad)"
+                d="M 392 144 C 366 120, 328 114, 290 122 C 244 132, 220 166, 222 210 C 224 254, 254 286, 304 290 C 340 293, 372 284, 396 266 L 370 224 C 354 235, 334 240, 314 238 C 290 235, 274 218, 274 198 C 274 176, 290 160, 316 158 C 334 156, 352 162, 368 174 Z"
+                fill="url(#qrVcGrad)"
                 stroke={vcStroke}
-                strokeWidth={4}
-                strokeLinejoin="round"
-              />
-              <Path
-                d="M 244 120 C 296 98, 328 74, 336 30 C 300 58, 264 66, 238 92 C 234 98, 238 110, 244 120 Z"
-                fill="url(#qrWingGrad)"
-                stroke={vcStroke}
-                strokeWidth={4}
+                strokeWidth={4.5}
                 strokeLinejoin="round"
               />
 
               {/* Geometric V Left Arm */}
               <Path
-                d="M 46 124 L 122 124 L 192 258 L 152 292 L 46 124 Z"
+                d="M 52 122 L 126 122 L 194 254 L 160 284 L 52 122 Z"
                 fill="url(#qrVcGrad)"
                 stroke={vcStroke}
                 strokeWidth={4.5}
                 strokeLinejoin="round"
               />
 
-              {/* Precision Geometric C */}
+              {/* Executive Collar Wings */}
               <Path
-                d="M 396 144 C 370 122, 332 116, 296 124 C 252 134, 228 168, 230 212 C 232 256, 262 288, 310 292 C 344 295, 374 286, 398 268 L 372 226 C 356 237, 336 242, 318 240 C 294 237, 280 220, 280 200 C 280 178, 296 162, 320 160 C 338 158, 356 164, 370 176 Z"
-                fill="url(#qrVcGrad)"
-                stroke={vcStroke}
-                strokeWidth={4.5}
-                strokeLinejoin="round"
-              />
-
-              {/* Executive Tie Knot, Faceted Blade & Collar Bar */}
-              <Polygon
-                points="210,98 246,98 252,128 204,128"
-                fill="url(#qrVcGrad)"
+                d="M 212 108 C 164 96, 132 70, 128 28 C 158 54, 192 64, 216 90 Z"
+                fill="url(#qrWingGrad)"
                 stroke={vcStroke}
                 strokeWidth={4}
                 strokeLinejoin="round"
               />
-              <Polygon
-                points="206,134 250,134 264,256 228,300 192,256"
-                fill="url(#qrVcGrad)"
+              <Path
+                d="M 224 108 C 272 96, 304 70, 308 28 C 278 54, 244 64, 220 90 Z"
+                fill="url(#qrWingGrad)"
                 stroke={vcStroke}
-                strokeWidth={4.5}
+                strokeWidth={4}
                 strokeLinejoin="round"
               />
-              <Polygon
-                points="228,136 248,136 261,255 228,296"
-                fill={isLightBg ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.16)'}
-              />
-              <Rect
-                x={206}
-                y={127}
-                width={44}
-                height={6.5}
-                rx={3.25}
-                fill="#38BDF8"
-                stroke={vcStroke}
-                strokeWidth={2}
-              />
+
+              {/* Angled Executive Tie (Forms the Right Arm of V) */}
+              <G transform="rotate(11, 218, 114)">
+                <Polygon
+                  points="198,92 236,92 242,120 192,120"
+                  fill="url(#qrTieGrad)"
+                  stroke={vcStroke}
+                  strokeWidth={4}
+                  strokeLinejoin="round"
+                />
+                <Rect
+                  x={194}
+                  y={119}
+                  width={46}
+                  height={6.5}
+                  rx={3.25}
+                  fill="#38BDF8"
+                  stroke="#060D1F"
+                  strokeWidth={1.5}
+                />
+                <Polygon
+                  points="194,126 240,126 254,250 217,294 180,250"
+                  fill="url(#qrVcGrad)"
+                  stroke={vcStroke}
+                  strokeWidth={4.5}
+                  strokeLinejoin="round"
+                />
+                <Polygon
+                  points="196,128 217,128 217,290 183,249"
+                  fill="rgba(56, 189, 248, 0.12)"
+                />
+              </G>
             </G>
           ) : null}
         </Svg>

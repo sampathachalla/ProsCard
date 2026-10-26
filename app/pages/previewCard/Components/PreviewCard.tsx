@@ -7,7 +7,10 @@ import { HomePreviewCardFace } from './HomePreviewCardFace';
 type Props = {
   card: BusinessCardData;
   height: number;
+  /** Opens the public card page in the browser. */
   onDoubleTap?: () => void;
+  /** Opens the in-app full card screen. */
+  onSingleTap?: () => void;
   onSwipeDown?: () => void;
   onMenuPress?: () => void;
   profile: Profile;
@@ -19,6 +22,7 @@ export function PreviewCard({
   card,
   height,
   onDoubleTap,
+  onSingleTap,
   onSwipeDown,
   onMenuPress,
   profile,
@@ -34,12 +38,16 @@ export function PreviewCard({
     />
   );
 
-  if (!onDoubleTap) {
+  if (!onDoubleTap && !onSingleTap) {
     return preview;
   }
 
   return (
-    <CardTapGesture onDoubleTap={onDoubleTap} onSwipeDown={onSwipeDown}>
+    <CardTapGesture
+      onDoubleTap={onDoubleTap ?? (() => {})}
+      onSingleTap={onSingleTap}
+      onSwipeDown={onSwipeDown}
+    >
       <View style={{ width, height }}>{preview}</View>
     </CardTapGesture>
   );

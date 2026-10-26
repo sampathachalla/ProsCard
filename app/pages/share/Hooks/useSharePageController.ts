@@ -6,7 +6,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { useCards } from '@/pages/cards/Hooks/useCards';
 import { useProfileSnapshot } from '@/pages/profile/Hooks/useProfileSnapshot';
-import { saveDirectlyToNativeContacts } from '@/utils/nativeContacts';
+import { useAddToWallet } from '@/pages/walletCard/Hooks/useAddToWallet';
 import {
   QR_CUSTOMIZATION_PRESETS,
   QR_PRESET_STORAGE_KEY,
@@ -84,6 +84,7 @@ export function useSharePageController() {
   const boundedIndex = cards.length > 0 ? Math.min(cardIndex, cards.length - 1) : 0;
   const card = cards[boundedIndex];
   const share = useShareUrl(card?.id ?? null);
+  const wallet = useAddToWallet();
 
   const shareUrl = share.url;
   const shareError = share.error instanceof Error ? share.error.message : undefined;
@@ -132,21 +133,16 @@ export function useSharePageController() {
 
   const handleExportWalletPass = useCallback(() => {
     if (!card) return;
-    void saveDirectlyToNativeContacts({
-      name: card.name || profile.fullName,
-      firstName: profile.firstName,
-      lastName: profile.lastName,
-      title: card.title || profile.title,
-      company: card.company || profile.organization,
-      department: profile.department,
-      email: card.email || profile.email,
-      phone: card.phone || profile.phone,
-      website: profile.website || shareUrl,
-      address: profile.businessAddress,
-      note: [profile.tagline, profile.shortBio].filter(Boolean).join('\n\n'),
-      photoUrl: card.sectionOverrides?.profilePhoto || profile.photoUrl || undefined,
+    void wallet.addToWallet(card.id, card.name || profile.fullName);
+  }, [card, profile.fullName, wallet]);
+
+  const handleOpenHomeScreenPage = useCallback(() => {
+    requireCardAndUrl((url) => {
+      void Linking.openURL(url).catch(() => {
+        Alert.alert('Could not open browser', 'Copy the card link and open it in Safari or Chrome.');
+      });
     });
-  }, [card, profile, shareUrl]);
+  }, [requireCardAndUrl]);
 
   const handleSaveQrToPhotos = useCallback(
     (dialogTitle?: string) => {
@@ -295,6 +291,7 @@ export function useSharePageController() {
     setQrRef,
     handleActionPress,
     handleExportWalletPass,
+    handleOpenHomeScreenPage,
     handleSaveQrToPhotos,
   };
 }
