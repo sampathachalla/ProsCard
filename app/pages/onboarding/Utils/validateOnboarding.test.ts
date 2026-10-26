@@ -107,7 +107,7 @@ export function runValidateOnboardingTests(): { passed: number; failed: number }
       },
     ],
     [
-      'test_validateSocialStep_all_empty_is_valid_since_optional',
+      'test_validateSocialStep_requires_one_link',
       () => {
         const result = validateSocialStep({
           linkedin: '',
@@ -115,7 +115,7 @@ export function runValidateOnboardingTests(): { passed: number; failed: number }
           x: '',
           portfolio: '',
         });
-        assertDeepEqual(result, {});
+        assertEqual(result.socialLinks, 'Add at least 1 website or social link.');
       },
     ],
     [
@@ -217,6 +217,7 @@ export function runValidateOnboardingTests(): { passed: number; failed: number }
           lastName: 'K',
           title: 'Engineer',
           email: 'sampath@proscard.app',
+          website: 'https://proscard.app',
         };
         const result = validateOnboardingDraft(completeDraft);
         assertEqual(result.isValid, true);

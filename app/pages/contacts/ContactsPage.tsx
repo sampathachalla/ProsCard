@@ -74,20 +74,20 @@ export default function ContactsScreen() {
 
       {/* Search sits at the bottom, within thumb reach, and rises with the keyboard. */}
       <View className="px-6 pt-2" style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
-        <View className="flex-row items-center bg-card dark:bg-dark-card rounded-2xl px-4 py-3">
-          <Search color="#7A7A7A" size={18} strokeWidth={2.2} />
+        <View className="min-h-[54px] flex-row items-center rounded-lg border border-transparent bg-slate-100 px-4 py-2 dark:bg-dark-card">
+          <Search color="#64748b" size={18} strokeWidth={2.2} />
           <TextInput
             placeholder="Search contacts"
-            placeholderTextColor="#7A7A7A"
+            placeholderTextColor="#64748b"
             value={query}
             onChangeText={setQuery}
             returnKeyType="search"
             autoCorrect={false}
-            className="flex-1 ml-3 text-textPrimary dark:text-dark-textPrimary"
+            className="ml-3 flex-1 text-[16px] font-normal text-textPrimary dark:text-dark-textPrimary"
           />
           {query ? (
             <TouchableOpacity accessibilityRole="button" accessibilityLabel="Clear search" hitSlop={8} onPress={() => setQuery('')}>
-              <X color="#7A7A7A" size={18} strokeWidth={2.2} />
+              <X color="#64748b" size={18} strokeWidth={2.2} />
             </TouchableOpacity>
           ) : null}
         </View>

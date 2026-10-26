@@ -1,16 +1,18 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, View, type LayoutChangeEvent } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import type BottomSheet from '@gorhom/bottom-sheet';
+
 import { useCards } from '@/pages/cards/Hooks/useCards';
 import { CardShowcaseSection } from '@/pages/home/Components/CardShowcaseSection';
-import { useCardViewPreference } from '@/pages/home/Hooks/useCardViewPreference';
-import { HomeActions } from '@/pages/home/Components/HomeActions';
+import { CategoryBottomSheet } from '@/pages/home/Components/CategoryBottomSheet';
+import { HomeCardToolbar } from '@/pages/home/Components/HomeCardToolbar';
 import { HomeHeader } from '@/pages/home/Components/HomeHeader';
+import { HomeScreenLayout } from '@/pages/home/Components/HomeScreenLayout';
+import { useCardViewPreference } from '@/pages/home/Hooks/useCardViewPreference';
 import { useProfileSnapshot } from '@/pages/profile/Hooks/useProfileSnapshot';
-import { QRCodeModal } from '@/common/ui/QRCodeModal';
-import { useShareUrl } from '@/pages/share/Hooks/useShareUrl';
 import { ensureDefaultCard } from '@/pages/cards/Services/cardsService';
 import { showMessage } from '@/common/ui/confirmAction';
 import { BrandLogo } from '@/common/ui/BrandLogo';
@@ -41,27 +43,30 @@ export default function HomepageScreen() {
   const { cards, fetched, initialFetchComplete: cardsFetched, error: cardsError, offline } = useCards();
   const [activeCardIndex, setActiveCardIndex] = useState(0);
   const [showcaseHeight, setShowcaseHeight] = useState(0);
-  const { hydrated: viewModeHydrated, viewMode } = useCardViewPreference();
-  const [qrCardId, setQrCardId] = useState<string | null>(null);
-  const share = useShareUrl(qrCardId);
+  const { hydrated: viewModeHydrated } = useCardViewPreference();
   const { profile, fetched: profileFetched } = useProfileSnapshot();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [readyMediaKey, setReadyMediaKey] = useState<string | null>(null);
+  const cardPickerRef = useRef<BottomSheet>(null);
 
-  const initialMediaUrls = useMemo(() => [
-    profile.photoUrl,
-    profile.coverPhotoUrl,
-    profile.companyLogoUrl,
-    ...cards.flatMap((card) => [
-      card.sectionOverrides.profilePhoto,
-      card.sectionOverrides.coverPhoto,
-      card.sectionOverrides.logo,
-    ]),
-  ].filter(
-    (url): url is string =>
-      typeof url === 'string' && url.length > 0 && !resolveCoverPhotoPreset(url),
-  ), [cards, profile]);
+  const initialMediaUrls = useMemo(
+    () =>
+      [
+        profile.photoUrl,
+        profile.coverPhotoUrl,
+        profile.companyLogoUrl,
+        ...cards.flatMap((card) => [
+          card.sectionOverrides.profilePhoto,
+          card.sectionOverrides.coverPhoto,
+          card.sectionOverrides.logo,
+        ]),
+      ].filter(
+        (url): url is string =>
+          typeof url === 'string' && url.length > 0 && !resolveCoverPhotoPreset(url),
+      ),
+    [cards, profile],
+  );
   const mediaKey = useMemo(() => JSON.stringify(initialMediaUrls), [initialMediaUrls]);
   const mediaReady = readyMediaKey === mediaKey;
 
@@ -76,21 +81,34 @@ export default function HomepageScreen() {
       .finally(() => {
         if (active) setReadyMediaKey(mediaKey);
       });
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [cardsFetched, initialMediaUrls, mediaKey, profileFetched]);
 
-  // Every account starts with one default card; this covers users who reach home without one.
   const [defaultCardFailed, setDefaultCardFailed] = useState(false);
   const needsDefaultCard = fetched && !cardsError && !offline && cards.length === 0 && !defaultCardFailed;
   useEffect(() => {
     if (!needsDefaultCard) return;
     ensureDefaultCard(profile).catch((reason) => {
       setDefaultCardFailed(true);
-      showMessage('Could not create your card', reason instanceof Error ? reason.message : 'Try again from the Add card tile.');
+      showMessage(
+        'Could not create your card',
+        reason instanceof Error ? reason.message : 'Try again with the add button.',
+      );
     });
-    // Profile is read at creation time only; re-running for profile changes would not add value.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [needsDefaultCard]);
+
+  const boundedCardIndex =
+    cards.length > 0 ? Math.min(activeCardIndex, cards.length - 1) : 0;
+  const currentCard = cards[boundedCardIndex] ?? cards[0];
+
+  const cardTag = useMemo(() => {
+    if (!currentCard) return needsDefaultCard ? 'Creating card…' : 'My card';
+    const tag = currentCard.category?.trim();
+    return tag || currentCard.name || 'My card';
+  }, [currentCard, needsDefaultCard]);
 
   const handleAddCard = () => {
     if (offline) {
@@ -103,8 +121,21 @@ export default function HomepageScreen() {
     });
   };
 
-  const currentCard = cards[activeCardIndex] ?? cards[0];
-  const userName = currentCard?.name ?? 'VC Pros User';
+  const handleEditCard = () => {
+    if (!currentCard) return;
+    router.push({
+      pathname: '/(tabs)/editViewPage',
+      params: { cardId: currentCard.id, edit: '1', origin: 'home' },
+    });
+  };
+
+  const handlePreviewCard = () => {
+    if (!currentCard) return;
+    router.push({
+      pathname: '/cards/[cardId]',
+      params: { cardId: currentCard.id },
+    });
+  };
 
   const handleShowcaseLayout = (event: LayoutChangeEvent) => {
     const nextHeight = Math.round(event.nativeEvent.layout.height);
@@ -113,65 +144,89 @@ export default function HomepageScreen() {
     );
   };
 
-  const handleCardPress = (cardId: string) => {
-    router.push({
-      pathname: '/cards/[cardId]',
-      params: { cardId },
-    });
+  const openCardPicker = () => {
+    cardPickerRef.current?.snapToIndex(0);
   };
 
   if (!cardsFetched || !profileFetched || !viewModeHydrated || !mediaReady) {
     return <HomeLoadingScreen />;
   }
 
-  return (
-    <View className="flex-1 bg-background dark:bg-dark-background">
-      <View
-        className="px-5 pb-1"
-        style={{ paddingTop: Math.max(insets.top, 12) }}
-      >
-        <HomeHeader userName={userName} />
-      </View>
+  const hasCard = Boolean(currentCard);
 
-      <View
-        className="flex-1 overflow-hidden"
-        style={{ marginTop: 0 }}
-        onLayout={handleShowcaseLayout}
-      >
-        {showcaseHeight > 0 && viewModeHydrated ? (
+  const previewContent = (
+    <View className="flex-1" onLayout={handleShowcaseLayout}>
+      {showcaseHeight > 0 && needsDefaultCard ? (
+        <View
+          className="mx-5 items-center justify-center rounded-[28px] bg-slate-100/60 dark:bg-dark-card/40"
+          style={{ height: showcaseHeight }}
+        >
+          <ActivityIndicator size="large" />
+          <Text className="mt-4 text-center text-base font-semibold">Creating your card…</Text>
+        </View>
+      ) : null}
+      {showcaseHeight > 0 && !hasCard && !needsDefaultCard ? (
+        <View
+          className="mx-5 items-center justify-center rounded-[28px] border border-dashed border-slate-300 bg-slate-100/60 px-6 dark:border-slate-600 dark:bg-dark-card/40"
+          style={{ height: showcaseHeight }}
+        >
+          <Text className="text-center text-base font-semibold">No card yet</Text>
+          <Text className="mt-2 text-center text-sm text-textMuted dark:text-dark-textMuted">
+            Tap + in the header to create your first card.
+          </Text>
+        </View>
+      ) : null}
+      {showcaseHeight > 0 && hasCard ? (
+        <View className="overflow-hidden" style={{ height: showcaseHeight }}>
           <CardShowcaseSection
-            activeIndex={activeCardIndex}
+            activeIndex={boundedCardIndex}
             addingCard={needsDefaultCard}
-            onAddCard={handleAddCard}
             cards={cards}
             height={showcaseHeight}
+            includeAddTile={false}
             onActiveIndexChange={setActiveCardIndex}
-            onCardDoubleTap={(card) => handleCardPress(card.id)}
-            onCardSwipeDown={(card) => setQrCardId(card.id)}
+            onAddCard={handleAddCard}
+            onCardDoubleTap={handlePreviewCard}
             profile={profile}
-            viewMode={viewMode}
+            viewMode="carousel"
           />
-        ) : null}
-      </View>
-
-      <View
-        className="bg-background dark:bg-dark-background"
-        style={{
-          paddingBottom: Math.max(insets.bottom + 8, 16),
-          paddingHorizontal: 20,
-          paddingTop: 12,
-        }}
-      >
-        <HomeActions />
-      </View>
-
-      <QRCodeModal
-        visible={Boolean(qrCardId)}
-        cardName={cards.find((card) => card.id === qrCardId)?.name ?? 'VC Pros'}
-        url={share.url}
-        error={share.error instanceof Error ? share.error.message : undefined}
-        onClose={() => setQrCardId(null)}
-      />
+        </View>
+      ) : null}
     </View>
+  );
+
+  return (
+    <>
+      <HomeScreenLayout
+        topInset={Math.max(insets.top, 8)}
+        header={
+          <HomeHeader
+            cardTag={cardTag}
+            addingCard={needsDefaultCard}
+            addDisabled={offline}
+            cardTagSelectable={cards.length > 1}
+            onAddCard={handleAddCard}
+            onCardTagPress={cards.length > 1 ? openCardPicker : undefined}
+          />
+        }
+        toolbar={
+          <HomeCardToolbar
+            disabled={!hasCard}
+            onEdit={handleEditCard}
+            onPreview={handlePreviewCard}
+          />
+        }
+        preview={previewContent}
+      />
+
+      {cards.length > 1 ? (
+        <CategoryBottomSheet
+          ref={cardPickerRef}
+          cards={cards}
+          selectedIndex={boundedCardIndex}
+          onSelectCard={setActiveCardIndex}
+        />
+      ) : null}
+    </>
   );
 }

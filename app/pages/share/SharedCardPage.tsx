@@ -5,7 +5,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CreditCard, WifiOff } from 'lucide-react-native';
-import { CardDetailView } from '@/pages/cards/Components/CardDetailView';
+import { CardDetailView } from '@/pages/fullCard/Components/CardDetailView';
 import { normalizeCard } from '@/pages/cards/Services/cardsService';
 import { normalizeProfile } from '@/pages/profile/Services/profileService';
 import { getSharedCardView, vcardUrlForSlug } from '@/pages/share/Services/sharingService';

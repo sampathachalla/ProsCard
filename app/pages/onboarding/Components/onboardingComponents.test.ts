@@ -2,6 +2,7 @@
 import { ONBOARDING_STEPS_META, INITIAL_ONBOARDING_DRAFT, type OnboardingDraft } from '../types/onboardingStepper.types';
 import {
   ONBOARDING_FLOW,
+  calculateProfileCompletion,
   countProgressSteps,
   progressStepIndex,
 } from '../types/onboardingFlow.types';
@@ -23,15 +24,56 @@ export function runOnboardingComponentsTests(): { passed: number; failed: number
       () => {
         assertEqual(ONBOARDING_FLOW[0].kind, 'welcome');
         const groups = ONBOARDING_FLOW.filter((item) => item.kind === 'group');
-        if (groups.length === 0) {
-          throw new Error('Flow must include group screens');
-        }
+        assertEqual(groups.length, 7, 'Flow must include 7 group steps');
+        const expectedOrder = [
+          'name_legal',
+          'role_company',
+          'contact_email',
+          'tagline',
+          'short_bio',
+          'presence',
+          'social_links',
+        ];
+        groups.forEach((g, idx) => {
+          if (g.kind === 'group') {
+            assertEqual(g.groupId, expectedOrder[idx], `Step ${idx + 1} group mismatch`);
+          }
+        });
         assertEqual(ONBOARDING_FLOW[ONBOARDING_FLOW.length - 1].kind, 'complete');
         const socialIndex = ONBOARDING_FLOW.findIndex(
           (item) => item.kind === 'group' && item.groupId === 'social_links'
         );
         const completeIndex = ONBOARDING_FLOW.length - 1;
         assertEqual(completeIndex, socialIndex + 1, 'completion follows social profiles');
+      },
+    ],
+
+    [
+      'test_calculate_profile_completion_percentage',
+      () => {
+        assertEqual(calculateProfileCompletion(INITIAL_ONBOARDING_DRAFT), 0);
+        const partial = {
+          ...INITIAL_ONBOARDING_DRAFT,
+          firstName: 'Sampath',
+          lastName: 'Achalla',
+          title: 'Software Developer',
+          email: 'sampath@mindpros.com',
+        };
+        assertEqual(calculateProfileCompletion(partial), 40);
+        const full = {
+          ...partial,
+          organization: 'Mind Pros',
+          accreditations: 'MS',
+          phone: '+15551234567',
+          businessAddress: 'Baltimore',
+          tagline: 'Building tools for the future',
+          shortBio: 'I am here to build tools for the future',
+          photoUrl: 'https://example.com/photo.jpg',
+          companyLogoUrl: 'https://example.com/logo.jpg',
+          coverPhotoUrl: 'https://example.com/cover.jpg',
+          linkedin: 'sampath',
+        };
+        assertEqual(calculateProfileCompletion(full), 100);
       },
     ],
 

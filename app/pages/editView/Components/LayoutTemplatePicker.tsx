@@ -6,6 +6,7 @@ import {
   useWindowDimensions,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
+  type ScrollViewInstance,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import {
@@ -996,7 +997,7 @@ export function LayoutTemplatePicker({
   }, [sectionTemplates]);
 
   const [currentPage, setCurrentPage] = useState(0);
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
 
   // Sync scroll position with selected template page
   useEffect(() => {

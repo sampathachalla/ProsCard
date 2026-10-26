@@ -1,0 +1,282 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Linking, Platform, Share } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Haptics from 'expo-haptics';
+
+import { useCards } from '@/pages/cards/Hooks/useCards';
+import { useProfileSnapshot } from '@/pages/profile/Hooks/useProfileSnapshot';
+import { saveDirectlyToNativeContacts } from '@/utils/nativeContacts';
+import {
+  QR_CUSTOMIZATION_PRESETS,
+  QR_PRESET_STORAGE_KEY,
+} from '../Config/shareActionsConfig';
+import { saveOrShareQrCodePng, type QrSvgRef } from '../Services/qrExportService';
+import type {
+  QrCustomizationPreset,
+  ShareActionId,
+  ShareGuideModalKind,
+} from '../types/share.types';
+import {
+  buildCardShareMessage,
+  buildEmailShareUrl,
+  buildInstagramShareUrl,
+  buildLinkedInShareUrl,
+  buildWhatsAppShareUrl,
+  buildXShareUrl,
+  copyTextToClipboard,
+} from '../Utils/shareFormatters';
+import { useShareUrl } from './useShareUrl';
+
+export function useSharePageController() {
+  const { cards, fetched, offline } = useCards();
+  const { profile } = useProfileSnapshot();
+  const [cardIndex, setCardIndex] = useState(0);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [customizeOpen, setCustomizeOpen] = useState(false);
+  const [guideModal, setGuideModal] = useState<ShareGuideModalKind>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [qrPresetId, setQrPresetId] = useState<string>(QR_CUSTOMIZATION_PRESETS[0].id);
+
+  const qrSvgRef = useRef<QrSvgRef | null>(null);
+
+  useEffect(() => {
+    AsyncStorage.getItem(QR_PRESET_STORAGE_KEY)
+      .then((savedId) => {
+        if (savedId && QR_CUSTOMIZATION_PRESETS.some((p) => p.id === savedId)) {
+          setQrPresetId(savedId);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const selectQrPreset = useCallback((presetId: string) => {
+    Haptics.selectionAsync().catch(() => {});
+    setQrPresetId(presetId);
+    AsyncStorage.setItem(QR_PRESET_STORAGE_KEY, presetId).catch(() => {});
+  }, []);
+
+  const activeQrPreset: QrCustomizationPreset = useMemo(
+    () =>
+      QR_CUSTOMIZATION_PRESETS.find((p) => p.id === qrPresetId) ??
+      QR_CUSTOMIZATION_PRESETS[0],
+    [qrPresetId],
+  );
+
+  const boundedIndex = cards.length > 0 ? Math.min(cardIndex, cards.length - 1) : 0;
+  const card = cards[boundedIndex];
+  const share = useShareUrl(card?.id ?? null);
+
+  const shareUrl = share.url;
+  const shareError = share.error instanceof Error ? share.error.message : undefined;
+
+  const cardLabel = useMemo(() => {
+    if (!card) return 'No card';
+    return card.category?.trim() || card.name || 'My card';
+  }, [card]);
+
+  const setQrRef = useCallback((ref: QrSvgRef | null) => {
+    qrSvgRef.current = ref;
+  }, []);
+
+  const requireCardAndUrl = useCallback(
+    (action: (url: string, cardName: string) => void) => {
+      if (!card) {
+        Alert.alert('No card yet', 'Create a card on the Cards tab first.');
+        return;
+      }
+      if (!shareUrl) {
+        Alert.alert('Share link unavailable', shareError ?? 'Try again in a moment.');
+        return;
+      }
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      action(shareUrl, card.name || profile.fullName || 'VC Pros');
+    },
+    [card, profile.fullName, shareError, shareUrl],
+  );
+
+  const handleCopyLink = useCallback(
+    async (url: string) => {
+      const copied = await copyTextToClipboard(url);
+      setCopiedLink(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      setTimeout(() => setCopiedLink(false), 2200);
+      if (!copied && Platform.OS !== 'web') {
+        await Share.share({
+          message: url,
+          url: Platform.OS === 'ios' ? url : undefined,
+          title: 'Copy Card Link',
+        });
+      }
+    },
+    [],
+  );
+
+  const handleExportWalletPass = useCallback(() => {
+    if (!card) return;
+    void saveDirectlyToNativeContacts({
+      name: card.name || profile.fullName,
+      firstName: profile.firstName,
+      lastName: profile.lastName,
+      title: card.title || profile.title,
+      company: card.company || profile.organization,
+      department: profile.department,
+      email: card.email || profile.email,
+      phone: card.phone || profile.phone,
+      website: profile.website || shareUrl,
+      address: profile.businessAddress,
+      note: [profile.tagline, profile.shortBio].filter(Boolean).join('\n\n'),
+      photoUrl: card.sectionOverrides?.profilePhoto || profile.photoUrl || undefined,
+    });
+  }, [card, profile, shareUrl]);
+
+  const handleSaveQrToPhotos = useCallback(
+    (dialogTitle?: string) => {
+      requireCardAndUrl((url, cardName) => {
+        void saveOrShareQrCodePng({
+          qrSvg: qrSvgRef.current,
+          cardName,
+          shareUrl: url,
+          dialogTitle,
+        });
+      });
+    },
+    [requireCardAndUrl],
+  );
+
+  const handleActionPress = useCallback(
+    (actionId: ShareActionId) => {
+      switch (actionId) {
+        case 'share_card':
+          requireCardAndUrl((url, cardName) => {
+            void Share.share({
+              message: buildCardShareMessage(cardName, url),
+              title: `${cardName} | VC Pros`,
+              url: Platform.OS === 'ios' ? url : undefined,
+            });
+          });
+          break;
+
+        case 'copy_link':
+          requireCardAndUrl((url) => {
+            void handleCopyLink(url);
+          });
+          break;
+
+        case 'add_to_wallet':
+          if (!card) {
+            Alert.alert('No card yet', 'Create a card on the Cards tab first.');
+            return;
+          }
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+          setGuideModal('wallet');
+          break;
+
+        case 'add_qr_lockscreen':
+          if (!card) {
+            Alert.alert('No card yet', 'Create a card on the Cards tab first.');
+            return;
+          }
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+          setGuideModal('lockscreen');
+          break;
+
+        case 'add_qr_homescreen':
+          if (!card) {
+            Alert.alert('No card yet', 'Create a card on the Cards tab first.');
+            return;
+          }
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+          setGuideModal('homescreen');
+          break;
+
+        case 'share_email':
+          requireCardAndUrl((url, cardName) => {
+            void Linking.openURL(buildEmailShareUrl(cardName, url));
+          });
+          break;
+
+        case 'share_namedrop':
+          if (!card) {
+            Alert.alert('No card yet', 'Create a card on the Cards tab first.');
+            return;
+          }
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+          setGuideModal('namedrop');
+          break;
+
+        case 'share_linkedin':
+          requireCardAndUrl((url) => {
+            void Linking.openURL(buildLinkedInShareUrl(url));
+          });
+          break;
+
+        case 'share_whatsapp':
+          requireCardAndUrl((url, cardName) => {
+            const { appUrl, webUrl } = buildWhatsAppShareUrl(cardName, url);
+            void Linking.openURL(appUrl).catch(() => {
+              void Linking.openURL(webUrl);
+            });
+          });
+          break;
+
+        case 'share_instagram':
+          requireCardAndUrl((url) => {
+            void copyTextToClipboard(url);
+            const { appUrl, webUrl } = buildInstagramShareUrl();
+            void Linking.openURL(appUrl).catch(() => {
+              void Linking.openURL(webUrl);
+            });
+          });
+          break;
+
+        case 'share_x':
+          requireCardAndUrl((url, cardName) => {
+            const { appUrl, webUrl } = buildXShareUrl(cardName, url);
+            void Linking.openURL(appUrl).catch(() => {
+              void Linking.openURL(webUrl);
+            });
+          });
+          break;
+
+        case 'save_qr_photos':
+          handleSaveQrToPhotos('Save QR Code to Photos');
+          break;
+
+        case 'customize_qr':
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+          setCustomizeOpen(true);
+          break;
+      }
+    },
+    [card, handleCopyLink, handleSaveQrToPhotos, requireCardAndUrl],
+  );
+
+  return {
+    cards,
+    card,
+    cardLabel,
+    boundedIndex,
+    setCardIndex,
+    pickerOpen,
+    setPickerOpen,
+    fetched,
+    offline,
+    shareUrl,
+    shareLoading: share.loading,
+    shareError,
+    copiedLink,
+    qrModalOpen,
+    setQrModalOpen,
+    customizeOpen,
+    setCustomizeOpen,
+    guideModal,
+    setGuideModal,
+    activeQrPreset,
+    selectQrPreset,
+    setQrRef,
+    handleActionPress,
+    handleExportWalletPass,
+    handleSaveQrToPhotos,
+  };
+}

@@ -1,10 +1,10 @@
 import { type ReactNode } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import { ArrowRight } from 'lucide-react-native';
 
 import { BrandLogo } from '@/common/ui/BrandLogo';
-import { Button } from '@/common/ui/Button';
 import { Text } from '@/common/ui/Text';
 import { AuthWelcomeFeatureCarousel } from '@/pages/auth/Components/AuthWelcomeFeatureCarousel';
 
@@ -13,7 +13,16 @@ export interface AuthWelcomeContentProps {
   footer?: ReactNode;
 }
 
-/** App entry welcome — VCPROS brand mark. */
+/** Top VCPROS official brand logo positioned with balanced top breathing room. */
+export function WelcomeBrandHeader() {
+  return (
+    <View className="w-full items-center px-6 pb-1 pt-4">
+      <BrandLogo accessibilityLabel="VCPROS logo" size="xxl" variant="wordmark" />
+    </View>
+  );
+}
+
+/** App entry welcome — VCPros brand header, 3-slide illustrated carousel, and CTA. */
 export function AuthWelcomeContent({ onGetStarted, footer }: AuthWelcomeContentProps) {
   const handleGetStarted = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
@@ -21,49 +30,35 @@ export function AuthWelcomeContent({ onGetStarted, footer }: AuthWelcomeContentP
   };
 
   return (
-    <View className="flex-1 px-7 pb-7 pt-4">
-      {/* Branding + carousel share one stack so the gap stays small and visible. It stays centred and
-          only scrolls on short screens (e.g. iPhone SE) or with large text, where it would be cut off. */}
-      <ScrollView
-        className="min-h-0 w-full flex-1"
-        contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
-        showsVerticalScrollIndicator={false}
-        alwaysBounceVertical={false}
-      >
-        <Animated.View entering={FadeIn.duration(500)} className="shrink-0 items-center">
-          <BrandLogo accessibilityLabel="VCPROS logo" size="xxl" variant="wordmark" />
-          <Text
-            variant="none"
-            className="mt-4 max-w-[300px] text-center text-[17px] leading-7 text-textMuted dark:text-dark-textMuted"
-          >
-            Create your digital card in minutes. Edit anytime.
-          </Text>
-        </Animated.View>
-
-        <Animated.View
-          entering={FadeInDown.delay(100).duration(450)}
-          className="mt-5 w-full shrink-0"
-        >
-          <AuthWelcomeFeatureCarousel />
-        </Animated.View>
-      </ScrollView>
+    <View className="flex-1 justify-between pb-4 pt-1">
+      <Animated.View entering={FadeIn.duration(400)}>
+        <WelcomeBrandHeader />
+      </Animated.View>
 
       <Animated.View
-        entering={FadeInDown.delay(200).duration(450)}
-        className="w-full shrink-0 self-center pt-4"
+        entering={FadeInDown.delay(80).duration(420)}
+        className="min-h-0 flex-1 w-full"
       >
-        <Button
-          label="Get started"
-          variant="primary"
-          size="lg"
+        <AuthWelcomeFeatureCarousel />
+      </Animated.View>
+
+      <Animated.View
+        entering={FadeInDown.delay(160).duration(420)}
+        className="w-full px-6 pt-3"
+      >
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Get started"
           onPress={handleGetStarted}
-          className="w-full rounded-xl"
-        />
-        {footer ? (
-          <View className="mt-5 border-t border-slate-200/80 pt-4 dark:border-slate-800/80">
-            {footer}
-          </View>
-        ) : null}
+          className="min-h-[54px] w-full flex-row items-center justify-center gap-2.5 rounded-2xl bg-primary px-6 py-3.5 shadow-lg shadow-blue-500/25 active:scale-[0.99] active:opacity-90 dark:bg-[#2563eb]"
+        >
+          <ArrowRight color="#FFFFFF" size={19} strokeWidth={2.4} />
+          <Text variant="none" className="text-[16px] font-semibold text-white">
+            Get started
+          </Text>
+        </Pressable>
+
+        {footer ? <View className="mt-4 items-center">{footer}</View> : null}
       </Animated.View>
     </View>
   );

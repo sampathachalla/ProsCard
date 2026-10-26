@@ -11,7 +11,7 @@ import Animated, {
 import type { BusinessCard as BusinessCardData } from '@/pages/cards/types/card.types';
 import type { Profile } from '@/pages/profile/types/profile.types';
 import { Text } from '@/common/ui/Text';
-import { BusinessCard } from './BusinessCard';
+import { PreviewCard } from '@/pages/previewCard/Components/PreviewCard';
 import { getBusinessCardHeight, getBusinessCardWidth } from '../Utils/businessCardLayout';
 
 type BusinessCardCarouselProps = {
@@ -25,6 +25,8 @@ type BusinessCardCarouselProps = {
   onCardDoubleTap?: (card: BusinessCardData) => void;
   onCardSwipeDown?: (card: BusinessCardData) => void;
   profile: Profile;
+  /** When false, add-card tile is omitted (e.g. add lives in the header). */
+  includeAddTile?: boolean;
 };
 
 const CARD_GAP = 14;
@@ -97,14 +99,17 @@ export function BusinessCardCarousel({
   onCardDoubleTap,
   onCardSwipeDown,
   profile,
+  includeAddTile = true,
 }: BusinessCardCarouselProps) {
   const listRef = useRef<FlashListRef<CarouselItem>>(null);
   const activeIndexRef = useRef(0);
   const { width: windowWidth } = useWindowDimensions();
 
-  const items: CarouselItem[] = [...cards.map((card) => ({ kind: 'card' as const, card })), { kind: 'add' }];
+  const items: CarouselItem[] = includeAddTile
+    ? [...cards.map((card) => ({ kind: 'card' as const, card })), { kind: 'add' }]
+    : cards.map((card) => ({ kind: 'card' as const, card }));
   const cardAvailableHeight = Math.max(0, height - CARD_TOP_PADDING - CARD_BOTTOM_PADDING);
-  const cardWidth = getBusinessCardWidth(windowWidth, items.length, cardAvailableHeight);
+  const cardWidth = Math.max(270, windowWidth - SIDE_PADDING * 2);
   // Prefer the full showcase height so the preview sits flush (no centered dead space).
   const cardHeight = Math.max(
     getBusinessCardHeight(cardWidth, cardAvailableHeight),
@@ -177,7 +182,7 @@ export function BusinessCardCarousel({
         renderItem={({ item, index }) => (
           <AnimatedCardWrapper index={index} progress={progress}>
             {item.kind === 'card' ? (
-              <BusinessCard
+              <PreviewCard
                 card={item.card}
                 height={cardHeight}
                 onDoubleTap={() => onCardDoubleTap?.(item.card)}

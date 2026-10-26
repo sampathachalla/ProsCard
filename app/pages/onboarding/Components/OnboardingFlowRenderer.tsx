@@ -10,9 +10,11 @@ export interface OnboardingFlowRendererProps {
   draft: OnboardingDraft;
   errors: Record<string, string>;
   isSaving: boolean;
+  isGeneratingCopy?: boolean;
+  completionPercent?: number;
   updateDraft: (fields: Partial<OnboardingDraft>) => void;
   onWelcomeNext: () => void;
-  onWelcomeSkip: () => void;
+  onBack?: () => void;
   onFinish: () => void;
 }
 
@@ -21,19 +23,17 @@ export function OnboardingFlowRenderer({
   draft,
   errors,
   isSaving,
+  isGeneratingCopy = false,
+  completionPercent = 0,
   updateDraft,
   onWelcomeNext,
-  onWelcomeSkip,
+  onBack,
   onFinish,
 }: OnboardingFlowRendererProps) {
   switch (currentItem.kind) {
     case 'welcome':
       return (
-        <StepWelcome
-          onGetStarted={onWelcomeNext}
-          onSkip={onWelcomeSkip}
-          isSaving={isSaving}
-        />
+        <StepWelcome onGetStarted={onWelcomeNext} isSaving={isSaving} />
       );
     case 'group':
       return (
@@ -47,6 +47,7 @@ export function OnboardingFlowRenderer({
           draft={draft}
           updateDraft={updateDraft}
           errors={errors}
+          isGeneratingCopy={isGeneratingCopy}
         />
       );
     case 'card_style':
@@ -60,7 +61,12 @@ export function OnboardingFlowRenderer({
       );
     case 'complete':
       return (
-        <StepOnboardingComplete onGoHome={onFinish} isSaving={isSaving} />
+        <StepOnboardingComplete
+          onGoHome={onFinish}
+          onBack={onBack}
+          completionPercent={completionPercent}
+          isSaving={isSaving}
+        />
       );
     default:
       return null;

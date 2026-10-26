@@ -59,6 +59,12 @@ export async function setSession(session: AuthSession | null): Promise<void> {
   });
 }
 
+/** Removes what this device cached for one user: profile, cards and the onboarding-completed flag. */
+export async function clearUserCache(userId: string): Promise<void> {
+  await Promise.all(USER_SCOPED_CACHE_KEYS.map((key) => AsyncStorage.removeItem(`${key}:${userId}`)))
+    .catch((error) => console.warn('Could not clear cached user data:', error));
+}
+
 export function subscribeSession(listener: (session: AuthSession | null) => void): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);

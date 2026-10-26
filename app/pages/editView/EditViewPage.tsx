@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, BackHandler, Dimensions, ScrollView, View, useWindowDimensions } from 'react-native';
+import { Alert, BackHandler, Dimensions, ScrollView, View, useWindowDimensions, type ScrollViewInstance } from 'react-native';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -10,10 +10,10 @@ import { ThemedBottomSheet } from '@/common/ui/ThemedBottomSheet';
 import { Text } from '@/common/ui/Text';
 import { EditHomeBar, type EditHomeTab } from '@/common/ui/EditHomeBar';
 import { FloatingEditBarButton } from '@/common/ui/FloatingEditBarButton';
-import { CardDetailView } from '@/pages/cards/Components/CardDetailView';
+import { CardDetailView } from '@/pages/fullCard/Components/CardDetailView';
 import { CardSectionEditor } from '@/pages/editView/Components/CardSectionEditor';
 import { ContactMethodsRequiredModal } from '@/pages/editView/Components/ContactMethodsRequiredModal';
-import { CardPreviewModal } from '@/pages/editView/Components/CardPreviewModal';
+import { CardPreviewModal } from '@/pages/previewCard/Components/CardPreviewModal';
 import { EditModeBar } from '@/pages/editView/Components/EditModeBar';
 import { EditViewHeaderActions } from '@/pages/editView/Components/EditViewHeaderActions';
 import { SectionPickerButton } from '@/pages/editView/Components/SectionPickerButton';
@@ -62,7 +62,7 @@ export default function EditViewPage() {
   const { theme } = useThemeContext();
   const { glassmorphicEditorEnabled, hydrated: editorPreferencesHydrated, sectionHighlightEnabled } = useEditorPreferences();
   const sheetRef = useRef<BottomSheet>(null);
-  const cardScrollRef = useRef<ScrollView>(null);
+  const cardScrollRef = useRef<ScrollViewInstance>(null);
   const sectionOffsets = useRef<Partial<Record<CardSectionId, number>>>({});
   const snapPoints = useMemo(() => ['55%', '100%'], []);
   const [headerHeight, setHeaderHeight] = useState(0);

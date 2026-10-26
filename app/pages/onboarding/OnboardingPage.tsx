@@ -19,9 +19,11 @@ export function OnboardingScreen() {
     updateDraft,
     errors,
     isSaving,
+    isGeneratingCopy,
     canGoBack,
     canSkip,
     flowIndex,
+    completionPercent,
     nextStep,
     prevStep,
     skipStep,
@@ -63,9 +65,11 @@ export function OnboardingScreen() {
             draft={draft}
             errors={errors}
             isSaving={isSaving}
+            isGeneratingCopy={isGeneratingCopy}
+            completionPercent={completionPercent}
             updateDraft={updateDraft}
             onWelcomeNext={nextStep}
-            onWelcomeSkip={skipStep}
+            onBack={canGoBack ? prevStep : undefined}
             onFinish={finalizeOnboarding}
           />
         </View>

@@ -1,55 +1,30 @@
-import React from 'react';
-import { View } from 'react-native';
+import React, { useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import {
-  User,
-  Briefcase,
-  Building,
-  Mail,
-  Phone,
-  FileText,
-  MapPin,
-  Globe,
-  Award,
-  Quote,
-  Link2,
-  GitFork,
-  AtSign,
-  MessageCircle,
-  Play,
+  Building2,
+  Camera,
+  Layers,
+  ImagePlus,
+  Trash2,
   type LucideIcon,
 } from 'lucide-react-native';
 import { Text } from '@/common/ui/Text';
 import { ImageUploadField } from '@/common/ui/ImageUploadField';
+import { MediaImage } from '@/common/ui/MediaImage';
+import { pickImageFromLibrary } from '@/common/ui/usePickImage';
+import { AUTH_TEST_MODE } from '@/pages/auth/Config/authMode';
+import {
+  clearPendingMedia,
+  commitPendingMedia,
+} from '@/pages/profile/Services/pendingMedia';
+import { Colors } from '@/constants/Colors';
+import { useThemeContext } from '@/context/ThemeContext';
+import type { MediaKind } from '@/services/api/types';
 import type { OnboardingDraft } from '../types/onboardingStepper.types';
 import type { FieldSpec } from '../types/onboardingFlow.types';
 import { OnboardingFormField } from './OnboardingFormField';
 import { SocialLinksFieldsBlock } from './SocialLinksFieldsBlock';
-const FIELD_ICONS: Partial<Record<keyof OnboardingDraft, LucideIcon>> = {
-  firstName: User,
-  lastName: User,
-  prefix: User,
-  middleName: User,
-  suffix: User,
-  title: Briefcase,
-  organization: Building,
-  department: Building,
-  email: Mail,
-  phone: Phone,
-  website: Globe,
-  businessAddress: MapPin,
-  shortBio: FileText,
-  accreditations: Award,
-  tagline: Quote,
-  linkedin: Link2,
-  github: GitFork,
-  x: AtSign,
-  facebook: AtSign,
-  instagram: AtSign,
-  whatsapp: MessageCircle,
-  youtube: Play,
-  tiktok: Play,
-  portfolio: Link2,
-};
 
 function rebuildFullName(parts: OnboardingDraft): string {
   return [parts.prefix, parts.firstName, parts.middleName, parts.lastName, parts.suffix]
@@ -58,71 +33,176 @@ function rebuildFullName(parts: OnboardingDraft): string {
     .join(' ');
 }
 
-const STRUCTURED_NAME_KEYS = new Set<keyof OnboardingDraft>([
-  'prefix',
-  'firstName',
-  'middleName',
-  'lastName',
-  'suffix',
-]);
-
-const STRUCTURED_NAME_PLACEHOLDERS: Partial<Record<keyof OnboardingDraft, string>> = {
-  prefix: 'Prefix',
-  firstName: 'First name',
-  middleName: 'Middle name',
-  lastName: 'Last name',
-  suffix: 'Suffix',
-};
-
-function structuredNamePresentation(spec: FieldSpec): { label: string; placeholder: string } {
-  if (!STRUCTURED_NAME_KEYS.has(spec.key)) {
-    return { label: spec.label, placeholder: spec.placeholder ?? spec.label };
-  }
-  return {
-    label: '',
-    placeholder: spec.placeholder ?? STRUCTURED_NAME_PLACEHOLDERS[spec.key] ?? spec.label,
-  };
+interface MediaUploadRowConfig {
+  key: 'photoUrl' | 'companyLogoUrl' | 'coverPhotoUrl';
+  title: string;
+  subtitle: string;
+  icon: LucideIcon;
+  aspect: [number, number];
+  mediaKind: Exclude<MediaKind, 'contactCard'>;
+  contentFit: 'cover' | 'contain';
 }
 
-function TaglineField({
-  label,
+const ONBOARDING_MEDIA_ROWS: MediaUploadRowConfig[] = [
+  {
+    key: 'photoUrl',
+    title: 'Profile photo',
+    subtitle: 'PNG or JPG · square works best',
+    icon: Camera,
+    aspect: [1, 1],
+    mediaKind: 'profilePhoto',
+    contentFit: 'cover',
+  },
+  {
+    key: 'companyLogoUrl',
+    title: 'Company logo',
+    subtitle: 'PNG or JPG · square works best',
+    icon: Building2,
+    aspect: [1, 1],
+    mediaKind: 'companyLogo',
+    contentFit: 'contain',
+  },
+  {
+    key: 'coverPhotoUrl',
+    title: 'Cover banner',
+    subtitle: 'PNG or JPG · square works best',
+    icon: Layers,
+    aspect: [16, 9],
+    mediaKind: 'coverPhoto',
+    contentFit: 'cover',
+  },
+];
+
+function OnboardingMediaRowCard({
+  config,
   value,
-  onChangeText,
-  placeholder,
   error,
-  required,
-  hint,
-  maxLength,
-  autoCapitalize,
+  onChange,
 }: {
-  label: string;
+  config: MediaUploadRowConfig;
   value: string;
-  onChangeText: (text: string) => void;
-  placeholder?: string;
   error?: string;
-  required?: boolean;
-  hint?: string;
-  maxLength?: number;
-  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  onChange: (uri: string) => void;
 }) {
+  const [isPicking, setIsPicking] = useState(false);
+  const { theme } = useThemeContext();
+  const isDark = theme === 'dark';
+  const tintColor = isDark ? Colors.dark.tint : Colors.light.tint;
+  const mutedIconColor = isDark ? '#94a3b8' : '#64748b';
+  const hasImage = Boolean(value?.trim());
+  const Icon = config.icon;
+
+  const handlePick = async () => {
+    if (isPicking) return;
+    setIsPicking(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    try {
+      const uri = await pickImageFromLibrary({
+        aspect: config.aspect,
+        allowsEditing: true,
+      });
+      if (!uri) return;
+      if (AUTH_TEST_MODE) {
+        onChange(uri);
+        return;
+      }
+      try {
+        const remoteUrl = await commitPendingMedia(uri, config.mediaKind);
+        onChange(remoteUrl);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      } catch (err) {
+        clearPendingMedia(uri);
+        const message =
+          err instanceof Error && err.message.trim()
+            ? err.message
+            : 'The uploaded image type or size is not allowed.';
+        Alert.alert('Couldn’t upload image', message);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+      }
+    } finally {
+      setIsPicking(false);
+    }
+  };
+
+  const handleRemove = () => {
+    if (isPicking) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+    if (value?.trim()) {
+      clearPendingMedia(value.trim());
+    }
+    onChange('');
+  };
+
   return (
-    <OnboardingFormField
-      label={label}
-      value={value}
-      onChangeText={onChangeText}
-      placeholder={placeholder}
-      error={error}
-      required={required}
-      hint={hint}
-      maxLength={maxLength}
-      multiline
-      numberOfLines={3}
-      autoCapitalize={autoCapitalize}
-      showCharacterCount
-      hideClear
-      compact
-      centerAlign
-    />
+    <View className="mb-3.5 w-full">
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={hasImage ? `Replace ${config.title}` : `Upload ${config.title}`}
+        disabled={isPicking}
+        onPress={handlePick}
+        className={`flex-row items-center rounded-lg border p-4 active:opacity-90 ${
+          error
+            ? 'border-error bg-red-50/70 dark:border-dark-error dark:bg-red-950/20'
+            : hasImage
+              ? 'border-primary/50 bg-slate-100/80 dark:border-dark-primary/50 dark:bg-[#1e293b]'
+              : 'border-transparent bg-slate-100 dark:bg-dark-card'
+        }`}
+      >
+        <View className="mr-4 h-14 w-14 items-center justify-center overflow-hidden rounded-lg bg-slate-200/70 dark:bg-slate-800/90">
+          {isPicking ? (
+            <ActivityIndicator size="small" color={tintColor} />
+          ) : hasImage ? (
+            <MediaImage
+              sourceUrl={value}
+              contentFit={config.contentFit}
+              style={{ width: '100%', height: '100%' }}
+              accessibilityLabel={`${config.title} preview`}
+            />
+          ) : (
+            <Icon size={24} color={mutedIconColor} strokeWidth={2} />
+          )}
+        </View>
+
+        <View className="min-w-0 flex-1 pr-2">
+          <Text
+            variant="none"
+            className="text-[16px] font-semibold text-textPrimary dark:text-dark-textPrimary"
+          >
+            {config.title}
+          </Text>
+          <Text
+            variant="none"
+            numberOfLines={1}
+            className="mt-1 text-[13px] text-slate-500 dark:text-slate-400"
+          >
+            {hasImage ? 'Image selected · tap to replace' : config.subtitle}
+          </Text>
+        </View>
+
+        <View className="flex-row items-center gap-2">
+          {hasImage && !isPicking ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Remove ${config.title}`}
+              hitSlop={8}
+              onPress={handleRemove}
+              className="h-9 w-9 items-center justify-center rounded-xl bg-rose-500/10 active:opacity-75"
+            >
+              <Trash2 size={18} color="#ef4444" strokeWidth={2.1} />
+            </Pressable>
+          ) : null}
+          <View className="h-9 w-9 items-center justify-center">
+            <ImagePlus size={22} color={tintColor} strokeWidth={2.1} />
+          </View>
+        </View>
+      </Pressable>
+
+      {error ? (
+        <Text className="mt-1.5 px-1 text-xs font-medium text-error dark:text-dark-error">
+          {error}
+        </Text>
+      ) : null}
+    </View>
   );
 }
 
@@ -136,48 +216,16 @@ export function PresenceFieldsBlock({
   errors: Record<string, string>;
 }) {
   return (
-    <View>
-      <ImageUploadField
-        label="Profile photo"
-        value={draft.photoUrl}
-        onChange={(uri) => updateDraft({ photoUrl: uri })}
-        variant="avatar"
-        presentation="compact"
-      />
-
-      <View className="mt-6 w-full">
-        <View className="mb-3 flex-row items-center gap-2">
-          <View className="h-9 w-9 items-center justify-center rounded-full bg-sky-500/15">
-            <Quote size={18} color="#38bdf8" strokeWidth={2.2} />
-          </View>
-          <View className="flex-1">
-            <Text
-              variant="none"
-              className="text-base font-semibold text-textPrimary dark:text-dark-textPrimary"
-            >
-              Enter your tagline
-            </Text>
-            <Text variant="none" className="mt-0.5 text-sm text-textMuted dark:text-dark-textMuted">
-              One short line on your card
-            </Text>
-          </View>
-        </View>
-        <OnboardingFormField
-          label=""
-          value={draft.tagline}
-          onChangeText={(text) => updateDraft({ tagline: text })}
-          placeholder="Type your tagline here…"
-          error={errors.tagline}
-          variant="boxed"
-          maxLength={120}
-          multiline
-          numberOfLines={3}
-          autoCapitalize="sentences"
-          showCharacterCount
-          characterCountPlacement="top"
-          hideClear
+    <View className="w-full">
+      {ONBOARDING_MEDIA_ROWS.map((row) => (
+        <OnboardingMediaRowCard
+          key={row.key}
+          config={row}
+          value={draft[row.key] ?? ''}
+          error={errors[row.key]}
+          onChange={(uri) => updateDraft({ [row.key]: uri } as Partial<OnboardingDraft>)}
         />
-      </View>
+      ))}
     </View>
   );
 }
@@ -201,12 +249,24 @@ export function renderOnboardingField(
 
   if (spec.widget === 'social_block') {
     return (
-      <SocialLinksFieldsBlock
-        key="social_block"
-        draft={draft}
-        updateDraft={updateDraft}
-        errors={errors}
-      />
+      <View key="social_block" className="w-full">
+        <OnboardingFormField
+          label="Website"
+          value={draft.website ?? ''}
+          onChangeText={(text) => updateDraft({ website: text })}
+          placeholder="https://yourcompany.com"
+          error={errors.website}
+          keyboardType="url"
+          autoCapitalize="none"
+          autoCorrect={false}
+          variant="boxed"
+        />
+        <SocialLinksFieldsBlock
+          draft={draft}
+          updateDraft={updateDraft}
+          errors={errors}
+        />
+      </View>
     );
   }
 
@@ -227,7 +287,6 @@ export function renderOnboardingField(
   }
 
   const value = String(draft[spec.key] ?? '');
-  const icon = spec.hideIcon ? undefined : FIELD_ICONS[spec.key];
   const nameKeys = new Set(['prefix', 'firstName', 'middleName', 'lastName', 'suffix']);
 
   const onChangeText = (text: string) => {
@@ -244,106 +303,63 @@ export function renderOnboardingField(
 
   if (spec.key === 'tagline') {
     return (
-      <TaglineField
+      <OnboardingFormField
         key={spec.key}
-        label={spec.label}
+        label={spec.label || 'Tagline'}
         value={value}
         onChangeText={onChangeText}
-        placeholder={spec.placeholder}
+        placeholder={spec.placeholder ?? 'One short line that appears on your card'}
         error={errors[spec.key]}
         required={spec.required}
         hint={spec.hint}
         maxLength={spec.maxLength ?? 120}
+        multiline
+        numberOfLines={3}
         autoCapitalize={spec.autoCapitalize ?? 'sentences'}
+        showCharacterCount
+        characterCountPlacement="top"
+        variant="boxed"
       />
     );
   }
 
   if (spec.key === 'shortBio') {
-    const bioOnOwnStep = !spec.label;
-    if (bioOnOwnStep) {
-      return (
-        <View key={spec.key} className="w-full">
-          <View className="mb-3 flex-row items-center gap-2">
-            <View className="h-9 w-9 items-center justify-center rounded-full bg-sky-500/15">
-              <FileText size={18} color="#38bdf8" strokeWidth={2.2} />
-            </View>
-            <View className="flex-1">
-              <Text
-                variant="none"
-                className="text-base font-semibold text-textPrimary dark:text-dark-textPrimary"
-              >
-                Write your short bio
-              </Text>
-              <Text
-                variant="none"
-                className="mt-0.5 text-sm text-textMuted dark:text-dark-textMuted"
-              >
-                A brief professional summary on your card
-              </Text>
-            </View>
-          </View>
-          <OnboardingFormField
-            label=""
-            value={value}
-            onChangeText={onChangeText}
-            placeholder="Describe what you do, your experience, or what you care about…"
-            error={errors[spec.key]}
-            variant="boxed"
-            maxLength={spec.maxLength ?? 240}
-            multiline
-            numberOfLines={5}
-            autoCapitalize={spec.autoCapitalize ?? 'sentences'}
-            showCharacterCount
-            characterCountPlacement="top"
-            hideClear
-          />
-        </View>
-      );
-    }
     return (
       <OnboardingFormField
         key={spec.key}
-        label={spec.label}
+        label={spec.label || 'Short bio'}
         value={value}
         onChangeText={onChangeText}
-        placeholder={spec.placeholder}
+        placeholder={spec.placeholder ?? 'I am here to build tools for the future'}
         error={errors[spec.key]}
-        icon={icon}
         required={spec.required}
         hint={spec.hint}
-        maxLength={spec.maxLength}
+        maxLength={spec.maxLength ?? 240}
         multiline
         numberOfLines={4}
         autoCapitalize={spec.autoCapitalize ?? 'sentences'}
+        showCharacterCount
+        characterCountPlacement="top"
+        variant="boxed"
       />
     );
   }
 
-  const { label, placeholder } = structuredNamePresentation(spec);
-
   return (
     <OnboardingFormField
       key={spec.key}
-      label={label}
+      label={spec.label || spec.placeholder || ''}
       value={value}
       onChangeText={onChangeText}
-      placeholder={placeholder}
+      placeholder={spec.placeholder ?? spec.label}
       error={errors[spec.key]}
-      icon={icon}
       keyboardType={spec.keyboardType}
       autoCapitalize={spec.autoCapitalize ?? 'sentences'}
       autoCorrect={spec.key === 'email' || spec.key === 'phone' ? false : true}
       required={spec.required}
       hint={spec.hint}
       maxLength={spec.maxLength}
-      compact={STRUCTURED_NAME_KEYS.has(spec.key)}
-      hideClear={
-        STRUCTURED_NAME_KEYS.has(spec.key) ||
-        label === '' ||
-        spec.key === 'email' ||
-        spec.key === 'phone'
-      }
+      variant="boxed"
     />
   );
 }

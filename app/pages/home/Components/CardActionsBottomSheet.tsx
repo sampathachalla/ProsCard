@@ -11,8 +11,8 @@ import { SheetHeader } from '@/common/ui/SheetHeader';
 import { ThemedBottomSheet } from '@/common/ui/ThemedBottomSheet';
 import { getShareUrl } from '@/pages/share/Services/sharingService';
 import { queryClient, queryKeys } from '@/services/api/queryClient';
-import { useAddToWallet } from '@/common/wallet/Hooks/useAddToWallet';
-import { WalletProcessingModal } from '@/common/wallet/WalletProcessingModal';
+import { useAddToWallet } from '@/pages/walletCard/Hooks/useAddToWallet';
+import { WalletProcessingModal } from '@/pages/walletCard/Components/WalletProcessingModal';
 
 type CardActionsBottomSheetProps = {
   card?: BusinessCard;

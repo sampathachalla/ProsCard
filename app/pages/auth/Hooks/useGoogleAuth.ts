@@ -12,10 +12,10 @@ export function useGoogleAuth(action: 'login' | 'signup') {
     if (isGoogleSubmitting) return;
     setIsGoogleSubmitting(true);
     try {
-      const user = await signInWithGoogle();
+      const user = await signInWithGoogle(action);
       if (!user) return;
       const completed = await getHasCompletedOnboarding();
-      router.replace(completed ? '/(tabs)/homepage' : '/(tabs)/onboardingPage');
+      router.replace(completed ? '/(tabs)/homepage' : '/onboarding');
     } catch (error) {
       showMessage(
         action === 'signup' ? 'Google Signup Failed' : 'Google Sign-In Failed',

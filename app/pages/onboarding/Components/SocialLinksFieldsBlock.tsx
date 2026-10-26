@@ -1,21 +1,29 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import {
   AtSign,
   Briefcase,
   Camera,
+  Check,
   ChevronDown,
   GitFork,
   Link2,
   MessageCircle,
   Play,
   Plus,
+  Trash2,
   X,
   type LucideIcon,
 } from 'lucide-react-native';
 
 import { Text } from '@/common/ui/Text';
+import { Colors } from '@/constants/Colors';
+import { useThemeContext } from '@/context/ThemeContext';
 import { OnboardingFormField } from './OnboardingFormField';
+import {
+  countOnboardingLinks,
+  MIN_ONBOARDING_LINKS,
+} from '../Utils/validateOnboarding';
 
 export type SocialDraftKey = keyof Pick<
   import('../types/onboardingStepper.types').OnboardingDraft,
@@ -30,7 +38,9 @@ export type SocialDraftKey = keyof Pick<
   | 'portfolio'
 >;
 
-export type SocialLinksDraft = Record<SocialDraftKey, string | undefined>;
+export type SocialLinksDraft = Record<SocialDraftKey, string | undefined> & {
+  website?: string;
+};
 
 const SOCIAL_PLATFORMS: {
   key: SocialDraftKey;
@@ -58,7 +68,7 @@ const SOCIAL_PLATFORMS: {
     label: 'GitHub',
     placeholder: '@username or github.com/username',
     icon: GitFork,
-    iconColor: '#e6edf3',
+    iconColor: '#94a3b8',
   },
   {
     key: 'x',
@@ -104,35 +114,25 @@ const SOCIAL_PLATFORMS: {
   },
 ];
 
-const SOCIAL_CHIP_COLUMNS = 4;
-const SOCIAL_CHIP_GAP = 10;
-/** ~4 chips per row with gap; flex item width for wrap layout */
-const SOCIAL_CHIP_WIDTH = `${(100 - (SOCIAL_CHIP_COLUMNS - 1) * 2.2) / SOCIAL_CHIP_COLUMNS}%`;
-
 function firstEmptyPlatformKey(draft: SocialLinksDraft): SocialDraftKey | null {
   const empty = SOCIAL_PLATFORMS.find((p) => !draft[p.key]?.trim());
   return empty?.key ?? null;
-}
-
-function chunkSocialChipKeys(keys: SocialDraftKey[]): SocialDraftKey[][] {
-  const rows: SocialDraftKey[][] = [];
-  for (let i = 0; i < keys.length; i += SOCIAL_CHIP_COLUMNS) {
-    rows.push(keys.slice(i, i + SOCIAL_CHIP_COLUMNS));
-  }
-  return rows;
 }
 
 export function SocialLinksFieldsBlock({
   draft,
   updateDraft,
   errors,
-  embedded = false,
 }: {
   draft: SocialLinksDraft;
   updateDraft: (fields: Partial<SocialLinksDraft>) => void;
   errors: Record<string, string>;
   embedded?: boolean;
 }) {
+  const { theme } = useThemeContext();
+  const isDark = theme === 'dark';
+  const tintColor = isDark ? Colors.dark.tint : Colors.light.tint;
+
   const [formOpen, setFormOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [selectedKey, setSelectedKey] = useState<SocialDraftKey | null>(() =>
@@ -149,16 +149,17 @@ export function SocialLinksFieldsBlock({
     () => SOCIAL_PLATFORMS.filter((p) => Boolean(draft[p.key]?.trim())).map((p) => p.key),
     [draft]
   );
-
-  const chipRows = useMemo(() => chunkSocialChipKeys(savedKeys), [savedKeys]);
+  const linkCount = countOnboardingLinks(draft);
+  const hasMinimumLinks = linkCount >= MIN_ONBOARDING_LINKS;
 
   const selectedPlatform = selectedKey ? platformByKey.get(selectedKey) : undefined;
   const SelectedDropdownIcon = selectedPlatform?.icon;
 
   const openAddForm = () => {
-    const nextKey = selectedKey && !draft[selectedKey]?.trim()
-      ? selectedKey
-      : firstEmptyPlatformKey(draft) ?? savedKeys[0] ?? SOCIAL_PLATFORMS[0].key;
+    const nextKey =
+      selectedKey && !draft[selectedKey]?.trim()
+        ? selectedKey
+        : firstEmptyPlatformKey(draft) ?? savedKeys[0] ?? SOCIAL_PLATFORMS[0].key;
     setSelectedKey(nextKey);
     setFormOpen(true);
     setDropdownOpen(false);
@@ -204,132 +205,195 @@ export function SocialLinksFieldsBlock({
   }, [firstSocialErrorKey]);
 
   return (
-    <View className={embedded ? 'w-full' : 'w-full rounded-2xl border border-border/80 bg-card/40 p-4 dark:border-dark-border/80 dark:bg-dark-card/30'}>
+    <View className="w-full">
+      <View className="mb-2 flex-row items-center justify-between gap-3">
+        <View className="min-w-0 flex-1">
+          <Text
+            variant="none"
+            className="text-[14px] font-medium text-slate-600 dark:text-slate-300"
+          >
+            Social profiles
+          </Text>
+          <Text
+            variant="none"
+            className="mt-0.5 text-[12px] text-slate-500 dark:text-slate-400"
+          >
+            Add at least one website or social profile to continue.
+          </Text>
+        </View>
+        <View
+          className={`rounded-full px-2.5 py-1 ${
+            hasMinimumLinks
+              ? 'bg-emerald-500/15'
+              : 'bg-slate-200/80 dark:bg-slate-800'
+          }`}
+        >
+          <Text
+            variant="none"
+            className={`text-[12px] font-semibold tabular-nums ${
+              hasMinimumLinks
+                ? 'text-emerald-600 dark:text-emerald-400'
+                : 'text-slate-600 dark:text-slate-300'
+            }`}
+          >
+            {linkCount}/{MIN_ONBOARDING_LINKS} added
+          </Text>
+        </View>
+      </View>
+
+      {errors.socialLinks && !hasMinimumLinks ? (
+        <Text variant="none" className="mb-2.5 text-xs font-medium text-error dark:text-dark-error">
+          {errors.socialLinks}
+        </Text>
+      ) : null}
+
       {firstSocialErrorKey && !formOpen ? (
-        <Text variant="none" className="mb-3 text-center text-sm font-medium text-red-400">
+        <Text variant="none" className="mb-2.5 text-xs font-medium text-error dark:text-dark-error">
           Fix the highlighted link below, then tap Continue again.
         </Text>
       ) : null}
-      {!formOpen ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Add social profile"
-          onPress={openAddForm}
-          className="flex-row items-center justify-center gap-2 rounded-xl border border-dashed border-sky-400/50 bg-sky-500/5 px-4 py-3.5 active:opacity-85"
-        >
-          <Plus color="#38bdf8" size={20} strokeWidth={2.5} />
-          <Text variant="none" className="text-base font-semibold text-sky-500 dark:text-sky-400">
-            Add social profile
-          </Text>
-        </Pressable>
-      ) : (
-        <View className="mt-4 rounded-xl border border-border/70 bg-background/80 p-4 dark:border-dark-border/70 dark:bg-dark-background/60">
-          <View className="mb-4 flex-row items-center justify-between">
-            <Text
-              variant="none"
-              className="text-base font-semibold text-textPrimary dark:text-dark-textPrimary"
-            >
-              Add social profile
-            </Text>
+
+      {formOpen ? (
+        <View className="w-full">
+          {/* Profile Type Selector (Flat solid rounded-lg field matching OnboardingFormField) */}
+          <View className="mb-4">
+            <View className="mb-2 flex-row items-center justify-between">
+              <Text
+                variant="none"
+                className="text-[14px] font-normal text-slate-500 dark:text-slate-400"
+              >
+                Profile type
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Close add social profile form"
+                onPress={closeForm}
+                hitSlop={8}
+                className="flex-row items-center gap-1 active:opacity-70"
+              >
+                <X size={16} color={isDark ? '#94a3b8' : '#64748b'} strokeWidth={2.2} />
+                <Text
+                  variant="none"
+                  className="text-[13px] font-medium text-slate-500 dark:text-slate-400"
+                >
+                  Close
+                </Text>
+              </Pressable>
+            </View>
+
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Close add social profile form"
-              onPress={closeForm}
-              hitSlop={8}
-              className="rounded-full p-1 active:opacity-70"
+              accessibilityLabel="Choose social profile type"
+              accessibilityState={{ expanded: dropdownOpen }}
+              onPress={() => setDropdownOpen((open) => !open)}
+              className={`min-h-[54px] flex-row items-center justify-between rounded-lg border px-4 py-3 ${
+                dropdownOpen
+                  ? 'border-primary/50 bg-slate-100/80 dark:border-dark-primary/50 dark:bg-[#1e293b]'
+                  : 'border-transparent bg-slate-100 dark:bg-dark-card'
+              }`}
             >
-              <X size={20} color="#94a3b8" strokeWidth={2.2} />
-            </Pressable>
-          </View>
-
-          <Text
-            variant="none"
-            className="mb-2 text-sm font-medium text-textMuted dark:text-dark-textMuted"
-          >
-            Profile type
-          </Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Choose social profile type"
-            accessibilityState={{ expanded: dropdownOpen }}
-            onPress={() => setDropdownOpen((open) => !open)}
-            className="flex-row items-center justify-between rounded-xl border border-border/80 bg-card/50 px-4 py-3.5 dark:border-dark-border/80 dark:bg-dark-card/40"
-          >
-            <View className="flex-row items-center gap-3">
-              {selectedPlatform && SelectedDropdownIcon ? (
-                <>
-                  <View className="h-9 w-9 items-center justify-center rounded-full bg-slate-500/15">
-                    <SelectedDropdownIcon
-                      color={selectedPlatform.iconColor}
-                      size={18}
-                      strokeWidth={2.2}
-                    />
-                  </View>
-                  <Text
-                    variant="none"
-                    className="text-base font-medium text-textPrimary dark:text-dark-textPrimary"
-                  >
-                    {selectedPlatform.label}
-                  </Text>
-                </>
-              ) : (
-                <Text variant="none" className="text-base text-textMuted dark:text-dark-textMuted">
-                  Select network
-                </Text>
-              )}
-            </View>
-            <ChevronDown
-              size={20}
-              color="#94a3b8"
-              strokeWidth={2.2}
-              style={{ transform: [{ rotate: dropdownOpen ? '180deg' : '0deg' }] }}
-            />
-          </Pressable>
-
-          {dropdownOpen ? (
-            <View
-              className="mt-2 overflow-hidden rounded-xl border border-border/70 bg-background dark:border-dark-border/70 dark:bg-dark-background"
-              style={{ maxHeight: 220 }}
-            >
-              {SOCIAL_PLATFORMS.map((platform) => {
-                const Icon = platform.icon;
-                const isSelected = platform.key === selectedKey;
-                return (
-                  <Pressable
-                    key={platform.key}
-                    accessibilityRole="button"
-                    accessibilityLabel={platform.label}
-                    onPress={() => selectPlatform(platform.key)}
-                    className={`flex-row items-center gap-3 border-b border-border/40 px-4 py-3 dark:border-dark-border/40 ${
-                      isSelected ? 'bg-sky-500/10' : 'active:bg-slate-500/10'
-                    }`}
-                  >
-                    <View className="h-9 w-9 items-center justify-center rounded-full bg-slate-500/10">
-                      <Icon color={platform.iconColor} size={18} strokeWidth={2.2} />
+              <View className="flex-row items-center gap-3">
+                {selectedPlatform && SelectedDropdownIcon ? (
+                  <>
+                    <View className="h-9 w-9 items-center justify-center rounded-lg bg-slate-200/70 dark:bg-slate-800/90">
+                      <SelectedDropdownIcon
+                        color={selectedPlatform.iconColor}
+                        size={18}
+                        strokeWidth={2.2}
+                      />
                     </View>
                     <Text
                       variant="none"
-                      className="flex-1 text-base font-medium text-textPrimary dark:text-dark-textPrimary"
+                      className="text-[16px] font-normal text-textPrimary dark:text-dark-textPrimary"
                     >
-                      {platform.label}
+                      {selectedPlatform.label}
                     </Text>
-                    {draft[platform.key]?.trim() ? (
-                      <Text variant="none" className="text-xs text-textMuted dark:text-dark-textMuted">
-                        Added
-                      </Text>
-                    ) : null}
-                  </Pressable>
-                );
-              })}
-            </View>
-          ) : null}
+                  </>
+                ) : (
+                  <Text
+                    variant="none"
+                    className="text-[16px] font-normal text-slate-400 dark:text-slate-500"
+                  >
+                    Select network
+                  </Text>
+                )}
+              </View>
+              <ChevronDown
+                size={20}
+                color={isDark ? '#94a3b8' : '#64748b'}
+                strokeWidth={2.2}
+                style={{ transform: [{ rotate: dropdownOpen ? '180deg' : '0deg' }] }}
+              />
+            </Pressable>
 
+            {dropdownOpen ? (
+              <View
+                className="mt-2 overflow-hidden rounded-lg border border-slate-200/80 bg-slate-100 dark:border-slate-800 dark:bg-dark-card"
+                style={{ maxHeight: 236 }}
+              >
+                <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
+                  {SOCIAL_PLATFORMS.map((platform, idx) => {
+                    const Icon = platform.icon;
+                    const isSelected = platform.key === selectedKey;
+                    const isAdded = Boolean(draft[platform.key]?.trim());
+                    return (
+                      <Pressable
+                        key={platform.key}
+                        accessibilityRole="button"
+                        accessibilityLabel={platform.label}
+                        onPress={() => selectPlatform(platform.key)}
+                        className={`flex-row items-center gap-3 px-4 py-3 ${
+                          idx < SOCIAL_PLATFORMS.length - 1
+                            ? 'border-b border-slate-200/60 dark:border-slate-800/80'
+                            : ''
+                        } ${
+                          isSelected
+                            ? 'bg-primary/10 dark:bg-sky-500/15'
+                            : 'active:bg-slate-200/50 dark:active:bg-slate-800/50'
+                        }`}
+                      >
+                        <View className="h-9 w-9 items-center justify-center rounded-lg bg-slate-200/70 dark:bg-slate-800/90">
+                          <Icon color={platform.iconColor} size={18} strokeWidth={2.2} />
+                        </View>
+                        <Text
+                          variant="none"
+                          className={`flex-1 text-[15px] ${
+                            isSelected
+                              ? 'font-semibold text-primary dark:text-sky-400'
+                              : 'font-normal text-textPrimary dark:text-dark-textPrimary'
+                          }`}
+                        >
+                          {platform.label}
+                        </Text>
+                        {isAdded ? (
+                          <View className="flex-row items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 dark:bg-sky-500/15">
+                            <Check size={12} color={tintColor} strokeWidth={2.6} />
+                            <Text
+                              variant="none"
+                              style={{ color: tintColor }}
+                              className="text-[11px] font-semibold"
+                            >
+                              Added
+                            </Text>
+                          </View>
+                        ) : isSelected ? (
+                          <Check size={16} color={tintColor} strokeWidth={2.4} />
+                        ) : null}
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            ) : null}
+          </View>
+
+          {/* Profile URL Field (Flat solid rounded-lg field) */}
           {selectedKey && selectedPlatform ? (
-            <View className="mt-4 overflow-visible">
-              <View className="mb-1 flex-row items-center justify-between">
+            <View className="w-full">
+              <View className="mb-2 flex-row items-center justify-between">
                 <Text
                   variant="none"
-                  className="text-sm font-medium text-textMuted dark:text-dark-textMuted"
+                  className="text-[14px] font-normal text-slate-500 dark:text-slate-400"
                 >
                   Profile URL
                 </Text>
@@ -340,7 +404,7 @@ export function SocialLinksFieldsBlock({
                     onPress={() => removePlatform(selectedKey)}
                     hitSlop={8}
                   >
-                    <Text variant="none" className="text-sm font-medium text-red-400">
+                    <Text variant="none" className="text-[13px] font-medium text-rose-500 dark:text-rose-400">
                       Remove
                     </Text>
                   </Pressable>
@@ -354,7 +418,6 @@ export function SocialLinksFieldsBlock({
                 }
                 placeholder={selectedPlatform.placeholder}
                 error={errors[selectedKey]}
-                icon={selectedPlatform.icon}
                 keyboardType="url"
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -364,73 +427,123 @@ export function SocialLinksFieldsBlock({
             </View>
           ) : null}
 
+          {/* Done Button matching the flat rounded-lg input design */}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Done adding social profile"
             onPress={closeForm}
-            className="mt-5 items-center rounded-xl bg-sky-500/15 py-3 active:opacity-85"
+            className="mt-3 min-h-[50px] flex-row items-center justify-center rounded-lg border border-primary/30 bg-primary/12 px-4 py-3 active:opacity-85 dark:border-sky-400/30 dark:bg-sky-500/15"
           >
-            <Text variant="none" className="text-base font-semibold text-sky-500 dark:text-sky-400">
+            <Text
+              variant="none"
+              style={{ color: tintColor }}
+              className="text-[15px] font-semibold"
+            >
               Done
             </Text>
           </Pressable>
         </View>
-      )}
+      ) : null}
 
-      {chipRows.length > 0 ? (
-        <View className="mt-4" style={{ gap: SOCIAL_CHIP_GAP }}>
-          {chipRows.map((row, rowIndex) => (
-            <View
-              key={`social-chip-row-${rowIndex}`}
-              className="flex-row justify-start"
-              style={{ gap: SOCIAL_CHIP_GAP }}
-            >
-              {row.map((key) => {
-                const platform = platformByKey.get(key);
-                if (!platform) return null;
-                const Icon = platform.icon;
-                return (
-                  <Pressable
-                    key={key}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Edit ${platform.label}`}
-                    onPress={() => editPlatform(key)}
-                    style={{
-                      width: SOCIAL_CHIP_WIDTH,
-                      flexGrow: 0,
-                      flexShrink: 0,
-                    }}
-                    className={`items-center rounded-2xl border px-1 py-2.5 ${
-                  errors[key]
-                    ? 'border-red-400/70 bg-red-500/5'
-                    : 'border-border/60 bg-background/60 dark:border-dark-border/60 dark:bg-dark-background/50'
+      {/* Added Social Profiles List (Flat rounded-lg rows matching the new field style) */}
+      {savedKeys.length > 0 ? (
+        <View className={`gap-2.5 ${formOpen ? 'mt-3.5' : ''}`}>
+          {savedKeys.map((key) => {
+            const platform = platformByKey.get(key);
+            if (!platform) return null;
+            const Icon = platform.icon;
+            const value = draft[key]?.trim() ?? '';
+            const hasError = Boolean(errors[key]);
+            const isCurrentlyEditing = formOpen && selectedKey === key;
+
+            return (
+              <Pressable
+                key={key}
+                accessibilityRole="button"
+                accessibilityLabel={`Edit ${platform.label}`}
+                onPress={() => editPlatform(key)}
+                className={`min-h-[54px] flex-row items-center justify-between rounded-lg border px-4 py-2.5 active:opacity-85 ${
+                  hasError
+                    ? 'border-error bg-red-50/70 dark:border-dark-error dark:bg-red-950/20'
+                    : isCurrentlyEditing
+                      ? 'border-primary/50 bg-slate-100/80 dark:border-dark-primary/50 dark:bg-[#1e293b]'
+                      : 'border-transparent bg-slate-100 dark:bg-dark-card'
                 }`}
-                  >
-                    <View className="h-11 w-11 items-center justify-center rounded-full bg-sky-500/20">
-                      <Icon color={platform.iconColor} size={22} strokeWidth={2.2} />
-                    </View>
+              >
+                <View className="min-w-0 flex-1 flex-row items-center gap-3 pr-2">
+                  <View className="h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-200/70 dark:bg-slate-800/90">
+                    <Icon color={platform.iconColor} size={18} strokeWidth={2.2} />
+                  </View>
+                  <View className="min-w-0 flex-1">
                     <Text
                       variant="none"
-                      className="mt-1.5 w-full text-center text-[11px] font-medium text-textMuted dark:text-dark-textMuted"
-                      numberOfLines={1}
+                      className="text-[15px] font-medium text-textPrimary dark:text-dark-textPrimary"
                     >
                       {platform.label}
                     </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          ))}
+                    <Text
+                      variant="none"
+                      numberOfLines={1}
+                      className="text-[13px] font-normal text-slate-500 dark:text-slate-400"
+                    >
+                      {value}
+                    </Text>
+                  </View>
+                </View>
+
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Remove ${platform.label}`}
+                  hitSlop={8}
+                  onPress={() => removePlatform(key)}
+                  className="h-8 w-8 items-center justify-center rounded-lg bg-rose-500/10 active:opacity-75"
+                >
+                  <Trash2 size={16} color="#ef4444" strokeWidth={2.1} />
+                </Pressable>
+              </Pressable>
+            );
+          })}
         </View>
       ) : null}
 
-      {!formOpen && savedKeys.length === 0 ? (
-        <Text
-          variant="none"
-          className="mt-3 text-center text-sm text-textMuted dark:text-dark-textMuted"
-        >
-          No profiles yet — tap Add social profile to get started.
-        </Text>
+      {!formOpen ? (
+        <>
+          {savedKeys.length === 0 ? (
+            <Text
+              variant="none"
+              className="mb-2.5 text-[13px] font-normal text-slate-500 dark:text-slate-400"
+            >
+              No profiles added yet — tap below to connect LinkedIn, X, GitHub, and more.
+            </Text>
+          ) : null}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Add social profile"
+            onPress={openAddForm}
+            className={`min-h-[54px] flex-row items-center justify-between rounded-lg border border-transparent bg-slate-100 px-4 py-3 active:opacity-85 dark:bg-dark-card ${
+              savedKeys.length > 0 ? 'mt-3.5' : ''
+            }`}
+          >
+            <View className="flex-row items-center gap-3">
+              <View className="h-9 w-9 items-center justify-center rounded-lg bg-primary/10 dark:bg-sky-500/15">
+                <Plus color={tintColor} size={19} strokeWidth={2.4} />
+              </View>
+              <Text
+                variant="none"
+                className="text-[16px] font-normal text-textPrimary dark:text-dark-textPrimary"
+              >
+                Add social profile
+              </Text>
+            </View>
+            <Text
+              variant="none"
+              style={{ color: tintColor }}
+              className="text-[14px] font-semibold"
+            >
+              Add
+            </Text>
+          </Pressable>
+        </>
       ) : null}
     </View>
   );

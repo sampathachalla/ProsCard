@@ -1,9 +1,9 @@
 import { AUTH_TEST_FIXTURES, AUTH_TEST_MODE } from '../Config/authMode';
 import type { LoginCredentials, SignupCredentials, StoredUser } from '../types/auth.types';
 import { apiRequest } from '@/services/api/client';
-import { getSession, setSession } from '@/services/api/session';
+import { clearUserCache, getSession, setSession } from '@/services/api/session';
 import type { AuthSession } from '@/services/api/types';
-import { queryClient } from '@/services/api/queryClient';
+import { queryClient, queryKeys } from '@/services/api/queryClient';
 import { clearCardState } from '@/pages/cards/Services/cardsService';
 import { clearMediaCache } from '@/pages/profile/Services/mediaCache';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
@@ -46,10 +46,25 @@ export async function login(credentials: LoginCredentials): Promise<StoredUser> 
   return AUTH_TEST_MODE ? mockAuthentication(credentials.email) : authenticate('/auth/login', credentials);
 }
 
+/**
+ * Test mode only: signs in the local test user as a brand-new account. Whatever earlier test runs saved
+ * on this device for that user is cleared first, so onboarding opens empty at step 1 every time.
+ */
+async function startTestSignup(email: string): Promise<StoredUser> {
+  await clearUserCache(AUTH_TEST_FIXTURES.user.id);
+  clearCardState();
+  queryClient.clear();
+  const user = await mockAuthentication(email);
+  // A test sign-up always represents a new account, even when the fixture user was used before.
+  // Keep the route guard from reusing a previously completed onboarding result.
+  await clearUserCache(user.id);
+  queryClient.setQueryData(queryKeys.onboarding, false);
+  return user;
+}
+
 export async function signup(credentials: SignupCredentials): Promise<StoredUser> {
-  return AUTH_TEST_MODE
-    ? mockAuthentication(credentials.email)
-    : authenticate('/auth/signup', { email: credentials.email, password: credentials.password });
+  if (AUTH_TEST_MODE) return startTestSignup(credentials.email);
+  return authenticate('/auth/signup', { email: credentials.email, password: credentials.password });
 }
 
 /** URLSearchParams has already decoded once; a stray "%" in the message must not throw a URIError. */
@@ -88,8 +103,13 @@ function googleRedirectUrl(): string {
   return GOOGLE_OAUTH_CALLBACK;
 }
 
-export async function signInWithGoogle(): Promise<StoredUser | null> {
-  if (AUTH_TEST_MODE) return mockAuthentication(AUTH_TEST_FIXTURES.user.username);
+export async function signInWithGoogle(action: 'login' | 'signup' = 'login'): Promise<StoredUser | null> {
+  if (AUTH_TEST_MODE) {
+    // Google sign-up starts a fresh test account like email sign-up; Google login keeps the existing one.
+    return action === 'signup'
+      ? startTestSignup(AUTH_TEST_FIXTURES.user.username)
+      : mockAuthentication(AUTH_TEST_FIXTURES.user.username);
+  }
   const redirectTo = googleRedirectUrl();
   const { url } = await apiRequest<{ url: string }>('/auth/google', {
     method: 'POST', authenticated: false, body: { redirectTo },

@@ -85,8 +85,8 @@ export function ColorPickerDropdown({
   };
 
   const hexInput = (
-    <View className="flex-row items-center rounded-xl border border-slate-200 bg-background px-3 dark:border-slate-700 dark:bg-dark-background">
-      <Text className="mr-1 text-sm font-semibold text-textMuted dark:text-dark-textMuted">#</Text>
+    <View className="min-h-[48px] flex-row items-center rounded-lg border border-transparent bg-slate-100 px-3.5 dark:bg-dark-card">
+      <Text className="mr-1 text-sm font-normal text-slate-500 dark:text-slate-400">#</Text>
       <TextInput
         value={hexDraft}
         onChangeText={(text) =>
@@ -102,7 +102,7 @@ export function ColorPickerDropdown({
         autoCapitalize="characters"
         autoCorrect={false}
         maxLength={6}
-        className="flex-1 py-2.5 font-mono text-sm font-semibold text-textPrimary dark:text-dark-textPrimary"
+        className="flex-1 py-2.5 font-mono text-[15px] font-normal text-textPrimary dark:text-dark-textPrimary"
       />
     </View>
   );

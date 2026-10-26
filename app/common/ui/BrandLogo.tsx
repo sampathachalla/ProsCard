@@ -1,8 +1,8 @@
 import { Image, View, useWindowDimensions, type ImageSourcePropType } from 'react-native';
-import vcProsLogoForLightTheme from '@/assets/vcpros-logo-light.png'; // Navy VC + cyan PROS
-import vcProsLogoForDarkTheme from '@/assets/vcpros-logo-dark.png'; // White VC + cyan PROS
-import vcProsIconForLightTheme from '@/assets/vcpros-icon-light.png';
-import vcProsIconForDarkTheme from '@/assets/vcpros-icon-dark.png';
+import vcProsLogoForLightTheme from '@/assets/vcpros-logo-v2-light.png'; // Navy VC + cyan PROS (v2 vector-crisp)
+import vcProsLogoForDarkTheme from '@/assets/vcpros-logo-v2-dark.png'; // White VC + cyan PROS (v2 vector-crisp)
+import vcProsIconForLightTheme from '@/assets/vcpros-icon-v2-light.png';
+import vcProsIconForDarkTheme from '@/assets/vcpros-icon-v2-dark.png';
 import { useThemeContext } from '@/context/ThemeContext';
 import { Text } from './Text';
 

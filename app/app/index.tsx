@@ -13,5 +13,5 @@ export default function IndexScreen() {
     return <View className="flex-1 items-center justify-center"><ActivityIndicator /></View>;
   }
   if (!isAuthenticated) return <Redirect href="/auth/welcome" />;
-  return <Redirect href={onboarding.data ? '/(tabs)/homepage' : '/(tabs)/onboardingPage'} />;
+  return <Redirect href={onboarding.data ? '/(tabs)/homepage' : '/onboarding'} />;
 }

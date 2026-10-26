@@ -17,8 +17,8 @@ export function useProfileSnapshot() {
     profile: query.data,
     loading: query.isLoading,
     refreshing: query.isFetching,
-    /** True once the backend profile request has settled, rather than while showing initialData. */
-    fetched: query.isFetchedAfterMount,
+    /** Cached profile data remains ready when Home remounts after navigating to another screen. */
+    fetched: query.isFetched,
     offline: profileIsOffline(),
     error: query.error instanceof Error ? query.error : null,
     refresh: query.refetch,

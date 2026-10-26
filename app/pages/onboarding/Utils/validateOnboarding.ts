@@ -10,6 +10,25 @@ export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export const PHONE_PATTERN = /^[+]?[\d\s().-]{7,20}$/;
 export const URL_PATTERN = /^(https?:\/\/)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/.*)?$/i;
 export const HANDLE_PATTERN = /^@?[a-zA-Z0-9_.-]+$/;
+export const MIN_ONBOARDING_LINKS = 1;
+export const ONBOARDING_LINK_FIELDS = [
+  'website',
+  'linkedin',
+  'github',
+  'x',
+  'facebook',
+  'instagram',
+  'whatsapp',
+  'youtube',
+  'tiktok',
+  'portfolio',
+] as const;
+
+export function countOnboardingLinks(
+  draft: Partial<Pick<OnboardingDraft, (typeof ONBOARDING_LINK_FIELDS)[number]>>,
+): number {
+  return ONBOARDING_LINK_FIELDS.filter((field) => Boolean(draft[field]?.trim())).length;
+}
 
 export function normalizeUrl(
   input: string,
@@ -166,16 +185,29 @@ export function validateSocialStep(
       | 'youtube'
       | 'tiktok'
       | 'portfolio'
+      | 'website'
     >
   >
 ): ValidationErrors {
   const errors: ValidationErrors = {};
 
+  if (countOnboardingLinks(draft) < MIN_ONBOARDING_LINKS) {
+    errors.socialLinks = `Add at least ${MIN_ONBOARDING_LINKS} website or social link.`;
+  }
+
   const isLocalOrEmptyUri = (value: string) => !value || isMediaReference(value);
+
+  const validateMediaUrl = (value: string | undefined, fieldKey: string, label: string) => {
+    const trimmed = value?.trim() || '';
+    if (!trimmed || isLocalOrEmptyUri(trimmed)) return;
+    if (!URL_PATTERN.test(trimmed)) {
+      errors[fieldKey] = `Enter a valid ${label}.`;
+    }
+  };
 
   const validateRemoteUrl = (value: string | undefined, fieldKey: string, label: string) => {
     const trimmed = value?.trim() || '';
-    if (!trimmed || isLocalOrEmptyUri(trimmed)) return;
+    if (!trimmed) return;
     if (!URL_PATTERN.test(trimmed)) {
       errors[fieldKey] = `Enter a valid ${label}.`;
     }
@@ -190,8 +222,8 @@ export function validateSocialStep(
     }
   };
 
-  validateRemoteUrl(draft.photoUrl, 'photoUrl', 'image URL');
-  validateRemoteUrl(draft.coverPhotoUrl, 'coverPhotoUrl', 'image URL');
+  validateMediaUrl(draft.photoUrl, 'photoUrl', 'image URL');
+  validateMediaUrl(draft.coverPhotoUrl, 'coverPhotoUrl', 'image URL');
   validateUrlOrHandle(draft.linkedin, 'linkedin', 'LinkedIn URL or profile');
   validateUrlOrHandle(draft.github, 'github', 'GitHub URL or username');
   validateUrlOrHandle(draft.x, 'x', 'X/Twitter handle or URL');

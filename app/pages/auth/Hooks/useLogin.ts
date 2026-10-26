@@ -35,7 +35,7 @@ export function useLogin() {
     setIsSubmitting(true);
     try {
       await login({ email: email.trim(), password });
-      router.replace(await getHasCompletedOnboarding() ? '/(tabs)/homepage' : '/(tabs)/onboardingPage');
+      router.replace(await getHasCompletedOnboarding() ? '/(tabs)/homepage' : '/onboarding');
     } catch (err) {
       Alert.alert('Login Failed', err instanceof Error ? err.message : 'Could not log in. Please try again.');
     } finally {

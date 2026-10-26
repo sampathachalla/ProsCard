@@ -6,7 +6,7 @@ import { CheckCircle2, Edit3, Plus, Star, Trash2, X } from 'lucide-react-native'
 import { useCards } from '@/pages/cards/Hooks/useCards';
 import type { BusinessCard } from '@/pages/cards/types/card.types';
 import { useProfileSnapshot } from '@/pages/profile/Hooks/useProfileSnapshot';
-import { WalletStackView } from '@/common/wallet';
+import { WalletStackView } from '@/pages/walletCard';
 import { PageHeader } from '@/common/ui/PageHeader';
 import { Text } from '@/common/ui/Text';
 import { deleteCard, setPrimaryCard } from '@/pages/cards/Services/cardsService';

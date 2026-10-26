@@ -63,7 +63,7 @@ function singleLineInputStyle(fontSize: number): TextStyle {
 
 function multilineInputStyle(fontSize: number): TextStyle {
   return {
-    minHeight: 88,
+    minHeight: 84,
     paddingTop: 10,
     paddingBottom: 10,
     fontSize,
@@ -94,7 +94,7 @@ export function OnboardingFormField({
   autoCorrect = true,
   compact = false,
   hideClear = false,
-  variant = 'underline',
+  variant = 'boxed',
   showCharacterCount = false,
   characterCountPlacement = 'bottom',
   centerAlign = false,
@@ -121,19 +121,16 @@ export function OnboardingFormField({
     if (isFocused) {
       return theme === 'dark' ? Colors.dark.tint : Colors.light.tint;
     }
-    return theme === 'dark' ? Colors.dark.mutedText : Colors.light.mutedText;
+    return theme === 'dark' ? '#94a3b8' : '#64748b';
   };
 
   const iconColor = getIconColor();
 
-  const isMinimal = label.trim().length === 0;
   const fieldLabel = label.trim().length > 0 ? label : placeholder ?? label;
-  const isBoxed = variant === 'boxed';
   const countLabel =
     showCharacterCount && maxLength != null ? `${value.length}/${maxLength}` : null;
 
-  const underlineFontSize = isMinimal ? 18 : compact ? 16 : 17;
-  const boxedFontSize = 16;
+  const inputFontSize = 16;
 
   const sharedInputProps = {
     value,
@@ -163,109 +160,59 @@ export function OnboardingFormField({
     underlineColorAndroid: 'transparent' as const,
   };
 
-  if (isBoxed) {
-    return (
-      <View className="mb-4 w-full">
-        {label.trim().length > 0 ? (
-          <View className="mb-1.5 px-0.5">
-            <Text className="text-xs font-semibold uppercase tracking-wider text-textMuted dark:text-dark-textMuted">
-              {label}
-              {required && <Text className="text-error dark:text-dark-error font-bold"> *</Text>}
-            </Text>
-          </View>
-        ) : null}
-
-        <View
-          className={`rounded-2xl border px-4 ${
-            hasError
-              ? 'border-error bg-red-50/80 dark:border-dark-error dark:bg-red-950/25'
-              : isFocused
-                ? 'border-primary bg-white dark:border-dark-primary dark:bg-slate-900'
-                : 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/80'
-          }`}
-          style={{
-            minHeight: multiline ? 120 : 56,
-            paddingTop: multiline ? 12 : 8,
-            paddingBottom: multiline ? 12 : 8,
-            justifyContent: multiline ? 'flex-start' : 'center',
-          }}
-        >
-          {countLabel && characterCountPlacement === 'top' ? (
-            <Text className="mb-1 self-end text-xs font-medium text-textMuted dark:text-dark-textMuted">
-              {countLabel}
-            </Text>
-          ) : null}
-          <TextInput
-            {...sharedInputProps}
-            className="w-full border-0 bg-transparent text-textPrimary dark:text-dark-textPrimary outline-none"
-            style={[
-              multiline ? multilineInputStyle(boxedFontSize) : singleLineInputStyle(boxedFontSize),
-              webOutlineStyle(),
-            ]}
-          />
-          {countLabel && characterCountPlacement === 'bottom' ? (
-            <Text className="mt-2 text-right text-xs font-medium text-textMuted dark:text-dark-textMuted">
-              {countLabel}
-            </Text>
-          ) : null}
-        </View>
-
-        {hasError ? (
-          <View className="mt-1.5 flex-row items-center px-1">
-            <AlertCircle
-              size={13}
-              color={theme === 'dark' ? Colors.dark.error : Colors.light.error}
-              strokeWidth={2.2}
-            />
-            <Text className="ml-1 text-xs font-medium text-error dark:text-dark-error">{error}</Text>
-          </View>
-        ) : null}
-        {!hasError && hint ? (
-          <Text className="mt-1 px-1 text-xs text-textMuted dark:text-dark-textMuted">{hint}</Text>
-        ) : null}
-      </View>
-    );
-  }
-
-  const underlineRowMinHeight = multiline ? 108 : compact ? 52 : 58;
-
   return (
-    <View className={`w-full ${isMinimal ? (compact ? 'mb-3' : 'mb-6') : 'mb-5'}`}>
-      {label.trim().length > 0 ? (
-        <View className="mb-1.5 px-0.5">
-          <Text
-            className={`text-[13px] font-medium ${
-              hasError
-                ? 'text-error dark:text-dark-error'
-                : isFocused
-                  ? 'text-primary dark:text-dark-primary'
-                  : 'text-textMuted dark:text-dark-textMuted'
-            }`}
-          >
-            {label}
-            {required ? <Text className="font-bold text-error dark:text-dark-error"> *</Text> : null}
-          </Text>
+    <View className={`${compact ? 'mb-3.5' : 'mb-5'} w-full`}>
+      {label.trim().length > 0 || (countLabel && characterCountPlacement === 'top') ? (
+        <View className="mb-2 flex-row items-center justify-between">
+          {label.trim().length > 0 ? (
+            <Text
+              className={`text-[14px] font-normal ${
+                hasError
+                  ? 'text-error dark:text-dark-error'
+                  : 'text-slate-500 dark:text-slate-400'
+              }`}
+            >
+              {label}
+              {required ? <Text className="text-error dark:text-dark-error"> *</Text> : null}
+            </Text>
+          ) : (
+            <View />
+          )}
+          {countLabel && characterCountPlacement === 'top' ? (
+            <Text className="text-xs font-normal text-slate-500 dark:text-slate-400">
+              {countLabel}
+            </Text>
+          ) : null}
         </View>
       ) : null}
 
-      <View className="overflow-visible pb-2">
-        <View
-          className={`flex-row items-center overflow-visible ${multiline ? 'items-start pt-1' : ''}`}
-          style={{ minHeight: underlineRowMinHeight }}
-        >
+      <View
+        className={`rounded-lg border px-4 ${
+          hasError
+            ? 'border-error bg-red-50/80 dark:border-dark-error dark:bg-red-950/30'
+            : isFocused
+              ? 'border-primary/50 bg-slate-100/80 dark:border-dark-primary/50 dark:bg-[#1e293b]'
+              : 'border-transparent bg-slate-100 dark:bg-dark-card'
+        }`}
+        style={{
+          minHeight: multiline ? 104 : 54,
+          paddingTop: multiline ? 10 : 5,
+          paddingBottom: multiline ? 10 : 5,
+          justifyContent: multiline ? 'flex-start' : 'center',
+        }}
+      >
+        <View className={`flex-row ${multiline ? 'items-start' : 'items-center'}`}>
           {Icon ? (
-            <View className={`mr-2.5 ${multiline ? 'mt-1' : ''}`}>
-              <Icon size={20} color={iconColor} strokeWidth={2} />
+            <View className={`mr-3 ${multiline ? 'mt-2.5' : ''}`}>
+              <Icon size={18} color={iconColor} strokeWidth={2} />
             </View>
           ) : null}
 
           <TextInput
             {...sharedInputProps}
-            className="flex-1 border-0 bg-transparent font-normal text-textPrimary dark:text-dark-textPrimary outline-none"
+            className="flex-1 border-0 bg-transparent font-normal text-textPrimary outline-none dark:text-dark-textPrimary"
             style={[
-              multiline
-                ? multilineInputStyle(underlineFontSize)
-                : singleLineInputStyle(underlineFontSize),
+              multiline ? multilineInputStyle(inputFontSize) : singleLineInputStyle(inputFontSize),
               centerAlign ? { textAlign: 'center' as const } : null,
               webOutlineStyle(),
             ]}
@@ -282,24 +229,15 @@ export function OnboardingFormField({
               <X
                 size={16}
                 color={theme === 'dark' ? '#94a3b8' : '#64748b'}
-                strokeWidth={2.5}
+                strokeWidth={2.2}
               />
             </Pressable>
           ) : null}
         </View>
 
-        <View
-          className={`mt-1 h-[1.5px] w-full rounded-full ${
-            hasError
-              ? 'bg-error dark:bg-dark-error'
-              : isFocused
-                ? 'bg-primary dark:bg-dark-primary'
-                : 'bg-slate-300 dark:bg-slate-600'
-          }`}
-        />
-        {countLabel ? (
+        {countLabel && characterCountPlacement === 'bottom' ? (
           <Text
-            className={`mt-2 text-xs font-medium text-textMuted dark:text-dark-textMuted ${
+            className={`mt-1 text-xs font-normal text-slate-500 dark:text-slate-400 ${
               centerAlign ? 'text-center' : 'text-right'
             }`}
           >
@@ -309,7 +247,7 @@ export function OnboardingFormField({
       </View>
 
       {hasError ? (
-        <View className="mt-1.5 flex-row items-center px-1">
+        <View className="mt-1.5 flex-row items-center px-0.5">
           <AlertCircle
             size={13}
             color={theme === 'dark' ? Colors.dark.error : Colors.light.error}
@@ -318,9 +256,8 @@ export function OnboardingFormField({
           <Text className="ml-1 text-xs font-medium text-error dark:text-dark-error">{error}</Text>
         </View>
       ) : null}
-
       {!hasError && hint ? (
-        <Text className="mt-1 px-1 text-xs text-textMuted dark:text-dark-textMuted">{hint}</Text>
+        <Text className="mt-1.5 px-0.5 text-xs text-slate-500 dark:text-slate-400">{hint}</Text>
       ) : null}
     </View>
   );

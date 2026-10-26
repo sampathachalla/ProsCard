@@ -28,12 +28,17 @@ function ThemedLayoutWrapper() {
   const { theme } = useThemeContext();
 
   return (
-    <View className={theme === 'dark' ? 'dark flex-1' : 'flex-1'}>
+    <View
+      className={theme === 'dark' ? 'dark flex-1' : 'flex-1'}
+      style={{ flex: 1 }}
+    >
       <BottomSheetModalProvider>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="index" />
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="auth" />
+          <Stack.Screen name="onboarding" />
+          <Stack.Screen name="profile" />
           <Stack.Screen name="cards/[cardId]" />
           <Stack.Screen name="contacts/new" />
           <Stack.Screen name="contacts/[contactId]" />
@@ -58,7 +63,7 @@ export { AppErrorBoundary as ErrorBoundary };
 export default function Layout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
+      <SafeAreaProvider style={{ flex: 1 }}>
         <QueryClientProvider client={queryClient}>
           <ThemeProvider>
             <ThemedLayoutWrapper />

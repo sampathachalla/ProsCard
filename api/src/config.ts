@@ -44,10 +44,11 @@ const schema = z.object({
   OCI_PRIVATE_KEY_PASSPHRASE: z.string().default(''),
   OCI_DOWNLOAD_URL_EXPIRES_SECONDS: z.coerce.number().int().positive().default(900),
   OCI_UPLOAD_URL_EXPIRES_SECONDS: z.coerce.number().int().positive().default(900),
-  // OpenAI key used to read business-card photos; card reading is disabled when it is empty.
+  // OpenAI key used for card reading and profile copy; both features are disabled when it is empty.
   LLM_API: z.string().default(''),
   LLM_TIMEOUT_MS: z.coerce.number().int().positive().default(30000),
   SCANNER_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(20),
+  PROFILE_COPY_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(10),
   // Public address used in wallet-pass QR codes (the share page). Empty: taken from the incoming request.
   PUBLIC_WEB_URL: z.string().default(''),
   // Apple Wallet: a Pass Type ID certificate from the Apple Developer account. Empty disables Apple passes.

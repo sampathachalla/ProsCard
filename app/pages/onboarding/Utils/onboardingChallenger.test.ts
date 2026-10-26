@@ -88,7 +88,7 @@ export function runAdversarialTests(): {
   // SUITE 3: Validation — Presence (Step 4)
   // =========================================================================
   const s3 = 'Validation: Step 4 Presence';
-  record(s3, 'all_empty_social_fields_accepted', Object.keys(validateSocialStep({})).length === 0);
+  record(s3, 'all_empty_social_fields_rejected', Boolean(validateSocialStep({}).socialLinks));
   record(s3, 'valid_handle_accepted', !validateSocialStep({ github: 'octocat' }).github);
   record(s3, 'valid_at_handle_accepted', !validateSocialStep({ x: '@sampath' }).x);
   record(s3, 'valid_linkedin_url_accepted', !validateSocialStep({ linkedin: 'https://linkedin.com/in/ada' }).linkedin);
@@ -231,6 +231,7 @@ export function runAdversarialTests(): {
     lastName: 'Doe',
     title: 'Engineer',
     email: 'john@doe.com',
+    website: 'https://example.com',
     cardCategory: '',
   });
   record(s7, 'all_steps_step4_filled_stops_at_step_5', a4.isValid === false && a4.firstErrorStep === 5 && Boolean(a4.errors.cardCategory));
@@ -241,6 +242,7 @@ export function runAdversarialTests(): {
     lastName: 'Doe',
     title: 'Engineer',
     email: 'john@doe.com',
+    website: 'https://example.com',
   });
   record(s7, 'all_steps_minimal_required_succeeds', a5.isValid === true && a5.firstErrorStep === null && Object.keys(a5.errors).length === 0);
 

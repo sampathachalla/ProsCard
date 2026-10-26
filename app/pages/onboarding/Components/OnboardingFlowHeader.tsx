@@ -1,6 +1,8 @@
-import { Pressable, Text, View } from 'react-native';
+import React from 'react';
+import { Pressable, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { ChevronLeft } from 'lucide-react-native';
+import { ChevronLeft, X } from 'lucide-react-native';
+import { Text } from '@/common/ui/Text';
 import { Colors } from '@/constants/Colors';
 import { useThemeContext } from '@/context/ThemeContext';
 
@@ -27,9 +29,13 @@ export function OnboardingFlowHeader({
   const { theme } = useThemeContext();
   const isDark = theme === 'dark';
   const tint = isDark ? Colors.dark.tint : Colors.light.tint;
-  const track = isDark ? 'rgba(148,163,184,0.28)' : 'rgba(148,163,184,0.35)';
   const iconColor = isDark ? Colors.dark.text : Colors.light.text;
-  const skipColor = isDark ? Colors.dark.text : Colors.light.text;
+  const trackColor = isDark ? 'rgba(148,163,184,0.22)' : 'rgba(148,163,184,0.32)';
+
+  const stepCount = Math.max(0, totalProgressSteps);
+  const activeStepIndex =
+    stepCount > 0 ? Math.min(stepCount - 1, Math.max(0, progressIndex)) : 0;
+  const stepNumber = stepCount > 0 ? activeStepIndex + 1 : 0;
 
   const handleBack = () => {
     if (!canGoBack || isSaving) return;
@@ -44,9 +50,9 @@ export function OnboardingFlowHeader({
   };
 
   return (
-    <View className="bg-background px-5 pb-3 pt-1 dark:bg-dark-background">
-      <View className="h-11 flex-row items-center justify-between">
-        <View className="w-[72px] items-start justify-center">
+    <View className="bg-background px-5 pb-4 pt-2.5 dark:bg-dark-background">
+      <View className="w-full max-w-[440px] self-center">
+        <View className="flex-row items-center gap-2.5">
           {canGoBack ? (
             <Pressable
               accessibilityLabel="Go back to previous step"
@@ -54,34 +60,54 @@ export function OnboardingFlowHeader({
               disabled={isSaving}
               hitSlop={10}
               onPress={handleBack}
-              className="h-10 w-10 items-center justify-center active:opacity-70"
+              className="h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200/80 bg-slate-100 active:opacity-75 dark:border-slate-800 dark:bg-dark-card"
             >
-              <ChevronLeft color={iconColor} size={28} strokeWidth={2.4} />
+              {progressIndex === 0 ? (
+                <X color={iconColor} size={20} strokeWidth={2.4} />
+              ) : (
+                <ChevronLeft color={iconColor} size={22} strokeWidth={2.5} />
+              )}
             </Pressable>
-          ) : (
-            <View className="h-10 w-10" />
-          )}
-        </View>
+          ) : null}
 
-        <View className="min-w-0 flex-1 items-center justify-center px-2">
-          <Text
-            accessibilityLabel="VC Pros"
-            accessibilityRole="header"
-            numberOfLines={1}
-            style={{
-              color: iconColor,
-              fontSize: 18,
-              fontWeight: '700',
-              letterSpacing: -0.3,
-            }}
-          >
-            <Text style={{ color: tint, fontSize: 18, fontWeight: '700' }}>VC</Text>
-            {' '}
-            Pros
-          </Text>
-        </View>
+          <View className="min-h-[44px] flex-1 justify-center gap-2">
+            {stepCount > 0 ? (
+              <>
+                <Text
+                  variant="none"
+                  accessibilityLabel={`Step ${stepNumber} of ${stepCount}`}
+                  className="text-[13px] font-semibold tabular-nums text-slate-600 dark:text-slate-300"
+                >
+                  {stepNumber}/{stepCount}
+                </Text>
+                <View
+                  accessibilityLabel={`Step ${stepNumber} of ${stepCount}`}
+                  accessibilityRole="progressbar"
+                  accessibilityValue={{
+                    min: 0,
+                    max: stepCount,
+                    now: stepNumber,
+                  }}
+                  className="flex-row items-center"
+                  style={{ gap: 4 }}
+                >
+                  {Array.from({ length: stepCount }, (_, index) => {
+                    const isReached = index <= activeStepIndex;
+                    return (
+                      <View
+                        key={`segment-${index}`}
+                        className="h-1 flex-1 rounded-full"
+                        style={{
+                          backgroundColor: isReached ? tint : trackColor,
+                        }}
+                      />
+                    );
+                  })}
+                </View>
+              </>
+            ) : null}
+          </View>
 
-        <View className="w-[72px] items-end justify-center">
           {canSkip ? (
             <Pressable
               accessibilityLabel="Skip this step"
@@ -89,34 +115,18 @@ export function OnboardingFlowHeader({
               disabled={isSaving}
               hitSlop={10}
               onPress={handleSkip}
-              className="h-10 justify-center px-1 active:opacity-70"
+              className="h-11 shrink-0 justify-center px-2 active:opacity-70"
             >
-              <Text style={{ color: skipColor, fontSize: 16, fontWeight: '600' }}>Skip</Text>
+              <Text
+                variant="none"
+                className="text-[15px] font-semibold text-slate-600 dark:text-slate-300"
+              >
+                Skip
+              </Text>
             </Pressable>
-          ) : (
-            <View className="h-10 w-10" />
-          )}
+          ) : null}
         </View>
       </View>
-
-      {totalProgressSteps > 0 ? (
-        <View className="mt-3 flex-row" style={{ gap: 6 }}>
-          {Array.from({ length: totalProgressSteps }, (_, index) => {
-            const isActive = index <= progressIndex;
-            return (
-              <View
-                key={`progress-${index}`}
-                style={{
-                  flex: 1,
-                  height: 3,
-                  borderRadius: 999,
-                  backgroundColor: isActive ? tint : track,
-                }}
-              />
-            );
-          })}
-        </View>
-      ) : null}
     </View>
   );
 }

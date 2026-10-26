@@ -80,10 +80,12 @@ export interface UseOnboardingStepperReturn {
   flowIndex: number;
   currentItem: OnboardingFlowItem;
   progressLabel: string;
+  completionPercent: number;
   canSkip: boolean;
   draft: OnboardingDraft;
   errors: Record<string, string>;
   isSaving: boolean;
+  isGeneratingCopy: boolean;
   canGoBack: boolean;
   isLastStep: boolean;
   activeStepMeta?: StepMetadata;

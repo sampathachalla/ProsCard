@@ -64,6 +64,18 @@ export function runValidateOnboardingFlowGroupTests(): { passed: number; failed:
         if (!errors.tagline) throw new Error('Expected tagline length error');
       },
     ],
+    [
+      'validateFlowGroup social_links requires at least one link',
+      () => {
+        const emptyErrors = validateFlowGroup('social_links', INITIAL_ONBOARDING_DRAFT);
+        if (!emptyErrors.socialLinks) throw new Error('Expected minimum social link error');
+        const validErrors = validateFlowGroup('social_links', {
+          ...INITIAL_ONBOARDING_DRAFT,
+          website: 'https://example.com',
+        });
+        if (validErrors.socialLinks) throw new Error('Website should satisfy minimum link count');
+      },
+    ],
   ];
 
   for (const [name, fn] of cases) {

@@ -207,16 +207,16 @@ function EditorInput({
   size?: 'sm' | 'base' | 'lg';
   value: string;
 }) {
-  const textSize = size ?? (large ? 'lg' : 'sm');
+  const textSize = size ?? (large ? 'lg' : 'base');
   return (
-    <View className="mb-3">
+    <View className="mb-4">
       {!hideLabel ? (
-        <View className="mb-1.5 flex-row items-center justify-between px-0.5">
-          <Text variant="none" className="text-xs font-bold uppercase text-textMuted dark:text-slate-400">
+        <View className="mb-2 flex-row items-center justify-between">
+          <Text variant="none" className="text-[14px] font-normal text-slate-500 dark:text-slate-400">
             {label}
           </Text>
           {showCharacterCount && maxLength ? (
-            <Text variant="none" className="text-xs font-semibold tabular-nums text-textMuted dark:text-slate-400">
+            <Text variant="none" className="text-xs font-normal tabular-nums text-slate-500 dark:text-slate-400">
               {value.length}/{maxLength}
             </Text>
           ) : null}
@@ -230,10 +230,12 @@ function EditorInput({
         placeholderTextColor="#64748b"
         multiline={multiline}
         onFocus={onFocus}
-        className={`font-semibold text-textPrimary dark:text-white ${
-          borderless ? 'px-0.5 py-1' : 'rounded-xl border border-slate-200/90 bg-slate-50/90 px-3.5 py-3 dark:border-slate-700/70 dark:bg-[#070d1a]'
-        } ${textSize === 'lg' ? 'text-lg' : textSize === 'base' ? 'text-base' : 'text-sm'}`}
-        style={multiline ? { minHeight: minHeight ?? 76, textAlignVertical: 'top' } : { minHeight: textSize === 'sm' ? 46 : 54 }}
+        className={`font-normal text-textPrimary dark:text-dark-textPrimary ${
+          borderless
+            ? 'px-0.5 py-1'
+            : 'rounded-lg border border-transparent bg-slate-100 px-4 py-3 dark:bg-dark-card'
+        } ${textSize === 'lg' ? 'text-lg' : textSize === 'base' ? 'text-[16px]' : 'text-[15px]'}`}
+        style={multiline ? { minHeight: minHeight ?? 84, textAlignVertical: 'top' } : { minHeight: 54 }}
       />
     </View>
   );
@@ -1075,7 +1077,7 @@ export function CardSectionEditor({
             <Text className="mb-3 px-1 text-xs leading-5 text-textMuted dark:text-slate-400">
               Choose a platform, enter its value, and add it to your contact list.
             </Text>
-            <View className="mb-3 flex-row items-center rounded-xl border border-slate-200 bg-white px-3 shadow-sm dark:border-slate-700 dark:bg-[#060a14]">
+            <View className="mb-3 flex-row items-center rounded-lg border border-transparent bg-slate-100 px-4 dark:bg-dark-card">
               <Search color="#64748b" size={17} />
               <TextInput
                 accessibilityLabel="Search available fields"
@@ -1083,7 +1085,7 @@ export function CardSectionEditor({
                 onChangeText={setCustomFieldSearch}
                 placeholder="Search platforms"
                 placeholderTextColor="#64748b"
-                className="ml-2 min-h-[46px] flex-1 text-sm font-semibold text-textPrimary dark:text-white"
+                className="ml-2.5 min-h-[54px] flex-1 text-[16px] font-normal text-textPrimary dark:text-dark-textPrimary"
               />
             </View>
             <View>
@@ -1164,7 +1166,7 @@ export function CardSectionEditor({
                         onSubmitEditing={() => finishEditingConnection(field)}
                         placeholder={placeholder}
                         placeholderTextColor="#64748b"
-                        className="min-h-[42px] rounded-lg bg-white px-3 text-sm font-semibold text-textPrimary dark:bg-[#060a14] dark:text-white"
+                        className="min-h-[44px] rounded-lg bg-slate-100 px-3 text-[15px] font-normal text-textPrimary dark:bg-dark-card dark:text-dark-textPrimary"
                         returnKeyType="done"
                       />
                     ) : (
@@ -1247,7 +1249,7 @@ export function CardSectionEditor({
                         : `Enter ${pendingConnectionField.title.toLowerCase()}`
                 }
                 placeholderTextColor="#64748b"
-                className="min-h-[54px] rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-textPrimary dark:border-slate-700 dark:bg-[#060a14] dark:text-white"
+                className="min-h-[54px] rounded-lg border border-transparent bg-slate-100 px-4 text-[16px] font-normal text-textPrimary dark:bg-dark-card dark:text-dark-textPrimary"
                 keyboardType={
                   pendingConnectionField.type === 'email'
                     ? 'email-address'

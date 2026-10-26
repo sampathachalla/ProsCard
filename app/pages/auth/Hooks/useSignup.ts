@@ -39,7 +39,7 @@ export function useSignup() {
         router.replace('/auth/login');
         return;
       }
-      router.replace('/(tabs)/onboardingPage');
+      router.replace('/onboarding');
     } catch (err) {
       Alert.alert('Signup Failed', err instanceof Error ? err.message : 'Could not create your account. Please try again.');
     } finally {

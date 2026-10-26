@@ -4,6 +4,7 @@ import {
   validateCustomizationStep,
   validatePersonalStep,
   validateProfessionalStep,
+  validateSocialStep,
 } from './validateOnboarding';
 
 function pickErrors(all: ValidationErrors, keys: string[]): ValidationErrors {
@@ -23,8 +24,7 @@ function isOptionalGroup(groupId: OnboardingFlowGroupId): boolean {
     groupId === 'work_logo_website' ||
     groupId === 'work_dept_address' ||
     groupId === 'short_bio' ||
-    groupId === 'presence' ||
-    groupId === 'social_links'
+    groupId === 'presence'
   );
 }
 
@@ -45,7 +45,6 @@ export function validateFlowGroup(
         'prefix',
         'middleName',
         'suffix',
-        'accreditations',
       ]);
     case 'name_formal':
       return pickErrors(validatePersonalStep(draft), [
@@ -57,11 +56,18 @@ export function validateFlowGroup(
         'tagline',
       ]);
     case 'role_company':
-      return pickErrors(validatePersonalStep(draft), ['title', 'organization']);
+      return pickErrors(
+        { ...validatePersonalStep(draft), ...validateProfessionalStep(draft) },
+        ['title', 'organization', 'accreditations']
+      );
     case 'tagline':
       return pickErrors(validatePersonalStep(draft), ['tagline']);
     case 'contact_email':
-      return pickErrors(validateProfessionalStep(draft), ['email', 'phone']);
+      return pickErrors(validateProfessionalStep(draft), [
+        'email',
+        'phone',
+        'businessAddress',
+      ]);
     case 'contact_phone':
       return pickErrors(validateProfessionalStep(draft), ['phone']);
     case 'work_logo_website':
@@ -71,10 +77,31 @@ export function validateFlowGroup(
     case 'short_bio':
       return pickErrors(validateProfessionalStep(draft), ['shortBio']);
     case 'presence':
-      return pickErrors(validatePersonalStep(draft), ['tagline']);
+      return pickErrors(
+        {
+          ...validatePersonalStep(draft),
+          ...validateProfessionalStep(draft),
+          ...validateSocialStep(draft),
+        },
+        ['photoUrl', 'coverPhotoUrl', 'companyLogoUrl', 'tagline']
+      );
     case 'social_links':
-      // Optional step: allow Continue to completion; social URLs are checked on finalize.
-      return {};
+      return pickErrors(
+        { ...validateProfessionalStep(draft), ...validateSocialStep(draft) },
+        [
+          'website',
+          'linkedin',
+          'github',
+          'x',
+          'facebook',
+          'instagram',
+          'whatsapp',
+          'youtube',
+          'tiktok',
+          'portfolio',
+          'socialLinks',
+        ]
+      );
     case 'card_style':
       return validateCustomizationStep(draft);
     default:

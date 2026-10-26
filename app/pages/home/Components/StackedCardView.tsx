@@ -9,7 +9,7 @@ import Animated, {
 import type { BusinessCard as BusinessCardData } from '@/pages/cards/types/card.types';
 import type { Profile } from '@/pages/profile/types/profile.types';
 import { Text } from '@/common/ui/Text';
-import { BusinessCard } from './BusinessCard';
+import { PreviewCard } from '@/pages/previewCard/Components/PreviewCard';
 import { getBusinessCardHeight, getBusinessCardWidth } from '../Utils/businessCardLayout';
 
 export type StackedCardViewProps = {
@@ -248,7 +248,7 @@ export function StackedCardView({
               onPress={() => selectCard(index)}
               style={{ position: 'relative' }}
             >
-              <BusinessCard
+              <PreviewCard
                 card={card}
                 height={cardHeight}
                 onDoubleTap={() => openCard(index)}

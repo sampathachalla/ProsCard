@@ -45,17 +45,27 @@ export function QRCodeModal({ cardName, error, onClose, url, visible }: { cardNa
             <Animated.View className="w-full max-w-sm" style={style}>
               <BlurView intensity={45} tint="dark" className="overflow-hidden rounded-[32px] border border-white/20">
                 <View className="items-center p-6">
-                  <Text className="mb-5 text-center text-xl font-black text-white">{cardName}</Text>
-                  <View className="rounded-[24px] bg-white p-4">
+                  <Text className="mb-4 text-center text-xl font-bold text-white">{cardName}</Text>
+                  <View className="items-center rounded-2xl border border-slate-700/80 bg-[#111827] px-6 pb-5 pt-6">
                     {url ? (
-                      <QRCodeView value={url} size={220} backgroundColor="#ffffff" foregroundColor="#0f172a" />
+                      <QRCodeView
+                        value={url}
+                        size={224}
+                        backgroundColor="#111827"
+                        foregroundColor="#ffffff"
+                        accentColor="#38bdf8"
+                        framed={false}
+                        showCenterLogo
+                      />
                     ) : (
-                      <View className="items-center justify-center" style={{ width: 220, height: 220 }}>
-                        {error ? <Text className="text-center text-slate-900">{error}</Text> : <ActivityIndicator color="#0f172a" />}
+                      <View className="items-center justify-center" style={{ width: 224, height: 224 }}>
+                        {error ? <Text className="text-center text-white">{error}</Text> : <ActivityIndicator color="#ffffff" />}
                       </View>
                     )}
+                    <Text className="mt-4 text-[16px] font-medium text-white">
+                      {url ? 'Scan to share card' : error ? 'Share link unavailable' : 'Preparing share link…'}
+                    </Text>
                   </View>
-                  <Text className="mt-4 font-semibold text-white/80">{url ? 'Scan to connect' : error ? 'Share link unavailable' : 'Preparing share link…'}</Text>
                 </View>
               </BlurView>
             </Animated.View>

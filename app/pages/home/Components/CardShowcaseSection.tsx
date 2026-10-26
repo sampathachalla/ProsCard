@@ -4,7 +4,7 @@ import type { BusinessCard } from '@/pages/cards/types/card.types';
 import type { Profile } from '@/pages/profile/types/profile.types';
 import { BusinessCardCarousel } from './BusinessCardCarousel';
 import type { CardViewMode } from '../types/cardViewMode';
-import { WalletStackView } from '@/common/wallet';
+import { WalletStackView } from '@/pages/walletCard';
 
 type CardShowcaseSectionProps = {
   activeIndex: number;
@@ -17,6 +17,7 @@ type CardShowcaseSectionProps = {
   onCardSwipeDown?: (card: BusinessCard) => void;
   profile: Profile;
   viewMode: CardViewMode;
+  includeAddTile?: boolean;
 };
 
 export function CardShowcaseSection({
@@ -30,6 +31,7 @@ export function CardShowcaseSection({
   onCardSwipeDown,
   profile,
   viewMode,
+  includeAddTile = true,
 }: CardShowcaseSectionProps) {
   const carouselProgress = useSharedValue(0);
   const contentHeight = height;
@@ -55,6 +57,7 @@ export function CardShowcaseSection({
             onCardDoubleTap={onCardDoubleTap}
             onCardSwipeDown={onCardSwipeDown}
             profile={profile}
+            includeAddTile={includeAddTile}
           />
         ) : (
           <WalletStackView
@@ -68,6 +71,7 @@ export function CardShowcaseSection({
             onCardDoubleTap={onCardDoubleTap}
             onCardSwipeDown={onCardSwipeDown}
             profile={profile}
+            showAddCardPass={includeAddTile}
             showPrimaryTag
           />
         )}

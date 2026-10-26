@@ -402,34 +402,49 @@ export function ContactReview({
 
           {/* Name & Title in View / Edit Mode */}
           {editing ? (
-            <View className="w-full mt-4 items-center">
-              <TextInput
-                value={form.name}
-                onChangeText={(value) => setField('name', value)}
-                placeholder="Full Name *"
-                placeholderTextColor="#94a3b8"
-                autoCapitalize="words"
-                className={`text-2xl font-bold text-center text-textPrimary dark:text-dark-textPrimary px-4 py-1.5 w-full ${
-                  errors.name ? 'border-b border-red-500' : ''
-                }`}
-              />
-              {errors.name && <Text className="mt-1 text-xs text-red-500">{errors.name}</Text>}
+            <View className="mt-5 w-full">
+              <View className="mb-4 w-full">
+                <Text className="mb-2 text-[14px] font-normal text-slate-500 dark:text-slate-400">
+                  Full Name *
+                </Text>
+                <TextInput
+                  value={form.name}
+                  onChangeText={(value) => setField('name', value)}
+                  placeholder="Full Name"
+                  placeholderTextColor="#64748b"
+                  autoCapitalize="words"
+                  className={`min-h-[54px] w-full rounded-lg border px-4 py-3 text-[16px] font-normal text-textPrimary dark:text-dark-textPrimary ${
+                    errors.name
+                      ? 'border-red-500 bg-red-50/80 dark:border-red-500/60 dark:bg-red-950/30'
+                      : 'border-transparent bg-slate-100 dark:bg-dark-card'
+                  }`}
+                />
+                {errors.name && <Text className="mt-1.5 text-xs text-red-500">{errors.name}</Text>}
+              </View>
 
-              <View className="flex-row items-center justify-center gap-2 mt-1 px-4 w-full">
+              <View className="mb-4 w-full">
+                <Text className="mb-2 text-[14px] font-normal text-slate-500 dark:text-slate-400">
+                  Job Title
+                </Text>
                 <TextInput
                   value={form.title}
                   onChangeText={(value) => setField('title', value)}
                   placeholder="Job Title"
-                  placeholderTextColor="#94a3b8"
-                  className="text-sm font-medium text-center text-textMuted dark:text-dark-textMuted py-1 flex-1"
+                  placeholderTextColor="#64748b"
+                  className="min-h-[54px] w-full rounded-lg border border-transparent bg-slate-100 px-4 py-3 text-[16px] font-normal text-textPrimary dark:bg-dark-card dark:text-dark-textPrimary"
                 />
-                <Text className="text-textMuted dark:text-dark-textMuted">·</Text>
+              </View>
+
+              <View className="mb-2 w-full">
+                <Text className="mb-2 text-[14px] font-normal text-slate-500 dark:text-slate-400">
+                  Company Name
+                </Text>
                 <TextInput
                   value={form.company}
                   onChangeText={(value) => setField('company', value)}
-                  placeholder="Company"
-                  placeholderTextColor="#94a3b8"
-                  className="text-sm font-medium text-center text-textMuted dark:text-dark-textMuted py-1 flex-1"
+                  placeholder="Company Name"
+                  placeholderTextColor="#64748b"
+                  className="min-h-[54px] w-full rounded-lg border border-transparent bg-slate-100 px-4 py-3 text-[16px] font-normal text-textPrimary dark:bg-dark-card dark:text-dark-textPrimary"
                 />
               </View>
             </View>
@@ -520,9 +535,9 @@ export function ContactReview({
                         value={form.phone}
                         onChangeText={(v) => setField('phone', v)}
                         placeholder="Add phone"
-                        placeholderTextColor="#94a3b8"
+                        placeholderTextColor="#64748b"
                         keyboardType="phone-pad"
-                        className="text-base text-textPrimary dark:text-dark-textPrimary mt-0.5 p-0 font-normal"
+                        className="mt-2 min-h-[54px] rounded-lg border border-transparent bg-slate-100 px-4 py-3 text-[16px] font-normal text-textPrimary dark:bg-dark-card dark:text-dark-textPrimary"
                       />
                     ) : (
                       <Text className="text-base text-textPrimary dark:text-dark-textPrimary mt-0.5 font-normal">
@@ -558,11 +573,11 @@ export function ContactReview({
                         value={form.email}
                         onChangeText={(v) => setField('email', v)}
                         placeholder="Add email"
-                        placeholderTextColor="#94a3b8"
+                        placeholderTextColor="#64748b"
                         keyboardType="email-address"
                         autoCapitalize="none"
                         autoCorrect={false}
-                        className="text-base text-textPrimary dark:text-dark-textPrimary mt-0.5 p-0 font-normal"
+                        className="mt-2 min-h-[54px] rounded-lg border border-transparent bg-slate-100 px-4 py-3 text-[16px] font-normal text-textPrimary dark:bg-dark-card dark:text-dark-textPrimary"
                       />
                     ) : (
                       <Text className="text-base text-textPrimary dark:text-dark-textPrimary mt-0.5 font-normal">
@@ -599,11 +614,11 @@ export function ContactReview({
                         value={form.website}
                         onChangeText={(v) => setField('website', v)}
                         placeholder="Add website URL"
-                        placeholderTextColor="#94a3b8"
+                        placeholderTextColor="#64748b"
                         keyboardType="url"
                         autoCapitalize="none"
                         autoCorrect={false}
-                        className="text-base text-textPrimary dark:text-dark-textPrimary mt-0.5 p-0 font-normal"
+                        className="mt-2 min-h-[54px] rounded-lg border border-transparent bg-slate-100 px-4 py-3 text-[16px] font-normal text-textPrimary dark:bg-dark-card dark:text-dark-textPrimary"
                       />
                     ) : (
                       <Text className="text-base text-primary dark:text-[#38bdf8] mt-0.5 font-normal">
@@ -671,9 +686,10 @@ export function ContactReview({
                       value={form.address}
                       onChangeText={(v) => setField('address', v)}
                       placeholder="Add address"
-                      placeholderTextColor="#94a3b8"
+                      placeholderTextColor="#64748b"
                       multiline
-                      className="text-base text-textPrimary dark:text-dark-textPrimary mt-0.5 p-0 font-normal min-h-[44px]"
+                      className="mt-2 min-h-[72px] rounded-lg border border-transparent bg-slate-100 px-4 py-3 text-[16px] font-normal text-textPrimary dark:bg-dark-card dark:text-dark-textPrimary"
+                      style={{ textAlignVertical: 'top' }}
                     />
                   ) : (
                     <Text className="text-base text-textPrimary dark:text-dark-textPrimary mt-0.5 font-normal">
@@ -701,10 +717,11 @@ export function ContactReview({
                     value={form.notes}
                     onChangeText={(v) => setField('notes', v)}
                     placeholder="Add notes about this contact..."
-                    placeholderTextColor="#94a3b8"
+                    placeholderTextColor="#64748b"
                     multiline
                     numberOfLines={3}
-                    className="text-base text-textPrimary dark:text-dark-textPrimary mt-1.5 p-0 font-normal min-h-[64px]"
+                    className="mt-2 min-h-[88px] rounded-lg border border-transparent bg-slate-100 px-4 py-3 text-[16px] font-normal text-textPrimary dark:bg-dark-card dark:text-dark-textPrimary"
+                    style={{ textAlignVertical: 'top' }}
                   />
                 ) : (
                   <Text className="text-base text-textPrimary dark:text-dark-textPrimary mt-1 font-normal leading-relaxed">

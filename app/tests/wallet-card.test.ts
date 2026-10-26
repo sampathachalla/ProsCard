@@ -5,10 +5,10 @@ import {
   WALLET_PASS_WIDTH_TO_HEIGHT,
   WALLET_IDENTITY_HEIGHT_RATIO,
   WALLET_PROFESSIONAL_HEIGHT_RATIO,
-} from '@/common/wallet/walletCardLayout';
-import { walletStackRankFor } from '@/common/wallet/WalletStackView';
+} from '@/pages/walletCard/Utils/walletCardLayout';
+import { walletStackRankFor } from '@/pages/walletCard/Components/WalletStackView';
 
-vi.mock('@/common/wallet/WalletDesignEngine', () => ({ WalletDesignEngine: () => null }));
+vi.mock('@/pages/walletCard/Components/WalletDesignEngine', () => ({ WalletDesignEngine: () => null }));
 vi.mock('react-native', () => ({}));
 vi.mock('react-native-reanimated', () => ({}));
 vi.mock('lucide-react-native', () => ({}));

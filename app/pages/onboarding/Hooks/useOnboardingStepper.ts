@@ -9,7 +9,7 @@ import {
   getStoredUser,
   saveProfile,
 } from '@/services/profileService';
-import { getOnboardingState, saveOnboardingDraft, setHasCompletedOnboarding } from '@/services/onboardingService';
+import { generateProfileCopy, getOnboardingState, saveOnboardingDraft, setHasCompletedOnboarding } from '@/services/onboardingService';
 import { hydrateCards, savePrimaryCard } from '@/services/cardsService';
 
 import type {
@@ -23,6 +23,7 @@ import {
 } from '../types/onboardingStepper.types';
 import {
   ONBOARDING_FLOW,
+  calculateProfileCompletion,
   clampFlowIndex,
   flowIndexForField,
   flowItemAtIndex,
@@ -74,6 +75,7 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
   const draftRef = useRef<OnboardingDraft>(INITIAL_ONBOARDING_DRAFT);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [isGeneratingCopy, setIsGeneratingCopy] = useState(false);
   const finalizeInFlightRef = useRef(false);
   const touchedFieldsRef = useRef<Set<keyof OnboardingDraft>>(new Set());
   const cardsHydrationRef = useRef<Promise<unknown>>(Promise.resolve());
@@ -81,6 +83,7 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
   const pendingDraftSyncRef = useRef<OnboardingDraft | null>(null);
   const draftSyncRunningRef = useRef(false);
   const lastQueuedDraftRef = useRef('');
+  const attemptedCopyGenerationRef = useRef(new Set<string>());
 
   const flushDraftSync = useCallback((): Promise<void> => {
     if (draftSyncRunningRef.current) return draftSaveChainRef.current;
@@ -186,6 +189,60 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
     return () => clearTimeout(timeout);
   }, [draft, flushDraftSync, isSaving]);
 
+  useEffect(() => {
+    if (currentItem.kind !== 'group') return;
+    if (currentItem.groupId !== 'tagline' && currentItem.groupId !== 'short_bio') return;
+
+    const snapshot = draftRef.current;
+    if (snapshot.tagline.trim() && snapshot.shortBio.trim()) return;
+    const facts = {
+      firstName: snapshot.firstName.trim(),
+      lastName: snapshot.lastName.trim(),
+      preferredName: snapshot.preferredName.trim(),
+      title: snapshot.title.trim(),
+      organization: snapshot.organization.trim(),
+      department: snapshot.department.trim(),
+      accreditations: snapshot.accreditations.trim(),
+      businessAddress: snapshot.businessAddress.trim(),
+    };
+    if (!facts.firstName && !facts.lastName && !facts.title && !facts.organization) return;
+
+    const attemptKey = `${currentItem.groupId}:${JSON.stringify(facts)}`;
+    if (attemptedCopyGenerationRef.current.has(attemptKey)) return;
+    attemptedCopyGenerationRef.current.add(attemptKey);
+
+    let cancelled = false;
+    setIsGeneratingCopy(true);
+    void generateProfileCopy(facts)
+      .then((copy) => {
+        if (cancelled || !copy) return;
+        setDraft((previous) => {
+          const next = { ...previous };
+          // A response arriving late must never replace text typed by the user.
+          if (!touchedFieldsRef.current.has('tagline') && !previous.tagline.trim()) {
+            next.tagline = copy.tagline;
+          }
+          if (!touchedFieldsRef.current.has('shortBio') && !previous.shortBio.trim()) {
+            next.shortBio = copy.shortBio;
+          }
+          draftRef.current = next;
+          return next;
+        });
+      })
+      .catch((error) => {
+        // AI assistance is optional; never block onboarding if the provider or
+        // network is unavailable.
+        console.warn('Could not generate onboarding profile copy:', error);
+      })
+      .finally(() => {
+        if (!cancelled) setIsGeneratingCopy(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentItem]);
+
   const updateDraft = useCallback((fields: Partial<OnboardingDraft>) => {
     Object.keys(fields).forEach((key) => touchedFieldsRef.current.add(key as keyof OnboardingDraft));
     draftRef.current = { ...draftRef.current, ...fields };
@@ -224,6 +281,11 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
   const progressLabel = useMemo(
     () => `${safeFlowIndex + 1} of ${ONBOARDING_FLOW.length}`,
     [safeFlowIndex]
+  );
+
+  const completionPercent = useMemo(
+    () => calculateProfileCompletion(draft),
+    [draft]
   );
 
   const nextStep = useCallback((): boolean => {
@@ -416,10 +478,12 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
     flowIndex,
     currentItem,
     progressLabel,
+    completionPercent,
     canSkip,
     draft,
     errors,
     isSaving,
+    isGeneratingCopy,
     canGoBack,
     isLastStep,
     activeStepMeta,

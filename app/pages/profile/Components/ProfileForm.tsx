@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
-import { Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useState, type ReactNode } from 'react';
+import { Platform, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { Briefcase, Contact2, Image as ImageIcon, MapPinned, Phone, Share2 } from 'lucide-react-native';
 import { Colors } from '@/constants/Colors';
@@ -85,10 +85,36 @@ export function ProfileSectionGrid({ onSelect }: { profile: Profile; onSelect: (
 }
 
 function FieldInput({ label, value, onChangeText, keyboardType, multiline }: { label: string; value: string; onChangeText: (value: string) => void; keyboardType?: 'email-address' | 'phone-pad' | 'url'; multiline?: boolean }) {
+  const { theme } = useThemeContext();
+  const [isFocused, setIsFocused] = useState(false);
+
   return (
-    <View className="mb-4">
-      <Text className="mb-1 ml-1 text-xs font-semibold uppercase text-textMuted dark:text-dark-textMuted">{label}</Text>
-      <TextInput value={value} onChangeText={onChangeText} keyboardType={keyboardType} autoCapitalize={keyboardType === 'email-address' || keyboardType === 'url' ? 'none' : 'sentences'} autoCorrect={keyboardType !== 'email-address' && keyboardType !== 'url'} multiline={multiline} numberOfLines={multiline ? 4 : undefined} placeholder={label} placeholderTextColor="#7A7A7A" className="rounded-2xl border border-black/5 bg-black/5 px-4 py-3 text-textPrimary dark:border-white/10 dark:bg-white/5 dark:text-dark-textPrimary" style={multiline ? { minHeight: 96, textAlignVertical: 'top' } : undefined} />
+    <View className="mb-5">
+      <Text className="mb-2 text-[14px] font-normal text-slate-500 dark:text-slate-400">{label}</Text>
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        keyboardType={keyboardType}
+        autoCapitalize={keyboardType === 'email-address' || keyboardType === 'url' ? 'none' : 'sentences'}
+        autoCorrect={keyboardType !== 'email-address' && keyboardType !== 'url'}
+        multiline={multiline}
+        numberOfLines={multiline ? 4 : undefined}
+        placeholder={label}
+        placeholderTextColor={theme === 'dark' ? '#64748b' : '#94a3b8'}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+        className={`rounded-lg border px-4 py-3 text-[16px] font-normal text-textPrimary dark:text-dark-textPrimary ${
+          isFocused
+            ? 'border-primary/50 bg-slate-100/80 dark:border-dark-primary/50 dark:bg-[#1e293b]'
+            : 'border-transparent bg-slate-100 dark:bg-dark-card'
+        }`}
+        style={[
+          multiline
+            ? { minHeight: 104, textAlignVertical: 'top' }
+            : { minHeight: 54, textAlignVertical: 'center' },
+          Platform.OS === 'android' ? { includeFontPadding: false } : null,
+        ]}
+      />
     </View>
   );
 }

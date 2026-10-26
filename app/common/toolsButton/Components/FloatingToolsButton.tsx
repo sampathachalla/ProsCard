@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { InteractionManager, Pressable, View, type LayoutChangeEvent } from 'react-native';
+import { Pressable, View, type LayoutChangeEvent } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Wrench } from 'lucide-react-native';
@@ -17,6 +17,9 @@ import {
   toNormalizedPosition,
   toScreenPosition,
 } from '../Utils/toolPosition';
+
+/** Native stack push/pop animation length; the position is restored again once it has finished. */
+const SCREEN_TRANSITION_MS = 400;
 
 type FloatingToolsButtonProps = {
   actions: FloatingToolAction[];
@@ -198,9 +201,10 @@ export function FloatingToolsButton({ actions }: FloatingToolsButtonProps) {
     setMenuOpen(false);
     setSelectedIndex(-1);
     restorePosition();
-    const task = InteractionManager.runAfterInteractions(() => { restorePosition(); });
+    // React Native 0.88 removed InteractionManager; wait out the native stack transition instead.
+    const afterTransition = setTimeout(restorePosition, SCREEN_TRANSITION_MS);
     return () => {
-      task.cancel();
+      clearTimeout(afterTransition);
       setMenuOpen(false);
       setSelectedIndex(-1);
       setPositionReady(false);

@@ -21,10 +21,10 @@ export function useCards() {
     cards: query.data,
     loading: query.isLoading || query.isFetching && query.data.length === 0,
     refreshing: query.isFetching,
-    /** Stays true after the first backend attempt, so background refreshes do not hide the page. */
-    initialFetchComplete: query.isFetchedAfterMount,
-    /** True once this screen has loaded cards from the backend (not just the in-memory placeholder). */
-    fetched: query.isFetchedAfterMount && !query.isFetching,
+    /** Cached query data is already usable when this screen remounts after visiting Profile. */
+    initialFetchComplete: query.isFetched,
+    /** True once cards are available and the current foreground refresh has settled. */
+    fetched: query.isFetched && !query.isFetching,
     offline: cardsAreOffline(),
     error: query.error instanceof Error ? query.error : null,
     refresh: query.refetch,

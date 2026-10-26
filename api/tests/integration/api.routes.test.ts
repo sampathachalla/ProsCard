@@ -38,7 +38,8 @@ const storage:ObjectStorageGateway={
 const config=loadConfig();
 const pool=createPool(config);
 const cardReader={read:async()=>({isBusinessCard:true,cardBounds:{x:0.1,y:0.1,width:0.8,height:0.5},rotation:0 as const,contact:{name:'Grace Hopper',title:'Rear Admiral',company:'US Navy',phone:'',email:'grace@navy.mil',website:'',address:'',notes:''}})};
-const app=createApp({db:pool,supabase,storage,cardReader});
+const profileCopywriter={generate:async()=>({tagline:'Engineer shaping useful products',shortBio:'I build useful products with a focus on thoughtful engineering.'})};
+const app=createApp({db:pool,supabase,storage,cardReader,profileCopywriter});
 const auth={Authorization:'Bearer test-token'};
 let cardId='';let shareId='';let shareSlug='';let contactId='';let mediaId='';
 
@@ -78,6 +79,12 @@ describe('VC Pros API routes',()=>{
     expect((await request(app).get('/api/v1/onboarding').set(auth)).body.completed).toBe(false);
     expect((await request(app).put('/api/v1/onboarding/draft').set(auth).send({step:2})).status).toBe(200);
     const done=await request(app).post('/api/v1/onboarding/complete').set(auth).send({step:5});expect(done.status).toBe(200);expect(done.body.completed).toBe(true);
+  });
+  it('generates bounded profile copy for authenticated users',async()=>{
+    expect((await request(app).post('/api/v1/onboarding/generate-profile-copy').send({firstName:'Ada',title:'Engineer'})).status).toBe(401);
+    expect((await request(app).post('/api/v1/onboarding/generate-profile-copy').set(auth).send({})).status).toBe(400);
+    const generated=await request(app).post('/api/v1/onboarding/generate-profile-copy').set(auth).send({firstName:'Ada',lastName:'Lovelace',title:'Engineer',organization:'Analytical Engines'});
+    expect(generated.status).toBe(200);expect(generated.body.tagline).toContain('Engineer');expect(generated.body.shortBio.length).toBeLessThanOrEqual(240);
   });
   it('covers card CRUD',async()=>{
     const created=await request(app).post('/api/v1/cards').set(auth).send(card);expect(created.status).toBe(201);expect(created.body.isPrimary).toBe(true);cardId=created.body.id;

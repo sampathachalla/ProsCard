@@ -3,15 +3,15 @@ import { Alert, Linking, Platform, ScrollView, Share, View } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import type { GenerateMetadataFunction } from 'expo-router/server';
 import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
-import { CardDetailView } from '@/pages/cards/Components/CardDetailView';
+import { CardDetailView } from '@/pages/fullCard/Components/CardDetailView';
 import { getCardById } from '@/pages/cards/Services/cardsService';
 import { useCard } from '@/pages/cards/Hooks/useCard';
 import { CardTapGesture } from '@/common/gestures';
 import { Text } from '@/common/ui/Text';
 import { QRCodeModal } from '@/common/ui/QRCodeModal';
 import { useShareUrl } from '@/pages/share/Hooks/useShareUrl';
-import { useAddToWallet } from '@/common/wallet/Hooks/useAddToWallet';
-import { WalletProcessingModal } from '@/common/wallet/WalletProcessingModal';
+import { useAddToWallet } from '@/pages/walletCard/Hooks/useAddToWallet';
+import { WalletProcessingModal } from '@/pages/walletCard/Components/WalletProcessingModal';
 import { getShareUrl } from '@/pages/share/Services/sharingService';
 import { queryClient, queryKeys } from '@/services/api/queryClient';
 import { useProfileSnapshot } from '@/pages/profile/Hooks/useProfileSnapshot';

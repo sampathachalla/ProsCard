@@ -25,8 +25,8 @@ import {
 } from 'lucide-react-native';
 import { Text } from '@/common/ui/Text';
 import { Colors } from '@/constants/Colors';
-import vcProsLogoForDarkTheme from '@/assets/vcpros-logo-dark.png'; // White text (for dark backgrounds)
-import vcProsLogoForLightTheme from '@/assets/vcpros-logo-light.png'; // Dark navy text (for light backgrounds)
+import vcProsLogoForDarkTheme from '@/assets/vcpros-logo-v2-dark.png'; // White text (for dark backgrounds)
+import vcProsLogoForLightTheme from '@/assets/vcpros-logo-v2-light.png'; // Dark navy text (for light backgrounds)
 import type { CardDetailField } from '../cardDetailTemplate';
 import type { CardTemplateId, CardVisualTheme, ResolvedLayoutSlots } from '../../types/card.types';
 import { getCardFontFamily, getCardLetterSpacing } from '../cardTheme';
@@ -237,8 +237,8 @@ export function UniversalLogoBadge({
   });
 
   const logoContrastSample =
-    bare && placement === 'on-cover' && slots?.background
-      ? slots.background
+    bare && placement === 'on-cover'
+      ? backdropColor ?? '#0f172a'
       : bare && placement === 'on-surface' && slots?.surface
         ? slots.surface
         : backdropColor || (bare ? slots?.background ?? slots?.surface : undefined) || engineStyle.backgroundColor;

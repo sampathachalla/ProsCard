@@ -16,6 +16,16 @@ async function advanceToGroup(
     if (item.kind === 'group' && item.groupId === groupId) return;
     await act(async () => {
       const hook = getHook();
+      if (item.kind === 'group' && item.groupId === 'name_legal') {
+        if (!hook.draft.firstName?.trim() || !hook.draft.lastName?.trim()) {
+          hook.updateDraft({ firstName: 'Ada', lastName: 'Lovelace', fullName: 'Ada Lovelace' });
+        }
+      }
+      if (item.kind === 'group' && item.groupId === 'role_company') {
+        if (!hook.draft.title?.trim()) {
+          hook.updateDraft({ title: 'Engineer' });
+        }
+      }
       if (item.kind === 'group' && item.groupId === 'contact_email' && !hook.draft.email?.trim()) {
         hook.updateDraft({ email: 'stress@proscard.test' });
       }
@@ -125,8 +135,8 @@ export async function runStepperStressTests(
           assertEqual(afterWelcome.kind, 'group', 'Must advance to first group card');
           assertEqual(
             afterWelcome.kind === 'group' ? afterWelcome.groupId : null,
-            'contact_email',
-            'First group after welcome must be email'
+            'name_legal',
+            'First group after welcome must be name_legal'
           );
           assertEqual(getHook().canGoBack, true, 'canGoBack must be true after welcome');
         } finally {
@@ -207,11 +217,12 @@ export async function runStepperStressTests(
           await act(async () => {
             getHook().nextStep();
           });
+          await advanceToGroup(getHook, 'contact_email');
           const emailStep = getHook().currentItem;
           assertEqual(
             emailStep.kind === 'group' ? emailStep.groupId : null,
             'contact_email',
-            'Welcome must advance to email first'
+            'Must reach contact_email group'
           );
 
           await act(async () => {
@@ -239,11 +250,11 @@ export async function runStepperStressTests(
             res = getHook().nextStep();
           });
           assertEqual(res, true, 'nextStep must succeed with valid email');
-          const nameStep = getHook().currentItem;
+          const taglineStep = getHook().currentItem;
           assertEqual(
-            nameStep.kind === 'group' ? nameStep.groupId : null,
-            'name_legal',
-            'Valid email must advance to name step'
+            taglineStep.kind === 'group' ? taglineStep.groupId : null,
+            'tagline',
+            'Valid email must advance to tagline step'
           );
         } finally {
           await unmount();
@@ -251,7 +262,7 @@ export async function runStepperStressTests(
       },
     ],
     [
-      'STRESS-STEP-06: presence answer is optional and advances to role_company when empty',
+      'STRESS-STEP-06: presence answer is optional and advances to social_links when empty',
       async () => {
         await mockStorage.clear();
         const { getHook, unmount } = await mountHook();
@@ -283,8 +294,8 @@ export async function runStepperStressTests(
           });
           assertEqual(res, true, 'Optional presence must advance');
           const item06 = getHook().currentItem;
-          assertEqual(item06.kind, 'group', 'Must advance to role_company group');
-          assertEqual(item06.kind === 'group' ? item06.groupId : null, 'role_company');
+          assertEqual(item06.kind, 'group', 'Must advance to social_links group');
+          assertEqual(item06.kind === 'group' ? item06.groupId : null, 'social_links');
           assertEqual(getHook().isLastStep, false, 'isLastStep must be false before final step');
         } finally {
           await unmount();
@@ -408,16 +419,28 @@ export async function runStepperStressTests(
           const afterBioSkip = getHook().currentItem;
           assertEqual(
             afterBioSkip.kind === 'group' ? afterBioSkip.groupId : null,
-            'social_links',
-            'skip short_bio must advance to social_links'
+            'presence',
+            'skip short_bio must advance to presence'
           );
 
           await act(async () => {
             getHook().skipStep();
           });
+          const afterPresenceSkip = getHook().currentItem;
+          assertEqual(
+            afterPresenceSkip.kind === 'group' ? afterPresenceSkip.groupId : null,
+            'social_links',
+            'skip presence must advance to social_links'
+          );
+
+          assertEqual(getHook().canSkip, false, 'social links must not be skippable');
+          await act(async () => {
+            getHook().updateDraft({ linkedin: 'https://linkedin.com/in/ada' });
+            getHook().nextStep();
+          });
           const item0 = getHook().currentItem;
           assertEqual(getHook().isLastStep, true, 'complete must be the last onboarding step');
-          assertEqual(item0.kind, 'complete', 'skip social must advance to completion');
+          assertEqual(item0.kind, 'complete', 'valid social link must advance to completion');
 
           await act(async () => {
             getHook().skipStep();

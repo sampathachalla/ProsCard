@@ -7,6 +7,7 @@ import type { OnboardingState } from '@/services/api/types';
 import { AUTH_TEST_MODE } from '@/pages/auth/Config/authMode';
 import { isPendingMediaUrl } from '@/pages/profile/Services/pendingMedia';
 import { getSession } from '@/services/api/session';
+import { queryClient, queryKeys } from '@/services/api/queryClient';
 
 const ONBOARDING_STORAGE_KEY = 'hasCompletedOnboarding';
 async function onboardingStorageKey() {
@@ -69,9 +70,43 @@ export async function saveOnboardingDraft(draft: OnboardingDraft): Promise<Onboa
   return apiRequest('/onboarding/draft', { method: 'PUT', body: serializable });
 }
 
+export interface GeneratedProfileCopy {
+  tagline: string;
+  shortBio: string;
+}
+
+export const TEST_PROFILE_COPY: GeneratedProfileCopy = {
+  tagline: 'Building tools for the future',
+  shortBio: 'I build thoughtful digital products that make professional connections simpler and more useful.',
+};
+
+export async function generateProfileCopy(
+  draft: Pick<
+    OnboardingDraft,
+    | 'firstName'
+    | 'lastName'
+    | 'preferredName'
+    | 'title'
+    | 'organization'
+    | 'department'
+    | 'accreditations'
+    | 'businessAddress'
+  >,
+): Promise<GeneratedProfileCopy | null> {
+  // Test mode deliberately has no real authenticated backend session. Return a
+  // representative local result so the auto-fill UI can still be exercised.
+  if (AUTH_TEST_MODE) return TEST_PROFILE_COPY;
+  return apiRequest<GeneratedProfileCopy>('/onboarding/generate-profile-copy', {
+    method: 'POST',
+    body: draft,
+    timeoutMs: 35_000,
+  });
+}
+
 export async function setHasCompletedOnboarding(draft: object = {}): Promise<void> {
   if (!AUTH_TEST_MODE) {
     await apiRequest('/onboarding/complete', { method: 'POST', body: draft });
   }
   await AsyncStorage.setItem(await onboardingStorageKey(), 'true');
+  queryClient.setQueryData(queryKeys.onboarding, true);
 }

@@ -11,6 +11,7 @@ import { MediaService } from '../media/services/media.service.js';
 import { startMediaCleanupJob } from '../jobs/mediaCleanupJob.js';
 import { configureLogger, log } from './logger.js';
 import { OpenAiCardReader } from '../scanner/services/openai-card-reader.service.js';
+import { OpenAiProfileCopywriter } from '../onboarding/services/openai-profile-copywriter.service.js';
 import { AppleWalletPassGenerator, appleWalletConfigured } from '../wallet/services/apple-pass.service.js';
 import { GoogleWalletLinkGenerator, googleWalletConfigured } from '../wallet/services/google-wallet.service.js';
 
@@ -103,6 +104,10 @@ async function main() {
     ? new OpenAiCardReader({ apiKey: config.LLM_API, timeoutMs: config.LLM_TIMEOUT_MS })
     : undefined;
   if (!cardReader) log('warn', 'card_reader_disabled', { reason: 'LLM_API is not set' });
+  const profileCopywriter = config.LLM_API
+    ? new OpenAiProfileCopywriter({ apiKey: config.LLM_API, timeoutMs: config.LLM_TIMEOUT_MS })
+    : undefined;
+  if (!profileCopywriter) log('warn', 'profile_copywriter_disabled', { reason: 'LLM_API is not set' });
 
   const appleWallet = {
     passTypeId: config.APPLE_WALLET_PASS_TYPE_ID,
@@ -148,9 +153,11 @@ async function main() {
     supabase,
     storage,
     cardReader,
+    profileCopywriter,
     shareWebDir,
     wallet,
     scannerRateLimitMax: config.SCANNER_RATE_LIMIT_MAX,
+    profileCopyRateLimitMax: config.PROFILE_COPY_RATE_LIMIT_MAX,
     corsOrigins: config.CORS_ORIGINS.split(',').map((value) => value.trim()).filter(Boolean),
     authRateLimitMax: config.AUTH_RATE_LIMIT_MAX,
     passwordResetRedirectUrl: config.PASSWORD_RESET_REDIRECT_URL,
