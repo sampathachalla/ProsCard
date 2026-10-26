@@ -10,6 +10,7 @@ import { WalletStackView } from '@/pages/walletCard';
 import { PageHeader } from '@/common/ui/PageHeader';
 import { Text } from '@/common/ui/Text';
 import { deleteCard, setPrimaryCard } from '@/pages/cards/Services/cardsService';
+import { navigateToCardEditor } from '@/pages/cards/Utils/navigateToCardEditor';
 
 export default function CardsPageScreen() {
   const { cards, loading, error, offline, refresh } = useCards();
@@ -23,15 +24,12 @@ export default function CardsPageScreen() {
   const goBackToProfile = () => router.replace('/(tabs)/profilePage');
 
   const createCard = () => {
-    router.push({
-      pathname: '/(tabs)/editViewPage',
-      params: { create: '1', creationSession: Date.now().toString(), origin: 'cards' },
-    });
+    navigateToCardEditor(router, { create: true });
   };
 
   const editCard = (card: BusinessCard) => {
     setActionCardId(null);
-    router.push({ pathname: '/(tabs)/editViewPage', params: { cardId: card.id, edit: '1' } });
+    navigateToCardEditor(router, { cardId: card.id });
   };
 
   const confirmDelete = (card: BusinessCard) => Alert.alert(

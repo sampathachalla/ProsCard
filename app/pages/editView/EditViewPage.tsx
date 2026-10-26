@@ -1,24 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, BackHandler, Dimensions, ScrollView, View, useWindowDimensions, type ScrollViewInstance } from 'react-native';
-import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Alert, BackHandler, KeyboardAvoidingView, Platform, ScrollView, View, useWindowDimensions } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { EditorAnimatedPresentationProvider } from '@/common/ui/editor/EditorAnimatedPresentationContext';
-import { PageHeader } from '@/common/ui/PageHeader';
-import { ThemedBottomSheet } from '@/common/ui/ThemedBottomSheet';
-import { Text } from '@/common/ui/Text';
-import { EditHomeBar, type EditHomeTab } from '@/common/ui/EditHomeBar';
-import { FloatingEditBarButton } from '@/common/ui/FloatingEditBarButton';
-import { CardDetailView } from '@/pages/fullCard/Components/CardDetailView';
 import { CardSectionEditor } from '@/pages/editView/Components/CardSectionEditor';
 import { ContactMethodsRequiredModal } from '@/pages/editView/Components/ContactMethodsRequiredModal';
 import { CardPreviewModal } from '@/pages/previewCard/Components/CardPreviewModal';
-import { EditModeBar } from '@/pages/editView/Components/EditModeBar';
-import { EditViewHeaderActions } from '@/pages/editView/Components/EditViewHeaderActions';
-import { SectionPickerButton } from '@/pages/editView/Components/SectionPickerButton';
-import { SectionPickerModal } from '@/pages/editView/Components/SectionPickerModal';
-import { CREATION_FLOW, CREATION_STEPS, SECTION_TITLES, Z_INDEX } from '@/pages/editView/editViewConstants';
+import { EditCardFormHeader } from '@/pages/editView/Components/EditCardFormHeader';
+import type { EditHomeTab } from '@/common/ui/EditHomeBar';
 import { useProfileSnapshot } from '@/pages/profile/Hooks/useProfileSnapshot';
 import { saveProfile } from '@/pages/profile/Services/profileService';
 import {
@@ -30,14 +19,11 @@ import {
   profileWithConnectionFields,
   reusableConnectionValue,
 } from '@/pages/profile/Services/profileConnections';
-import { useEditorPreferences } from '@/pages/profile/Hooks/useEditorPreferences';
 import type { CardSectionId, DynamicCardField } from '@/pages/cards/types/card.types';
 import { buildDefaultCard, getCards } from '@/pages/cards/Services/cardsService';
 import { createCardDetailTemplate } from '@/pages/cards/Templates/cardDetailTemplate';
 import { useEditView } from '@/pages/editView/Hooks/useEditView';
-import { useThemeContext } from '@/context/ThemeContext';
 import type { EditableCard } from '@/pages/editView/types/editView.types';
-
 
 export default function EditViewPage() {
   const params = useLocalSearchParams<{
@@ -54,25 +40,12 @@ export default function EditViewPage() {
   const isCreateMode = createParam === '1';
   const router = useRouter();
   const safeAreaInsets = useSafeAreaInsets();
-  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
-  // Screen height does not shrink when the editor sheet or keyboard opens.
-  const cardLayoutHeight = Dimensions.get('screen').height;
+  const { height: windowHeight } = useWindowDimensions();
   const { profile } = useProfileSnapshot();
   const [creationDraft] = useState(() => buildDefaultCard(profile));
-  const { theme } = useThemeContext();
-  const { glassmorphicEditorEnabled, hydrated: editorPreferencesHydrated, sectionHighlightEnabled } = useEditorPreferences();
-  const sheetRef = useRef<BottomSheet>(null);
-  const cardScrollRef = useRef<ScrollViewInstance>(null);
-  const sectionOffsets = useRef<Partial<Record<CardSectionId, number>>>({});
-  const snapPoints = useMemo(() => ['55%', '100%'], []);
-  const [headerHeight, setHeaderHeight] = useState(0);
-  const [sheetIndex, setSheetIndex] = useState(-1);
-  const [homeBarCollapsed, setHomeBarCollapsed] = useState(false);
-  const [activeSection, setActiveSection] = useState<CardSectionId>('identity');
-  const [activeEditTab, setActiveEditTab] = useState<EditHomeTab>('layout');
-  const [, setStylingOpen] = useState(false);
+  const [activeSection] = useState<CardSectionId>('identity');
+  const [activeEditTab] = useState<EditHomeTab>('content');
   const [previewVisible, setPreviewVisible] = useState(false);
-  const [sectionPickerOpen, setSectionPickerOpen] = useState(false);
   const [cardTagRequiredError, setCardTagRequiredError] = useState(false);
   const [missingContactMethodCount, setMissingContactMethodCount] = useState<number | null>(null);
   const connectionScopeChoices = useRef<Record<string, 'card' | 'account'>>({});
@@ -106,15 +79,12 @@ export default function EditViewPage() {
     isEditing,
     isSaving,
     startEditing,
-    stopEditing,
-    cancelEditing,
     updateSectionLayout,
     updateSectionField,
     replaceConnectionFields,
     updateSectionTheme,
     saveCustomSectionTheme,
     submit,
-    submitSection,
     resetEditor,
   } = useEditView(
     cardId,
@@ -122,35 +92,10 @@ export default function EditViewPage() {
     isCreateMode ? creationDraft : undefined,
     syncProfileConnections,
   );
-  const editorChromeBackground = glassmorphicEditorEnabled
-    ? theme === 'dark'
-      ? 'rgba(2, 6, 23, 0.74)'
-      : 'rgba(255, 255, 255, 0.76)'
-    : theme === 'dark'
-      ? '#020617'
-      : '#ffffff';
-  const creationStepIndex = Math.max(
-    0,
-    CREATION_FLOW.findIndex(
-      ({ section, tab }) => section === activeSection && tab === activeEditTab,
-    ),
-  );
-  const creationActionLabel: 'Next' | 'Save & next' | 'Create card' =
-    activeEditTab === 'styling'
-      ? 'Create card'
-      : activeEditTab === 'layout'
-        ? 'Next'
-        : activeSection === 'connections'
-          ? 'Next'
-          : 'Save & next';
 
   useEffect(() => {
-    if (!isCreateMode) return;
-    const frame = requestAnimationFrame(() => {
-      sheetRef.current?.snapToIndex(0);
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [isCreateMode]);
+    startEditing();
+  }, [startEditing]);
 
   useEffect(() => {
     connectionScopeChoices.current = {};
@@ -158,86 +103,18 @@ export default function EditViewPage() {
 
   useEffect(() => {
     if (!isCreateMode || !creationSession) return;
-
-    // A creationSession is unique for every "Add card" action. Defer the reset to
-    // the next frame so this effect coordinates the editor instead of synchronously
-    // cascading React state updates. Use the mount-time draft: a background profile
-    // refresh must never erase details the user has already entered.
     const frame = requestAnimationFrame(() => {
       resetEditor(creationDraft, true);
-      setActiveSection('identity');
-      setActiveEditTab('layout');
-      setStylingOpen(false);
       setPreviewVisible(false);
-      setSectionPickerOpen(false);
       setCardTagRequiredError(false);
       connectionScopeChoices.current = {};
-      setHomeBarCollapsed(false);
-      setSheetIndex(0);
-      sectionOffsets.current = {};
-      cardScrollRef.current?.scrollTo({ y: 0, animated: false });
-      sheetRef.current?.snapToIndex(0);
     });
     return () => cancelAnimationFrame(frame);
   }, [creationDraft, creationSession, isCreateMode, resetEditor]);
 
-  const openSection = (section: CardSectionId) => {
-    startEditing();
-    setHomeBarCollapsed(false);
-    setStylingOpen(false);
-    setSectionPickerOpen(false);
-    setActiveSection(section);
-    requestAnimationFrame(() => {
-      sheetRef.current?.snapToIndex(0);
-      requestAnimationFrame(() => {
-        const sectionY = sectionOffsets.current[section];
-        if (sectionY !== undefined) {
-          cardScrollRef.current?.scrollTo({
-            y: Math.max(0, sectionY - 8),
-            animated: true,
-          });
-        }
-      });
-    });
-  };
-
-  const chooseSection = (section: CardSectionId) => {
-    Haptics.selectionAsync().catch(() => {});
-    setSectionPickerOpen(false);
-    requestAnimationFrame(() => openSection(section));
-  };
-
-  const closeEditor = useCallback(() => {
-    // Do not depend exclusively on BottomSheet's asynchronous onChange event.
-    // During a modal/sheet transition that event may arrive late (or not at all),
-    // leaving the screen in editing state after the sheet is already hidden.
-    setSectionPickerOpen(false);
-    setHomeBarCollapsed(false);
-    setStylingOpen(false);
-    setSheetIndex(-1);
-    sheetRef.current?.close();
-    stopEditing();
-  }, [setHomeBarCollapsed, setSectionPickerOpen, setSheetIndex, setStylingOpen, stopEditing]);
-  const compactBarHidden = homeBarCollapsed && sheetIndex === 0;
-  const changeEditTab = (tab: EditHomeTab) => {
-    setActiveEditTab(tab);
-    setStylingOpen(tab === 'styling');
-  };
-  const openEditorMode = (tab: EditHomeTab) => {
-    startEditing();
-    setHomeBarCollapsed(false);
-    setActiveEditTab(tab);
-    setStylingOpen(tab === 'styling');
-    setSectionPickerOpen(false);
-    requestAnimationFrame(() => sheetRef.current?.snapToIndex(0));
-  };
   const handleHeaderBack = useCallback(() => {
     if (previewVisible) {
       setPreviewVisible(false);
-      return;
-    }
-    if (sectionPickerOpen) {
-      setSectionPickerOpen(false);
       return;
     }
     if (isCreateMode) {
@@ -251,112 +128,59 @@ export default function EditViewPage() {
       ]);
       return;
     }
-    if (isEditing) {
-      closeEditor();
+    if (hasChanges) {
+      Alert.alert('Discard changes?', 'Unsaved changes will be lost.', [
+        { text: 'Keep editing', style: 'cancel' },
+        { text: 'Discard', style: 'destructive', onPress: () => router.back() },
+      ]);
       return;
     }
-    // Prefer popping the existing stack entry (e.g. the card detail screen
-    // this was pushed from) over replace(), which would stack a duplicate
-    // entry on top of it and require an extra back-press to clear.
     if (router.canGoBack()) {
       router.back();
       return;
     }
-    if (cardId) {
-      router.replace({ pathname: '/cards/[cardId]', params: { cardId } });
-      return;
-    }
-    router.replace('/(tabs)/cardsPage');
-  }, [
-    cardId,
-    closeEditor,
-    isCreateMode,
-    isEditing,
-    previewVisible,
-    router,
-    sectionPickerOpen,
-    setPreviewVisible,
-    setSectionPickerOpen,
-  ]);
+    router.replace('/(tabs)/homepage');
+  }, [hasChanges, isCreateMode, previewVisible, router]);
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      // Let the navigator handle a normal page pop, but consume Back while an
-      // editor layer is active so it closes exactly one layer at a time.
-      if (!previewVisible && !sectionPickerOpen && !isEditing && !isCreateMode) return false;
       handleHeaderBack();
       return true;
     });
     return () => subscription.remove();
-  }, [handleHeaderBack, isCreateMode, isEditing, previewVisible, sectionPickerOpen]);
+  }, [handleHeaderBack]);
+
   const requireContactFields = () => {
-    const fields = createCardDetailTemplate(draft, profile)
-      .find((section) => section.id === 'connections')
-      ?.fields.map((field) => ({
-        id: field.id,
-        title: field.title,
-        type: field.type === 'image' || field.type === 'multiline' ? 'text' as const : field.type,
-        value: field.value,
-      })) ?? [];
+    const fields =
+      createCardDetailTemplate(draft, profile)
+        .find((section) => section.id === 'connections')
+        ?.fields.map((field) => ({
+          id: field.id,
+          title: field.title,
+          type: field.type === 'image' || field.type === 'multiline' ? ('text' as const) : field.type,
+          value: field.value,
+        })) ?? [];
     const { total } = connectionCounts(fields);
     if (total >= MINIMUM_CARD_CONNECTION_FIELDS) return true;
 
-    setActiveSection('connections');
-    setActiveEditTab('content');
-    setStylingOpen(false);
-    setSectionPickerOpen(false);
     setPreviewVisible(false);
-    requestAnimationFrame(() => sheetRef.current?.snapToIndex(0));
     setMissingContactMethodCount(MINIMUM_CARD_CONNECTION_FIELDS - total);
     return false;
   };
-  const saveSection = async () => {
-    if (activeSection === 'connections' && activeEditTab === 'content' && !requireContactFields()) return;
-    if (isCreateMode) {
-      if (activeSection === 'identity' && activeEditTab === 'content' && !requireCardTag()) return;
-      if (activeEditTab === 'styling') {
-        await saveAllChanges();
-        return;
-      }
 
-      const nextStep = CREATION_FLOW[creationStepIndex + 1];
-      if (nextStep) {
-        setActiveSection(nextStep.section);
-        setActiveEditTab(nextStep.tab);
-        setStylingOpen(nextStep.tab === 'styling');
-        requestAnimationFrame(() => {
-          sheetRef.current?.snapToIndex(0);
-          const sectionY = sectionOffsets.current[nextStep.section];
-          if (sectionY !== undefined)
-            cardScrollRef.current?.scrollTo({
-              y: Math.max(0, sectionY - 8),
-              animated: true,
-            });
-        });
-        return;
-      }
-    }
-    await submitSection(activeSection);
-  };
   const requireCardTag = () => {
     if (draft.sectionOverrides.cardTag?.trim()) {
       setCardTagRequiredError(false);
       return true;
     }
-
     setCardTagRequiredError(true);
-    setActiveSection('identity');
-    setActiveEditTab('content');
-    setStylingOpen(false);
-    setSectionPickerOpen(false);
-    setPreviewVisible(false);
-    requestAnimationFrame(() => sheetRef.current?.snapToIndex(0));
     Alert.alert(
       'Select a card tag',
-      'A card tag is required. Choose Business, Personal, Networking, or Portfolio before continuing.',
+      'A card tag is required. Choose Business, Personal, Networking, or Portfolio before saving.',
     );
     return false;
   };
+
   const saveAllChanges = async () => {
     if (isCreateMode && !requireCardTag()) return;
     if (!requireContactFields()) return;
@@ -364,205 +188,71 @@ export default function EditViewPage() {
     const saved = await submit({ keepEditing: !isCreateMode });
     if (saved && isCreateMode) router.back();
   };
-  const undoAllChanges = () => {
-    if (!hasChanges || isSaving) return;
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
-    Alert.alert('Discard all changes?', 'Unsaved changes to every section of this card will be lost.', [
-      { text: 'Keep editing', style: 'cancel' },
-      { text: 'Discard', style: 'destructive', onPress: cancelEditing },
-    ]);
-  };
+
   const previewCard = () => {
     if (isCreateMode && !requireCardTag()) return;
-    if (isCreateMode && !requireContactFields()) return;
+    if (!requireContactFields()) return;
     Haptics.selectionAsync().catch(() => {});
     setPreviewVisible(true);
   };
+
   const closePreview = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     setPreviewVisible(false);
   };
+
   const previewCardData = isEditing ? draft : card;
 
   return (
     <View className="flex-1 bg-background dark:bg-dark-background">
-      <View
-        onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
-        style={{
-          backgroundColor: editorChromeBackground,
-          borderBottomColor: 'rgba(148, 163, 184, 0.18)',
-          borderBottomWidth: 1,
-          elevation: 24,
-          left: 0,
-          position: 'absolute',
-          right: 0,
-          top: 0,
-          zIndex: Z_INDEX.header,
-        }}
-      >
-        <PageHeader
-          title={isCreateMode ? 'Add Card' : isEditing ? 'Edit Card' : 'Edit Card'}
-          subtitle={
-            isCreateMode && isEditing
-              ? `Step ${creationStepIndex + 1} of ${CREATION_FLOW.length} · ${SECTION_TITLES[activeSection]} ${activeEditTab}`
-              : isEditing
-              ? `${activeEditTab === 'layout' ? 'Layouts' : activeEditTab === 'content' ? 'Content' : 'Styling'} · All card sections`
-              : card.name || 'Choose how you want to customize the card'
-          }
-          onBackPress={handleHeaderBack}
-          right={
-            <EditViewHeaderActions
-              cardName={card.name}
-              hasChanges={hasChanges}
-              isCreateMode={isCreateMode}
-              isEditing={isEditing}
-              isSaving={isSaving}
-              onPreview={previewCard}
-              onSave={saveAllChanges}
-              onUndo={undoAllChanges}
-            />
-          }
-        />
-      </View>
-      <ScrollView
-        ref={cardScrollRef}
-        contentContainerStyle={{
-          paddingTop: headerHeight > 0 ? headerHeight + 12 : safeAreaInsets.top + 68,
-          paddingBottom: isEditing ? Math.max(120, windowHeight * 0.62) : 78 + Math.max(safeAreaInsets.bottom, 10),
-        }}
-        showsVerticalScrollIndicator={false}
-      >
-        <CardDetailView
-          activeSection={
-            isEditing && editorPreferencesHydrated && sectionHighlightEnabled ? activeSection : undefined
-          }
-          card={isEditing ? draft : card}
-          profile={profile}
-          viewportHeight={cardLayoutHeight}
-          onSectionLayout={(section, y) => {
-            sectionOffsets.current[section] = y;
-          }}
-        />
-      </ScrollView>
-
-      {!isEditing && !previewVisible ? (
-        <EditModeBar
-          backgroundColor={editorChromeBackground}
-          bottomInset={safeAreaInsets.bottom}
-          windowWidth={windowWidth}
-          onOpen={openEditorMode}
-        />
-      ) : null}
-
-      <SectionPickerModal
-        bottomInset={safeAreaInsets.bottom}
-        visible={sectionPickerOpen}
-        windowWidth={windowWidth}
-        onChoose={chooseSection}
-        onClose={() => setSectionPickerOpen(false)}
+      <EditCardFormHeader
+        isCreateMode={isCreateMode}
+        isSaving={isSaving}
+        saveDisabled={!isCreateMode && !hasChanges}
+        onBack={handleHeaderBack}
+        onSave={saveAllChanges}
       />
-
-      <ThemedBottomSheet
-        ref={sheetRef}
-        snapPoints={snapPoints}
-        topInset={headerHeight}
-        containerStyle={{ zIndex: Z_INDEX.sheet }}
-        backdropEnabled={false}
-        enablePanDownToClose={!isCreateMode}
-        glassmorphic={glassmorphicEditorEnabled}
-        showHandle={sheetIndex === 1}
-        footer={
-          isEditing && !compactBarHidden ? (
-            <View
-              className="border-t border-slate-200 bg-card dark:border-slate-700 dark:bg-dark-card"
-              style={{
-                backgroundColor: editorChromeBackground,
-                paddingBottom: Math.max(safeAreaInsets.bottom, 8),
-                paddingHorizontal: windowWidth < 380 ? 8 : 16,
-                paddingTop: 6,
-              }}
-            >
-              <View style={{ alignSelf: 'center', maxWidth: 760, width: '100%' }}>
-                <EditHomeBar
-                  activeTab={activeEditTab}
-                  actionLabel={isCreateMode ? creationActionLabel : 'Save'}
-                  isSaving={isSaving}
-                  onChange={changeEditTab}
-                  onSave={isCreateMode ? saveSection : saveAllChanges}
-                  saveDisabled={!isCreateMode && !hasChanges}
-                  showSave={isCreateMode || hasChanges || isSaving}
-                />
-              </View>
-            </View>
-          ) : null
-        }
-        onChange={(index) => {
-          setSheetIndex(index);
-          if (index === -1 && !isSaving && !isCreateMode) {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-            if (isEditing) stopEditing();
-          }
-        }}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        className="flex-1"
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
       >
-        <View className="flex-1">
-          <EditorAnimatedPresentationProvider>
-            <BottomSheetScrollView
-              contentContainerStyle={{
-                paddingHorizontal: 20,
-                paddingBottom: compactBarHidden ? Math.max(safeAreaInsets.bottom, 24) : 104 + Math.max(safeAreaInsets.bottom, 14),
-              }}
-              keyboardShouldPersistTaps="handled"
-            >
-              <View>
-                {sheetIndex === 0 && activeEditTab !== 'styling' ? (
-                  <SectionPickerButton
-                    activeSection={activeSection}
-                    expanded={sectionPickerOpen}
-                    onPress={() => setSectionPickerOpen(true)}
-                  />
-                ) : null}
-                {(sheetIndex === 0 || activeEditTab === 'styling' ? [activeSection] : CREATION_STEPS).map((sectionId) => (
-                  <View key={`${activeEditTab}-${sectionId}`} className={sheetIndex === 1 ? 'mb-2' : 'mb-6'}>
-                    {sheetIndex === 1 && activeEditTab !== 'styling' ? (
-                      <View className="mb-3 flex-row items-center">
-                        <Text className="text-lg font-black text-textPrimary dark:text-dark-textPrimary">{SECTION_TITLES[sectionId]}</Text>
-                        <View className="ml-3 h-px flex-1 bg-slate-200 dark:bg-slate-700" />
-                      </View>
-                    ) : null}
-                    <CardSectionEditor
-                      activeEditTab={activeEditTab}
-                      activeSection={sectionId}
-                      card={draft}
-                      cardTagRequired={isCreateMode && sectionId === 'identity'}
-                      cardTagRequiredError={isCreateMode && sectionId === 'identity' && cardTagRequiredError}
-                      editBarCollapsed={homeBarCollapsed}
-                      fullOpen={sheetIndex === 1}
-                      profile={profile}
-                      showSectionNavigation={false}
-                      onActiveSectionChange={setActiveSection}
-                      onConnectionScopeDecision={recordConnectionScope}
-                      onConnectionsChange={replaceConnectionFields}
-                      onFieldChange={(field, value) => {
-                        updateSectionField(field, value);
-                        if (field === 'cardTag' && value.trim()) setCardTagRequiredError(false);
-                      }}
-                      onLayoutChange={updateSectionLayout}
-                      onCloseStyling={() => changeEditTab('layout')}
-                      onOpenStyling={() => changeEditTab('styling')}
-                      onProfessionalFieldFocus={() => {
-                        if (sheetIndex !== 1) sheetRef.current?.snapToIndex(1);
-                      }}
-                      onThemeChange={updateSectionTheme}
-                      onSaveCustomTheme={saveCustomSectionTheme}
-                      stylingOpen={activeEditTab === 'styling'}
-                    />
-                  </View>
-                ))}
-              </View>
-            </BottomSheetScrollView>
-          </EditorAnimatedPresentationProvider>
-        </View>
-      </ThemedBottomSheet>
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingHorizontal: 20,
+            paddingTop: 16,
+            paddingBottom: Math.max(safeAreaInsets.bottom, 16) + 24,
+          }}
+        >
+          <CardSectionEditor
+            activeEditTab={activeEditTab}
+            activeSection={activeSection}
+            card={draft}
+            cardTagRequired={isCreateMode}
+            cardTagRequiredError={cardTagRequiredError}
+            formLayout
+            fullOpen
+            profile={profile}
+            showSectionNavigation={false}
+            stylingOpen={false}
+            onActiveSectionChange={() => {}}
+            onConnectionScopeDecision={recordConnectionScope}
+            onConnectionsChange={replaceConnectionFields}
+            onFieldChange={(field, value) => {
+              updateSectionField(field, value);
+              if (field === 'cardTag' && value.trim()) setCardTagRequiredError(false);
+            }}
+            onLayoutChange={updateSectionLayout}
+            onCloseStyling={() => {}}
+            onOpenPreview={previewCard}
+            onOpenStyling={() => {}}
+            onThemeChange={updateSectionTheme}
+            onSaveCustomTheme={saveCustomSectionTheme}
+          />
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       <ContactMethodsRequiredModal
         minimumCount={MINIMUM_CARD_CONNECTION_FIELDS}
@@ -571,21 +261,11 @@ export default function EditViewPage() {
         onContinue={() => setMissingContactMethodCount(null)}
       />
 
-      {isEditing && sheetIndex >= 0 ? (
-        <FloatingEditBarButton
-          barOpen={!homeBarCollapsed}
-          bottomInset={compactBarHidden ? Math.max(safeAreaInsets.bottom, 14) : 66 + Math.max(safeAreaInsets.bottom, 8)}
-          minY={sheetIndex === 0 ? headerHeight + (windowHeight - headerHeight) * 0.45 + 12 : headerHeight + 12}
-          onToggle={() => setHomeBarCollapsed((current) => !current)}
-          visible={sheetIndex === 0}
-        />
-      ) : null}
-
       <CardPreviewModal
         card={previewCardData}
         insets={safeAreaInsets}
         profile={profile}
-        viewportHeight={cardLayoutHeight}
+        viewportHeight={windowHeight}
         visible={previewVisible}
         onClose={closePreview}
       />

@@ -1,10 +1,18 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Alert, Linking, Platform, ScrollView, Share, View } from 'react-native';
+import BottomSheet from '@gorhom/bottom-sheet';
+import * as WebBrowser from 'expo-web-browser';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import type { GenerateMetadataFunction } from 'expo-router/server';
 import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import { CardDetailView } from '@/pages/fullCard/Components/CardDetailView';
-import { getCardById } from '@/pages/cards/Services/cardsService';
+import { duplicateCard, getCardById } from '@/pages/cards/Services/cardsService';
+import { CardMenuButton } from '@/pages/cards/Components/CardMenuButton';
+import { CardMenuSheet } from '@/pages/cards/Components/CardMenuSheet';
+import { CardTitleBadge } from '@/pages/cards/Components/CardTitleBadge';
+import type { CardMenuActionId } from '@/pages/cards/Config/cardMenuActions';
+import { closeBottomSheet } from '@/common/ui/closeBottomSheet';
+import { buildCardShareMessage } from '@/pages/share/Utils/shareFormatters';
 import { useCard } from '@/pages/cards/Hooks/useCard';
 import { CardTapGesture } from '@/common/gestures';
 import { Text } from '@/common/ui/Text';
@@ -13,6 +21,7 @@ import { useShareUrl } from '@/pages/share/Hooks/useShareUrl';
 import { useAddToWallet } from '@/pages/walletCard/Hooks/useAddToWallet';
 import { WalletProcessingModal } from '@/pages/walletCard/Components/WalletProcessingModal';
 import { getShareUrl } from '@/pages/share/Services/sharingService';
+import { navigateToCardEditorAfterSheet } from '@/pages/cards/Utils/navigateToCardEditor';
 import { queryClient, queryKeys } from '@/services/api/queryClient';
 import { useProfileSnapshot } from '@/pages/profile/Hooks/useProfileSnapshot';
 import {
@@ -54,6 +63,7 @@ export default function CardDetailPage() {
   const { profile } = useProfileSnapshot();
   const [showQr, setShowQr] = useState(false);
   const wallet = useAddToWallet();
+  const menuRef = useRef<BottomSheet>(null);
 
   const share = useShareUrl(showQr ? cardId : null);
 
@@ -82,15 +92,60 @@ export default function CardDetailPage() {
     );
   }
 
+  const cardTitle = card.sectionOverrides.cardTag?.trim() || card.name || 'My card';
+
+  const fetchShareUrl = () =>
+    queryClient
+      .fetchQuery({ queryKey: queryKeys.share(card.id), queryFn: () => getShareUrl(card.id), staleTime: Infinity })
+      .catch((reason) => {
+        Alert.alert('Share link unavailable', reason instanceof Error ? reason.message : 'Try again.');
+        return '';
+      });
+
+  const handleMenuSelect = async (action: CardMenuActionId) => {
+    closeBottomSheet(menuRef);
+    try {
+      switch (action) {
+        case 'edit':
+          navigateToCardEditorAfterSheet(router, { cardId: card.id });
+          break;
+        case 'preview': {
+          const url = await fetchShareUrl();
+          if (url) await WebBrowser.openBrowserAsync(url);
+          break;
+        }
+        case 'share': {
+          const url = await fetchShareUrl();
+          if (url) {
+            await Share.share({
+              message: buildCardShareMessage(card.name, url),
+              title: `${card.name} | VC Pros`,
+              url: Platform.OS === 'ios' ? url : undefined,
+            });
+          }
+          break;
+        }
+        case 'duplicate': {
+          const copy = await duplicateCard(card);
+          router.push({ pathname: '/cards/[cardId]', params: { cardId: copy.id } });
+          break;
+        }
+        case 'wallet':
+          await wallet.addToWallet(card.id, card.name);
+          break;
+        case 'lockscreen':
+          router.push({ pathname: '/(tabs)/sharePage', params: { cardId: card.id, guide: 'lockscreen' } });
+          break;
+      }
+    } catch (reason) {
+      Alert.alert('Something went wrong', reason instanceof Error ? reason.message : 'Please try again.');
+    }
+  };
+
   const toolActions: FloatingToolAction[] = FLOATING_TOOL_DEFINITIONS.map((tool) => ({
     ...tool,
     onSelect: async () => {
-      const url = tool.id === 'copy' || tool.id === 'open'
-        ? await queryClient.fetchQuery({ queryKey: queryKeys.share(card.id), queryFn: () => getShareUrl(card.id), staleTime: Infinity }).catch((reason) => {
-            Alert.alert('Share link unavailable', reason instanceof Error ? reason.message : 'Try again.');
-            return '';
-          })
-        : '';
+      const url = tool.id === 'copy' || tool.id === 'open' ? await fetchShareUrl() : '';
       if ((tool.id === 'copy' || tool.id === 'open') && !url) return;
 
       try {
@@ -107,10 +162,7 @@ export default function CardDetailPage() {
             await wallet.addToWallet(card.id, card.name);
             break;
           case 'edit':
-            router.push({
-              pathname: '/(tabs)/editViewPage',
-              params: { cardId: card.id, edit: '1' },
-            });
+            navigateToCardEditorAfterSheet(router, { cardId: card.id });
             break;
           case 'open':
             await Linking.openURL(url);
@@ -123,24 +175,23 @@ export default function CardDetailPage() {
   }));
 
   return (
-    <CardTapGesture
-      containerClassName="flex-1 bg-background dark:bg-dark-background"
-      onDoubleTap={goBackToCaller}
-      onSwipeDown={() => setShowQr(true)}
-      simultaneousWithNative
-    >
-      <ScrollView
-        contentContainerStyle={{
-          paddingBottom: Math.max(insets.bottom, 24) + 32,
-          paddingTop: Math.max(insets.top, 12),
-        }}
-        showsVerticalScrollIndicator={false}
+    <View className="flex-1 bg-background dark:bg-dark-background">
+      <CardTitleBadge title={cardTitle} topInset={insets.top} />
+      <CardTapGesture
+        containerClassName="flex-1 bg-background dark:bg-dark-background"
+        onDoubleTap={goBackToCaller}
+        onSwipeDown={() => setShowQr(true)}
+        simultaneousWithNative
       >
-        <CardDetailView card={card} fullBleed profile={profile} />
-      </ScrollView>
-      <FloatingToolsButton actions={toolActions} />
-      <WalletProcessingModal label={wallet.label} visible={wallet.adding} />
-      <QRCodeModal visible={showQr} cardName={card.name} url={share.url} error={share.error instanceof Error ? share.error.message : undefined} onClose={() => setShowQr(false)} />
-    </CardTapGesture>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <CardDetailView card={card} fullBleed profile={profile} />
+        </ScrollView>
+        <FloatingToolsButton actions={toolActions} />
+        <WalletProcessingModal label={wallet.label} visible={wallet.adding} />
+        <QRCodeModal visible={showQr} cardName={card.name} url={share.url} error={share.error instanceof Error ? share.error.message : undefined} onClose={() => setShowQr(false)} />
+      </CardTapGesture>
+      <CardMenuButton bottomInset={insets.bottom} onPress={() => menuRef.current?.snapToIndex(0)} />
+      <CardMenuSheet ref={menuRef} title={cardTitle} walletLabel={wallet.label} onSelect={(action) => void handleMenuSelect(action)} />
+    </View>
   );
 }

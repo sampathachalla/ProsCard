@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Linking, Platform, Share } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { useCards } from '@/pages/cards/Hooks/useCards';
 import { useProfileSnapshot } from '@/pages/profile/Hooks/useProfileSnapshot';
@@ -39,6 +40,23 @@ export function useSharePageController() {
   const [qrPresetId, setQrPresetId] = useState<string>(QR_CUSTOMIZATION_PRESETS[0].id);
 
   const qrSvgRef = useRef<QrSvgRef | null>(null);
+  const router = useRouter();
+  const params = useLocalSearchParams<{ cardId?: string; guide?: string }>();
+
+  // Other screens can open this page on a card with a guide showing,
+  // e.g. /(tabs)/sharePage?cardId=…&guide=lockscreen from the card menu.
+  useEffect(() => {
+    if (!params.cardId && !params.guide) return;
+    const index = cards.findIndex((item) => item.id === params.cardId);
+    if (params.cardId && index < 0) return; // Wait until the cards have loaded.
+    const guide = params.guide;
+    const frame = requestAnimationFrame(() => {
+      if (index >= 0) setCardIndex(index);
+      if (guide === 'lockscreen' || guide === 'homescreen' || guide === 'wallet') setGuideModal(guide);
+      router.setParams({ cardId: undefined, guide: undefined });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [cards, params.cardId, params.guide, router]);
 
   useEffect(() => {
     AsyncStorage.getItem(QR_PRESET_STORAGE_KEY)

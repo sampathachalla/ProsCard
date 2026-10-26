@@ -22,7 +22,7 @@ export function HomeScreenLayout({ topInset, header, toolbar, preview }: HomeScr
         {header}
         {toolbar}
       </View>
-      <View className="flex-1 overflow-hidden pb-2.5">{preview}</View>
+      <View className="flex-1 overflow-hidden">{preview}</View>
     </View>
   );
 }

@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LayoutTemplate, Palette, Plus } from 'lucide-react-native';
 
 import { Text } from '@/common/ui/Text';
@@ -56,7 +56,19 @@ function contactConfig(field: DynamicCardField) {
 
 export default function AddCardPage() {
   const router = useRouter();
-  const editor = useAddCard();
+  const params = useLocalSearchParams<{
+    cardId?: string | string[];
+    create?: string | string[];
+    session?: string | string[];
+  }>();
+  const cardId = Array.isArray(params.cardId) ? params.cardId[0] : params.cardId;
+  const createParam = Array.isArray(params.create) ? params.create[0] : params.create;
+  const creationSession = Array.isArray(params.session) ? params.session[0] : params.session;
+  const isCreateFlow = createParam === '1' || !cardId;
+  const editor = useAddCard({
+    cardId: isCreateFlow ? undefined : cardId,
+    creationSession: isCreateFlow ? creationSession : undefined,
+  });
   const [panel, setPanel] = useState<AddCardPanel>(null);
 
   const primaryContacts = useMemo(
@@ -71,19 +83,29 @@ export default function AddCardPage() {
   );
 
   const leave = () => {
+    const goBack = () => {
+      if (router.canGoBack()) router.back();
+      else router.replace('/(tabs)/homepage');
+    };
     if (!editor.hasChanges) {
-      router.replace('/(tabs)/homepage');
+      goBack();
       return;
     }
-    Alert.alert('Discard this card?', 'Your unsaved changes will be lost.', [
-      { text: 'Keep editing', style: 'cancel' },
-      { text: 'Discard', style: 'destructive', onPress: () => router.replace('/(tabs)/homepage') },
-    ]);
+    Alert.alert(
+      editor.isEditMode ? 'Discard changes?' : 'Discard this card?',
+      'Your unsaved changes will be lost.',
+      [
+        { text: 'Keep editing', style: 'cancel' },
+        { text: 'Discard', style: 'destructive', onPress: goBack },
+      ],
+    );
   };
 
   const save = async () => {
     const saved = await editor.save();
-    if (saved) router.replace('/(tabs)/homepage');
+    if (!saved) return;
+    if (router.canGoBack()) router.back();
+    else router.replace('/(tabs)/homepage');
   };
 
   const addContact = (option: ContactOption) => {
@@ -93,7 +115,12 @@ export default function AddCardPage() {
 
   return (
     <View className="flex-1 bg-background dark:bg-dark-background">
-      <AddCardHeader title="Add card" isSaving={editor.isSaving} onBack={leave} onSave={() => void save()} />
+      <AddCardHeader
+        title={editor.isEditMode ? 'Edit card' : 'Add card'}
+        isSaving={editor.isSaving}
+        onBack={leave}
+        onSave={() => void save()}
+      />
 
       <KeyboardAvoidingView
         className="flex-1"

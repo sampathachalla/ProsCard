@@ -1,6 +1,6 @@
 // pages/addCard/Services/addCardService.ts
 import { AUTH_TEST_MODE } from '@/pages/auth/Config/authMode';
-import { buildDefaultCard } from '@/pages/cards/Services/cardsService';
+import { buildDefaultCard, getCardById } from '@/pages/cards/Services/cardsService';
 import { createCardDetailTemplate } from '@/pages/cards/Templates/cardDetailTemplate';
 import type { BusinessCard, CardSectionFieldId, DynamicCardField } from '@/pages/cards/types/card.types';
 import { saveCard } from '@/pages/editView/Services/editViewService';
@@ -40,6 +40,31 @@ export function buildAddCardDraft(profile: Profile): BusinessCard {
     }));
 
   return { ...card, sectionOverrides, connectionFields, connectionFieldsCustomized: true };
+}
+
+/** Existing card loaded into the add/edit form shape. */
+export function buildAddCardDraftFromCard(card: BusinessCard): BusinessCard {
+  const preferredName = card.sectionOverrides.preferredName?.trim() || card.name;
+  return {
+    ...card,
+    name: preferredName,
+    sectionOverrides: {
+      ...card.sectionOverrides,
+      preferredName,
+      firstName: card.sectionOverrides.firstName ?? splitName(preferredName).firstName,
+      lastName: card.sectionOverrides.lastName ?? splitName(preferredName).lastName,
+    },
+    connectionFields: card.connectionFields.map((field) => ({ ...field })),
+    connectionFieldsCustomized: card.connectionFieldsCustomized ?? card.connectionFields.length > 0,
+  };
+}
+
+export function buildAddCardDraftForEditor(profile: Profile, cardId?: string): BusinessCard {
+  if (cardId) {
+    const existing = getCardById(cardId);
+    if (existing) return buildAddCardDraftFromCard(existing);
+  }
+  return buildAddCardDraft(profile);
 }
 
 /** Uploads a picked image and returns the URL to store on the card. */

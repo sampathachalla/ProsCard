@@ -40,6 +40,13 @@ function ThemedLayoutWrapper() {
           <Stack.Screen name="onboarding" />
           <Stack.Screen name="profile" />
           <Stack.Screen name="cards/[cardId]" />
+          <Stack.Screen
+            name="card-editor"
+            options={{
+              animation: 'slide_from_right',
+              presentation: 'card',
+            }}
+          />
           <Stack.Screen name="contacts/new" />
           <Stack.Screen name="contacts/[contactId]" />
           <Stack.Screen name="share/[slug]" />

@@ -506,3 +506,15 @@ export async function setPrimaryCard(cardId: string): Promise<BusinessCard> {
   notifyCardListeners();
   return primary;
 }
+
+/** Saves a copy of a card as a new, non-primary card with the same design and details. */
+export function duplicateCard(source: BusinessCard): Promise<BusinessCard> {
+  const { createdAt: _createdAt, updatedAt: _updatedAt, ...rest } = source;
+  return saveCard(normalizeCard({
+    ...rest,
+    id: `new-${Date.now()}`,
+    isPrimary: false,
+    sectionOverrides: { ...source.sectionOverrides },
+    connectionFields: source.connectionFields.map((field) => ({ ...field })),
+  }));
+}

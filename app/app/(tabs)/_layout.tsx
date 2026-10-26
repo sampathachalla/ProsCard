@@ -6,6 +6,7 @@ import { Colors } from '@/constants/Colors';
 import { useThemeContext } from '../../context/ThemeContext';
 import { useAuthSession } from '@/pages/auth/Hooks/useAuthSession';
 import { HomeTabBar } from '@/pages/home/Components/HomeTabBar';
+import { getHomeTabBarLayoutHeight } from '@/pages/home/Utils/homeTabBarLayout';
 
 export default function TabsLayout() {
   const { isAuthenticated, isHydrating } = useAuthSession();
@@ -13,7 +14,7 @@ export default function TabsLayout() {
   const isDark = theme === 'dark';
   const insets = useSafeAreaInsets();
   const appBackground = isDark ? Colors.dark.background : Colors.light.background;
-  const tabBarLayoutHeight = 96 + Math.max(insets.bottom, 8);
+  const tabBarLayoutHeight = getHomeTabBarLayoutHeight(insets.bottom);
 
   if (isHydrating) {
     return (

@@ -15,7 +15,7 @@ import {
 } from '@/pages/cards/types/card.types';
 import { useProfileSnapshot } from '@/pages/profile/Hooks/useProfileSnapshot';
 import { themeFromSavedSectionTheme } from '@/utils/cardThemeColor';
-import { buildAddCardDraft, createCard } from '../Services/addCardService';
+import { buildAddCardDraft, buildAddCardDraftForEditor, createCard } from '../Services/addCardService';
 import type { AddCardTextFieldId, ContactOption } from '../types/addCard.types';
 import { splitName } from '../Utils/addCardName';
 import { validateAddCard } from '../Utils/validateAddCard';
@@ -31,9 +31,17 @@ function withThemeEverywhere(card: BusinessCard, theme: CardVisualTheme): Busine
   };
 }
 
-export function useAddCard() {
+type UseAddCardOptions = {
+  cardId?: string;
+  creationSession?: string;
+};
+
+export function useAddCard(options: UseAddCardOptions = {}) {
   const { profile } = useProfileSnapshot();
-  const [draft, setDraft] = useState<BusinessCard>(() => buildAddCardDraft(profile));
+  const isEditMode = Boolean(options.cardId);
+  const [draft, setDraft] = useState<BusinessCard>(() =>
+    buildAddCardDraftForEditor(profile, options.cardId),
+  );
   const initialSnapshot = useRef(JSON.stringify(draft));
   const [isSaving, setIsSaving] = useState(false);
   const hasChanges = JSON.stringify(draft) !== initialSnapshot.current;
@@ -102,17 +110,27 @@ export function useAddCard() {
   }, []);
 
   const reset = useCallback(() => {
+    const next = isEditMode
+      ? buildAddCardDraftForEditor(profile, options.cardId)
+      : buildAddCardDraft(profile);
+    initialSnapshot.current = JSON.stringify(next);
+    setDraft(next);
+  }, [isEditMode, options.cardId, profile]);
+
+  useEffect(() => {
+    if (!options.creationSession || isEditMode) return;
     const next = buildAddCardDraft(profile);
     initialSnapshot.current = JSON.stringify(next);
     setDraft(next);
-  }, [profile]);
+  }, [isEditMode, options.creationSession, profile]);
 
   // The profile loads after first render; re-prefill until the user starts typing.
   const hasChangesRef = useRef(hasChanges);
   hasChangesRef.current = hasChanges;
   useEffect(() => {
+    if (isEditMode) return;
     if (!hasChangesRef.current) reset();
-  }, [reset]);
+  }, [isEditMode, reset]);
 
   /** Validates for preview/save. Returns false and explains what is missing when invalid. */
   const checkReady = useCallback(() => {
@@ -131,17 +149,21 @@ export function useAddCard() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       return saved;
     } catch (error) {
-      Alert.alert('Save failed', error instanceof Error ? error.message : 'Could not create this card.');
+      Alert.alert(
+        'Save failed',
+        error instanceof Error ? error.message : isEditMode ? 'Could not save this card.' : 'Could not create this card.',
+      );
       return null;
     } finally {
       setIsSaving(false);
     }
-  }, [checkReady, draft, isSaving]);
+  }, [checkReady, draft, isEditMode, isSaving]);
 
   return {
     draft,
     profile,
     hasChanges,
+    isEditMode,
     isSaving,
     setOverride,
     setTextField,

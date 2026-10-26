@@ -14,6 +14,8 @@ import { HomeScreenLayout } from '@/pages/home/Components/HomeScreenLayout';
 import { useCardViewPreference } from '@/pages/home/Hooks/useCardViewPreference';
 import { useProfileSnapshot } from '@/pages/profile/Hooks/useProfileSnapshot';
 import { ensureDefaultCard } from '@/pages/cards/Services/cardsService';
+import { navigateToCardEditor } from '@/pages/cards/Utils/navigateToCardEditor';
+import { getHomeTabBarLayoutHeight } from '@/pages/home/Utils/homeTabBarLayout';
 import { showMessage } from '@/common/ui/confirmAction';
 import { BrandLogo } from '@/common/ui/BrandLogo';
 import { Text } from '@/common/ui/Text';
@@ -115,18 +117,12 @@ export default function HomepageScreen() {
       showMessage('You are offline', 'Reconnect to create a new card.');
       return;
     }
-    router.push({
-      pathname: '/(tabs)/editViewPage',
-      params: { create: '1', creationSession: Date.now().toString(), origin: 'home' },
-    });
+    navigateToCardEditor(router, { create: true });
   };
 
   const handleEditCard = () => {
     if (!currentCard) return;
-    router.push({
-      pathname: '/(tabs)/editViewPage',
-      params: { cardId: currentCard.id, edit: '1', origin: 'home' },
-    });
+    navigateToCardEditor(router, { cardId: currentCard.id });
   };
 
   const handlePreviewCard = () => {
@@ -154,8 +150,14 @@ export default function HomepageScreen() {
 
   const hasCard = Boolean(currentCard);
 
+  const tabBarLayoutHeight = getHomeTabBarLayoutHeight(insets.bottom);
+
   const previewContent = (
-    <View className="flex-1" onLayout={handleShowcaseLayout}>
+    <View
+      className="flex-1"
+      onLayout={handleShowcaseLayout}
+      style={{ paddingBottom: tabBarLayoutHeight }}
+    >
       {showcaseHeight > 0 && needsDefaultCard ? (
         <View
           className="mx-5 items-center justify-center rounded-[28px] bg-slate-100/60 dark:bg-dark-card/40"

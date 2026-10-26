@@ -12,7 +12,7 @@ import type { BusinessCard as BusinessCardData } from '@/pages/cards/types/card.
 import type { Profile } from '@/pages/profile/types/profile.types';
 import { Text } from '@/common/ui/Text';
 import { PreviewCard } from '@/pages/previewCard/Components/PreviewCard';
-import { getBusinessCardHeight, getBusinessCardWidth } from '../Utils/businessCardLayout';
+import { getHomePreviewCardDimensions } from '../Utils/businessCardLayout';
 
 type BusinessCardCarouselProps = {
   activeIndex: number;
@@ -30,7 +30,6 @@ type BusinessCardCarouselProps = {
 };
 
 const CARD_GAP = 14;
-const SIDE_PADDING = 20;
 /** Small top inset only — card fills the rest so no empty band under the header or above actions. */
 const CARD_TOP_PADDING = 4;
 const CARD_BOTTOM_PADDING = 0;
@@ -109,12 +108,12 @@ export function BusinessCardCarousel({
     ? [...cards.map((card) => ({ kind: 'card' as const, card })), { kind: 'add' }]
     : cards.map((card) => ({ kind: 'card' as const, card }));
   const cardAvailableHeight = Math.max(0, height - CARD_TOP_PADDING - CARD_BOTTOM_PADDING);
-  const cardWidth = Math.max(270, windowWidth - SIDE_PADDING * 2);
-  // Prefer the full showcase height so the preview sits flush (no centered dead space).
-  const cardHeight = Math.max(
-    getBusinessCardHeight(cardWidth, cardAvailableHeight),
+  const { width: cardWidth, height: cardHeight } = getHomePreviewCardDimensions(
+    windowWidth,
     cardAvailableHeight,
+    cards.length,
   );
+  const sidePadding = Math.max(0, Math.round((windowWidth - cardWidth) / 2));
   const interval = cardWidth + CARD_GAP;
   useEffect(() => {
     const boundedIndex = Math.max(0, Math.min(items.length - 1, activeIndex));
@@ -155,10 +154,11 @@ export function BusinessCardCarousel({
         paddingTop: CARD_TOP_PADDING,
         paddingBottom: CARD_BOTTOM_PADDING,
       }}
-      className="justify-start"
+      className="justify-center"
     >
       <FlashList
         ref={listRef}
+        style={{ height: cardAvailableHeight }}
         accessibilityLabel="Business card carousel"
         contentOffset={{ x: 0, y: 0 }}
         data={items}
@@ -199,10 +199,10 @@ export function BusinessCardCarousel({
         showsHorizontalScrollIndicator={false}
         snapToAlignment="start"
         snapToInterval={interval}
-        ListHeaderComponent={<View style={{ width: SIDE_PADDING }} />}
-        ListFooterComponent={<View style={{ width: SIDE_PADDING }} />}
+        ListHeaderComponent={<View style={{ width: sidePadding }} />}
+        ListFooterComponent={<View style={{ width: sidePadding }} />}
         ItemSeparatorComponent={() => <View style={{ width: CARD_GAP }} />}
-        contentContainerStyle={{ alignItems: 'flex-start' }}
+        contentContainerStyle={{ alignItems: 'center', minHeight: cardAvailableHeight }}
       />
     </View>
   );

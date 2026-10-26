@@ -12,6 +12,7 @@ import {
   Check,
   ChevronLeft,
   ChevronDown,
+  ChevronRight,
   ChevronUp,
   FolderKanban,
   Image as ImageIcon,
@@ -183,6 +184,7 @@ function EditorInput({
   maxLength,
   minHeight,
   multiline,
+  nativeInput = false,
   onChangeText,
   onFocus,
   placeholder,
@@ -198,6 +200,8 @@ function EditorInput({
   maxLength?: number;
   minHeight?: number;
   multiline?: boolean;
+  /** Use a standard TextInput (full-page form) instead of BottomSheetTextInput. */
+  nativeInput?: boolean;
   onChangeText: (value: string) => void;
   onFocus?: () => void;
   placeholder?: string;
@@ -208,6 +212,7 @@ function EditorInput({
   value: string;
 }) {
   const textSize = size ?? (large ? 'lg' : 'base');
+  const InputComponent = nativeInput ? TextInput : BottomSheetTextInput;
   return (
     <View className="mb-4">
       {!hideLabel ? (
@@ -222,7 +227,7 @@ function EditorInput({
           ) : null}
         </View>
       ) : null}
-      <BottomSheetTextInput
+      <InputComponent
         value={value}
         onChangeText={onChangeText}
         maxLength={maxLength}
@@ -381,12 +386,14 @@ export function CardSectionEditor({
   cardTagRequired = false,
   cardTagRequiredError = false,
   editBarCollapsed = false,
+  formLayout = false,
   fullOpen = false,
   onActiveSectionChange,
   onConnectionScopeDecision,
   onConnectionsChange,
   onFieldChange,
   onLayoutChange,
+  onOpenPreview,
   onThemeChange,
   onSaveCustomTheme,
   onCloseStyling,
@@ -402,6 +409,8 @@ export function CardSectionEditor({
   cardTagRequired?: boolean;
   cardTagRequiredError?: boolean;
   editBarCollapsed?: boolean;
+  /** Single scroll form (add/edit wireframe) instead of bottom-sheet sections. */
+  formLayout?: boolean;
   fullOpen?: boolean;
   profile: Profile;
   onActiveSectionChange: (section: CardSectionId) => void;
@@ -409,6 +418,7 @@ export function CardSectionEditor({
   onConnectionsChange: (fields: DynamicCardField[]) => void;
   onFieldChange: (field: CardSectionFieldId, value: string) => void;
   onLayoutChange: (section: CardSectionId, template: CardLayoutId) => void;
+  onOpenPreview?: () => void;
   onThemeChange: (section: CardSectionId, theme: CardVisualTheme) => void;
   onSaveCustomTheme: (section: CardSectionId, entry: SavedSectionTheme) => void;
   onCloseStyling: () => void;
@@ -426,6 +436,8 @@ export function CardSectionEditor({
   const accreditationCharacterLimit = getResponsiveAccreditationLimit(width);
   const [selectedIdentityImage, setSelectedIdentityImage] = useState<IdentityImageField | null>(null);
   const [editingConnectionId, setEditingConnectionId] = useState<string | null>(null);
+  const [cardTagMenuOpen, setCardTagMenuOpen] = useState(false);
+  const [formThemeOpen, setFormThemeOpen] = useState(false);
   const [customFieldPickerOpen, setCustomFieldPickerOpen] = useState(false);
   const [customFieldSearch, setCustomFieldSearch] = useState('');
   const [pendingConnectionField, setPendingConnectionField] = useState<{
@@ -1317,6 +1329,260 @@ export function CardSectionEditor({
       connectionsContent
     );
 
+  const identityLayoutSection = sections.find((item) => item.id === 'identity') ?? section;
+  const nativeField = formLayout;
+  const patchConnectionField = (fieldId: string, title: string, type: DynamicCardFieldType, value: string) => {
+    const existing = card.connectionFields.find((field) => field.id === fieldId);
+    if (existing) {
+      onConnectionsChange(
+        card.connectionFields.map((field) => (field.id === fieldId ? { ...field, value } : field)),
+      );
+      return;
+    }
+    onConnectionsChange([...card.connectionFields, { id: fieldId, title, type, value }]);
+  };
+  const connectionFieldValue = (fieldId: string) =>
+    card.connectionFields.find((field) => field.id === fieldId)?.value ?? '';
+
+  const wireframeForm = formLayout ? (
+    <View className="pb-4">
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: cardTagMenuOpen }}
+        onPress={() => setCardTagMenuOpen((open) => !open)}
+        className="mb-3 min-h-[54px] flex-row items-center justify-between rounded-lg border border-slate-200 bg-slate-100 px-4 dark:border-slate-700 dark:bg-dark-card"
+      >
+        <Text className="text-base text-textPrimary dark:text-dark-textPrimary">
+          {cardTagValue.trim() || 'Card tag'}
+        </Text>
+        <ChevronDown color="#64748b" size={20} />
+      </Pressable>
+      {cardTagMenuOpen ? <View className="mb-3">{cardTagSelector}</View> : null}
+
+      <View className="mb-3">
+        <Text className="mb-2 text-sm font-semibold text-textPrimary dark:text-dark-textPrimary">Layout</Text>
+        <LayoutTemplatePicker
+          key={`identity-form-${resolveIdentityTemplateId(identityLayoutSection.templateId)}`}
+          editBarCollapsed={false}
+          fullOpen
+          section="identity"
+          selectedTemplateId={identityLayoutSection.templateId}
+          showHeader={false}
+          theme={card.sectionThemes.identity}
+          onSelect={(templateId) => onLayoutChange('identity', templateId)}
+        />
+      </View>
+
+      <View className="mb-4 overflow-hidden rounded-xl border border-slate-300 dark:border-slate-600">
+        <Pressable
+          accessibilityLabel="Edit cover photo"
+          accessibilityRole="button"
+          onPress={() => setSelectedIdentityImage('coverPhoto')}
+          className="h-[108px] w-full overflow-hidden bg-slate-200 dark:bg-slate-800"
+        >
+          {getFieldValue('coverPhoto') ? (
+            <MediaImage sourceUrl={getFieldValue('coverPhoto')} contentFit="cover" style={{ width: '100%', height: '100%' }} />
+          ) : (
+            <View className="h-full items-center justify-center">
+              <Text className="text-sm font-medium text-slate-500">Cover</Text>
+            </View>
+          )}
+        </Pressable>
+        <View className="flex-row items-end justify-between bg-card px-3 pb-3 pt-1 dark:bg-dark-card">
+          <Pressable
+            accessibilityLabel="Edit profile photo"
+            accessibilityRole="button"
+            onPress={() => setSelectedIdentityImage('profilePhoto')}
+            className="h-[72px] w-[72px] overflow-hidden rounded-full border-2 border-white bg-slate-100 dark:bg-slate-700"
+            style={{ marginTop: -36 }}
+          >
+            {getFieldValue('profilePhoto') ? (
+              <MediaImage sourceUrl={getFieldValue('profilePhoto')} contentFit="cover" style={{ width: '100%', height: '100%' }} />
+            ) : (
+              <View className="h-full items-center justify-center">
+                <ImageIcon color="#64748b" size={22} />
+              </View>
+            )}
+          </Pressable>
+          <Pressable
+            accessibilityLabel="Edit company logo"
+            accessibilityRole="button"
+            onPress={() => setSelectedIdentityImage('logo')}
+            className="mb-1 h-12 min-w-[96px] items-center justify-center rounded-lg border border-slate-200 bg-slate-50 px-2 dark:border-slate-600 dark:bg-slate-900"
+          >
+            {getFieldValue('logo') ? (
+              <MediaImage sourceUrl={getFieldValue('logo')} contentFit="contain" style={{ width: 88, height: 32 }} />
+            ) : (
+              <Text className="text-xs font-medium text-slate-500">Logo</Text>
+            )}
+          </Pressable>
+        </View>
+      </View>
+      {selectedIdentityImage ? (
+        <View className="mb-4">
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setSelectedIdentityImage(null)}
+            className="mb-2 self-start flex-row items-center"
+          >
+            <ChevronLeft color="#3b82f6" size={18} />
+            <Text className="ml-1 text-sm font-bold text-primary">Back</Text>
+          </Pressable>
+          {renderIdentityImageField(selectedIdentityImage)}
+        </View>
+      ) : null}
+
+      <EditorInput
+        nativeInput={nativeField}
+        hideLabel
+        label="Name"
+        value={
+          getFieldValue('preferredName').trim() ||
+          [getFieldValue('firstName'), getFieldValue('lastName')].filter(Boolean).join(' ').trim()
+        }
+        onChangeText={(value) => {
+          onFieldChange('preferredName', value);
+          const parts = value.trim().split(/\s+/);
+          onFieldChange('firstName', parts[0] ?? '');
+          onFieldChange('lastName', parts.slice(1).join(' '));
+        }}
+        placeholder="Name"
+      />
+      <EditorInput
+        nativeInput={nativeField}
+        hideLabel
+        label="Title"
+        value={getFieldValue('title')}
+        onChangeText={(value) => onFieldChange('title', value)}
+        placeholder="Title"
+      />
+      <EditorInput
+        nativeInput={nativeField}
+        hideLabel
+        label="Company"
+        value={getFieldValue('company')}
+        onChangeText={(value) => onFieldChange('company', value)}
+        placeholder="Company"
+      />
+      <EditorInput
+        nativeInput={nativeField}
+        hideLabel
+        label="Accreditations"
+        maxLength={accreditationCharacterLimit}
+        value={accreditationValue}
+        onChangeText={(value) => onFieldChange('accreditations', value)}
+        placeholder="Accreditations"
+      />
+      <EditorInput
+        nativeInput={nativeField}
+        hideLabel
+        label="Location"
+        value={connectionFieldValue('address')}
+        onChangeText={(value) => patchConnectionField('address', 'Address', 'text', value)}
+        placeholder="Location"
+      />
+      <EditorInput
+        nativeInput={nativeField}
+        hideLabel
+        label="Email"
+        value={connectionFieldValue('email')}
+        onChangeText={(value) => patchConnectionField('email', 'Email', 'email', value)}
+        placeholder="Email"
+      />
+      <EditorInput
+        nativeInput={nativeField}
+        hideLabel
+        label="Phone"
+        value={connectionFieldValue('phone')}
+        onChangeText={(value) => patchConnectionField('phone', 'Phone', 'phone', value)}
+        placeholder="Phone"
+      />
+      <EditorInput
+        nativeInput={nativeField}
+        hideLabel
+        label="Tag"
+        maxLength={taglineCharacterLimit}
+        value={taglineValue}
+        onChangeText={(value) => onFieldChange('tagline', value)}
+        placeholder="Tag"
+      />
+      <View className="mb-4 flex-row items-center justify-between rounded-lg bg-slate-100 px-4 py-3 dark:bg-dark-card">
+        <Text className="text-base font-medium text-textPrimary dark:text-dark-textPrimary">Bio</Text>
+        <Switch
+          accessibilityLabel="Show biography on card"
+          value={bioEnabled}
+          onValueChange={(enabled) => onFieldChange('bioEnabled', enabled ? 'true' : 'false')}
+          trackColor={{ false: '#cbd5e1', true: '#38bdf8' }}
+          thumbColor="#ffffff"
+        />
+      </View>
+      {bioEnabled ? (
+        <EditorInput
+          nativeInput={nativeField}
+          hideLabel
+          label="Bio"
+          maxLength={180}
+          minHeight={88}
+          multiline
+          value={bioVal}
+          onChangeText={(value) => onFieldChange('bio', value)}
+          placeholder="Bio"
+        />
+      ) : null}
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: formThemeOpen }}
+        onPress={() => setFormThemeOpen((open) => !open)}
+        className="mb-3 min-h-[54px] flex-row items-center justify-between rounded-lg border border-slate-200 bg-slate-100 px-4 dark:border-slate-700 dark:bg-dark-card"
+      >
+        <Text className="text-base font-medium text-textPrimary dark:text-dark-textPrimary">Card theme</Text>
+        <ChevronRight color="#64748b" size={20} style={{ transform: [{ rotate: formThemeOpen ? '90deg' : '0deg' }] }} />
+      </Pressable>
+      {formThemeOpen ? (
+        <View className="mb-4">
+          <CardStylingCustomizer
+            activeTemplateId={resolveLayoutStyle(card.sectionLayouts.identity, 'identity')}
+            backLabel="Back to form"
+            customThemes={card.customThemes ?? []}
+            editBarCollapsed={false}
+            embedded
+            fullOpen
+            onBack={() => setFormThemeOpen(false)}
+            sectionId="identity"
+            theme={card.sectionThemes.identity}
+            onChange={(theme) => {
+              (Object.keys(card.sectionThemes) as CardSectionId[]).forEach((sectionId) => {
+                onThemeChange(sectionId, {
+                  ...theme,
+                  gradient: [...theme.gradient],
+                  paletteColors: theme.paletteColors ? [...theme.paletteColors] : undefined,
+                });
+              });
+            }}
+            onSaveCustomTheme={(entry) => onSaveCustomTheme('identity', entry)}
+          />
+        </View>
+      ) : null}
+
+      <View className="mb-2 mt-2">
+        <Text className="mb-2 text-sm font-semibold text-textPrimary dark:text-dark-textPrimary">Contacts</Text>
+        {connectionsContent}
+      </View>
+
+      {onOpenPreview ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Preview card"
+          onPress={onOpenPreview}
+          className="mt-4 min-h-[52px] items-center justify-center rounded-2xl border-2 border-primary bg-primary/10 active:opacity-80 dark:border-dark-primary"
+        >
+          <Text className="text-base font-bold text-primary dark:text-dark-primary">Preview</Text>
+        </Pressable>
+      ) : null}
+    </View>
+  ) : null;
+
   const editZone = (
     <View style={{ width: editorPaneWidth, maxWidth: '100%', alignSelf: 'center' }}>
       {stylingOpen || activeEditTab === 'styling' ? (
@@ -1377,6 +1643,10 @@ export function CardSectionEditor({
       )}
     </View>
   );
+
+  if (formLayout && wireframeForm) {
+    return <View>{wireframeForm}</View>;
+  }
 
   return (
     <View>

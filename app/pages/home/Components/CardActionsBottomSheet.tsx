@@ -13,6 +13,7 @@ import { getShareUrl } from '@/pages/share/Services/sharingService';
 import { queryClient, queryKeys } from '@/services/api/queryClient';
 import { useAddToWallet } from '@/pages/walletCard/Hooks/useAddToWallet';
 import { WalletProcessingModal } from '@/pages/walletCard/Components/WalletProcessingModal';
+import { navigateToCardEditorAfterSheet } from '@/pages/cards/Utils/navigateToCardEditor';
 
 type CardActionsBottomSheetProps = {
   card?: BusinessCard;
@@ -47,12 +48,10 @@ export const CardActionsBottomSheet = forwardRef<BottomSheet, CardActionsBottomS
         onPress: () => {
           if (onEdit) {
             onEdit();
-          } else {
-            router.push({
-              pathname: '/(tabs)/editViewPage',
-              params: { cardId: card?.id ?? '1', edit: '1' },
-            });
+            return;
           }
+          if (!card?.id) return;
+          navigateToCardEditorAfterSheet(router, { cardId: card.id });
         },
       },
       {
