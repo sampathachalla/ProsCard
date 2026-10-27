@@ -34,9 +34,47 @@ function iconDataUri(icon: SimpleIcon): string {
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
+/** Full-color bundled wordmarks for popular companies; every require must stay static for Metro. */
+function curatedLogoSource(id: string): number | undefined {
+  // Vitest does not transform React Native image modules; production Metro resolves these requires.
+  if (process.env.VITEST) return undefined;
+  switch (id) {
+    case 'accenture': return require('../../../assets/company-logos/accenture.png');
+    case 'adobe': return require('../../../assets/company-logos/adobe.png');
+    case 'airbnb': return require('../../../assets/company-logos/airbnb.png');
+    case 'amazon': return require('../../../assets/company-logos/amazon.png');
+    case 'apple': return require('../../../assets/company-logos/apple.png');
+    case 'atlassian': return require('../../../assets/company-logos/atlassian.png');
+    case 'cisco': return require('../../../assets/company-logos/cisco.png');
+    case 'deloitte': return require('../../../assets/company-logos/deloitte.png');
+    case 'github': return require('../../../assets/company-logos/github.png');
+    case 'goldmansachs': return require('../../../assets/company-logos/goldmansachs.png');
+    case 'google': return require('../../../assets/company-logos/google.png');
+    case 'ibm': return require('../../../assets/company-logos/ibm.png');
+    case 'intel': return require('../../../assets/company-logos/intel.png');
+    case 'jpmorgan': return require('../../../assets/company-logos/jpmorgan.png');
+    case 'meta': return require('../../../assets/company-logos/meta.png');
+    case 'microsoft': return require('../../../assets/company-logos/microsoft.png');
+    case 'mindpros': return require('../../../assets/company-logos/mindpros.png');
+    case 'netflix': return require('../../../assets/company-logos/netflix.png');
+    case 'nvidia': return require('../../../assets/company-logos/nvidia.png');
+    case 'openai': return require('../../../assets/company-logos/openai.png');
+    case 'oracle': return require('../../../assets/company-logos/oracle.png');
+    case 'salesforce': return require('../../../assets/company-logos/salesforce.png');
+    case 'samsung': return require('../../../assets/company-logos/samsung.png');
+    case 'shopify': return require('../../../assets/company-logos/shopify.png');
+    case 'slack': return require('../../../assets/company-logos/slack.png');
+    case 'spotify': return require('../../../assets/company-logos/spotify.png');
+    case 'stripe': return require('../../../assets/company-logos/stripe.png');
+    case 'tesla': return require('../../../assets/company-logos/tesla.png');
+    case 'uber': return require('../../../assets/company-logos/uber.png');
+    default: return undefined;
+  }
+}
+
 /**
- * The complete local Simple Icons catalog. It is searchable offline and adds no API keys,
- * network requests, attribution service, or user tracking to the logo picker.
+ * Curated full-color wordmarks are preferred where available. The complete local Simple Icons
+ * catalog remains the searchable offline fallback without API keys or user tracking.
  */
 export const COMPANY_LOGO_PRESETS: CompanyLogoPreset[] = Object.values(SimpleIcons)
   .filter(isSimpleIcon)
@@ -45,7 +83,7 @@ export const COMPANY_LOGO_PRESETS: CompanyLogoPreset[] = Object.values(SimpleIco
     label: icon.title,
     keywords: [icon.slug, icon.title],
     value: `${COMPANY_LOGO_PRESET_PREFIX}${icon.slug}`,
-    source: { uri: iconDataUri(icon) },
+    source: curatedLogoSource(icon.slug) ?? { uri: iconDataUri(icon) },
     brandColor: `#${icon.hex}`,
   }))
   .sort((left, right) => left.label.localeCompare(right.label));
@@ -69,23 +107,6 @@ const LEGACY_COMPANY_LOGO_PRESETS: Omit<CompanyLogoPreset, 'source'>[] = [
   value: `${COMPANY_LOGO_PRESET_PREFIX}${id}`,
 }));
 
-function legacyLogoSource(id: string): number {
-  switch (id) {
-    case 'microsoft': return require('../../../assets/company-logos/microsoft.png');
-    case 'amazon': return require('../../../assets/company-logos/amazon.png');
-    case 'openai': return require('../../../assets/company-logos/openai.png');
-    case 'ibm': return require('../../../assets/company-logos/ibm.png');
-    case 'oracle': return require('../../../assets/company-logos/oracle.png');
-    case 'salesforce': return require('../../../assets/company-logos/salesforce.png');
-    case 'adobe': return require('../../../assets/company-logos/adobe.png');
-    case 'slack': return require('../../../assets/company-logos/slack.png');
-    case 'deloitte': return require('../../../assets/company-logos/deloitte.png');
-    case 'jpmorgan': return require('../../../assets/company-logos/jpmorgan.png');
-    case 'mindpros': return require('../../../assets/company-logos/mindpros.png');
-    default: return require('../../../assets/vcpros-logo-v3-dark.png');
-  }
-}
-
 export function isCompanyLogoPreset(value: string): boolean {
   return Boolean(value && value.startsWith(COMPANY_LOGO_PRESET_PREFIX));
 }
@@ -95,7 +116,10 @@ export function resolveCompanyLogoPreset(value: string): CompanyLogoPreset | und
   const current = COMPANY_LOGO_PRESETS.find((item) => item.value === value);
   if (current) return current;
   const legacy = LEGACY_COMPANY_LOGO_PRESETS.find((item) => item.value === value);
-  return legacy ? { ...legacy, source: legacyLogoSource(legacy.id) } : undefined;
+  return legacy ? {
+    ...legacy,
+    source: curatedLogoSource(legacy.id) ?? require('../../../assets/vcpros-logo-v3-dark.png'),
+  } : undefined;
 }
 
 export function filterCompanyLogoPresets(

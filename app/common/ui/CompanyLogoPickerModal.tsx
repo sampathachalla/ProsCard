@@ -284,11 +284,11 @@ export function CompanyLogoPickerModal({
                               : 'border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-[#0f172a]'
                           }`}
                         >
-                          <View className="size-12 items-center justify-center rounded-lg border border-slate-200 bg-white p-2">
+                          <View className="size-12 items-center justify-center rounded-lg border border-slate-200 bg-white px-1">
                             <MediaImage
                               sourceUrl={preset.value}
                               contentFit="contain"
-                              style={{ width: 32, height: 32 }}
+                              style={{ width: 42, height: 34 }}
                             />
                           </View>
                           <Text
