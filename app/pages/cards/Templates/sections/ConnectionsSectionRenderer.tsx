@@ -11,11 +11,11 @@ import { LinearGradient } from "expo-linear-gradient";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import * as Haptics from "expo-haptics";
 import { Text } from "@/common/ui/Text";
+import { getSocialMediaIconName } from "@/common/ui/SocialMediaIcon";
 import type { CardDetailField, CardDetailSection } from "../cardDetailTemplate";
 import type { CardVisualTheme } from "../../types/card.types";
 import { getCardFontFamily, getCardLetterSpacing } from "../cardTheme";
 import {
-  BOXED_SHADOW_LG,
   BOXED_SHADOW_MD,
   BOXED_SHADOW_SM,
   formatDisplayValue,
@@ -69,6 +69,13 @@ const SOCIAL_NAMES: Record<string, string> = {
   whatsapp: "WhatsApp",
   x: "X",
   youtube: "YouTube",
+  bluesky: "Bluesky",
+  discord: "Discord",
+  pinterest: "Pinterest",
+  reddit: "Reddit",
+  snapchat: "Snapchat",
+  telegram: "Telegram",
+  threads: "Threads",
 };
 
 function isEmail(field: CardDetailField) {
@@ -119,14 +126,8 @@ type FontAwesome6Name = React.ComponentProps<typeof FontAwesome6>["name"];
 
 function getConnectionIconName(field: CardDetailField): FontAwesome6Name {
   const id = field.id.toLowerCase();
-  if (id.includes("linkedin")) return "linkedin-in";
-  if (id === "x" || id.includes("twitter")) return "x-twitter";
-  if (id.includes("github")) return "github";
-  if (id.includes("instagram")) return "instagram";
-  if (id.includes("whatsapp")) return "whatsapp";
-  if (id.includes("youtube")) return "youtube";
-  if (id.includes("facebook")) return "facebook-f";
-  if (id.includes("tiktok")) return "tiktok";
+  const socialIcon = getSocialMediaIconName(`${id} ${field.title}`);
+  if (socialIcon) return socialIcon;
   if (isEmail(field)) return "envelope";
   if (isPhone(field)) return "phone";
   if (id.includes("address") || id.includes("location")) return "location-dot";

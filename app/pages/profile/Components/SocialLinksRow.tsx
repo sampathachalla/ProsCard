@@ -1,19 +1,20 @@
 // pages/profile/Components/SocialLinksRow.tsx
 import { View, Text, TouchableOpacity, Linking } from 'react-native';
-import { Link2, AtSign, Camera, GitFork, Briefcase, MessageCircle, Play, type LucideIcon } from 'lucide-react-native';
+import { Briefcase } from 'lucide-react-native';
+import { SocialMediaIcon } from '@/common/ui/SocialMediaIcon';
 import { Colors } from '@/constants/Colors';
 import type { SocialLinks } from '../types/profile.types';
 
-const SOCIAL_ICONS: Record<keyof SocialLinks, { icon: LucideIcon; label: string }> = {
-  linkedin: { icon: Link2, label: 'LinkedIn' },
-  x: { icon: AtSign, label: 'X' },
-  instagram: { icon: Camera, label: 'Instagram' },
-  facebook: { icon: AtSign, label: 'Facebook' },
-  github: { icon: GitFork, label: 'GitHub' },
-  portfolio: { icon: Briefcase, label: 'Portfolio' },
-  whatsapp: { icon: MessageCircle, label: 'WhatsApp' },
-  youtube: { icon: Play, label: 'YouTube' },
-  tiktok: { icon: Play, label: 'TikTok' },
+const SOCIAL_ICONS: Record<keyof SocialLinks, { label: string }> = {
+  linkedin: { label: 'LinkedIn' },
+  x: { label: 'X' },
+  instagram: { label: 'Instagram' },
+  facebook: { label: 'Facebook' },
+  github: { label: 'GitHub' },
+  portfolio: { label: 'Portfolio' },
+  whatsapp: { label: 'WhatsApp' },
+  youtube: { label: 'YouTube' },
+  tiktok: { label: 'TikTok' },
 };
 
 export function SocialLinksRow({ social }: { social: SocialLinks }) {
@@ -27,7 +28,7 @@ export function SocialLinksRow({ social }: { social: SocialLinks }) {
         const item = SOCIAL_ICONS[key];
         const url = social[key];
         if (!item || !url) return null;
-        const { icon: Icon, label } = item;
+        const { label } = item;
         return (
           <TouchableOpacity
             key={key}
@@ -37,7 +38,11 @@ export function SocialLinksRow({ social }: { social: SocialLinks }) {
             }}
             accessibilityLabel={label}
           >
-            <Icon color={Colors.light.tint} size={20} strokeWidth={2.2} />
+            {key === 'portfolio' ? (
+              <Briefcase color={Colors.light.tint} size={20} strokeWidth={2.2} />
+            ) : (
+              <SocialMediaIcon color={Colors.light.tint} platform={key} size={20} />
+            )}
             <Text className="text-textMuted dark:text-dark-textMuted text-xs mt-1">{label}</Text>
           </TouchableOpacity>
         );

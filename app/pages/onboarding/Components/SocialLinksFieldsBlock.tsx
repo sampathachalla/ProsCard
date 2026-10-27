@@ -1,22 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import {
-  AtSign,
   Briefcase,
-  Camera,
   Check,
   ChevronDown,
-  GitFork,
-  Link2,
-  MessageCircle,
-  Play,
   Plus,
   Trash2,
   X,
-  type LucideIcon,
 } from 'lucide-react-native';
 
 import { Text } from '@/common/ui/Text';
+import { SocialMediaIcon } from '@/common/ui/SocialMediaIcon';
 import { Colors } from '@/constants/Colors';
 import { useThemeContext } from '@/context/ThemeContext';
 import { OnboardingFormField } from './OnboardingFormField';
@@ -46,70 +40,60 @@ const SOCIAL_PLATFORMS: {
   key: SocialDraftKey;
   label: string;
   placeholder: string;
-  icon: LucideIcon;
   iconColor: string;
 }[] = [
   {
     key: 'linkedin',
     label: 'LinkedIn',
     placeholder: 'linkedin.com/in/username or username',
-    icon: Link2,
     iconColor: '#0a66c2',
   },
   {
     key: 'youtube',
     label: 'YouTube',
     placeholder: 'youtube.com/@channel',
-    icon: Play,
     iconColor: '#ff0000',
   },
   {
     key: 'github',
     label: 'GitHub',
     placeholder: '@username or github.com/username',
-    icon: GitFork,
     iconColor: '#94a3b8',
   },
   {
     key: 'x',
     label: 'X',
     placeholder: '@username',
-    icon: AtSign,
     iconColor: '#38bdf8',
   },
   {
     key: 'instagram',
     label: 'Instagram',
     placeholder: 'instagram.com/username',
-    icon: Camera,
     iconColor: '#e1306c',
   },
   {
     key: 'facebook',
     label: 'Facebook',
     placeholder: 'facebook.com/username',
-    icon: AtSign,
     iconColor: '#1877f2',
   },
   {
     key: 'whatsapp',
     label: 'WhatsApp',
     placeholder: 'https://wa.me/15551234567',
-    icon: MessageCircle,
     iconColor: '#25d366',
   },
   {
     key: 'tiktok',
     label: 'TikTok',
     placeholder: 'tiktok.com/@username',
-    icon: Play,
     iconColor: '#f472b6',
   },
   {
     key: 'portfolio',
     label: 'Portfolio',
     placeholder: 'https://yoursite.com',
-    icon: Briefcase,
     iconColor: '#38bdf8',
   },
 ];
@@ -153,7 +137,6 @@ export function SocialLinksFieldsBlock({
   const hasMinimumLinks = linkCount >= MIN_ONBOARDING_LINKS;
 
   const selectedPlatform = selectedKey ? platformByKey.get(selectedKey) : undefined;
-  const SelectedDropdownIcon = selectedPlatform?.icon;
 
   const openAddForm = () => {
     const nextKey =
@@ -293,14 +276,14 @@ export function SocialLinksFieldsBlock({
               }`}
             >
               <View className="flex-row items-center gap-3">
-                {selectedPlatform && SelectedDropdownIcon ? (
+                {selectedPlatform ? (
                   <>
                     <View className="h-9 w-9 items-center justify-center rounded-lg bg-slate-200/70 dark:bg-slate-800/90">
-                      <SelectedDropdownIcon
-                        color={selectedPlatform.iconColor}
-                        size={18}
-                        strokeWidth={2.2}
-                      />
+                      {selectedPlatform.key === 'portfolio' ? (
+                        <Briefcase color={selectedPlatform.iconColor} size={18} strokeWidth={2.2} />
+                      ) : (
+                        <SocialMediaIcon color={selectedPlatform.iconColor} platform={selectedPlatform.key} size={18} />
+                      )}
                     </View>
                     <Text
                       variant="none"
@@ -333,7 +316,6 @@ export function SocialLinksFieldsBlock({
               >
                 <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
                   {SOCIAL_PLATFORMS.map((platform, idx) => {
-                    const Icon = platform.icon;
                     const isSelected = platform.key === selectedKey;
                     const isAdded = Boolean(draft[platform.key]?.trim());
                     return (
@@ -353,7 +335,11 @@ export function SocialLinksFieldsBlock({
                         }`}
                       >
                         <View className="h-9 w-9 items-center justify-center rounded-lg bg-slate-200/70 dark:bg-slate-800/90">
-                          <Icon color={platform.iconColor} size={18} strokeWidth={2.2} />
+                          {platform.key === 'portfolio' ? (
+                            <Briefcase color={platform.iconColor} size={18} strokeWidth={2.2} />
+                          ) : (
+                            <SocialMediaIcon color={platform.iconColor} platform={platform.key} size={18} />
+                          )}
                         </View>
                         <Text
                           variant="none"
@@ -451,7 +437,6 @@ export function SocialLinksFieldsBlock({
           {savedKeys.map((key) => {
             const platform = platformByKey.get(key);
             if (!platform) return null;
-            const Icon = platform.icon;
             const value = draft[key]?.trim() ?? '';
             const hasError = Boolean(errors[key]);
             const isCurrentlyEditing = formOpen && selectedKey === key;
@@ -472,7 +457,11 @@ export function SocialLinksFieldsBlock({
               >
                 <View className="min-w-0 flex-1 flex-row items-center gap-3 pr-2">
                   <View className="h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-200/70 dark:bg-slate-800/90">
-                    <Icon color={platform.iconColor} size={18} strokeWidth={2.2} />
+                    {platform.key === 'portfolio' ? (
+                      <Briefcase color={platform.iconColor} size={18} strokeWidth={2.2} />
+                    ) : (
+                      <SocialMediaIcon color={platform.iconColor} platform={platform.key} size={18} />
+                    )}
                   </View>
                   <View className="min-w-0 flex-1">
                     <Text

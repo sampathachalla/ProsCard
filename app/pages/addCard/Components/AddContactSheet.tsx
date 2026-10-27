@@ -1,6 +1,7 @@
 import { Pressable, View } from 'react-native';
 import { Plus } from 'lucide-react-native';
 import { Text } from '@/common/ui/Text';
+import { getSocialMediaIconName, SocialMediaIcon } from '@/common/ui/SocialMediaIcon';
 import { getFieldIcon } from '@/pages/cards/Templates/sections/SectionSharedComponents';
 import type { DynamicCardField } from '@/pages/cards/types/card.types';
 import { CONTACT_OPTIONS } from '../Config/addCardFields';
@@ -31,6 +32,7 @@ export function AddContactSheet({ existing, visible, onClose, onAdd }: Props) {
         <View className="overflow-hidden rounded-2xl border border-slate-200 bg-card dark:border-slate-800 dark:bg-dark-card">
           {options.map((option, index) => {
             const Icon = getFieldIcon(option.title, option.type);
+            const socialIcon = getSocialMediaIconName(option.title);
             return (
               <Pressable
                 key={option.title}
@@ -41,7 +43,13 @@ export function AddContactSheet({ existing, visible, onClose, onAdd }: Props) {
                   index > 0 ? 'border-t border-slate-100 dark:border-slate-800' : ''
                 }`}
               >
-                <Icon color="#2563eb" size={18} strokeWidth={2.2} />
+                {socialIcon ? (
+                  <View className="w-[18px] items-center">
+                    <SocialMediaIcon color="#2563eb" platform={option.title} size={18} />
+                  </View>
+                ) : (
+                  <Icon color="#2563eb" size={18} strokeWidth={2.2} />
+                )}
                 <Text className="ml-3 flex-1 font-semibold">{option.title}</Text>
                 <Plus color="#94a3b8" size={18} strokeWidth={2.4} />
               </Pressable>
