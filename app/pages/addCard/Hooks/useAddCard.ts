@@ -20,6 +20,7 @@ import { buildAddCardDraft, buildAddCardDraftForEditor, createCard } from '../Se
 import type { AddCardTextFieldId, ContactOption } from '../types/addCard.types';
 import { splitName } from '../Utils/addCardName';
 import { validateAddCard } from '../Utils/validateAddCard';
+import { CARD_TAG_DESIGN_PRESETS, isCardTag } from '../Config/cardTagDesignPresets';
 
 /** Applies one theme to every card section so the whole card matches. */
 function withThemeEverywhere(card: BusinessCard, theme: CardVisualTheme): BusinessCard {
@@ -50,6 +51,19 @@ export function useAddCard(options: UseAddCardOptions = {}) {
   const setOverride = useCallback((field: CardSectionFieldId, value: string) => {
     setDraft((prev) => ({ ...prev, sectionOverrides: { ...prev.sectionOverrides, [field]: value } }));
   }, []);
+
+  const applyCardTag = useCallback((tag: string) => {
+    if (!isCardTag(tag)) {
+      setOverride('cardTag', tag);
+      return;
+    }
+    const preset = CARD_TAG_DESIGN_PRESETS[tag];
+    setDraft((prev) => withThemeEverywhere({
+      ...prev,
+      sectionLayouts: { ...preset.layouts },
+      sectionOverrides: { ...prev.sectionOverrides, cardTag: tag },
+    }, preset.theme));
+  }, [setOverride]);
 
   const setTextField = useCallback((field: AddCardTextFieldId, value: string) => {
     setDraft((prev) => {
@@ -167,6 +181,7 @@ export function useAddCard(options: UseAddCardOptions = {}) {
     isEditMode,
     isSaving,
     setOverride,
+    applyCardTag,
     setTextField,
     setContactValue,
     addContact,
