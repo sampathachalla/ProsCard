@@ -169,7 +169,7 @@ export function CompanyLogoPickerModal({
     >
       <View className="flex-1 justify-end bg-black/75">
         <Animated.View
-          className="w-full overflow-hidden rounded-t-[28px] border-t border-slate-200 bg-background dark:border-slate-800 dark:bg-[#020617]"
+          className="w-full overflow-hidden rounded-t-3xl border-t border-slate-200 bg-background dark:border-slate-800 dark:bg-[#020617]"
           style={[{
             paddingBottom: Math.max(insets.bottom, 16),
             height: isExpanded ? '92%' : '56%',
@@ -181,19 +181,19 @@ export function CompanyLogoPickerModal({
             <View
               accessibilityLabel="Drag down to close company logo library"
               accessibilityRole="adjustable"
-              className="min-h-10 items-center justify-center"
+              className="min-h-9 items-center justify-center"
             >
               <View className="h-1.5 w-11 rounded-full bg-slate-300 dark:bg-slate-700" />
             </View>
           </GestureDetector>
 
           {/* Modal Header */}
-          <View className="flex-row items-center justify-between border-b border-slate-200/80 px-5 pb-3.5 pt-2 dark:border-slate-800/80">
+          <View className="flex-row items-center justify-between border-b border-slate-200 px-6 pb-5 pt-1 dark:border-slate-800">
             <View className="flex-1 pr-3">
-              <Text className="text-lg font-extrabold text-textPrimary dark:text-white">
+              <Text className="text-xl font-bold text-textPrimary dark:text-white">
                 Company Logo Library
               </Text>
-              <Text className="mt-0.5 text-xs text-textMuted dark:text-slate-400">
+              <Text className="mt-1 text-sm text-textMuted dark:text-slate-400">
                 Select a company logo or upload your own
               </Text>
             </View>
@@ -201,28 +201,28 @@ export function CompanyLogoPickerModal({
               accessibilityRole="button"
               accessibilityLabel="Close logo picker"
               onPress={handleClose}
-              className="h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-slate-100 active:opacity-80 dark:border-slate-700 dark:bg-[#0f172a]"
+              className="size-11 items-center justify-center rounded-full border border-slate-200 bg-slate-100 active:opacity-80 dark:border-slate-700 dark:bg-[#0f172a]"
             >
-              <X color={isDark ? '#cbd5e1' : '#334155'} size={18} strokeWidth={2.4} />
+              <X color={isDark ? '#cbd5e1' : '#334155'} size={22} strokeWidth={2.4} />
             </Pressable>
           </View>
 
-          <View className="px-5 pt-3.5">
+          <View className="px-6 pt-5">
             {/* Upload Custom Photo Action Row + Current Logo Preview */}
-            <View className="mb-3 flex-row items-center gap-2.5">
+            <View className="mb-4 flex-row items-center gap-3">
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Upload custom logo from photo library"
                 disabled={isUploading}
                 onPress={onUploadFromDevice}
-                className="min-h-[50px] flex-1 flex-row items-center justify-center gap-2.5 rounded-lg border border-sky-500/40 bg-[#0284c7] px-4 active:opacity-85"
+                className="min-h-14 flex-1 flex-row items-center justify-center gap-2.5 rounded-2xl bg-[#0284c7] px-4 active:opacity-85"
               >
                 {isUploading ? (
                   <ActivityIndicator color="#ffffff" size="small" />
                 ) : (
                   <>
                     <Upload color="#ffffff" size={18} strokeWidth={2.4} />
-                    <Text className="text-sm font-bold text-white">
+                    <Text className="text-base font-semibold text-white">
                       Upload from Device Photos
                     </Text>
                   </>
@@ -251,10 +251,10 @@ export function CompanyLogoPickerModal({
                       ],
                     );
                   }}
-                  className="min-h-[50px] flex-row items-center justify-center gap-1.5 rounded-lg border border-rose-500/35 bg-rose-500/10 px-3.5 active:opacity-80"
+                  className="min-h-14 flex-row items-center justify-center gap-2 rounded-2xl border border-rose-300 bg-rose-50 px-4 active:opacity-80 dark:border-rose-900 dark:bg-rose-950/40"
                 >
                   <Trash2 color="#f87171" size={17} strokeWidth={2.2} />
-                  <Text className="text-xs font-bold text-rose-500 dark:text-rose-400">
+                  <Text className="text-sm font-semibold text-rose-600 dark:text-rose-400">
                     Remove
                   </Text>
                 </Pressable>
@@ -262,8 +262,8 @@ export function CompanyLogoPickerModal({
             </View>
 
             {/* Search Input (Flat solid-filled rounded-lg matching VCPros input system) */}
-            <View className="mb-3 min-h-[52px] flex-row items-center rounded-lg border border-slate-300 bg-slate-100 px-3.5 dark:border-slate-700 dark:bg-[#1e293b]">
-              <Search color={isDark ? '#94a3b8' : '#64748b'} size={18} />
+            <View className="mb-4 min-h-14 flex-row items-center rounded-2xl border border-slate-300 bg-slate-100 px-4 dark:border-slate-700 dark:bg-[#1e293b]">
+              <Search color={isDark ? '#94a3b8' : '#64748b'} size={20} />
               <TextInput
                 value={searchQuery}
                 onChangeText={setSearchQuery}
@@ -275,14 +275,14 @@ export function CompanyLogoPickerModal({
                 placeholderTextColor={isDark ? '#94a3b8' : '#64748b'}
                 autoCapitalize="none"
                 autoCorrect={false}
-                className="ml-2.5 flex-1 py-2.5 text-[15px] text-slate-900 dark:text-white"
+                className="ml-3 flex-1 py-3 text-base text-slate-900 dark:text-white"
               />
               {searchQuery.length > 0 ? (
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Clear search"
                   onPress={() => setSearchQuery('')}
-                  className="h-7 w-7 items-center justify-center rounded-full bg-slate-200 dark:bg-slate-700"
+                  className="size-8 items-center justify-center rounded-full bg-slate-200 dark:bg-slate-700"
                 >
                   <X color={isDark ? '#e2e8f0' : '#334155'} size={14} />
                 </Pressable>
@@ -293,14 +293,14 @@ export function CompanyLogoPickerModal({
 
           {/* Main Scrollable Logo Grid */}
           <ScrollView
-            className="flex-1 px-5"
-            contentContainerStyle={{ paddingBottom: 28, paddingTop: 4 }}
+            className="flex-1 px-6"
+            contentContainerStyle={{ paddingBottom: 28, paddingTop: 8 }}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            <View className="mb-3 mt-1 flex-row items-center justify-between">
-              <Text className="text-sm font-bold text-slate-900 dark:text-white">Company logos</Text>
-              <Text className="text-xs text-slate-500 dark:text-slate-400">
+            <View className="mb-4 flex-row items-center justify-between">
+              <Text className="text-base font-semibold text-slate-900 dark:text-white">Company logos</Text>
+              <Text className="text-sm text-slate-500 dark:text-slate-400">
                 {isSearchingCommunity ? 'Searching uploads…' : searchQuery.trim() ? 'Best matches' : 'Popular suggestions'}
               </Text>
             </View>
@@ -318,13 +318,13 @@ export function CompanyLogoPickerModal({
                           accessibilityState={{ selected }}
                           onPress={() => handlePick(logo.value, logo.label)}
                           style={{ width: '48.2%' }}
-                          className={`min-h-[72px] flex-row items-center rounded-xl border p-3 active:opacity-85 ${
+                          className={`min-h-20 flex-row items-center rounded-2xl border p-3 active:opacity-85 ${
                             selected
                               ? 'border-sky-400 bg-sky-500/10 dark:border-sky-400 dark:bg-[#132038]'
                               : 'border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-[#0f172a]'
                           }`}
                         >
-                          <View className="size-12 items-center justify-center rounded-lg border border-slate-200 bg-white px-1">
+                          <View className="size-12 items-center justify-center rounded-xl border border-slate-200 bg-white px-1">
                             <MediaImage
                               sourceUrl={logo.value}
                               contentFit="contain"
@@ -333,7 +333,7 @@ export function CompanyLogoPickerModal({
                           </View>
                           <Text
                             numberOfLines={2}
-                            className="ml-3 flex-1 text-sm font-semibold text-slate-900 dark:text-white"
+                            className="ml-3 flex-1 text-base font-semibold text-slate-900 dark:text-white"
                           >
                             {logo.label}
                           </Text>
