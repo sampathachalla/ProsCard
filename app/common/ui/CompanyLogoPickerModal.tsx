@@ -331,16 +331,12 @@ export function CompanyLogoPickerModal({
                               style={{ width: 42, height: 34 }}
                             />
                           </View>
-                          <View className="ml-3 flex-1">
-                            <Text numberOfLines={1} className="text-sm font-semibold text-slate-900 dark:text-white">
-                              {logo.label}
-                            </Text>
-                            {logo.isCommunity ? (
-                              <Text className="mt-0.5 text-[10px] font-semibold text-sky-600 dark:text-sky-400">
-                                Community upload
-                              </Text>
-                            ) : null}
-                          </View>
+                          <Text
+                            numberOfLines={2}
+                            className="ml-3 flex-1 text-sm font-semibold text-slate-900 dark:text-white"
+                          >
+                            {logo.label}
+                          </Text>
                           {selected ? (
                             <View className="size-5 items-center justify-center rounded-full bg-sky-500">
                               <Check color="#ffffff" size={12} strokeWidth={3} />
