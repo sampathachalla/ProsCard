@@ -175,6 +175,29 @@ export default function AddCardPage() {
               onChange={(value) => editor.setOverride('cardTag', value)}
             />
 
+            <View className="mb-4 mt-4">
+              <Text variant="subtitle">Layout & theme</Text>
+              <Text variant="muted">Choose how each section looks, then preview the full card.</Text>
+            </View>
+            <EditorRow
+              icon={LayoutTemplate}
+              label="Layout"
+              value={`${editor.draft.sectionLayouts.identity} · ${editor.draft.sectionLayouts.professional} · ${editor.draft.sectionLayouts.connections}`}
+              onPress={() => setPanel('layout')}
+            />
+            <EditorRow
+              icon={Palette}
+              label="Card theme"
+              value={editor.draft.cardTheme.customThemeName ?? editor.draft.cardTheme.id}
+              onPress={() => setPanel('theme')}
+              accessory={
+                <LinearGradient
+                  colors={editor.draft.cardTheme.gradient}
+                  className="mr-2 h-8 w-8 rounded-full"
+                />
+              }
+            />
+
             <View className="mb-2 mt-4">
               <Text variant="subtitle">Card details</Text>
               <Text variant="muted">Customize what appears on this card.</Text>
@@ -251,28 +274,6 @@ export default function AddCardPage() {
               <Text className="ml-2 font-bold text-[#2563eb] dark:text-[#38bdf8]">Add contact</Text>
             </Pressable>
 
-            <View className="mb-4 mt-7">
-              <Text variant="subtitle">Layout & theme</Text>
-              <Text variant="muted">Choose how each section looks, then preview the full card.</Text>
-            </View>
-            <EditorRow
-              icon={LayoutTemplate}
-              label="Layout"
-              value={`${editor.draft.sectionLayouts.identity} · ${editor.draft.sectionLayouts.professional} · ${editor.draft.sectionLayouts.connections}`}
-              onPress={() => setPanel('layout')}
-            />
-            <EditorRow
-              icon={Palette}
-              label="Card theme"
-              value={editor.draft.cardTheme.customThemeName ?? editor.draft.cardTheme.id}
-              onPress={() => setPanel('theme')}
-              accessory={
-                <LinearGradient
-                  colors={editor.draft.cardTheme.gradient}
-                  className="mr-2 h-8 w-8 rounded-full"
-                />
-              }
-            />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
