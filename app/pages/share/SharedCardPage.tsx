@@ -26,12 +26,14 @@ export default function SharedCardPage() {
       return { card: normalizeCard(result.card), profile: normalizeProfile(result.profile) };
     },
     enabled: Boolean(slug),
-    // Keep the first paint fast after a QR scan; avoid refetching (and re-signing images) on every focus.
-    refetchOnMount: false,
+    // Public cards must reflect owner edits immediately, including in an already-open browser tab.
+    refetchInterval: 15_000,
+    refetchIntervalInBackground: false,
+    refetchOnMount: 'always',
     refetchOnReconnect: true,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true,
     retry: 1,
-    staleTime: 5 * 60_000,
+    staleTime: 0,
   });
 
   const cardName = view.data?.card.name;

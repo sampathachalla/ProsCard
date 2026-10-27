@@ -10,7 +10,8 @@ export async function navigateToSharePreview(cardId: string): Promise<void> {
   }
 
   const slug = await getShareSlug(cardId);
-  const url = shareUrlForSlug(slug);
+  // A version query prevents an existing mobile-browser session from restoring a stale page snapshot.
+  const url = `${shareUrlForSlug(slug)}?updated=${Date.now()}`;
 
   if (Platform.OS === 'web') {
     if (typeof window !== 'undefined') {
