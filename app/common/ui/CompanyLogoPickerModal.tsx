@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -28,6 +28,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeContext } from '@/context/ThemeContext';
 import {
   filterCompanyLogoPresets,
+  fetchCommunityUploadedLogos,
+  type CommunityCompanyLogoItem,
 } from '@/pages/cards/Services/companyLogoPresets';
 import { MediaImage } from './MediaImage';
 import { Text } from './Text';
@@ -56,6 +58,8 @@ export function CompanyLogoPickerModal({
   const isDark = theme === 'dark';
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [communityLogos, setCommunityLogos] = useState<CommunityCompanyLogoItem[]>([]);
+  const [isSearchingCommunity, setIsSearchingCommunity] = useState(false);
   const isExpanded = isSearchFocused || searchQuery.trim().length > 0;
   const sheetTranslateY = useSharedValue(0);
   const sheetAnimatedStyle = useAnimatedStyle(() => ({
@@ -64,6 +68,8 @@ export function CompanyLogoPickerModal({
   const handleClose = () => {
     setSearchQuery('');
     setIsSearchFocused(false);
+    setCommunityLogos([]);
+    setIsSearchingCommunity(false);
     onClose();
   };
   const closeFromSwipe = () => {
@@ -92,6 +98,59 @@ export function CompanyLogoPickerModal({
     () => filterCompanyLogoPresets(searchQuery),
     [searchQuery],
   );
+  const displayedLogos = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return filteredPresets.map((preset) => ({
+        id: `preset-${preset.id}`,
+        label: preset.label,
+        value: preset.value,
+        isCommunity: false,
+      }));
+    }
+    const seen = new Set<string>();
+    return [
+      ...communityLogos.map((logo) => ({
+        id: `community-${logo.id}`,
+        label: logo.name,
+        value: logo.value,
+        isCommunity: true,
+      })),
+      ...filteredPresets.map((preset) => ({
+        id: `preset-${preset.id}`,
+        label: preset.label,
+        value: preset.value,
+        isCommunity: false,
+      })),
+    ].filter((logo) => {
+      if (seen.has(logo.value)) return false;
+      seen.add(logo.value);
+      return true;
+    }).slice(0, 4);
+  }, [communityLogos, filteredPresets, searchQuery]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      const query = searchQuery.trim();
+      if (!visible || !query) {
+        setCommunityLogos([]);
+        setIsSearchingCommunity(false);
+        return;
+      }
+      setIsSearchingCommunity(true);
+      void fetchCommunityUploadedLogos(query)
+        .then((items) => {
+          if (!cancelled) setCommunityLogos(items);
+        })
+        .finally(() => {
+          if (!cancelled) setIsSearchingCommunity(false);
+        });
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [searchQuery, visible]);
 
   const handlePick = (logoValue: string, label?: string) => {
     Haptics.selectionAsync().catch(() => {});
@@ -242,22 +301,22 @@ export function CompanyLogoPickerModal({
             <View className="mb-3 mt-1 flex-row items-center justify-between">
               <Text className="text-sm font-bold text-slate-900 dark:text-white">Company logos</Text>
               <Text className="text-xs text-slate-500 dark:text-slate-400">
-                {searchQuery.trim() ? 'Best matches' : 'Popular suggestions'}
+                {isSearchingCommunity ? 'Searching uploads…' : searchQuery.trim() ? 'Best matches' : 'Popular suggestions'}
               </Text>
             </View>
 
             {/* Local Simple Icons brand catalog */}
-                {filteredPresets.length > 0 ? (
+                {displayedLogos.length > 0 ? (
                   <View className="flex-row flex-wrap justify-between gap-y-3">
-                    {filteredPresets.map((preset) => {
-                      const selected = value === preset.value;
+                    {displayedLogos.map((logo) => {
+                      const selected = value === logo.value;
                       return (
                         <Pressable
-                          key={preset.id}
+                          key={logo.id}
                           accessibilityRole="button"
-                          accessibilityLabel={`Select ${preset.label} logo`}
+                          accessibilityLabel={`Select ${logo.label} logo${logo.isCommunity ? ' from community uploads' : ''}`}
                           accessibilityState={{ selected }}
-                          onPress={() => handlePick(preset.value, preset.label)}
+                          onPress={() => handlePick(logo.value, logo.label)}
                           style={{ width: '48.2%' }}
                           className={`min-h-[72px] flex-row items-center rounded-xl border p-3 active:opacity-85 ${
                             selected
@@ -267,17 +326,21 @@ export function CompanyLogoPickerModal({
                         >
                           <View className="size-12 items-center justify-center rounded-lg border border-slate-200 bg-white px-1">
                             <MediaImage
-                              sourceUrl={preset.value}
+                              sourceUrl={logo.value}
                               contentFit="contain"
                               style={{ width: 42, height: 34 }}
                             />
                           </View>
-                          <Text
-                            numberOfLines={2}
-                            className="ml-3 flex-1 text-sm font-semibold text-slate-900 dark:text-white"
-                          >
-                            {preset.label}
-                          </Text>
+                          <View className="ml-3 flex-1">
+                            <Text numberOfLines={1} className="text-sm font-semibold text-slate-900 dark:text-white">
+                              {logo.label}
+                            </Text>
+                            {logo.isCommunity ? (
+                              <Text className="mt-0.5 text-[10px] font-semibold text-sky-600 dark:text-sky-400">
+                                Community upload
+                              </Text>
+                            ) : null}
+                          </View>
                           {selected ? (
                             <View className="size-5 items-center justify-center rounded-full bg-sky-500">
                               <Check color="#ffffff" size={12} strokeWidth={3} />
@@ -289,7 +352,7 @@ export function CompanyLogoPickerModal({
                   </View>
                 ) : null}
 
-                {searchQuery.trim().length > 0 && filteredPresets.length === 0 ? (
+                {searchQuery.trim().length > 0 && displayedLogos.length === 0 && !isSearchingCommunity ? (
                   <View className="items-center rounded-xl border border-slate-200 bg-slate-50 p-6 dark:border-slate-800 dark:bg-[#0f172a]">
                     <Building2 color="#64748b" size={28} />
                     <Text className="mt-2 text-center text-sm font-bold text-slate-800 dark:text-slate-200">

@@ -58,11 +58,11 @@ describe('Simple Icons company-logo library', () => {
     expect(matches.some((item) => item.id === 'meta')).toBe(true);
   });
 
-  it('shows only valid logos uploaded by other users', async () => {
+  it('shows valid community logos, including the current user’s uploads', async () => {
     apiRequest.mockResolvedValue({
       items: [
         null,
-        { mediaId: 'mine', name: 'My Company', contentUrl: '/mine', isOwn: true },
+        { mediaId: 'mine', name: 'MindPros', contentUrl: '/mine', isOwn: true },
         { mediaId: 'missing-url', name: 'Broken', isOwn: false },
         {
           mediaId: 'community-logo',
@@ -75,11 +75,26 @@ describe('Simple Icons company-logo library', () => {
 
     await expect(fetchCommunityUploadedLogos()).resolves.toEqual([
       expect.objectContaining({
+        id: 'mine',
+        name: 'MindPros',
+        value: '/mine',
+        isOwn: true,
+      }),
+      expect.objectContaining({
         id: 'community-logo',
         name: 'Community Company',
         value: '/api/v1/media/community-logo/content',
         isOwn: false,
       }),
+    ]);
+  });
+
+  it('matches spaced searches against compact community company names', async () => {
+    apiRequest.mockResolvedValue({
+      items: [{ mediaId: 'mindpros', name: 'MindPros', contentUrl: '/mindpros', isOwn: false }],
+    });
+    await expect(fetchCommunityUploadedLogos('mind pros')).resolves.toEqual([
+      expect.objectContaining({ id: 'mindpros', name: 'MindPros' }),
     ]);
   });
 

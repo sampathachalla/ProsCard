@@ -265,16 +265,20 @@ export async function fetchCommunityUploadedLogos(
     const item = candidate as {
       mediaId?: unknown; name?: unknown; contentUrl?: unknown; isOwn?: unknown; createdAt?: unknown;
     };
-    if (item.isOwn !== false || typeof item.mediaId !== 'string' || typeof item.contentUrl !== 'string') continue;
+    if (typeof item.mediaId !== 'string' || typeof item.contentUrl !== 'string') continue;
     const name = typeof item.name === 'string' && item.name.trim() ? item.name.trim() : 'Company Logo';
     const value = item.contentUrl.trim();
-    if (!value || seenValues.has(value) || (cleanQuery && !name.toLowerCase().includes(cleanQuery))) continue;
+    if (
+      !value ||
+      seenValues.has(value) ||
+      (cleanQuery && !normalizeCompanySearch(name).includes(normalizeCompanySearch(cleanQuery)))
+    ) continue;
     seenValues.add(value);
     merged.push({
       id: item.mediaId,
       name,
       value,
-      isOwn: false,
+      isOwn: item.isOwn === true,
       createdAt: typeof item.createdAt === 'string' ? item.createdAt : undefined,
     });
   }

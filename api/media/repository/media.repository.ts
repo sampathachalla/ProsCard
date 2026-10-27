@@ -57,7 +57,13 @@ export class MediaRepository {
          AND ($1::text = ''
               OR COALESCE(c.data->>'company', '') ILIKE $2
               OR COALESCE(p.data->>'organization', '') ILIKE $2
-              OR COALESCE(m.original_name, '') ILIKE $2)
+              OR COALESCE(m.original_name, '') ILIKE $2
+              OR REGEXP_REPLACE(LOWER(COALESCE(c.data->>'company', '')), '[^a-z0-9]', '', 'g')
+                 LIKE REGEXP_REPLACE(LOWER($2), '[^a-z0-9%]', '', 'g')
+              OR REGEXP_REPLACE(LOWER(COALESCE(p.data->>'organization', '')), '[^a-z0-9]', '', 'g')
+                 LIKE REGEXP_REPLACE(LOWER($2), '[^a-z0-9%]', '', 'g')
+              OR REGEXP_REPLACE(LOWER(COALESCE(m.original_name, '')), '[^a-z0-9]', '', 'g')
+                 LIKE REGEXP_REPLACE(LOWER($2), '[^a-z0-9%]', '', 'g'))
        ORDER BY (m.user_id = $3) DESC, m.created_at DESC
        LIMIT $4`,
       [cleanQuery, likePattern, userId, limit],
