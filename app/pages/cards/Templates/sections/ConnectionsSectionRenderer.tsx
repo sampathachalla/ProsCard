@@ -412,21 +412,24 @@ export function ConnectionsSectionRenderer({
     color: string,
     mutedColor: string,
     align: "left" | "center" = "left",
+    showLabel = true,
   ) => (
     <View className="min-w-0 flex-1">
-      <Text
-        variant="none"
-        numberOfLines={1}
-        className={`${fillSlot && !densePreview ? "text-xs" : "text-[11px]"} font-semibold uppercase`}
-        style={{
-          color: mutedColor,
-          fontFamily,
-          letterSpacing,
-          textAlign: align,
-        }}
-      >
-        {presentation.label}
-      </Text>
+      {showLabel ? (
+        <Text
+          variant="none"
+          numberOfLines={1}
+          className={`${fillSlot && !densePreview ? "text-xs" : "text-[11px]"} font-semibold uppercase`}
+          style={{
+            color: mutedColor,
+            fontFamily,
+            letterSpacing,
+            textAlign: align,
+          }}
+        >
+          {presentation.label}
+        </Text>
+      ) : null}
       <Text
         variant="none"
         {...(preserveTypeScale
@@ -685,6 +688,8 @@ export function ConnectionsSectionRenderer({
                     presentation,
                     slots.textPrimary,
                     slots.textSecondary,
+                    "left",
+                    false,
                   )}
                 </Pressable>
               );
@@ -863,6 +868,8 @@ export function ConnectionsSectionRenderer({
                     presentation,
                     slots.textPrimary,
                     slots.textSecondary,
+                    "left",
+                    false,
                   )}
                   <FontAwesome6
                     name="arrow-up-right-from-square"
