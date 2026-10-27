@@ -6,13 +6,13 @@ import { Text } from '@/common/ui/Text';
 type Props = {
   title: string;
   isSaving: boolean;
-  primaryLabel?: string;
   onBack: () => void;
+  onPreview: () => void;
   onSave: () => void;
 };
 
-/** Back · page name · Save, as one bar pinned above the form. */
-export function AddCardHeader({ title, isSaving, primaryLabel = 'Save', onBack, onSave }: Props) {
+/** Back · page name · Preview / Save, as one bar pinned above the form. */
+export function AddCardHeader({ title, isSaving, onBack, onPreview, onSave }: Props) {
   const insets = useSafeAreaInsets();
 
   return (
@@ -35,9 +35,18 @@ export function AddCardHeader({ title, isSaving, primaryLabel = 'Save', onBack, 
         {title}
       </Text>
 
-      <View className="w-20 items-end">
+      <View className="flex-row items-center gap-2">
         <Pressable
-          accessibilityLabel={primaryLabel === 'Next' ? 'Continue to design step' : 'Save card'}
+          accessibilityLabel="Preview card"
+          accessibilityRole="button"
+          disabled={isSaving}
+          onPress={onPreview}
+          className="min-h-[36px] items-center justify-center rounded-full border border-[#2563eb] px-3 active:opacity-70 dark:border-[#38bdf8]"
+        >
+          <Text className="text-sm font-bold text-[#2563eb] dark:text-[#38bdf8]">Preview</Text>
+        </Pressable>
+        <Pressable
+          accessibilityLabel="Save card"
           accessibilityRole="button"
           disabled={isSaving}
           onPress={onSave}
@@ -46,7 +55,7 @@ export function AddCardHeader({ title, isSaving, primaryLabel = 'Save', onBack, 
           {isSaving ? (
             <ActivityIndicator color="#ffffff" size="small" />
           ) : (
-            <Text className="text-sm font-bold text-white dark:text-slate-950">{primaryLabel}</Text>
+            <Text className="text-sm font-bold text-white dark:text-slate-950">Save</Text>
           )}
         </Pressable>
       </View>
