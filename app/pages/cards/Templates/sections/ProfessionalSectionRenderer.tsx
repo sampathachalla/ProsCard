@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Pressable, View, useWindowDimensions } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import { View, useWindowDimensions } from 'react-native';
 import { Award, Building2 } from 'lucide-react-native';
 import { Text } from '@/common/ui/Text';
 import type { CardDetailSection } from '../cardDetailTemplate';
@@ -14,7 +13,6 @@ import {
 import { resolveLayoutColorSlots } from '@/utils/cardThemeColor';
 import { BOXED_SHADOW_MD, BOXED_SHADOW_SM } from './SectionSharedComponents';
 import { getCardSectionSpacing } from './cardSectionSpacing';
-import { saveDirectlyToNativeContacts } from '@/utils/nativeContacts';
 
 /** Shared minimum height across all 12 layouts so switching between them
  * (with or without an optional tagline) never visibly jumps in size. */
@@ -300,45 +298,6 @@ function ProfessionalTaglineFooter({
   );
 }
 
-function SaveContactButton({
-  compact,
-  isDark,
-  onPress,
-}: {
-  compact?: boolean;
-  isDark: boolean;
-  onPress?: () => void;
-}) {
-  if (!onPress) return null;
-  const btnBg = isDark ? '#ffffff' : '#000000';
-  const btnTextColor = isDark ? '#000000' : '#ffffff';
-
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel="Save Contact"
-      onPress={onPress}
-      className={`w-full flex-row items-center justify-center rounded-full active:scale-[0.99] active:opacity-90 ${compact ? 'h-11 mt-3' : 'h-[50px] mt-4'}`}
-      style={{
-        backgroundColor: btnBg,
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: isDark ? 0.08 : 0.16,
-        shadowRadius: 6,
-        elevation: 4,
-      }}
-    >
-      <Text
-        variant="none"
-        className={`font-black tracking-wide ${compact ? 'text-sm' : 'text-base'}`}
-        style={{ color: btnTextColor }}
-      >
-        Save Contact
-      </Text>
-    </Pressable>
-  );
-}
-
 export function ProfessionalSectionRenderer({
   compact = false,
   cardTheme,
@@ -350,7 +309,6 @@ export function ProfessionalSectionRenderer({
   showEmpty = false,
   walletPass = false,
   interactiveActions,
-  onSaveContact,
 }: Props) {
   const { height: viewportHeight, width: viewportWidth } = useWindowDimensions();
   const [companyFocusMeasuredHeight, setCompanyFocusMeasuredHeight] = useState(0);
@@ -419,20 +377,6 @@ export function ProfessionalSectionRenderer({
       : undefined;
   const homeCenterStyle = homePreview ? ({ justifyContent: 'center', alignItems: 'center' } as const) : undefined;
 
-  const handleSaveContactAction = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-    if (onSaveContact) {
-      onSaveContact();
-      return;
-    }
-    void saveDirectlyToNativeContacts({
-      name: professionalName,
-      title,
-      company,
-    });
-  };
-
-  const showSaveButton = !walletPass && (fullCardView || contentDriven || !inFixedCardSlot);
   const responsiveNameFontSize = getResponsiveSingleLineFontSize(
     viewportWidth - (compact ? 40 : 56),
     professionalName.length,
@@ -594,13 +538,6 @@ export function ProfessionalSectionRenderer({
               </View>
             </View>
           </View>
-          {showSaveButton ? (
-            <SaveContactButton
-              compact={compact}
-              isDark={slots.isDark}
-              onPress={handleSaveContactAction}
-            />
-          ) : null}
         </View>
         {showTagline ? (
           <ProfessionalTaglineFooter
@@ -727,13 +664,6 @@ export function ProfessionalSectionRenderer({
               </View>
             </View>
           </View>
-          {showSaveButton ? (
-            <SaveContactButton
-              compact={compact}
-              isDark={slots.isDark}
-              onPress={handleSaveContactAction}
-            />
-          ) : null}
         </View>
         {showTagline ? (
           <View
@@ -1044,15 +974,6 @@ export function ProfessionalSectionRenderer({
             tagline={tagline}
           />
         ) : null}
-        {showSaveButton ? (
-          <View style={{ paddingHorizontal: spacing.horizontal, paddingBottom: spacing.tightVertical }}>
-            <SaveContactButton
-              compact={compact}
-              isDark={slots.isDark}
-              onPress={handleSaveContactAction}
-            />
-          </View>
-        ) : null}
       </View>
     );
   }
@@ -1151,15 +1072,6 @@ export function ProfessionalSectionRenderer({
             shared={{ ...shared, slots: { ...slots, accent: '#38bdf8', textSecondary: '#94a3b8' } }}
             tagline={tagline}
           />
-        ) : null}
-        {showSaveButton ? (
-          <View style={{ paddingHorizontal: spacing.horizontal, paddingBottom: spacing.tightVertical }}>
-            <SaveContactButton
-              compact={compact}
-              isDark={slots.isDark}
-              onPress={handleSaveContactAction}
-            />
-          </View>
         ) : null}
       </View>
     );
@@ -1282,15 +1194,6 @@ export function ProfessionalSectionRenderer({
             tagline={tagline}
           />
         ) : null}
-        {showSaveButton ? (
-          <View style={{ paddingHorizontal: spacing.horizontal, paddingBottom: spacing.tightVertical }}>
-            <SaveContactButton
-              compact={compact}
-              isDark={slots.isDark}
-              onPress={handleSaveContactAction}
-            />
-          </View>
-        ) : null}
       </View>
     );
   }
@@ -1381,15 +1284,6 @@ export function ProfessionalSectionRenderer({
             shared={{ ...shared, slots: { ...slots, accent: '#38bdf8', textSecondary: '#94a3b8' } }}
             tagline={tagline}
           />
-        ) : null}
-        {showSaveButton ? (
-          <View style={{ paddingHorizontal: spacing.horizontal, paddingBottom: spacing.tightVertical }}>
-            <SaveContactButton
-              compact={compact}
-              isDark={slots.isDark}
-              onPress={handleSaveContactAction}
-            />
-          </View>
         ) : null}
       </View>
     );
@@ -1494,15 +1388,6 @@ export function ProfessionalSectionRenderer({
             shared={{ ...shared, slots: { ...slots, accent: '#38bdf8', textSecondary: '#94a3b8' } }}
             tagline={tagline}
           />
-        ) : null}
-        {showSaveButton ? (
-          <View style={{ paddingHorizontal: spacing.horizontal, paddingBottom: spacing.tightVertical }}>
-            <SaveContactButton
-              compact={compact}
-              isDark={slots.isDark}
-              onPress={handleSaveContactAction}
-            />
-          </View>
         ) : null}
       </View>
     );
@@ -1660,15 +1545,6 @@ export function ProfessionalSectionRenderer({
         />
       ) : null}
 
-      {showSaveButton ? (
-        <View style={{ paddingHorizontal: spacing.horizontal, paddingBottom: spacing.tightVertical }}>
-          <SaveContactButton
-            compact={compact}
-            isDark={slots.isDark}
-            onPress={handleSaveContactAction}
-          />
-        </View>
-      ) : null}
     </View>
   );
 }
