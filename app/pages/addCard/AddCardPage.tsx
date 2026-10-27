@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -80,6 +80,11 @@ export default function AddCardPage() {
   });
   const [panel, setPanel] = useState<AddCardPanel>(null);
   const [previewVisible, setPreviewVisible] = useState(false);
+  const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (previewTimer.current) clearTimeout(previewTimer.current);
+  }, []);
 
   const primaryContacts = useMemo(
     () => PRIMARY_CONTACTS.map((config) =>
@@ -132,6 +137,17 @@ export default function AddCardPage() {
   const preview = () => {
     Haptics.selectionAsync().catch(() => {});
     setPreviewVisible(true);
+  };
+
+  const previewFromDesignPanel = () => {
+    Haptics.selectionAsync().catch(() => {});
+    setPanel(null);
+    if (previewTimer.current) clearTimeout(previewTimer.current);
+    // iOS must finish dismissing the page-sheet before presenting the full-screen modal.
+    previewTimer.current = setTimeout(() => {
+      previewTimer.current = null;
+      setPreviewVisible(true);
+    }, Platform.OS === 'ios' ? 450 : 50);
   };
 
   const addContact = (option: ContactOption) => {
@@ -282,14 +298,14 @@ export default function AddCardPage() {
         card={editor.draft}
         visible={panel === 'layout'}
         onClose={() => setPanel(null)}
-        onPreview={preview}
+        onPreview={previewFromDesignPanel}
         onChange={editor.setLayout}
       />
       <ThemeSheet
         card={editor.draft}
         visible={panel === 'theme'}
         onClose={() => setPanel(null)}
-        onPreview={preview}
+        onPreview={previewFromDesignPanel}
         onChange={editor.setTheme}
         onSaveCustomTheme={editor.saveCustomTheme}
       />
