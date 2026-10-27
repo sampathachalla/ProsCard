@@ -43,10 +43,18 @@ describe('Simple Icons company-logo library', () => {
     });
   });
 
-  it('shows a curated popular set before the user searches', () => {
+  it('shows four popular suggestions before the user searches', () => {
     const popular = filterCompanyLogoPresets('');
-    expect(popular.length).toBeGreaterThan(20);
+    expect(popular).toHaveLength(4);
     expect(popular.some((item) => item.id === 'google')).toBe(true);
+  });
+
+  it('limits autocomplete results and prioritizes company-name prefixes', () => {
+    const matches = filterCompanyLogoPresets('m');
+    expect(matches).toHaveLength(4);
+    expect(matches.every((item) => item.label.toLowerCase().startsWith('m'))).toBe(true);
+    expect(matches.some((item) => item.id === 'microsoft')).toBe(true);
+    expect(matches.some((item) => item.id === 'meta')).toBe(true);
   });
 
   it('shows only valid logos uploaded by other users', async () => {

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -22,14 +22,11 @@ import {
   Search,
   Trash2,
   Upload,
-  Users,
   X,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeContext } from '@/context/ThemeContext';
 import {
-  type CommunityCompanyLogoItem,
-  fetchCommunityUploadedLogos,
   filterCompanyLogoPresets,
 } from '@/pages/cards/Services/companyLogoPresets';
 import { MediaImage } from './MediaImage';
@@ -85,37 +82,10 @@ export function CompanyLogoPickerModal({
 
   const [searchQuery, setSearchQuery] = useState('');
 
-  const [communityLogos, setCommunityLogos] = useState<CommunityCompanyLogoItem[]>([]);
-  const [loadingCommunity, setLoadingCommunity] = useState(false);
-
   const filteredPresets = useMemo(
     () => filterCompanyLogoPresets(searchQuery),
     [searchQuery],
   );
-
-  // Fetch community/user-uploaded logos when modal opens or search changes
-  useEffect(() => {
-    if (!visible) return;
-    let active = true;
-    const timer = setTimeout(() => {
-      setLoadingCommunity(true);
-      fetchCommunityUploadedLogos(searchQuery)
-        .then((items) => {
-          if (active) {
-            setCommunityLogos(items);
-            setLoadingCommunity(false);
-          }
-        })
-        .catch(() => {
-          if (active) setLoadingCommunity(false);
-        });
-    }, 150);
-
-    return () => {
-      active = false;
-      clearTimeout(timer);
-    };
-  }, [searchQuery, visible]);
 
   const handlePick = (logoValue: string, label?: string) => {
     Haptics.selectionAsync().catch(() => {});
@@ -134,7 +104,7 @@ export function CompanyLogoPickerModal({
     >
       <View className="flex-1 justify-end bg-black/75">
         <Animated.View
-          className="h-[66%] w-full overflow-hidden rounded-t-[28px] border-t border-slate-200 bg-background dark:border-slate-800 dark:bg-[#020617]"
+          className="h-[56%] w-full overflow-hidden rounded-t-[28px] border-t border-slate-200 bg-background dark:border-slate-800 dark:bg-[#020617]"
           style={[{
             paddingBottom: Math.max(insets.bottom, 16),
             maxHeight: '90%',
@@ -231,7 +201,7 @@ export function CompanyLogoPickerModal({
               <TextInput
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                placeholder="Search 3,000+ brand icons..."
+                placeholder="Type a company name..."
                 placeholderTextColor={isDark ? '#94a3b8' : '#64748b'}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -261,7 +231,7 @@ export function CompanyLogoPickerModal({
             <View className="mb-3 mt-1 flex-row items-center justify-between">
               <Text className="text-sm font-bold text-slate-900 dark:text-white">Company logos</Text>
               <Text className="text-xs text-slate-500 dark:text-slate-400">
-                {searchQuery.trim() ? `${filteredPresets.length} matches` : 'Popular'}
+                {searchQuery.trim() ? 'Best matches' : 'Popular suggestions'}
               </Text>
             </View>
 
@@ -329,81 +299,6 @@ export function CompanyLogoPickerModal({
                   </View>
                 ) : null}
 
-            <View className="mb-3 mt-6 flex-row items-center gap-2">
-              <Users color={isDark ? '#94a3b8' : '#64748b'} size={17} />
-              <Text className="text-sm font-bold text-slate-900 dark:text-white">
-                Community logos
-              </Text>
-            </View>
-
-            <View>
-                {loadingCommunity ? (
-                  <View className="items-center justify-center rounded-xl border border-slate-200 py-8 dark:border-slate-800">
-                    <ActivityIndicator size="small" color="#38bdf8" />
-                    <Text className="mt-2.5 text-xs text-slate-500 dark:text-slate-400">
-                      Loading community logos…
-                    </Text>
-                  </View>
-                ) : communityLogos.length > 0 ? (
-                  <View className="flex-row flex-wrap justify-between gap-y-3">
-                    {communityLogos.map((item) => {
-                      const selected = value === item.value;
-                      return (
-                        <Pressable
-                          key={item.id}
-                          accessibilityRole="button"
-                          accessibilityLabel={`Select ${item.name} uploaded logo`}
-                          accessibilityState={{ selected }}
-                          onPress={() => handlePick(item.value, item.name)}
-                          style={{ width: '48.2%' }}
-                          className={`min-h-[72px] flex-row items-center rounded-xl border p-3 active:opacity-85 ${
-                            selected
-                              ? 'border-sky-400 bg-sky-500/10 dark:border-sky-400 dark:bg-[#132038]'
-                              : 'border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-[#0f172a]'
-                          }`}
-                        >
-                          <View className="size-12 items-center justify-center rounded-lg border border-slate-200 bg-white p-2">
-                            <MediaImage
-                              sourceUrl={item.value}
-                              contentFit="contain"
-                              style={{ width: 32, height: 32 }}
-                            />
-                          </View>
-                          <Text
-                            numberOfLines={2}
-                            className="ml-3 flex-1 text-sm font-semibold text-slate-900 dark:text-white"
-                          >
-                            {item.name}
-                          </Text>
-                          {selected ? (
-                            <View className="size-5 items-center justify-center rounded-full bg-sky-500">
-                              <Check color="#ffffff" size={12} strokeWidth={3} />
-                            </View>
-                          ) : null}
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                ) : (
-                  <View className="items-center rounded-xl border border-slate-200 bg-slate-50 px-5 py-8 dark:border-slate-800 dark:bg-[#0f172a]">
-                    <Users color="#38bdf8" size={30} />
-                    <Text className="mt-3 text-center text-sm font-bold text-slate-900 dark:text-white">
-                      No Community Logos Yet
-                    </Text>
-                    <Text className="mt-1 text-center text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-                      Other members’ uploaded company logos will appear here when available.
-                    </Text>
-                    <Pressable
-                      accessibilityRole="button"
-                      onPress={onUploadFromDevice}
-                      className="mt-4 flex-row items-center gap-2 rounded-lg bg-[#0284c7] px-4 py-2.5 active:opacity-85"
-                    >
-                      <Upload color="#ffffff" size={16} />
-                      <Text className="text-xs font-bold text-white">Upload Your Logo</Text>
-                    </Pressable>
-                  </View>
-                )}
-            </View>
           </ScrollView>
         </Animated.View>
       </View>

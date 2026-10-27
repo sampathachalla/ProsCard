@@ -72,11 +72,21 @@ function curatedLogoSource(id: string): number | undefined {
   }
 }
 
+const CURATED_LOGO_LABELS: Record<string, string> = {
+  accenture: 'Accenture', adobe: 'Adobe', airbnb: 'Airbnb', amazon: 'Amazon', apple: 'Apple',
+  atlassian: 'Atlassian', cisco: 'Cisco', deloitte: 'Deloitte', github: 'GitHub',
+  goldmansachs: 'Goldman Sachs', google: 'Google', ibm: 'IBM', intel: 'Intel',
+  jpmorgan: 'J.P. Morgan', meta: 'Meta', microsoft: 'Microsoft', mindpros: 'MindPros',
+  netflix: 'Netflix', nvidia: 'NVIDIA', openai: 'OpenAI', oracle: 'Oracle',
+  salesforce: 'Salesforce', samsung: 'Samsung', shopify: 'Shopify', slack: 'Slack',
+  spotify: 'Spotify', stripe: 'Stripe', tesla: 'Tesla', uber: 'Uber',
+};
+
 /**
  * Curated full-color wordmarks are preferred where available. The complete local Simple Icons
  * catalog remains the searchable offline fallback without API keys or user tracking.
  */
-export const COMPANY_LOGO_PRESETS: CompanyLogoPreset[] = Object.values(SimpleIcons)
+const simpleIconPresets: CompanyLogoPreset[] = Object.values(SimpleIcons)
   .filter(isSimpleIcon)
   .map((icon) => ({
     id: icon.slug,
@@ -85,11 +95,31 @@ export const COMPANY_LOGO_PRESETS: CompanyLogoPreset[] = Object.values(SimpleIco
     value: `${COMPANY_LOGO_PRESET_PREFIX}${icon.slug}`,
     source: curatedLogoSource(icon.slug) ?? { uri: iconDataUri(icon) },
     brandColor: `#${icon.hex}`,
-  }))
-  .sort((left, right) => left.label.localeCompare(right.label));
+  }));
+
+const simpleIconIds = new Set(simpleIconPresets.map((preset) => preset.id));
+const curatedOnlyPresets: CompanyLogoPreset[] = Object.entries(CURATED_LOGO_LABELS)
+  .filter(([id]) => !simpleIconIds.has(id))
+  .flatMap(([id, label]) => {
+    const source = curatedLogoSource(id) ?? (process.env.VITEST
+      ? { uri: 'data:image/svg+xml;utf8,%3Csvg xmlns="http://www.w3.org/2000/svg"/%3E' }
+      : undefined);
+    return source ? [{
+      id,
+      label,
+      keywords: [id, label],
+      value: `${COMPANY_LOGO_PRESET_PREFIX}${id}`,
+      source,
+    }] : [];
+  });
+
+export const COMPANY_LOGO_PRESETS: CompanyLogoPreset[] = [
+  ...simpleIconPresets,
+  ...curatedOnlyPresets,
+].sort((left, right) => left.label.localeCompare(right.label));
 
 const POPULAR_SIMPLE_ICON_SLUGS = [
-  'google', 'apple', 'meta', 'nvidia', 'netflix', 'tesla', 'stripe', 'shopify',
+  'google', 'apple', 'microsoft', 'meta', 'nvidia', 'netflix', 'tesla', 'stripe', 'shopify',
   'spotify', 'uber', 'airbnb', 'github', 'atlassian', 'accenture', 'goldmansachs',
   'cisco', 'intel', 'samsung', 'anthropic', 'amd', 'cloudflare', 'dropbox', 'zoom',
   'paypal', 'visa', 'mastercard', 'databricks', 'snowflake', 'hubspot', 'tcs', 'wipro',
@@ -130,15 +160,27 @@ export function filterCompanyLogoPresets(
     const popularOrder = new Map(POPULAR_SIMPLE_ICON_SLUGS.map((slug, index) => [slug, index]));
     return COMPANY_LOGO_PRESETS
       .filter((preset) => popularOrder.has(preset.id))
-      .sort((left, right) => (popularOrder.get(left.id) ?? 0) - (popularOrder.get(right.id) ?? 0));
+      .sort((left, right) => (popularOrder.get(left.id) ?? 0) - (popularOrder.get(right.id) ?? 0))
+      .slice(0, 4);
   }
-  const matches = COMPANY_LOGO_PRESETS.filter((preset) => {
-    return (
+  const popularOrder = new Map(POPULAR_SIMPLE_ICON_SLUGS.map((slug, index) => [slug, index]));
+  const matches = COMPANY_LOGO_PRESETS.filter((preset) =>
       preset.label.toLowerCase().includes(cleanQuery) ||
       preset.keywords.some((kw) => kw.toLowerCase().includes(cleanQuery))
-    );
-  });
-  return matches.slice(0, 60);
+  );
+  return matches
+    .sort((left, right) => {
+      const leftLabel = left.label.toLowerCase();
+      const rightLabel = right.label.toLowerCase();
+      const leftPrefix = leftLabel.startsWith(cleanQuery) ? 0 : 1;
+      const rightPrefix = rightLabel.startsWith(cleanQuery) ? 0 : 1;
+      if (leftPrefix !== rightPrefix) return leftPrefix - rightPrefix;
+      const leftPopularity = popularOrder.get(left.id) ?? Number.MAX_SAFE_INTEGER;
+      const rightPopularity = popularOrder.get(right.id) ?? Number.MAX_SAFE_INTEGER;
+      if (leftPopularity !== rightPopularity) return leftPopularity - rightPopularity;
+      return left.label.localeCompare(right.label);
+    })
+    .slice(0, 4);
 }
 
 async function readLocalCommunityLogos(): Promise<CommunityCompanyLogoItem[]> {
