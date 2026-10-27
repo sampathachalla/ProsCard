@@ -97,10 +97,12 @@ const CONNECTION_TEMPLATE_LABELS: Record<
 };
 
 const CONNECTION_TEMPLATES: { id: CardLayoutId; label: string }[] =
-  CONNECTION_LAYOUT_IDS.map((id) => ({
-    id,
-    label: CONNECTION_TEMPLATE_LABELS[id],
-  }));
+  CONNECTION_LAYOUT_IDS
+    .filter((id) => id !== "classic-new")
+    .map((id) => ({
+      id,
+      label: CONNECTION_TEMPLATE_LABELS[id],
+    }));
 
 function templatesForSection(
   section: CardSectionId,
