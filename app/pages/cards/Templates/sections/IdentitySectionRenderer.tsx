@@ -74,7 +74,8 @@ export function IdentitySectionRenderer({
     placeholderColor: slots.surface,
   };
 
-  // 1. Split profile (minimal): cover/avatar on the left and logo on the right.
+  // 1. Side profile (minimal): cover above a dark identity band, with the
+  // avatar overlapping the seam and the company logo anchored at lower-right.
   if (layoutId === 'minimal') {
     const minimalProfileSize = walletPass
       ? 44
@@ -90,65 +91,62 @@ export function IdentitySectionRenderer({
         : 168;
     return (
       <View
-        className={`flex-row overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
+        className={`relative overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
         style={[shellStyle, boxed ? BOXED_SHADOW_SM : null]}
       >
-        {/* Left: Full-bleed Cover Backdrop + Elevated Avatar with Specular Ring & Shadow */}
+        {/* Full-width cover occupies the upper portion of the card. */}
         <View
-          className="w-1/2 items-center justify-center overflow-hidden"
+          className="absolute inset-x-0 top-0 h-[66%] overflow-hidden"
           style={{
             backgroundColor: slots.background,
-            borderRightWidth: StyleSheet.hairlineWidth,
-            borderRightColor: slots.highlight || 'rgba(255,255,255,0.2)',
-            padding: spacing.gap,
           }}
         >
           <IdentityImage field={cover} {...imageColors} style={StyleSheet.absoluteFill} />
-          {/* Ambient Lighting Vignette */}
-          <LinearGradient colors={['rgba(0,0,0,0.08)', 'rgba(0,0,0,0.38)']} style={StyleSheet.absoluteFill} />
-          {/* Dual-ring elevated avatar frame */}
-          <View
-            style={{
-              shadowColor: '#000000',
-              shadowOffset: { width: 0, height: 6 },
-              shadowOpacity: 0.35,
-              shadowRadius: 10,
-              elevation: 8,
-            }}
-          >
-            <View
-              style={{
-                backgroundColor: 'rgba(255,255,255,0.22)',
-                borderColor: 'rgba(255,255,255,0.45)',
-                borderRadius: (minimalProfileSize + 8) / 2,
-                borderWidth: 1.5,
-                padding: 3,
-              }}
-            >
-              <IdentityImage
-                field={profile}
-                {...imageColors}
-                style={{
-                  width: minimalProfileSize,
-                  height: minimalProfileSize,
-                  borderRadius: minimalProfileSize / 2,
-                  borderWidth: 2,
-                  borderColor: '#ffffff',
-                }}
-              />
-            </View>
-          </View>
         </View>
 
-        {/* Right: Clean Identity Pane */}
+        {/* Solid lower band keeps the logo readable over any cover image. */}
         <View
-          className="w-1/2 items-center justify-center"
+          className="absolute inset-x-0 bottom-0 h-[34%]"
           style={{
             backgroundColor: slots.surface,
-            padding: spacing.horizontal,
+          }}
+        />
+
+        {/* Profile photo overlaps the cover/band seam. */}
+        <View
+          className="absolute"
+          style={{
+            left: spacing.horizontal,
+            top: '66%',
+            marginTop: -minimalProfileSize / 2,
+            shadowColor: '#000000',
+            shadowOffset: { width: 0, height: 5 },
+            shadowOpacity: 0.32,
+            shadowRadius: 8,
+            elevation: 8,
           }}
         >
-          <View className="items-center">
+          <IdentityImage
+            field={profile}
+            {...imageColors}
+            style={{
+              width: minimalProfileSize,
+              height: minimalProfileSize,
+              borderRadius: minimalProfileSize / 2,
+              borderWidth: compact ? 3 : 4,
+              borderColor: '#e2e8f0',
+            }}
+          />
+        </View>
+
+        {/* Company mark sits opposite the avatar inside the lower band. */}
+        <View
+          className="absolute items-end justify-center"
+          style={{
+            right: spacing.horizontal,
+            bottom: compact ? 8 : 12,
+          }}
+        >
             <UniversalLogoBadge
               bare
               cardTheme={cardTheme}
@@ -162,7 +160,6 @@ export function IdentitySectionRenderer({
               slots={slots}
               templateId={layoutId}
             />
-          </View>
         </View>
       </View>
     );

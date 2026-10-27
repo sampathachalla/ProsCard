@@ -367,24 +367,20 @@ function LayoutThumbnail({
           className="relative mb-2 h-12 overflow-hidden rounded-xl"
           style={{ backgroundColor: slots.surface }}
         >
+          <View className="absolute inset-x-0 top-0 h-[66%]" style={{ backgroundColor: slots.background }} />
+          <View className="absolute inset-x-0 bottom-0 h-[34%]" style={{ backgroundColor: slots.surface }} />
           <View
-            className="absolute bottom-0 left-0 top-0 w-1/2"
-            style={{ backgroundColor: slots.background }}
-          />
-          <View
-            className="absolute left-3 top-3 h-6 w-6 rounded-full border-2"
+            className="absolute left-2 h-6 w-6 rounded-full border-2"
             style={{
+              top: "66%",
+              marginTop: -12,
               backgroundColor: slots.background,
               borderColor: "#ffffff",
             }}
           />
           <View
-            className="absolute right-2 top-2 h-2 w-7 rounded"
+            className="absolute bottom-2 right-2 h-2 w-7 rounded"
             style={{ backgroundColor: slots.accent }}
-          />
-          <View
-            className="absolute bottom-2.5 right-2 h-1.5 w-10 rounded"
-            style={{ backgroundColor: slots.textPrimary }}
           />
         </View>
       );
