@@ -34,6 +34,7 @@ describe('Simple Icons company-logo library', () => {
   it('finds brands by title or slug without a network request', () => {
     expect(filterCompanyLogoPresets('Google')[0]).toMatchObject({ id: 'google', label: 'Google' });
     expect(filterCompanyLogoPresets('goldman sachs')[0]).toMatchObject({ id: 'goldmansachs' });
+    expect(filterCompanyLogoPresets('mind pros')[0]).toMatchObject({ id: 'mindpros', label: 'MindPros' });
   });
 
   it('resolves the persisted preset value back to its icon', () => {

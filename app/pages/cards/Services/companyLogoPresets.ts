@@ -152,6 +152,13 @@ export function resolveCompanyLogoPreset(value: string): CompanyLogoPreset | und
   } : undefined;
 }
 
+function normalizeCompanySearch(value: string): string {
+  return value
+    .normalize('NFKD')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+}
+
 export function filterCompanyLogoPresets(
   query: string,
 ): CompanyLogoPreset[] {
@@ -163,17 +170,22 @@ export function filterCompanyLogoPresets(
       .sort((left, right) => (popularOrder.get(left.id) ?? 0) - (popularOrder.get(right.id) ?? 0))
       .slice(0, 4);
   }
+  const normalizedQuery = normalizeCompanySearch(cleanQuery);
   const popularOrder = new Map(POPULAR_SIMPLE_ICON_SLUGS.map((slug, index) => [slug, index]));
   const matches = COMPANY_LOGO_PRESETS.filter((preset) =>
       preset.label.toLowerCase().includes(cleanQuery) ||
-      preset.keywords.some((kw) => kw.toLowerCase().includes(cleanQuery))
+      (Boolean(normalizedQuery) && normalizeCompanySearch(preset.label).includes(normalizedQuery)) ||
+      preset.keywords.some((kw) =>
+        kw.toLowerCase().includes(cleanQuery) ||
+        (Boolean(normalizedQuery) && normalizeCompanySearch(kw).includes(normalizedQuery))
+      )
   );
   return matches
     .sort((left, right) => {
-      const leftLabel = left.label.toLowerCase();
-      const rightLabel = right.label.toLowerCase();
-      const leftPrefix = leftLabel.startsWith(cleanQuery) ? 0 : 1;
-      const rightPrefix = rightLabel.startsWith(cleanQuery) ? 0 : 1;
+      const leftLabel = normalizeCompanySearch(left.label);
+      const rightLabel = normalizeCompanySearch(right.label);
+      const leftPrefix = leftLabel.startsWith(normalizedQuery) ? 0 : 1;
+      const rightPrefix = rightLabel.startsWith(normalizedQuery) ? 0 : 1;
       if (leftPrefix !== rightPrefix) return leftPrefix - rightPrefix;
       const leftPopularity = popularOrder.get(left.id) ?? Number.MAX_SAFE_INTEGER;
       const rightPopularity = popularOrder.get(right.id) ?? Number.MAX_SAFE_INTEGER;
