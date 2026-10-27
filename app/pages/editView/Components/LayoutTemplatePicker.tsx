@@ -46,7 +46,11 @@ const IDENTITY_TEMPLATE_LABELS: Record<
 
 const IDENTITY_TEMPLATES: { id: CardLayoutId; label: string }[] =
   IDENTITY_LAYOUT_IDS
-    .filter((id) => !["classic-new", "minimal-new"].includes(IDENTITY_LAYOUT_STYLES[id]))
+    .filter((id) =>
+      !["classic-new", "minimal-new", "spotlight", "editorial-new"].includes(
+        IDENTITY_LAYOUT_STYLES[id],
+      ),
+    )
     .map((id) => ({
       id,
       label: IDENTITY_TEMPLATE_LABELS[IDENTITY_LAYOUT_STYLES[id]],
