@@ -45,10 +45,12 @@ const IDENTITY_TEMPLATE_LABELS: Record<
 };
 
 const IDENTITY_TEMPLATES: { id: CardLayoutId; label: string }[] =
-  IDENTITY_LAYOUT_IDS.map((id) => ({
-    id,
-    label: IDENTITY_TEMPLATE_LABELS[IDENTITY_LAYOUT_STYLES[id]],
-  }));
+  IDENTITY_LAYOUT_IDS
+    .filter((id) => IDENTITY_LAYOUT_STYLES[id] !== "classic-new")
+    .map((id) => ({
+      id,
+      label: IDENTITY_TEMPLATE_LABELS[IDENTITY_LAYOUT_STYLES[id]],
+    }));
 
 const PROFESSIONAL_TEMPLATE_LABELS: Record<
   (typeof PROFESSIONAL_LAYOUT_STYLES)[keyof typeof PROFESSIONAL_LAYOUT_STYLES],
