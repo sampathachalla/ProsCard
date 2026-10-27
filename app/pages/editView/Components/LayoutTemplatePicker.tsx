@@ -72,7 +72,9 @@ const PROFESSIONAL_TEMPLATE_LABELS: Record<
 
 const PROFESSIONAL_TEMPLATES: { id: CardLayoutId; label: string }[] =
   PROFESSIONAL_LAYOUT_IDS
-    .filter((id) => !['banner', 'banner-new'].includes(PROFESSIONAL_LAYOUT_STYLES[id]))
+    .filter((id) =>
+      !['banner', 'banner-new', 'classic-new'].includes(PROFESSIONAL_LAYOUT_STYLES[id]),
+    )
     .map((id) => ({
       id,
       label: PROFESSIONAL_TEMPLATE_LABELS[PROFESSIONAL_LAYOUT_STYLES[id]],
