@@ -630,14 +630,12 @@ export function ConnectionsSectionRenderer({
     );
   }
 
-  // Direct Contact List (compact): Popl-style clean list with vivid squircle icons
+  // Direct Contact List (compact): flat rows with standalone contact icons.
   if (section.templateId === "compact") {
     const fieldGap =
       fixedSlotFieldGap ??
       (fields.length <= 4 ? 20 : fields.length === 5 ? 18 : 14);
-    const squircleSize = compactHomepagePreview ? 34 : densePreview ? 40 : fillSlot ? 44 : 46;
     const squircleIconSize = compactHomepagePreview ? 15 : densePreview ? 17 : 19;
-    const squircleRadius = compactHomepagePreview ? 10 : 13;
 
     return (
       <View
@@ -676,13 +674,13 @@ export function ConnectionsSectionRenderer({
                   className="min-w-0 flex-row items-center active:opacity-75"
                   style={{ gap: 14 }}
                 >
-                  <ChannelSquircleIcon
-                    defaultColor={slots.accent}
+                  <View style={{ width: compactHomepagePreview ? 28 : 34, alignItems: "center" }}>
+                  <ConnectionIcon
+                    color={getChannelGradient(field, slots.accent)[0]}
                     field={field}
-                    iconSize={squircleIconSize}
-                    rounded={squircleRadius}
-                    size={squircleSize}
+                    size={squircleIconSize + 3}
                   />
+                  </View>
                   {renderCopy(
                     presentation,
                     slots.textPrimary,
@@ -803,14 +801,12 @@ export function ConnectionsSectionRenderer({
     );
   }
 
-  // Contact Ledger (editorial): structured enterprise directory rows.
+  // Contact Ledger (editorial): structured flat rows with standalone icons.
   if (section.templateId === "editorial") {
     const fieldGap =
       fixedSlotFieldGap ??
       (fields.length <= 4 ? 20 : fields.length === 5 ? 18 : 14);
-    const squircleSize = compactHomepagePreview ? 30 : 36;
     const squircleIconSize = compactHomepagePreview ? 13 : 16;
-    const squircleRadius = compactHomepagePreview ? 8 : 10;
 
     return (
       <View
@@ -855,13 +851,13 @@ export function ConnectionsSectionRenderer({
                   }}
                 >
                   <View className="mr-3">
-                    <ChannelSquircleIcon
-                      defaultColor={slots.accent}
+                    <View style={{ width: compactHomepagePreview ? 24 : 30, alignItems: "center" }}>
+                    <ConnectionIcon
+                      color={getChannelGradient(field, slots.accent)[0]}
                       field={field}
-                      iconSize={squircleIconSize}
-                      rounded={squircleRadius}
-                      size={squircleSize}
+                      size={squircleIconSize + 3}
                     />
+                    </View>
                   </View>
                   {renderCopy(
                     presentation,
