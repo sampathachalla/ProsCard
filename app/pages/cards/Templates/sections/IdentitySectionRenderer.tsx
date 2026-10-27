@@ -712,11 +712,10 @@ export function IdentitySectionRenderer({
               >
                 <MediaImage
                   sourceUrl={logo.value}
-                  contentFit="cover"
+                  contentFit="contain"
                   style={{
-                    width: nestedLogoSize,
-                    height: nestedLogoSize,
-                    borderRadius: nestedLogoSize / 2,
+                    width: nestedLogoSize * 0.72,
+                    height: nestedLogoSize * 0.72,
                   }}
                 />
               </View>
@@ -845,11 +844,10 @@ export function IdentitySectionRenderer({
             >
               <MediaImage
                 sourceUrl={logo.value}
-                contentFit="cover"
+                contentFit="contain"
                 style={{
-                  width: nestedLogoSize,
-                  height: nestedLogoSize,
-                  borderRadius: nestedLogoSize / 2,
+                  width: nestedLogoSize * 0.72,
+                  height: nestedLogoSize * 0.72,
                 }}
               />
             </View>
