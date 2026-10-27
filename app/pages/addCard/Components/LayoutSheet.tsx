@@ -14,13 +14,14 @@ type Props = {
   card: BusinessCard;
   visible: boolean;
   onClose: () => void;
+  onPreview: () => void;
   onChange: (section: CardSectionId, layout: CardLayoutId) => void;
 };
 
 /** Reuses the card editor's layout picker for all three rendered card sections. */
-export function LayoutSheet({ card, visible, onClose, onChange }: Props) {
+export function LayoutSheet({ card, visible, onClose, onPreview, onChange }: Props) {
   return (
-    <AddCardSheet title="Layout" visible={visible} onClose={onClose}>
+    <AddCardSheet title="Layout" visible={visible} onClose={onClose} onPreview={onPreview}>
       {LAYOUT_SECTIONS.map((section) => (
         <View key={section.id} className="mb-6">
           <Text variant="subtitle">{section.title}</Text>

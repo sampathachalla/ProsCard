@@ -6,14 +6,15 @@ type Props = {
   card: BusinessCard;
   visible: boolean;
   onClose: () => void;
+  onPreview: () => void;
   onChange: (theme: CardVisualTheme) => void;
   onSaveCustomTheme: (entry: SavedSectionTheme) => void;
 };
 
 /** Reuses the card editor's theme + font customizer; the choice applies to the whole card. */
-export function ThemeSheet({ card, visible, onClose, onChange, onSaveCustomTheme }: Props) {
+export function ThemeSheet({ card, visible, onClose, onPreview, onChange, onSaveCustomTheme }: Props) {
   return (
-    <AddCardSheet title="Card theme" visible={visible} onClose={onClose}>
+    <AddCardSheet title="Card theme" visible={visible} onClose={onClose} onPreview={onPreview}>
       <CardStylingCustomizer
         embedded
         fullOpen

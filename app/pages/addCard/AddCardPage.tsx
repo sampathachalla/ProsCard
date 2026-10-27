@@ -281,12 +281,14 @@ export default function AddCardPage() {
         card={editor.draft}
         visible={panel === 'layout'}
         onClose={() => setPanel(null)}
+        onPreview={preview}
         onChange={editor.setLayout}
       />
       <ThemeSheet
         card={editor.draft}
         visible={panel === 'theme'}
         onClose={() => setPanel(null)}
+        onPreview={preview}
         onChange={editor.setTheme}
         onSaveCustomTheme={editor.saveCustomTheme}
       />
