@@ -22,10 +22,12 @@ import {
   type CardScanState,
 } from '@/modules/card-rectangle-detector';
 import { PermissionGate } from './Components/PermissionGate';
+import { ScannerModeBar, type ScannerKind } from './Components/ScannerModeBar';
 import { ScannerOverlay } from './Components/ScannerOverlay';
 import { useScanner } from './Hooks/useScanner';
 import { PageHeader } from '@/common/ui/PageHeader';
 import { useCardCapture } from './Hooks/useCardCapture';
+import { useBadgeReader } from './Hooks/useBadgeReader';
 import { useCardReader } from './Hooks/useCardReader';
 import { saveScanResult, type ScanResult } from './Services/scanHandoff';
 import type { CapturedCard } from './types/scanner.types';
@@ -42,17 +44,30 @@ const CARD_HINTS: Record<CardScanState, string> = {
   detected: 'Hold steady…',
   steady: 'Capturing…',
 };
+const BADGE_HINTS: Record<CardScanState, string> = {
+  none: 'Point the camera at the event badge',
+  detected: 'Hold steady…',
+  steady: 'Capturing…',
+};
 /** Why a captured photo could not go straight to review. */
 type PhotoIssue = { kind: 'notACard' | 'failed'; title: string; message: string };
 
 export default function ScannerScreen() {
   const router = useRouter();
-  const { source, imageUri, mimeType, fileName } = useLocalSearchParams<{
+  const { source, imageUri, mimeType, fileName, mode, eventName } = useLocalSearchParams<{
     source?: string;
     imageUri?: string;
     mimeType?: string;
     fileName?: string;
+    mode?: string;
+    eventName?: string;
   }>();
+  const [scanKind, setScanKind] = useState<ScannerKind>(() => (mode === 'badge' ? 'badge' : 'card'));
+  const [activeEventName, setActiveEventName] = useState(() =>
+    typeof eventName === 'string' ? eventName.trim() : '',
+  );
+  const badgeMode = scanKind === 'badge';
+  const sessionEventName = activeEventName.trim();
   const initialUploadedCard: CapturedCard | null =
     source === 'upload' && imageUri
       ? {
@@ -80,8 +95,8 @@ export default function ScannerScreen() {
   const [photoAspectRatio, setPhotoAspectRatio] = useState<number>();
   const { permission, requestPermission, isActive, handleBarcodeScanned, resumeScanning, saveContact } = useScanner();
   const { busy: capturing, captureCard: capturePhoto } = useCardCapture();
-  const reader = useCardReader();
-
+  const cardReader = useCardReader();
+  const badgeReader = useBadgeReader();
   useEffect(
     () => () => {
       if (processingTimer.current) clearTimeout(processingTimer.current);
@@ -100,36 +115,63 @@ export default function ScannerScreen() {
   };
 
   const openReview = (result: ScanResult) => {
-    router.replace({ pathname: '/contacts/new', params: { scanId: saveScanResult(result) } });
+    const scanId = saveScanResult(result);
+    if (badgeMode) {
+      router.replace({
+        pathname: '/contacts/new-badge',
+        params: { scanId, eventName: sessionEventName },
+      });
+      return;
+    }
+    router.replace({ pathname: '/contacts/new', params: { scanId } });
   };
 
   /** Shows the scanning animation over the photo until the backend has read it, then opens the review. */
   const processPhoto = async (card: CapturedCard) => {
+    if (badgeMode && !sessionEventName) {
+      Alert.alert('Event name required', 'Enter the event name above before scanning badges.');
+      setStage('camera');
+      return;
+    }
     if (card.uri !== photo?.uri) setPhotoAspectRatio(undefined);
     setPhoto(card);
     setPhotoIssue(null);
     setStage('processing');
-    const result = await reader.read(card);
+    const result = await (badgeMode ? badgeReader.read(card) : cardReader.read(card));
     switch (result.status) {
       case 'stale':
         return;
       case 'done':
-        openReview({ card: result.card, reading: result.reading });
+        openReview({
+          card: result.card,
+          reading: result.reading,
+          meta: badgeMode ? { kind: 'badge', eventName: sessionEventName } : { kind: 'business_card' },
+        });
         return;
       case 'unavailable':
-        // Reading is switched off on the server; the user can still type the details.
-        openReview({ card, reading: null });
+        openReview({
+          card,
+          reading: null,
+          meta: badgeMode ? { kind: 'badge', eventName: sessionEventName } : { kind: 'business_card' },
+        });
         return;
       case 'notACard':
+      case 'notABadge':
         setPhotoIssue({
           kind: 'notACard',
-          title: 'No business card found',
-          message: 'That photo doesn’t show a business card. Retake it or upload a clear photo of the card.',
+          title: badgeMode ? 'No event badge found' : 'No business card found',
+          message: badgeMode
+            ? 'That photo doesn’t look like an event badge. Retake it or upload a clear photo of the badge.'
+            : 'That photo doesn’t show a business card. Retake it or upload a clear photo of the card.',
         });
         setStage('result');
         return;
       case 'failed':
-        setPhotoIssue({ kind: 'failed', title: 'Couldn’t read the card', message: result.error });
+        setPhotoIssue({
+          kind: 'failed',
+          title: badgeMode ? 'Couldn’t read the badge' : 'Couldn’t read the card',
+          message: result.error,
+        });
         setStage('result');
     }
   };
@@ -157,6 +199,10 @@ export default function ScannerScreen() {
    */
   const captureCard = async () => {
     if (stage !== 'camera' || capturing || shooting) return;
+    if (badgeMode && !sessionEventName) {
+      Alert.alert('Event name required', 'Enter the event name above before scanning badges.');
+      return;
+    }
     if (liveCardDetection) {
       await captureFromCardScanner();
       return;
@@ -220,7 +266,8 @@ export default function ScannerScreen() {
   const resetScanner = () => {
     if (processingTimer.current) clearTimeout(processingTimer.current);
     processingTimer.current = null;
-    reader.reset();
+    cardReader.reset();
+    badgeReader.reset();
     setPhoto(null);
     setPhotoIssue(null);
     setScannedCard(null);
@@ -250,7 +297,10 @@ export default function ScannerScreen() {
   if (permission && !permission.granted && !photo) {
     return (
       <View className="flex-1 bg-background dark:bg-dark-background">
-        <PageHeader title="Scan a Card" subtitle="Capture a card or scan its VC Pros QR code" />
+        <PageHeader
+          title={badgeMode ? 'Scan badge' : 'Scan a Card'}
+          subtitle={badgeMode ? sessionEventName || 'Event badge' : 'Capture a card or scan its VC Pros QR code'}
+        />
         <PermissionGate canAskAgain={permission.canAskAgain} onRequestPermission={requestPermission} />
       </View>
     );
@@ -267,15 +317,17 @@ export default function ScannerScreen() {
             ref={cardScannerRef}
             style={StyleSheet.absoluteFill}
             active={!capturing}
-            barcodeScanningEnabled={isActive}
+            barcodeScanningEnabled={isActive && !badgeMode}
             onCardStateChange={({ nativeEvent }) => setCardState(nativeEvent.state)}
             onBarcodeScanned={({ nativeEvent }) => {
-              if (isActive && !shooting) processDetectedCode(nativeEvent.data);
+              if (isActive && !shooting && !badgeMode) processDetectedCode(nativeEvent.data);
             }}
             onCameraError={({ nativeEvent }) => Alert.alert('Camera unavailable', nativeEvent.message)}
           />
           <View pointerEvents="none" style={[styles.hintPill, { bottom: controlsBottom + 96 }]}>
-            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.hintText}>{shooting ? 'Capturing…' : CARD_HINTS[cardState]}</Text>
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.hintText}>
+              {shooting ? 'Capturing…' : (badgeMode ? BADGE_HINTS : CARD_HINTS)[cardState]}
+            </Text>
           </View>
         </>
       ) : stage === 'camera' ? (
@@ -286,9 +338,14 @@ export default function ScannerScreen() {
             facing="back"
             active={!capturing}
             barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-            onBarcodeScanned={isActive ? ({ data }) => processDetectedCode(data) : undefined}
+            onBarcodeScanned={isActive && !badgeMode ? ({ data }) => processDetectedCode(data) : undefined}
           />
-          <ScannerOverlay showFrame={false} isActive={!capturing && !shooting} hintBottom={controlsBottom + 96} />
+          <ScannerOverlay
+            showFrame={false}
+            isActive={!capturing && !shooting}
+            hintBottom={controlsBottom + 96}
+            hintText={badgeMode ? 'Point the camera at the event badge' : 'Point the camera at a business card'}
+          />
         </>
       ) : photo ? (
         <>
@@ -299,7 +356,13 @@ export default function ScannerScreen() {
             onLoad={({ source }) => setPhotoAspectRatio(source.width && source.height ? source.width / source.height : undefined)}
           />
           {stage === 'processing' && photoAspectRatio && (
-            <ScannerOverlay isActive isProcessing imageAspectRatio={photoAspectRatio} hintBottom={controlsBottom + 64} />
+            <ScannerOverlay
+              isActive
+              isProcessing
+              imageAspectRatio={photoAspectRatio}
+              hintBottom={controlsBottom + 64}
+              processingHint={badgeMode ? 'Reading badge details…' : 'Reading card details…'}
+            />
           )}
         </>
       ) : (
@@ -342,7 +405,17 @@ export default function ScannerScreen() {
             )}
           </View>
           {photoIssue.kind === 'failed' ? (
-            <Pressable onPress={() => photo && openReview({ card: photo, reading: null })} style={styles.textAction}>
+            <Pressable
+              onPress={() =>
+                photo &&
+                openReview({
+                  card: photo,
+                  reading: null,
+                  meta: badgeMode ? { kind: 'badge', eventName: sessionEventName } : { kind: 'business_card' },
+                })
+              }
+              style={styles.textAction}
+            >
               <PencilLine color="#CBD5E1" size={15} />
               <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.textActionText}>Enter details manually</Text>
             </Pressable>
@@ -379,16 +452,29 @@ export default function ScannerScreen() {
       )}
 
       {stage === 'camera' && (
+        <ScannerModeBar
+          scanKind={scanKind}
+          eventName={activeEventName}
+          topInset={insets.top}
+          onScanKindChange={setScanKind}
+          onEventNameChange={setActiveEventName}
+        />
+      )}
+
+      {stage === 'camera' && (
         <View style={[styles.controls, { bottom: controlsBottom }]}>
           <TouchableOpacity accessibilityLabel="Go back" onPress={close} style={styles.sideButton}>
             <ChevronLeft color="#FFFFFF" size={26} strokeWidth={2.2} />
           </TouchableOpacity>
 
           <TouchableOpacity
-            accessibilityLabel="Scan business card"
+            accessibilityLabel={badgeMode ? 'Scan event badge' : 'Scan business card'}
             disabled={capturing || shooting}
             onPress={captureCard}
-            style={[styles.shutterOuter, (capturing || shooting) && { opacity: 0.5 }]}
+            style={[
+              styles.shutterOuter,
+              (capturing || shooting || (badgeMode && !sessionEventName)) && { opacity: 0.5 },
+            ]}
           >
             <View style={styles.shutterInner} />
           </TouchableOpacity>

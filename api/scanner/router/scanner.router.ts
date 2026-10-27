@@ -6,5 +6,6 @@ export function createScannerRouter(authenticate: RequestHandler, limiter: Reque
   const router = Router();
   router.use(authenticate);
   router.post('/read', limiter, asyncHandler(controller.read));
+  router.post('/read-badge', limiter, asyncHandler(controller.readBadge));
   return router;
 }

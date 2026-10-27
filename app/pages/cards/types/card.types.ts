@@ -1,24 +1,35 @@
 // pages/cards/types/card.types.ts
-export type CardSectionId = 'identity' | 'professional' | 'bio' | 'connections';
+export type CardSectionId = 'identity' | 'professional' | 'connections';
 export type CardTemplateId =
   | 'classic'
   | 'minimal'
-  | 'bold'
-  | 'glass'
   | 'compact'
   | 'editorial'
   | 'spotlight'
   | 'banner'
-  | 'cards'
   | 'badge'
-  | 'split'
-  | 'neon';
+  | 'classic-new'
+  | 'minimal-new'
+  | 'compact-new'
+  | 'editorial-new'
+  | 'spotlight-new'
+  | 'banner-new'
+  | 'badge-new';
 
 /**
  * Section 1 (identity) layouts. Cards store these stable ids; the names shown to users live in the
  * layout picker, so renaming a layout never changes saved cards.
  */
-export const IDENTITY_LAYOUT_IDS = ['layout-1', 'layout-2', 'layout-3', 'layout-4', 'layout-5', 'layout-6'] as const;
+export const IDENTITY_LAYOUT_IDS = [
+  'layout-1',
+  'layout-2',
+  'layout-5',
+  'layout-6',
+  'layout-1-new',
+  'layout-2-new',
+  'layout-5-new',
+  'layout-6-new',
+] as const;
 
 export type IdentityLayoutId = (typeof IDENTITY_LAYOUT_IDS)[number];
 
@@ -26,10 +37,12 @@ export type IdentityLayoutId = (typeof IDENTITY_LAYOUT_IDS)[number];
 export const IDENTITY_LAYOUT_STYLES = {
   'layout-1': 'classic',
   'layout-2': 'minimal',
-  'layout-3': 'split',
-  'layout-4': 'bold',
   'layout-5': 'spotlight',
   'layout-6': 'editorial',
+  'layout-1-new': 'classic-new',
+  'layout-2-new': 'minimal-new',
+  'layout-5-new': 'spotlight-new',
+  'layout-6-new': 'editorial-new',
 } as const satisfies Record<IdentityLayoutId, CardTemplateId>;
 
 /** Styles the identity renderers can draw. */
@@ -37,28 +50,44 @@ export const IDENTITY_SECTION_TEMPLATE_IDS = IDENTITY_LAYOUT_IDS.map((id) => IDE
 
 export type IdentitySectionTemplateId = (typeof IDENTITY_LAYOUT_STYLES)[IdentityLayoutId];
 
-/** Section 2 (professional) stable ids for its seven active designs. */
+/** Section 2 (professional) stable ids for its four active designs plus new welcome-styled designs. */
 export const PROFESSIONAL_LAYOUT_IDS = [
   'layout-1',
-  'layout-2',
   'layout-3',
   'layout-4',
   'layout-5',
-  'layout-6',
-  'layout-7',
+  'layout-1-new',
+  'layout-3-new',
+  'layout-4-new',
+  'layout-5-new',
 ] as const;
 
 export type ProfessionalLayoutId = (typeof PROFESSIONAL_LAYOUT_IDS)[number];
 
 export const PROFESSIONAL_LAYOUT_STYLES = {
   'layout-1': 'classic',
-  'layout-2': 'bold',
   'layout-3': 'spotlight',
   'layout-4': 'banner',
   'layout-5': 'badge',
-  'layout-6': 'split',
-  'layout-7': 'neon',
+  'layout-1-new': 'classic-new',
+  'layout-3-new': 'spotlight-new',
+  'layout-4-new': 'banner-new',
+  'layout-5-new': 'badge-new',
 } as const satisfies Record<ProfessionalLayoutId, CardTemplateId>;
+
+/** Section 3 (connections) active layout ids. */
+export const CONNECTION_LAYOUT_IDS = [
+  'classic',
+  'banner',
+  'editorial',
+  'compact',
+  'classic-new',
+  'banner-new',
+  'editorial-new',
+  'compact-new',
+] as const;
+
+export type ConnectionLayoutId = (typeof CONNECTION_LAYOUT_IDS)[number];
 
 export type CardLayoutId = CardTemplateId | IdentityLayoutId | ProfessionalLayoutId;
 
@@ -68,6 +97,10 @@ export function isIdentityLayoutId(id: unknown): id is IdentityLayoutId {
 
 export function isProfessionalLayoutId(id: unknown): id is ProfessionalLayoutId {
   return (PROFESSIONAL_LAYOUT_IDS as readonly unknown[]).includes(id);
+}
+
+export function isConnectionLayoutId(id: unknown): id is ConnectionLayoutId {
+  return (CONNECTION_LAYOUT_IDS as readonly unknown[]).includes(id);
 }
 
 /**
@@ -92,11 +125,17 @@ export function resolveProfessionalLayoutId(id: CardLayoutId | string | undefine
   return legacy ?? 'layout-1';
 }
 
+/** Normalizes Section 3 layout ids to one of the four active connection layouts. */
+export function resolveConnectionsLayoutId(id: CardLayoutId | string | undefined): ConnectionLayoutId {
+  return isConnectionLayoutId(id) ? id : 'classic';
+}
+
 /** Resolves a saved layout id within its section; layout ids intentionally repeat across sections. */
 export function resolveLayoutStyle(id: CardLayoutId, section?: CardSectionId): CardTemplateId {
-  if (section === 'professional' && isProfessionalLayoutId(id)) return PROFESSIONAL_LAYOUT_STYLES[id];
-  if (section === 'identity' && isIdentityLayoutId(id)) return IDENTITY_LAYOUT_STYLES[id];
-  return id as CardTemplateId;
+  if (section === 'professional') return PROFESSIONAL_LAYOUT_STYLES[resolveProfessionalLayoutId(id)];
+  if (section === 'identity') return IDENTITY_LAYOUT_STYLES[resolveIdentityLayoutId(id)];
+  if (section === 'connections') return resolveConnectionsLayoutId(id);
+  return isConnectionLayoutId(id) ? id : 'classic';
 }
 
 /** Default card title when no personal name is set — not shown on the identity face. */
@@ -137,16 +176,18 @@ export type ThemePaletteTier = 2 | 3 | 4;
 export const TEMPLATE_TIER_MAP: Record<CardTemplateId, ThemePaletteTier> = {
   minimal: 2,
   compact: 2,
-  bold: 2,
-  split: 2,
   classic: 3,
   spotlight: 3,
   editorial: 3,
-  glass: 3,
   banner: 4,
-  cards: 4,
   badge: 4,
-  neon: 4,
+  'minimal-new': 2,
+  'compact-new': 2,
+  'classic-new': 3,
+  'spotlight-new': 3,
+  'editorial-new': 3,
+  'banner-new': 4,
+  'badge-new': 4,
 };
 
 export function getTemplatePaletteTier(templateId: CardTemplateId): ThemePaletteTier {
@@ -303,7 +344,6 @@ export const CARD_TAG_OPTIONS = [
 export const DEFAULT_CARD_SECTION_LAYOUTS: CardSectionLayouts = {
   identity: 'layout-1',
   professional: 'layout-1',
-  bio: 'classic',
   connections: 'classic',
 };
 
@@ -311,7 +351,6 @@ export function createDefaultCardSectionThemes(theme: CardVisualTheme = DEFAULT_
   return {
     identity: { ...theme, gradient: [...theme.gradient] },
     professional: { ...theme, gradient: [...theme.gradient] },
-    bio: { ...theme, gradient: [...theme.gradient] },
     connections: { ...theme, gradient: [...theme.gradient] },
   };
 }

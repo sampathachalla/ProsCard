@@ -8,4 +8,7 @@ export class ScannerController {
 
   read = async (request: AuthenticatedRequest, response: Response) =>
     response.json(await this.service.readCard(readCardRequestSchema.parse(request.body)));
+
+  readBadge = async (request: AuthenticatedRequest, response: Response) =>
+    response.json(await this.service.readBadge(readCardRequestSchema.parse(request.body)));
 }

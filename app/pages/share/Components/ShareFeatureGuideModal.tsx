@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, Platform, Pressable, Share, View } from 'react-native';
+import { Modal, Platform, Pressable, ScrollView, Share, View } from 'react-native';
 import {
   LayoutGrid,
   Lock,
@@ -20,7 +20,7 @@ export interface ShareFeatureGuideModalProps {
   shareUrl: string;
   onClose: () => void;
   onExportWalletPass: () => void;
-  onOpenHomeScreenPage: () => void;
+  onPrepareHomeScreenWidget: () => void | Promise<void>;
   onSaveQrImage: (dialogTitle?: string) => void;
 }
 
@@ -56,15 +56,15 @@ const GUIDE_CONTENT: Record<Exclude<ShareGuideModalKind, null>, GuideCopy> = {
     primaryLabel: 'Save QR for Lockscreen',
   },
   homescreen: {
-    title: 'Add QR to homescreen',
-    subtitle: 'Pin your digital business card QR to your home screen for 1-tap access.',
+    title: 'Add VC Pros to your Home Screen',
+    subtitle: 'Keep your digital business-card QR ready for instant sharing.',
     icon: LayoutGrid,
     steps: [
-      'Tap "Open Card in Browser" below to open your public card page.',
-      'On iOS: Tap Share in Safari, then choose "Add to Home Screen".',
-      'On Android: Open the browser menu, then choose "Add to Home screen".',
+      'Touch and hold an empty area of your Home Screen until the apps begin to move.',
+      'Open the widget gallery and search for “VC Pros QR Card”.',
+      'Choose a widget size, tap Add Widget, and place it anywhere you like.',
     ],
-    primaryLabel: 'Open Card in Browser',
+    primaryLabel: 'Prepare My QR Widget',
   },
   namedrop: {
     title: 'Share with NameDrop',
@@ -85,7 +85,7 @@ export function ShareFeatureGuideModal({
   shareUrl,
   onClose,
   onExportWalletPass,
-  onOpenHomeScreenPage,
+  onPrepareHomeScreenWidget,
   onSaveQrImage,
 }: ShareFeatureGuideModalProps) {
   const { theme } = useThemeContext();
@@ -107,7 +107,7 @@ export function ShareFeatureGuideModal({
       return;
     }
     if (kind === 'homescreen') {
-      onOpenHomeScreenPage();
+      void onPrepareHomeScreenWidget();
       return;
     }
     if (kind === 'namedrop' && shareUrl) {
@@ -118,6 +118,101 @@ export function ShareFeatureGuideModal({
       });
     }
   };
+
+  if (kind === 'homescreen') {
+    const platformSteps = Platform.OS === 'android'
+      ? [
+          ['1', 'Touch and hold your Home Screen', 'Choose Widgets from the Home Screen menu.'],
+          ['2', 'Find VC Pros QR Card', 'Search for VC Pros, then choose the QR card widget.'],
+          ['3', 'Add and position it', 'Drag the widget to a convenient place for instant sharing.'],
+        ]
+      : [
+          ['1', 'Touch and hold your Home Screen', 'When the apps begin to move, tap Edit in the top-left corner.'],
+          ['2', 'Open Add Widget', 'Tap Add Widget and search for “VC Pros QR Card”.'],
+          ['3', 'Choose a size and place it', 'Tap Add Widget, then drag your QR card wherever you want it.'],
+        ];
+
+    return (
+      <Modal transparent visible animationType="slide" onRequestClose={onClose}>
+        <View className="flex-1 justify-end bg-slate-950/75">
+          <View className="h-[90%] overflow-hidden rounded-t-[28px] bg-background dark:bg-dark-card">
+            <View className="flex-row items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-800">
+              <View className="flex-1 pr-3">
+                <Text variant="none" className="text-xl font-bold text-textPrimary dark:text-white">
+                  Add VC Pros widget
+                </Text>
+                <Text variant="none" className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  Your card QR, always one tap away
+                </Text>
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Close widget instructions"
+                hitSlop={8}
+                onPress={onClose}
+                className="size-11 items-center justify-center rounded-full bg-slate-100 active:opacity-75 dark:bg-slate-800"
+              >
+                <X size={22} color={isDark ? '#e2e8f0' : '#0f172a'} strokeWidth={2.2} />
+              </Pressable>
+            </View>
+
+            <ScrollView
+              className="flex-1 px-6"
+              contentContainerStyle={{ paddingBottom: 28, paddingTop: 22 }}
+              showsVerticalScrollIndicator
+            >
+              <View className="mb-6 rounded-2xl bg-slate-950 p-5">
+                <View className="flex-row items-center gap-4">
+                  <View className="size-16 items-center justify-center rounded-xl bg-white">
+                    <LayoutGrid size={34} color="#0284c7" strokeWidth={2.2} />
+                  </View>
+                  <View className="flex-1">
+                    <Text variant="none" className="text-lg font-bold text-white">VC Pros QR Card</Text>
+                    <Text variant="none" className="mt-1 text-sm leading-5 text-slate-300">
+                      Shows the active card’s QR code and opens its public page when tapped.
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              <Text variant="none" className="mb-4 text-2xl font-bold text-textPrimary dark:text-white">
+                {Platform.OS === 'android' ? 'Android setup' : 'iPhone setup'}
+              </Text>
+
+              {platformSteps.map(([number, title, description]) => (
+                <View key={number} className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-800 dark:bg-slate-900">
+                  <View className="flex-row items-start gap-4">
+                    <View className="size-9 items-center justify-center rounded-full bg-primary">
+                      <Text variant="none" className="text-sm font-bold text-white">{number}</Text>
+                    </View>
+                    <View className="flex-1">
+                      <Text variant="none" className="text-base font-bold text-textPrimary dark:text-white">{title}</Text>
+                      <Text variant="none" className="mt-1.5 text-sm leading-5 text-slate-600 dark:text-slate-300">{description}</Text>
+                    </View>
+                  </View>
+                </View>
+              ))}
+
+              <View className="rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/60 dark:bg-amber-950/30">
+                <Text variant="none" className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                  The widget requires the native VC Pros TestFlight/App Store build. It is not available inside Expo Go.
+                </Text>
+              </View>
+
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Prepare VC Pros QR widget"
+                onPress={handlePrimaryAction}
+                className="mt-5 min-h-[52px] items-center justify-center rounded-xl bg-primary px-4 active:opacity-90"
+              >
+                <Text variant="none" className="text-base font-semibold text-white">Prepare My QR Widget</Text>
+              </Pressable>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    );
+  }
 
   return (
     <Modal

@@ -8,6 +8,7 @@ type EditCardFormHeaderProps = {
   isCreateMode: boolean;
   isSaving: boolean;
   saveDisabled?: boolean;
+  primaryLabel?: string;
   onBack: () => void;
   onSave: () => void;
 };
@@ -17,9 +18,11 @@ export function EditCardFormHeader({
   isCreateMode,
   isSaving,
   saveDisabled = false,
+  primaryLabel,
   onBack,
   onSave,
 }: EditCardFormHeaderProps) {
+  const actionLabel = primaryLabel ?? 'Save';
   const insets = useSafeAreaInsets();
 
   return (
@@ -33,7 +36,7 @@ export function EditCardFormHeader({
       </Text>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={isCreateMode ? 'Create card' : 'Save card'}
+        accessibilityLabel={actionLabel === 'Next' ? 'Continue to design step' : isCreateMode ? 'Create card' : 'Save card'}
         accessibilityState={{ busy: isSaving, disabled: saveDisabled || isSaving }}
         disabled={saveDisabled || isSaving}
         onPress={onSave}
@@ -42,7 +45,7 @@ export function EditCardFormHeader({
         {isSaving ? (
           <ActivityIndicator size="small" />
         ) : (
-          <Text className="text-base font-bold text-primary dark:text-dark-primary">Save</Text>
+          <Text className="text-base font-bold text-primary dark:text-dark-primary">{actionLabel}</Text>
         )}
       </Pressable>
     </View>

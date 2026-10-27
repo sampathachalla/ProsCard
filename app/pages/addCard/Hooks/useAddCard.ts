@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import {
+  resolveConnectionsLayoutId,
   resolveIdentityLayoutId,
   resolveProfessionalLayoutId,
   type BusinessCard,
@@ -27,7 +28,7 @@ function withThemeEverywhere(card: BusinessCard, theme: CardVisualTheme): Busine
     ...card,
     gradient: [theme.gradient[0], theme.gradient[1]],
     cardTheme: copy(),
-    sectionThemes: { identity: copy(), professional: copy(), bio: copy(), connections: copy() },
+    sectionThemes: { identity: copy(), professional: copy(), connections: copy() },
   };
 }
 
@@ -92,7 +93,7 @@ export function useAddCard(options: UseAddCardOptions = {}) {
         ? resolveIdentityLayoutId(layout)
         : section === 'professional'
           ? resolveProfessionalLayoutId(layout)
-          : layout;
+          : resolveConnectionsLayoutId(layout);
     setDraft((prev) => ({ ...prev, sectionLayouts: { ...prev.sectionLayouts, [section]: resolved } }));
   }, []);
 

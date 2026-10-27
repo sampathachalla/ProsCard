@@ -22,14 +22,19 @@ export default function NewContactScreen() {
   const { scanId } = useLocalSearchParams<{ scanId?: string }>();
   const { contacts } = useContacts();
   const [scan] = useState(() => getScanResult(scanId));
-  const [initial] = useState(() =>
-    scan?.reading ? fillEmptyFields(EMPTY_CONTACT_FORM, scan.reading.contact) : { values: EMPTY_CONTACT_FORM, filled: [] }
-  );
+  const [initial] = useState(() => {
+    const reading = scan?.reading;
+    const cardContact =
+      reading && 'phone' in reading.contact ? reading.contact : null;
+    return cardContact
+      ? fillEmptyFields(EMPTY_CONTACT_FORM, cardContact)
+      : { values: EMPTY_CONTACT_FORM, filled: [] };
+  });
 
   const save = async (values: ContactFormValues, card: ProcessedCard | null) => {
-    // Returns once the contact exists; its card photo finishes uploading in the background.
+    const captureKind = scan ? 'business_card' : 'manual';
     await createContactWithCard(
-      { ...values, initials: initialsFor(values.name), color: Colors.light.tint, sourceCardId: null },
+      { ...values, initials: initialsFor(values.name), color: Colors.light.tint, sourceCardId: null, captureKind },
       card,
     );
     clearScanResult(scanId);
@@ -42,7 +47,7 @@ export default function NewContactScreen() {
   const replaceDuplicate = async (contactId: string, values: ContactFormValues, card: ProcessedCard | null) => {
     await updateContactWithCard(
       contactId,
-      { ...values, initials: initialsFor(values.name), color: Colors.light.tint, sourceCardId: null },
+      { ...values, initials: initialsFor(values.name), color: Colors.light.tint, sourceCardId: null, captureKind: 'manual' },
       card,
     );
     finish();

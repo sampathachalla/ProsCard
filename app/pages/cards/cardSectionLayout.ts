@@ -23,9 +23,8 @@ export function professionalSectionHeight(viewportHeight: number) {
 }
 
 export function cardSectionHeight(
-  sectionId: keyof typeof HOMEPAGE_CARD_SECTION_HEIGHT_RATIOS | 'bio',
+  sectionId: keyof typeof HOMEPAGE_CARD_SECTION_HEIGHT_RATIOS,
   viewportHeight: number,
 ) {
-  if (sectionId === 'bio') return 0;
   return Math.round(viewportHeight * HOMEPAGE_CARD_SECTION_HEIGHT_RATIOS[sectionId]);
 }

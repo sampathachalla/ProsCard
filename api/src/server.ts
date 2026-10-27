@@ -11,6 +11,7 @@ import { MediaService } from '../media/services/media.service.js';
 import { startMediaCleanupJob } from '../jobs/mediaCleanupJob.js';
 import { configureLogger, log } from './logger.js';
 import { OpenAiCardReader } from '../scanner/services/openai-card-reader.service.js';
+import { OpenAiBadgeReader } from '../scanner/services/openai-badge-reader.service.js';
 import { OpenAiProfileCopywriter } from '../onboarding/services/openai-profile-copywriter.service.js';
 import { AppleWalletPassGenerator, appleWalletConfigured } from '../wallet/services/apple-pass.service.js';
 import { GoogleWalletLinkGenerator, googleWalletConfigured } from '../wallet/services/google-wallet.service.js';
@@ -103,6 +104,9 @@ async function main() {
   const cardReader = config.LLM_API
     ? new OpenAiCardReader({ apiKey: config.LLM_API, timeoutMs: config.LLM_TIMEOUT_MS })
     : undefined;
+  const badgeReader = config.LLM_API
+    ? new OpenAiBadgeReader({ apiKey: config.LLM_API, timeoutMs: config.LLM_TIMEOUT_MS })
+    : undefined;
   if (!cardReader) log('warn', 'card_reader_disabled', { reason: 'LLM_API is not set' });
   const profileCopywriter = config.LLM_API
     ? new OpenAiProfileCopywriter({ apiKey: config.LLM_API, timeoutMs: config.LLM_TIMEOUT_MS })
@@ -153,6 +157,7 @@ async function main() {
     supabase,
     storage,
     cardReader,
+    badgeReader,
     profileCopywriter,
     shareWebDir,
     wallet,

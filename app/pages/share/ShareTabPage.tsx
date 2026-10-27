@@ -43,7 +43,7 @@ export default function ShareTabPage() {
     setQrRef,
     handleActionPress,
     handleExportWalletPass,
-    handleOpenHomeScreenPage,
+    handlePrepareHomeScreenWidget,
     handleSaveQrToPhotos,
   } = useSharePageController();
 
@@ -185,7 +185,7 @@ export default function ShareTabPage() {
         shareUrl={shareUrl}
         onClose={() => setGuideModal(null)}
         onExportWalletPass={handleExportWalletPass}
-        onOpenHomeScreenPage={handleOpenHomeScreenPage}
+        onPrepareHomeScreenWidget={handlePrepareHomeScreenWidget}
         onSaveQrImage={handleSaveQrToPhotos}
       />
     </>

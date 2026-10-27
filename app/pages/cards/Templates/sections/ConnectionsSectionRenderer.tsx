@@ -88,11 +88,20 @@ function getConnectionLabel(field: CardDetailField): string {
     id.includes(key),
   )?.[1];
   if (socialName) return socialName;
-  if (isEmail(field)) return "Email";
-  if (isPhone(field)) return "Phone";
-  if (id.includes("address") || id.includes("location")) return "Address";
-  if (id.includes("portfolio")) return "Portfolio";
-  if (id.includes("website") || field.type === "url") return "Website";
+  if (isEmail(field)) return field.title || "Email";
+  if (isPhone(field)) {
+    if (
+      field.title &&
+      field.title.toLowerCase() !== "phone" &&
+      field.title.toLowerCase() !== "mobile"
+    ) {
+      return field.title;
+    }
+    return "Number";
+  }
+  if (id.includes("address") || id.includes("location")) return field.title || "Address";
+  if (id.includes("portfolio")) return field.title || "Portfolio";
+  if (id.includes("website") || field.type === "url") return field.title || "Website";
   return field.title || "Link";
 }
 
@@ -141,6 +150,68 @@ function ConnectionIcon({
       name={getConnectionIconName(field)}
       size={size}
     />
+  );
+}
+
+function getChannelGradient(
+  field: CardDetailField,
+  defaultColor: string,
+): [string, string] {
+  const id = field.id.toLowerCase();
+  if (isPhone(field)) return ["#22c55e", "#16a34a"];
+  if (isEmail(field)) return ["#38bdf8", "#2563eb"];
+  if (id.includes("whatsapp")) return ["#25d366", "#128c7e"];
+  if (id.includes("linkedin")) return ["#0ea5e9", "#0284c7"];
+  if (id.includes("instagram")) return ["#f43f5e", "#be185d"];
+  if (id.includes("youtube")) return ["#ef4444", "#dc2626"];
+  if (id === "x" || id.includes("twitter")) return ["#334155", "#0f172a"];
+  if (id.includes("github")) return ["#1e293b", "#0f172a"];
+  if (id.includes("facebook")) return ["#3b82f6", "#1d4ed8"];
+  if (id.includes("tiktok")) return ["#1f2937", "#111827"];
+  if (id.includes("address") || id.includes("location")) return ["#f59e0b", "#d97706"];
+  if (id.includes("portfolio") || id.includes("website") || field.type === "url")
+    return ["#8b5cf6", "#6366f1"];
+  return [defaultColor, defaultColor];
+}
+
+function ChannelSquircleIcon({
+  defaultColor,
+  field,
+  iconSize = 20,
+  rounded = 14,
+  size = 46,
+}: {
+  defaultColor: string;
+  field: CardDetailField;
+  iconSize?: number;
+  rounded?: number;
+  size?: number;
+}) {
+  const gradientColors = getChannelGradient(field, defaultColor);
+  return (
+    <LinearGradient
+      colors={gradientColors}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: rounded,
+        alignItems: "center",
+        justifyContent: "center",
+        shadowColor: gradientColors[0],
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.28,
+        shadowRadius: 5,
+        elevation: 3,
+      }}
+    >
+      <FontAwesome6
+        color="#ffffff"
+        name={getConnectionIconName(field)}
+        size={iconSize}
+      />
+    </LinearGradient>
   );
 }
 
@@ -463,24 +534,31 @@ export function ConnectionsSectionRenderer({
     );
   }
 
-  // Gradient Cards (bold): action rows over theme gradient
-  if (section.templateId === "bold") {
+
+
+  // Direct Contact List (New) [Welcome Page Midnight Aesthetic with Channel Squircle Icons]
+  if (section.templateId === "compact-new") {
     const fieldGap =
       fixedSlotFieldGap ??
-      (fields.length <= 4 ? 24 : fields.length === 5 ? 22 : 16);
-    const mutedOnGradient = slots.isDark
-      ? "rgba(255,255,255,0.6)"
-      : "rgba(15,23,42,0.6)";
+      (fields.length <= 4 ? 18 : fields.length === 5 ? 14 : 12);
+    const squircleSize = compactHomepagePreview ? 34 : 42;
+    const squircleIconSize = compactHomepagePreview ? 15 : 18;
+    const squircleRadius = compactHomepagePreview ? 10 : 12;
+
     return (
-      <LinearGradient
-        colors={gradient}
-        className={`overflow-hidden p-4 ${boxed ? "mb-5 rounded-[28px]" : ""}`}
+      <View
+        className={`overflow-hidden ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
         style={[
           {
+            backgroundColor: "#070d1e",
+            borderColor: "rgba(56, 189, 248, 0.25)",
             height: compact && !contentDriven ? "100%" : undefined,
             minHeight: compact ? undefined : CONNECTIONS_MIN_HEIGHT,
+            paddingBottom: spacing.vertical,
+            paddingHorizontal: spacing.horizontal,
+            paddingTop: spacing.tightVertical,
           },
-          boxed ? BOXED_SHADOW_LG : null,
+          boxed ? BOXED_SHADOW_SM : null,
         ]}
       >
         <View
@@ -491,6 +569,14 @@ export function ConnectionsSectionRenderer({
             width: "100%",
           }}
         >
+          <View className="mb-2.5 self-start rounded-full border border-sky-400/25 bg-sky-500/10 px-3 py-1">
+            <Text
+              variant="none"
+              className="text-[11px] font-bold tracking-wider text-sky-400 uppercase"
+            >
+              DIRECT CONNECT
+            </Text>
+          </View>
           <View style={{ gap: fieldGap, width: "100%" }}>
             {fields.map((field) => {
               const presentation = getConnectionPresentation(field, showEmpty);
@@ -501,141 +587,57 @@ export function ConnectionsSectionRenderer({
                   accessibilityLabel={`${presentation.label}: ${presentation.value}`}
                   disabled={!interactiveActionUrl(field)}
                   onPress={() => handlePress(field)}
-                  className="flex-row items-center border px-3 active:opacity-70"
+                  className="min-w-0 flex-row items-center rounded-2xl border px-3.5 py-2.5 active:opacity-75"
                   style={{
-                    backgroundColor: slots.isDark
-                      ? "rgba(15, 23, 42, 0.45)"
-                      : "rgba(255, 255, 255, 0.25)",
-                    borderColor: slots.isDark
-                      ? "rgba(255, 255, 255, 0.18)"
-                      : "rgba(0, 0, 0, 0.12)",
-                    borderRadius: 10,
-                    paddingVertical: densePreview ? 6 : 8,
+                    backgroundColor: "#0a1128",
+                    borderColor: "rgba(56, 189, 248, 0.2)",
+                    gap: 12,
                   }}
                 >
-                  <View
-                    className="mr-3 items-center justify-center"
-                    style={{
-                      backgroundColor: slots.surface,
-                      borderRadius: 8,
-                      height: fillSlot ? fillIconBox : densePreview ? 28 : 36,
-                      width: fillSlot ? fillIconBox : densePreview ? 28 : 36,
-                    }}
-                  >
-                    <ConnectionIcon
-                      color={slots.accent}
-                      field={field}
-                      size={fillSlot ? fillIconSize : densePreview ? 14 : 18}
-                    />
+                  <ChannelSquircleIcon
+                    defaultColor="#38bdf8"
+                    field={field}
+                    iconSize={squircleIconSize}
+                    rounded={squircleRadius}
+                    size={squircleSize}
+                  />
+                  <View className="min-w-0 flex-1">
+                    <Text
+                      variant="none"
+                      numberOfLines={1}
+                      className="text-[10px] font-bold tracking-wider uppercase text-sky-400"
+                      style={{ fontFamily, letterSpacing }}
+                    >
+                      {presentation.label}
+                    </Text>
+                    <Text
+                      variant="none"
+                      numberOfLines={1}
+                      className="text-sm font-bold text-white"
+                      style={{ fontFamily, letterSpacing }}
+                    >
+                      {presentation.value || presentation.label}
+                    </Text>
                   </View>
-                  {renderCopy(
-                    presentation,
-                    slots.gradientText,
-                    mutedOnGradient,
-                  )}
                 </Pressable>
               );
             })}
           </View>
           <View style={{ marginTop: fieldGap }}>{renderDock()}</View>
         </View>
-      </LinearGradient>
-    );
-  }
-
-  // Frosted Dock (glass): icon-forward tiles with highlight accent
-  if (section.templateId === "glass") {
-    return (
-      <View
-        className={`overflow-hidden p-4 ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
-        style={[
-          {
-            backgroundColor: slots.background,
-            borderColor: boxed ? slots.highlight : undefined,
-            height: compact && !contentDriven ? "100%" : undefined,
-            minHeight: compact ? undefined : CONNECTIONS_MIN_HEIGHT,
-          },
-          boxed ? BOXED_SHADOW_MD : null,
-        ]}
-      >
-        <View
-          style={{
-            flex: contentDriven ? undefined : 1,
-            justifyContent: "flex-start",
-            paddingTop: 8,
-            width: "100%",
-          }}
-        >
-          <View style={{ width: "100%" }}>
-            {renderGrid(
-              fields,
-              useTwoColumns ? 2 : 1,
-              10,
-              (field, tileStyle) => {
-                const presentation = getConnectionPresentation(
-                  field,
-                  showEmpty,
-                );
-                return (
-                  <Pressable
-                    key={field.id}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${presentation.label}: ${presentation.value}`}
-                    disabled={!interactiveActionUrl(field)}
-                    onPress={() => handlePress(field)}
-                    className="overflow-hidden border active:opacity-70"
-                    style={[
-                      {
-                        backgroundColor: slots.surface,
-                        borderColor: slots.highlight,
-                        borderRadius: 18,
-                      },
-                      tileStyle,
-                    ]}
-                  >
-                    <LinearGradient
-                      colors={gradient}
-                      style={{ height: 5, width: "100%" }}
-                    />
-                    <View className="flex-1 items-center justify-center px-3 py-2.5">
-                      <View
-                        className="mb-1.5 items-center justify-center rounded-full"
-                        style={{
-                          backgroundColor: slots.background,
-                          height: fillSlot ? fillIconBox : 36,
-                          width: fillSlot ? fillIconBox : 36,
-                        }}
-                      >
-                        <ConnectionIcon
-                          color={slots.accent}
-                          field={field}
-                          size={fillSlot ? fillIconSize + 1 : 18}
-                        />
-                      </View>
-                      {renderCopy(
-                        presentation,
-                        slots.textPrimary,
-                        slots.textSecondary,
-                        "center",
-                      )}
-                    </View>
-                  </Pressable>
-                );
-              },
-            )}
-          </View>
-          <View style={{ marginTop: 14 }}>{renderDock()}</View>
-        </View>
       </View>
     );
   }
 
-  // Direct Contact List (compact): a borderless, scannable list inspired by
-  // modern contact cards. Circular channel icons anchor each actionable value.
+  // Direct Contact List (compact): Popl-style clean list with vivid squircle icons
   if (section.templateId === "compact") {
     const fieldGap =
       fixedSlotFieldGap ??
-      (fields.length <= 4 ? 24 : fields.length === 5 ? 22 : 16);
+      (fields.length <= 4 ? 20 : fields.length === 5 ? 18 : 14);
+    const squircleSize = compactHomepagePreview ? 34 : densePreview ? 40 : fillSlot ? 44 : 46;
+    const squircleIconSize = compactHomepagePreview ? 15 : densePreview ? 17 : 19;
+    const squircleRadius = compactHomepagePreview ? 10 : 13;
+
     return (
       <View
         className={`overflow-hidden ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
@@ -663,8 +665,6 @@ export function ConnectionsSectionRenderer({
           <View style={{ gap: fieldGap, width: "100%" }}>
             {fields.map((field) => {
               const presentation = getConnectionPresentation(field, showEmpty);
-              const iconSize = 18;
-              const iconContainerSize = 40;
               return (
                 <Pressable
                   key={field.id}
@@ -672,35 +672,126 @@ export function ConnectionsSectionRenderer({
                   accessibilityLabel={`${presentation.label}: ${presentation.value}`}
                   disabled={!interactiveActionUrl(field)}
                   onPress={() => handlePress(field)}
-                  className="min-w-0 flex-row items-center active:opacity-70"
-                  style={{ gap: 12 }}
+                  className="min-w-0 flex-row items-center active:opacity-75"
+                  style={{ gap: 14 }}
                 >
-                  <View
-                    className="items-center justify-center rounded-full"
-                    style={{
-                      backgroundColor: slots.accent,
-                      height: iconContainerSize,
-                      width: iconContainerSize,
-                    }}
-                  >
-                    <ConnectionIcon
-                      color={slots.background}
+                  <ChannelSquircleIcon
+                    defaultColor={slots.accent}
+                    field={field}
+                    iconSize={squircleIconSize}
+                    rounded={squircleRadius}
+                    size={squircleSize}
+                  />
+                  {renderCopy(
+                    presentation,
+                    slots.textPrimary,
+                    slots.textSecondary,
+                  )}
+                </Pressable>
+              );
+            })}
+          </View>
+          <View style={{ marginTop: fieldGap }}>{renderDock()}</View>
+        </View>
+      </View>
+    );
+  }
+
+  // Contact Ledger (New) [Welcome Page Specular Ledger]
+  if (section.templateId === "editorial-new") {
+    const fieldGap =
+      fixedSlotFieldGap ??
+      (fields.length <= 4 ? 16 : fields.length === 5 ? 14 : 10);
+    const squircleSize = compactHomepagePreview ? 30 : 36;
+    const squircleIconSize = compactHomepagePreview ? 13 : 16;
+    const squircleRadius = compactHomepagePreview ? 8 : 10;
+
+    return (
+      <View
+        className={`overflow-hidden ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
+        style={[
+          {
+            backgroundColor: "#070d1e",
+            borderColor: "rgba(56, 189, 248, 0.25)",
+            height: compact && !contentDriven ? "100%" : undefined,
+            minHeight: compact ? undefined : CONNECTIONS_MIN_HEIGHT,
+            paddingBottom: spacing.vertical,
+            paddingHorizontal: spacing.horizontal,
+            paddingTop: spacing.tightVertical,
+          },
+          boxed ? BOXED_SHADOW_SM : null,
+        ]}
+      >
+        <View
+          style={{
+            flex: contentDriven ? undefined : 1,
+            justifyContent: "flex-start",
+            paddingTop: 8,
+            width: "100%",
+          }}
+        >
+          <View className="mb-2.5 flex-row items-center justify-between pb-1.5 border-b border-sky-400/20">
+            <View className="rounded-full border border-sky-400/25 bg-sky-500/10 px-2.5 py-0.5">
+              <Text
+                variant="none"
+                className="text-[10px] font-bold tracking-wider text-sky-400 uppercase"
+              >
+                CONTACT LEDGER
+              </Text>
+            </View>
+            <View className="h-2 w-2 rounded-full bg-sky-400 shadow-md shadow-sky-400/50" />
+          </View>
+          <View style={{ gap: fieldGap, width: "100%" }}>
+            {fields.map((field) => {
+              const presentation = getConnectionPresentation(field, showEmpty);
+              return (
+                <Pressable
+                  key={field.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${presentation.label}: ${presentation.value}`}
+                  disabled={!interactiveActionUrl(field)}
+                  onPress={() => handlePress(field)}
+                  className="flex-row items-center rounded-xl border active:opacity-70 px-3 py-2.5"
+                  style={{
+                    backgroundColor: "#0a1128",
+                    borderColor: "rgba(56, 189, 248, 0.15)",
+                    borderLeftWidth: 3,
+                    borderLeftColor: "#38bdf8",
+                  }}
+                >
+                  <View className="mr-3">
+                    <ChannelSquircleIcon
+                      defaultColor="#38bdf8"
                       field={field}
-                      size={iconSize}
+                      iconSize={squircleIconSize}
+                      rounded={squircleRadius}
+                      size={squircleSize}
                     />
                   </View>
-                  <Text
-                    variant="none"
-                    numberOfLines={2}
-                    className="min-w-0 flex-1 font-bold text-sm"
-                    style={{
-                      color: slots.textPrimary,
-                      fontFamily,
-                      letterSpacing,
-                    }}
-                  >
-                    {presentation.value || presentation.label}
-                  </Text>
+                  <View className="min-w-0 flex-1">
+                    <Text
+                      variant="none"
+                      numberOfLines={1}
+                      className="text-[10px] font-bold tracking-wider uppercase text-slate-400"
+                      style={{ fontFamily, letterSpacing }}
+                    >
+                      {presentation.label}
+                    </Text>
+                    <Text
+                      variant="none"
+                      numberOfLines={1}
+                      className="text-sm font-bold text-white"
+                      style={{ fontFamily, letterSpacing }}
+                    >
+                      {presentation.value || presentation.label}
+                    </Text>
+                  </View>
+                  <FontAwesome6
+                    name="chevron-right"
+                    size={11}
+                    color="#38bdf8"
+                    style={{ marginLeft: 8 }}
+                  />
                 </Pressable>
               );
             })}
@@ -715,7 +806,11 @@ export function ConnectionsSectionRenderer({
   if (section.templateId === "editorial") {
     const fieldGap =
       fixedSlotFieldGap ??
-      (fields.length <= 4 ? 24 : fields.length === 5 ? 22 : 16);
+      (fields.length <= 4 ? 20 : fields.length === 5 ? 18 : 14);
+    const squircleSize = compactHomepagePreview ? 30 : 36;
+    const squircleIconSize = compactHomepagePreview ? 13 : 16;
+    const squircleRadius = compactHomepagePreview ? 8 : 10;
+
     return (
       <View
         className={`overflow-hidden ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
@@ -758,18 +853,13 @@ export function ConnectionsSectionRenderer({
                       idx === fields.length - 1 ? 0 : Math.round(fieldGap / 2),
                   }}
                 >
-                  <View
-                    className="mr-3 items-center justify-center rounded-lg"
-                    style={{
-                      backgroundColor: `${slots.accent}14`,
-                      height: 28,
-                      width: 28,
-                    }}
-                  >
-                    <ConnectionIcon
-                      color={slots.accent}
+                  <View className="mr-3">
+                    <ChannelSquircleIcon
+                      defaultColor={slots.accent}
                       field={field}
-                      size={12}
+                      iconSize={squircleIconSize}
+                      rounded={squircleRadius}
+                      size={squircleSize}
                     />
                   </View>
                   {renderCopy(
@@ -929,12 +1019,116 @@ export function ConnectionsSectionRenderer({
     );
   }
 
-  // Executive Directory (banner): uniform full-width directory actions.
+  // Executive Directory (New) [Welcome Page Directory Action Buttons with ChannelSquircleIcon]
+  if (section.templateId === "banner-new") {
+    const fieldGap =
+      fixedSlotFieldGap ??
+      (fields.length <= 4 ? 14 : fields.length === 5 ? 12 : 10);
+    const squircleSize = compactHomepagePreview ? 32 : 38;
+    const squircleIconSize = compactHomepagePreview ? 14 : 17;
+    const squircleRadius = compactHomepagePreview ? 9 : 11;
+
+    return (
+      <View
+        className={`overflow-hidden ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
+        style={[
+          {
+            backgroundColor: "#070d1e",
+            borderColor: "rgba(56, 189, 248, 0.25)",
+            height: compact && !contentDriven ? "100%" : undefined,
+            minHeight: compact ? undefined : CONNECTIONS_MIN_HEIGHT,
+            paddingBottom: spacing.vertical,
+            paddingHorizontal: spacing.horizontal,
+            paddingTop: spacing.tightVertical,
+          },
+          boxed ? BOXED_SHADOW_SM : null,
+        ]}
+      >
+        <View
+          style={{
+            flex: contentDriven ? undefined : 1,
+            justifyContent: "flex-start",
+            paddingTop: 8,
+            width: "100%",
+          }}
+        >
+          <View className="mb-2 self-start rounded-full border border-sky-400/25 bg-sky-500/10 px-3 py-1">
+            <Text
+              variant="none"
+              className="text-[11px] font-bold tracking-wider text-sky-400 uppercase"
+            >
+              EXECUTIVE DIRECTORY
+            </Text>
+          </View>
+          <View style={{ gap: fieldGap, width: "100%" }}>
+            {fields.map((field) => {
+              const presentation = getConnectionPresentation(field, showEmpty);
+              return (
+                <Pressable
+                  key={field.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${presentation.label}: ${presentation.value}`}
+                  disabled={!interactiveActionUrl(field)}
+                  onPress={() => handlePress(field)}
+                  className="flex-row items-center rounded-2xl border px-4 py-3 active:opacity-75"
+                  style={{
+                    backgroundColor: "#0a1128",
+                    borderColor: "rgba(56, 189, 248, 0.25)",
+                  }}
+                >
+                  <View className="mr-3">
+                    <ChannelSquircleIcon
+                      defaultColor="#38bdf8"
+                      field={field}
+                      iconSize={squircleIconSize}
+                      rounded={squircleRadius}
+                      size={squircleSize}
+                    />
+                  </View>
+                  <View className="min-w-0 flex-1">
+                    <Text
+                      variant="none"
+                      numberOfLines={1}
+                      className="text-[10px] font-bold tracking-wider uppercase text-sky-400"
+                      style={{ fontFamily, letterSpacing }}
+                    >
+                      {presentation.label}
+                    </Text>
+                    <Text
+                      variant="none"
+                      numberOfLines={1}
+                      className="font-bold text-sm text-white"
+                      style={{ fontFamily }}
+                    >
+                      {presentation.value || presentation.label}
+                    </Text>
+                  </View>
+                  <FontAwesome6
+                    name="arrow-right"
+                    size={12}
+                    color="#38bdf8"
+                    style={{ marginLeft: 8 }}
+                  />
+                </Pressable>
+              );
+            })}
+          </View>
+          <View style={{ marginTop: fieldGap }}>{renderDock()}</View>
+        </View>
+      </View>
+    );
+  }
+
+  // Executive Directory (banner): uniform full-width directory actions with ChannelSquircleIcon
   if (section.templateId === "banner") {
     const fieldGap =
       fixedSlotFieldGap ??
       (fields.length <= 4 ? 16 : fields.length === 5 ? 13 : 10);
     const boxMinHeight = fillSlot ? (fields.length <= 4 ? 64 : 56) : 52;
+    const squircleSize = compactHomepagePreview ? 32 : 38;
+    const squircleIconSize = compactHomepagePreview ? 14 : 17;
+    const squircleRadius = compactHomepagePreview ? 9 : 11;
+
     return (
       <View
         className={`overflow-hidden ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
@@ -978,104 +1172,48 @@ export function ConnectionsSectionRenderer({
                     paddingVertical: densePreview ? 10 : 14,
                   }}
                 >
-                  <ConnectionIcon
+                  <View className="mr-3">
+                    <ChannelSquircleIcon
+                      defaultColor={slots.accent}
+                      field={field}
+                      iconSize={squircleIconSize}
+                      rounded={squircleRadius}
+                      size={squircleSize}
+                    />
+                  </View>
+                  <View className="min-w-0 flex-1">
+                    <Text
+                      variant="none"
+                      numberOfLines={1}
+                      className="text-[10px] font-bold tracking-wider uppercase"
+                      style={{
+                        color: slots.textSecondary,
+                        fontFamily,
+                        letterSpacing,
+                      }}
+                    >
+                      {presentation.label}
+                    </Text>
+                    <Text
+                      variant="none"
+                      numberOfLines={1}
+                      className={`font-semibold ${fillSlot ? "text-base" : densePreview ? "text-xs" : "text-sm"}`}
+                      style={{ color: slots.textPrimary, fontFamily }}
+                    >
+                      {presentation.value || presentation.label}
+                    </Text>
+                  </View>
+                  <FontAwesome6
+                    name="arrow-right"
+                    size={12}
                     color={slots.accent}
-                    field={field}
-                    size={fillSlot ? 17 : densePreview ? 13 : 15}
+                    style={{ marginLeft: 8 }}
                   />
-                  <Text
-                    variant="none"
-                    numberOfLines={1}
-                    className={`ml-3 flex-1 min-w-0 font-semibold ${fillSlot ? "text-base" : densePreview ? "text-xs" : "text-sm"}`}
-                    style={{ color: slots.textPrimary, fontFamily }}
-                  >
-                    {presentation.value || presentation.label}
-                  </Text>
                 </Pressable>
               );
             })}
           </View>
           <View style={{ marginTop: fieldGap }}>{renderDock()}</View>
-        </View>
-      </View>
-    );
-  }
-
-  // Floating Tiles (cards): inset bento tiles
-  if (section.templateId === "cards") {
-    return (
-      <View
-        className={`overflow-hidden p-3.5 ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
-        style={[
-          {
-            backgroundColor: slots.background,
-            borderColor: boxed ? slots.highlight : undefined,
-            height: compact && !contentDriven ? "100%" : undefined,
-            minHeight: compact ? undefined : CONNECTIONS_MIN_HEIGHT,
-          },
-          boxed ? BOXED_SHADOW_SM : null,
-        ]}
-      >
-        <View
-          style={{
-            flex: contentDriven ? undefined : 1,
-            justifyContent: "flex-start",
-            paddingTop: 8,
-            width: "100%",
-          }}
-        >
-          <View style={{ width: "100%" }}>
-            {renderGrid(
-              fields,
-              useTwoColumns ? 2 : 1,
-              8,
-              (field, tileStyle) => {
-                const presentation = getConnectionPresentation(
-                  field,
-                  showEmpty,
-                );
-                return (
-                  <Pressable
-                    key={field.id}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${presentation.label}: ${presentation.value}`}
-                    disabled={!interactiveActionUrl(field)}
-                    onPress={() => handlePress(field)}
-                    className="justify-center rounded-2xl border p-3 active:opacity-70"
-                    style={[
-                      {
-                        backgroundColor: slots.surface,
-                        borderColor: slots.highlight,
-                      },
-                      BOXED_SHADOW_SM,
-                      tileStyle,
-                    ]}
-                  >
-                    <View
-                      className="mb-1.5 items-center justify-center rounded-xl"
-                      style={{
-                        backgroundColor: `${slots.accent}18`,
-                        height: fillSlot ? fillIconBox - 4 : 34,
-                        width: fillSlot ? fillIconBox - 4 : 34,
-                      }}
-                    >
-                      <ConnectionIcon
-                        color={slots.accent}
-                        field={field}
-                        size={fillSlot ? fillIconSize : 16}
-                      />
-                    </View>
-                    {renderCopy(
-                      presentation,
-                      slots.textPrimary,
-                      slots.textSecondary,
-                    )}
-                  </Pressable>
-                );
-              },
-            )}
-          </View>
-          <View style={{ marginTop: 14 }}>{renderDock()}</View>
         </View>
       </View>
     );
@@ -1104,20 +1242,13 @@ export function ConnectionsSectionRenderer({
             tileStyle,
           ]}
         >
-          <View
-            className="items-center justify-center rounded-xl"
-            style={{
-              backgroundColor: `${slots.accent}14`,
-              width: fillSlot ? fillIconBox - 4 : compact ? 30 : 36,
-              height: fillSlot ? fillIconBox - 4 : compact ? 30 : 36,
-            }}
-          >
-            <ConnectionIcon
-              color={slots.accent}
-              field={field}
-              size={fillSlot ? fillIconSize - 1 : compact ? 14 : 17}
-            />
-          </View>
+          <ChannelSquircleIcon
+            defaultColor={slots.accent}
+            field={field}
+            iconSize={fillSlot ? fillIconSize - 1 : compact ? 15 : 18}
+            rounded={fillSlot ? 10 : 12}
+            size={fillSlot ? fillIconBox - 2 : compact ? 34 : 40}
+          />
           <Text
             variant="none"
             numberOfLines={1}
@@ -1172,127 +1303,23 @@ export function ConnectionsSectionRenderer({
     );
   }
 
-  // Channel Matrix (split): two independent vertical rails separated by a
-  // structural divider, unlike the tile grids used by the other layouts.
-  if (section.templateId === "split") {
-    const midpoint = Math.ceil(fields.length / 2);
-    const columns = [fields.slice(0, midpoint), fields.slice(midpoint)];
-    return (
-      <View
-        className={`overflow-hidden ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
-        style={[
-          {
-            backgroundColor: slots.surface,
-            borderColor: boxed ? slots.highlight : undefined,
-            height: compact && !contentDriven ? "100%" : undefined,
-            minHeight: compact ? undefined : CONNECTIONS_MIN_HEIGHT,
-            paddingBottom: spacing.vertical,
-            paddingHorizontal: spacing.horizontal,
-            paddingTop: spacing.tightVertical,
-          },
-          boxed ? BOXED_SHADOW_SM : null,
-        ]}
-      >
-        <View
-          style={{
-            flex: contentDriven ? undefined : 1,
-            justifyContent: "flex-start",
-            paddingTop: 8,
-            width: "100%",
-          }}
-        >
-          <View style={{ width: "100%" }}>
-            <View className="flex-row">
-              {columns.map((column, columnIndex) => (
-                <View
-                  key={columnIndex}
-                  className={`flex-1 ${columnIndex === 0 ? "pr-3" : "pl-3"}`}
-                  style={{
-                    borderRightWidth: columnIndex === 0 ? 1 : 0,
-                    borderRightColor: slots.borderColor,
-                  }}
-                >
-                  {column.map((field, rowIndex) => {
-                    const presentation = getConnectionPresentation(
-                      field,
-                      showEmpty,
-                    );
-                    return (
-                      <Pressable
-                        key={field.id}
-                        accessibilityRole="button"
-                        accessibilityLabel={`${presentation.label}: ${presentation.value}`}
-                        disabled={!interactiveActionUrl(field)}
-                        onPress={() => handlePress(field)}
-                        className="flex-row items-center active:opacity-70"
-                        style={{
-                          borderBottomWidth:
-                            rowIndex === column.length - 1 ? 0 : 1,
-                          borderBottomColor: slots.borderColor,
-                          paddingVertical: densePreview ? 4 : 6,
-                        }}
-                      >
-                        <View
-                          className="mr-2.5 items-center justify-center rounded-full"
-                          style={{
-                            backgroundColor: `${slots.accent}14`,
-                            height: fillSlot
-                              ? fillIconBox - 6
-                              : densePreview
-                                ? 24
-                                : 30,
-                            width: fillSlot
-                              ? fillIconBox - 6
-                              : densePreview
-                                ? 24
-                                : 30,
-                          }}
-                        >
-                          <ConnectionIcon
-                            color={slots.accent}
-                            field={field}
-                            size={
-                              fillSlot
-                                ? fillIconSize - 2
-                                : densePreview
-                                  ? 10
-                                  : 14
-                            }
-                          />
-                        </View>
-                        <View className="min-w-0 flex-1">
-                          {renderCopy(
-                            presentation,
-                            slots.textPrimary,
-                            slots.textSecondary,
-                          )}
-                        </View>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              ))}
-            </View>
-          </View>
-          <View style={{ marginTop: 14 }}>{renderDock()}</View>
-        </View>
-      </View>
-    );
-  }
-
-  // Cyber Grid (neon): high-contrast tech readout rows
-  if (section.templateId === "neon") {
+  // Action Tiles (New) [Welcome Page Glowing Action Tiles with ChannelSquircleIcon]
+  if (section.templateId === "classic-new") {
     const fieldGap =
       fixedSlotFieldGap ??
-      (fields.length <= 4 ? 24 : fields.length === 5 ? 22 : 16);
+      (fields.length <= 4 ? 18 : fields.length === 5 ? 14 : 12);
+    const squircleSize = compactHomepagePreview ? 34 : 42;
+    const squircleIconSize = compactHomepagePreview ? 15 : 18;
+    const squircleRadius = compactHomepagePreview ? 10 : 12;
+
     return (
       <View
-        className={`gap-2.5 overflow-hidden p-4 ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
+        className={`overflow-hidden px-4 py-2 ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
         style={[
           {
-            backgroundColor: "#0F172A",
-            borderColor: slots.accent,
-            borderWidth: 1.5,
+            backgroundColor: "#070d1e",
+            borderColor: "rgba(56, 189, 248, 0.25)",
+            borderWidth: 1,
             height: compact && !contentDriven ? "100%" : undefined,
             minHeight: compact ? undefined : CONNECTIONS_MIN_HEIGHT,
           },
@@ -1303,16 +1330,19 @@ export function ConnectionsSectionRenderer({
           style={{
             flex: contentDriven ? undefined : 1,
             justifyContent: "flex-start",
-            paddingTop: 8,
+            paddingTop: compactHomepagePreview ? 12 : 8,
             width: "100%",
           }}
         >
-          <View
-            style={{
-              gap: fieldGap,
-              width: "100%",
-            }}
-          >
+          <View className="mb-2 self-start rounded-full border border-sky-400/25 bg-sky-500/10 px-3 py-1">
+            <Text
+              variant="none"
+              className="text-[11px] font-bold tracking-wider text-sky-400 uppercase"
+            >
+              CHANNELS & LINKS
+            </Text>
+          </View>
+          <View style={{ gap: fieldGap, width: "100%" }}>
             {fields.map((field) => {
               const presentation = getConnectionPresentation(field, showEmpty);
               return (
@@ -1322,33 +1352,44 @@ export function ConnectionsSectionRenderer({
                   accessibilityLabel={`${presentation.label}: ${presentation.value}`}
                   disabled={!interactiveActionUrl(field)}
                   onPress={() => handlePress(field)}
-                  className={`flex-row items-center rounded-xl border px-3.5 active:opacity-70 ${densePreview ? "py-1.5" : "py-2"}`}
+                  className="flex-row items-center rounded-2xl border px-3.5 py-2.5 active:opacity-75"
                   style={{
-                    backgroundColor: "#1E293B",
-                    borderColor: slots.accent,
-                    borderWidth: 1,
+                    backgroundColor: "#0a1128",
+                    borderColor: "rgba(56, 189, 248, 0.25)",
                   }}
                 >
-                  <View
-                    className="mr-3 items-center justify-center rounded-lg"
-                    style={{
-                      backgroundColor: `${slots.accent}22`,
-                      borderWidth: 1,
-                      borderColor: slots.accent,
-                      height: fillSlot ? fillIconBox - 6 : 30,
-                      width: fillSlot ? fillIconBox - 6 : 30,
-                    }}
-                  >
-                    <ConnectionIcon
-                      color={slots.accent}
+                  <View className="mr-3">
+                    <ChannelSquircleIcon
+                      defaultColor="#38bdf8"
                       field={field}
-                      size={fillSlot ? fillIconSize - 1 : 14}
+                      iconSize={squircleIconSize}
+                      rounded={squircleRadius}
+                      size={squircleSize}
                     />
                   </View>
-                  {renderCopy(presentation, "#FFFFFF", slots.accent)}
-                  <View
-                    className="size-2 rounded-full"
-                    style={{ backgroundColor: slots.accent }}
+                  <View className="min-w-0 flex-1">
+                    <Text
+                      variant="none"
+                      numberOfLines={1}
+                      className="text-[10px] font-bold tracking-wider uppercase text-sky-400"
+                      style={{ fontFamily, letterSpacing }}
+                    >
+                      {presentation.label}
+                    </Text>
+                    <Text
+                      variant="none"
+                      numberOfLines={1}
+                      className="text-sm font-bold text-white"
+                      style={{ fontFamily, letterSpacing }}
+                    >
+                      {presentation.value || presentation.label}
+                    </Text>
+                  </View>
+                  <FontAwesome6
+                    name="chevron-right"
+                    size={11}
+                    color="#38bdf8"
+                    style={{ marginLeft: 6 }}
                   />
                 </Pressable>
               );
@@ -1360,10 +1401,14 @@ export function ConnectionsSectionRenderer({
     );
   }
 
-  // Action Tiles (classic): clean corporate directory rows
+  // Action Tiles (classic): clean corporate directory rows with vivid ChannelSquircleIcon
   const fieldGap =
     fixedSlotFieldGap ??
-    (fields.length <= 4 ? 24 : fields.length === 5 ? 22 : 16);
+    (fields.length <= 4 ? 20 : fields.length === 5 ? 18 : 14);
+  const classicSquircleSize = compactHomepagePreview ? 34 : densePreview ? 38 : fillSlot ? 42 : 44;
+  const classicIconSize = compactHomepagePreview ? 15 : densePreview ? 16 : 18;
+  const classicRadius = compactHomepagePreview ? 10 : 12;
+
   return (
     <View
       className={`overflow-hidden px-4 py-2 ${boxed ? "mb-5 rounded-[28px] border" : ""}`}
@@ -1401,7 +1446,7 @@ export function ConnectionsSectionRenderer({
                 accessibilityLabel={`${presentation.label}: ${presentation.value}`}
                 disabled={!interactiveActionUrl(field)}
                 onPress={() => handlePress(field)}
-                className="flex-row items-center active:opacity-70"
+                className="flex-row items-center active:opacity-75"
                 style={{
                   borderBottomColor: slots.borderColor,
                   borderBottomWidth:
@@ -1410,18 +1455,13 @@ export function ConnectionsSectionRenderer({
                     index === fields.length - 1 ? 0 : Math.round(fieldGap / 2),
                 }}
               >
-                <View
-                  className={`${compactHomepagePreview ? "mr-3" : "mr-4"} items-center justify-center rounded-full`}
-                  style={{
-                    backgroundColor: slots.accent,
-                    height: fillSlot ? fillIconBox : compact ? 36 : 46,
-                    width: fillSlot ? fillIconBox : compact ? 36 : 46,
-                  }}
-                >
-                  <ConnectionIcon
-                    color={slots.accentText}
+                <View className={`${compactHomepagePreview ? "mr-3" : "mr-4"}`}>
+                  <ChannelSquircleIcon
+                    defaultColor={slots.accent}
                     field={field}
-                    size={fillSlot ? fillIconSize - 2 : compact ? 14 : 18}
+                    iconSize={classicIconSize}
+                    rounded={classicRadius}
+                    size={classicSquircleSize}
                   />
                 </View>
                 {renderCopy(

@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '@/constants/Colors';
 import { buildCustomSectionTheme } from '@/utils/cardThemeColor';
 import { parseStoredJson } from '@/utils/safeJson';
-import { CARD_THEME_PRESETS, createDefaultCardSectionThemes, DEFAULT_CARD_SECTION_LAYOUTS, DEFAULT_CARD_THEME, resolveIdentityLayoutId, resolveProfessionalLayoutId, type BusinessCard, type CardVisualTheme } from '../types/card.types';
+import { CARD_THEME_PRESETS, createDefaultCardSectionThemes, DEFAULT_CARD_SECTION_LAYOUTS, DEFAULT_CARD_THEME, resolveConnectionsLayoutId, resolveIdentityLayoutId, resolveProfessionalLayoutId, type BusinessCard, type CardVisualTheme } from '../types/card.types';
 import { apiRequest } from '@/services/api/client';
 import { AUTH_TEST_MODE } from '@/pages/auth/Config/authMode';
 import { commitPendingMedia, isPendingMediaUrl, mediaIdFromContentUrl } from '@/pages/profile/Services/pendingMedia';
@@ -59,11 +59,11 @@ export function normalizeCard(card: BusinessCard | (Omit<BusinessCard, 'sectionL
     isPrimary: card.isPrimary ?? false,
     sectionLayouts: {
       ...DEFAULT_CARD_SECTION_LAYOUTS,
-      ...(card.sectionLayouts ?? {}),
       // Older cards saved the identity style name ('minimal'); convert it to its layout id.
       identity: resolveIdentityLayoutId(card.sectionLayouts?.identity),
       // Older cards saved the professional style name ('bold'); convert it to its layout id.
       professional: resolveProfessionalLayoutId(card.sectionLayouts?.professional),
+      connections: resolveConnectionsLayoutId(card.sectionLayouts?.connections),
     },
     sectionOverrides: { ...(card.sectionOverrides ?? {}) },
     connectionFields: Array.isArray(card.connectionFields) ? card.connectionFields : [],
@@ -89,7 +89,7 @@ export const CARDS: BusinessCard[] = AUTH_TEST_MODE ? [
   {
     id: '1',
     isPrimary: true,
-    category: 'Professional',
+    category: 'Business',
     name: 'Dr. Sampath Kumar Achalla PhD',
     title: 'FDE',
     company: 'MindPros Technologies',
@@ -100,7 +100,6 @@ export const CARDS: BusinessCard[] = AUTH_TEST_MODE ? [
     sectionLayouts: {
       identity: 'layout-1',
       professional: 'layout-1',
-      bio: 'classic',
       connections: 'classic',
     },
     sectionOverrides: {
@@ -130,8 +129,7 @@ export const CARDS: BusinessCard[] = AUTH_TEST_MODE ? [
     sectionLayouts: {
       identity: 'layout-2',
       professional: 'layout-3',
-      bio: 'minimal',
-      connections: 'minimal',
+      connections: 'banner',
     },
     sectionOverrides: {
       preferredName: 'Sampath K.',
@@ -149,7 +147,7 @@ export const CARDS: BusinessCard[] = AUTH_TEST_MODE ? [
   },
   {
     id: '3',
-    category: 'Business',
+    category: 'Portfolio',
     name: 'Sampath Achalla',
     title: 'Full Stack Engineer',
     company: 'MindPros AI',
@@ -160,8 +158,7 @@ export const CARDS: BusinessCard[] = AUTH_TEST_MODE ? [
     sectionLayouts: {
       identity: 'layout-5',
       professional: 'layout-4',
-      bio: 'bold',
-      connections: 'bold',
+      connections: 'editorial',
     },
     sectionOverrides: {
       preferredName: 'Sampath Achalla',
@@ -190,8 +187,7 @@ export const CARDS: BusinessCard[] = AUTH_TEST_MODE ? [
     sectionLayouts: {
       identity: 'layout-6',
       professional: 'layout-5',
-      bio: 'glass',
-      connections: 'glass',
+      connections: 'compact',
     },
     sectionOverrides: {
       preferredName: 'Sampath Achalla',

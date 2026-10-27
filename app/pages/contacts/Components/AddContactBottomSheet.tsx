@@ -4,7 +4,7 @@ import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import * as Haptics from 'expo-haptics';
-import { ImagePlus, PencilLine, ScanLine } from 'lucide-react-native';
+import { IdCard, ImagePlus, PencilLine, ScanLine } from 'lucide-react-native';
 import { closeBottomSheet } from '@/common/ui/closeBottomSheet';
 import { SheetActionRow } from '@/common/ui/SheetActionRow';
 import { SheetHeader } from '@/common/ui/SheetHeader';
@@ -12,13 +12,14 @@ import { ThemedBottomSheet } from '@/common/ui/ThemedBottomSheet';
 
 type AddContactBottomSheetProps = {
   onScan: () => void;
+  onScanBadge: () => void;
   onUpload: () => void;
   onManual: () => void;
 };
 
 /** The "+" menu on the contacts page: scan a card, upload a card photo, or type the details. */
 export const AddContactBottomSheet = forwardRef<BottomSheet, AddContactBottomSheetProps>(
-  ({ onScan, onUpload, onManual }, ref) => {
+  ({ onScan, onScanBadge, onUpload, onManual }, ref) => {
     const insets = useSafeAreaInsets();
 
     const choose = (callback: () => void) => {
@@ -29,6 +30,7 @@ export const AddContactBottomSheet = forwardRef<BottomSheet, AddContactBottomShe
 
     const actions = [
       { id: 'scan', label: 'Scan business card', description: 'Use the camera; details are read automatically', icon: ScanLine, color: '#2563eb', onPress: onScan },
+      { id: 'badge', label: 'Scan event badge', description: 'Capture conference badges tagged to an event', icon: IdCard, color: '#0d9488', onPress: onScanBadge },
       { id: 'upload', label: 'Upload card photo', description: 'Pick a photo of the card from your library', icon: ImagePlus, color: '#0284c7', onPress: onUpload },
       { id: 'manual', label: 'Enter manually', description: 'Type the contact details yourself', icon: PencilLine, color: '#7c3aed', onPress: onManual },
     ];

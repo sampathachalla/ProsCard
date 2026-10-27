@@ -46,6 +46,7 @@ export default function EditViewPage() {
   const [creationDraft] = useState(() => buildDefaultCard(profile));
   const [activeSection] = useState<CardSectionId>('identity');
   const [activeEditTab] = useState<EditHomeTab>('content');
+  const [formStep, setFormStep] = useState<1 | 2>(1);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [cardTagRequiredError, setCardTagRequiredError] = useState(false);
   const [missingContactMethodCount, setMissingContactMethodCount] = useState<number | null>(null);
@@ -118,6 +119,10 @@ export default function EditViewPage() {
       setPreviewVisible(false);
       return;
     }
+    if (formStep === 2) {
+      setFormStep(1);
+      return;
+    }
     if (isCreateMode) {
       Alert.alert('Discard new card?', 'Your card has not been created yet. All changes in this setup will be discarded.', [
         { text: 'Keep editing', style: 'cancel' },
@@ -141,7 +146,7 @@ export default function EditViewPage() {
       return;
     }
     router.replace('/(tabs)/homepage');
-  }, [hasChanges, isCreateMode, previewVisible, router]);
+  }, [formStep, hasChanges, isCreateMode, previewVisible, router]);
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -182,7 +187,18 @@ export default function EditViewPage() {
     return false;
   };
 
+  const advanceToDesignStep = () => {
+    if (isCreateMode && !requireCardTag()) return;
+    if (!requireContactFields()) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    setFormStep(2);
+  };
+
   const saveAllChanges = async () => {
+    if (formStep === 1) {
+      advanceToDesignStep();
+      return;
+    }
     if (isCreateMode && !requireCardTag()) return;
     if (!requireContactFields()) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
@@ -207,7 +223,8 @@ export default function EditViewPage() {
       <EditCardFormHeader
         isCreateMode={isCreateMode}
         isSaving={isSaving}
-        saveDisabled={!isCreateMode && !hasChanges}
+        primaryLabel={formStep === 1 ? 'Next' : 'Save'}
+        saveDisabled={formStep === 2 && !isCreateMode && !hasChanges}
         onBack={handleHeaderBack}
         onSave={saveAllChanges}
       />
@@ -232,8 +249,10 @@ export default function EditViewPage() {
             cardTagRequired={isCreateMode}
             cardTagRequiredError={cardTagRequiredError}
             formLayout
+            formStep={formStep}
             fullOpen
             profile={profile}
+            onOpenPreview={formStep === 2 ? previewCard : undefined}
             showSectionNavigation={false}
             stylingOpen={false}
             onActiveSectionChange={() => {}}
@@ -252,7 +271,7 @@ export default function EditViewPage() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      <DraggablePreviewButton onPress={previewCard} />
+      {formStep === 2 ? <DraggablePreviewButton onPress={previewCard} /> : null}
 
       <ContactMethodsRequiredModal
         minimumCount={MINIMUM_CARD_CONNECTION_FIELDS}

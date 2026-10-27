@@ -25,6 +25,19 @@ export const cardReadingSchema = z.object({
   }),
 });
 
+export const badgeReadingSchema = z.object({
+  isEventBadge: z.boolean().catch(false),
+  cardBounds: cardBoundsSchema.nullable().catch(null),
+  rotation: z.union([z.literal(0), z.literal(90), z.literal(180), z.literal(270)]).catch(0),
+  printedEventName: text,
+  contact: z.object({
+    name: text,
+    title: text,
+    company: text,
+  }),
+});
+
 export type ReadCardRequest = z.infer<typeof readCardRequestSchema>;
 export type CardBounds = z.infer<typeof cardBoundsSchema>;
 export type CardReading = z.infer<typeof cardReadingSchema>;
+export type BadgeReading = z.infer<typeof badgeReadingSchema>;

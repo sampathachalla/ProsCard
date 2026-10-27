@@ -13,7 +13,6 @@ import type { CardSectionId } from '@/pages/cards/types/card.types';
 export const SECTION_TITLES: Record<CardSectionId, string> = {
   identity: 'Identity',
   professional: 'Professional identity',
-  bio: 'About',
   connections: 'Contact & links',
 };
 

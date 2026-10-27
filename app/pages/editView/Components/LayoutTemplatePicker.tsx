@@ -8,13 +8,14 @@ import {
   type NativeSyntheticEvent,
   type ScrollViewInstance,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import {
+  CONNECTION_LAYOUT_IDS,
   IDENTITY_LAYOUT_IDS,
   IDENTITY_LAYOUT_STYLES,
   IDENTITY_SECTION_TEMPLATE_IDS,
   PROFESSIONAL_LAYOUT_IDS,
   PROFESSIONAL_LAYOUT_STYLES,
+  resolveConnectionsLayoutId,
   resolveIdentityLayoutId,
   resolveProfessionalLayoutId,
   resolveLayoutStyle,
@@ -27,25 +28,7 @@ import {
 import { EditorOptionGrid } from "@/common/ui/editor/EditorOptionGrid";
 import { EditorSectionLabel } from "@/common/ui/editor/EditorSectionLabel";
 import { EditorSelectableCard } from "@/common/ui/editor/EditorSelectableCard";
-import {
-  getGradientContrastPalette,
-  resolveLayoutColorSlots,
-} from "@/utils/cardThemeColor";
-
-const TEMPLATES: { id: CardTemplateId; label: string }[] = [
-  { id: "classic", label: "Classic" },
-  { id: "minimal", label: "Minimal" },
-  { id: "bold", label: "Bold Gradient" },
-  { id: "glass", label: "Glass" },
-  { id: "compact", label: "Compact" },
-  { id: "editorial", label: "Editorial" },
-  { id: "spotlight", label: "Spotlight" },
-  { id: "banner", label: "Banner" },
-  { id: "cards", label: "Cards" },
-  { id: "badge", label: "Badge" },
-  { id: "split", label: "Split" },
-  { id: "neon", label: "Neon" },
-];
+import { resolveLayoutColorSlots } from "@/utils/cardThemeColor";
 
 const IDENTITY_TEMPLATE_LABELS: Record<
   (typeof IDENTITY_SECTION_TEMPLATE_IDS)[number],
@@ -53,20 +36,16 @@ const IDENTITY_TEMPLATE_LABELS: Record<
 > = {
   classic: "Classic",
   minimal: "Minimal",
-  split: "Split",
-  bold: "Bold Gradient",
   spotlight: "Spotlight",
   editorial: "Editorial",
+  "classic-new": "Cover Overlay (New)",
+  "minimal-new": "Side Profile (New)",
+  "spotlight-new": "Halo Spotlight (New)",
+  "editorial-new": "Monograph (New)",
 };
 
-// Section 1 options carry their layout ids (layout-1 … layout-6); the names users see stay the same.
-const HIDDEN_IDENTITY_LAYOUT_IDS = new Set<CardLayoutId>([
-  "layout-3",
-  "layout-4",
-]);
-
 const IDENTITY_TEMPLATES: { id: CardLayoutId; label: string }[] =
-  IDENTITY_LAYOUT_IDS.filter((id) => !HIDDEN_IDENTITY_LAYOUT_IDS.has(id)).map((id) => ({
+  IDENTITY_LAYOUT_IDS.map((id) => ({
     id,
     label: IDENTITY_TEMPLATE_LABELS[IDENTITY_LAYOUT_STYLES[id]],
   }));
@@ -76,90 +55,47 @@ const PROFESSIONAL_TEMPLATE_LABELS: Record<
   string
 > = {
   classic: "Executive Minimal",
-  bold: "Hero Credential",
   spotlight: "Enterprise Split",
   banner: "Company Focus",
   badge: "Credential Card",
-  split: "Role Split",
-  neon: "Cyber Wire",
+  "classic-new": "Executive Minimal (New)",
+  "spotlight-new": "Enterprise Split (New)",
+  "banner-new": "Company Focus (New)",
+  "badge-new": "Credential Card (New)",
 };
 
-const HIDDEN_PROFESSIONAL_LAYOUT_IDS = new Set<CardLayoutId>([
-  "layout-2",
-  "layout-6",
-  "layout-7",
-]);
-
 const PROFESSIONAL_TEMPLATES: { id: CardLayoutId; label: string }[] =
-  PROFESSIONAL_LAYOUT_IDS.filter(
-    (id) => !HIDDEN_PROFESSIONAL_LAYOUT_IDS.has(id),
-  ).map((id) => ({
+  PROFESSIONAL_LAYOUT_IDS.map((id) => ({
     id,
     label: PROFESSIONAL_TEMPLATE_LABELS[PROFESSIONAL_LAYOUT_STYLES[id]],
   }));
 
-const HIDDEN_CONNECTION_TEMPLATE_IDS = new Set<CardTemplateId>([
-  "minimal",
-  "bold",
-  "glass",
-  "spotlight",
-  "cards",
-  "badge",
-  "neon",
-]);
-
-const CONNECTION_TEMPLATE_ORDER: CardTemplateId[] = [
-  "classic",
-  "banner",
-  "editorial",
-  "compact",
-];
-
-const CONNECTION_TEMPLATE_LABELS: Partial<Record<CardTemplateId, string>> = {
+const CONNECTION_TEMPLATE_LABELS: Record<
+  (typeof CONNECTION_LAYOUT_IDS)[number],
+  string
+> = {
   classic: "Action Tiles",
   banner: "Executive Directory",
   editorial: "Contact Ledger",
   compact: "Direct Contact List",
-  split: "Channel Matrix",
+  "classic-new": "Action Tiles (New)",
+  "banner-new": "Executive Directory (New)",
+  "editorial-new": "Contact Ledger (New)",
+  "compact-new": "Direct Contact List (New)",
 };
 
-const CONNECTION_TEMPLATES = CONNECTION_TEMPLATE_ORDER.filter(
-  (id) => !HIDDEN_CONNECTION_TEMPLATE_IDS.has(id),
-).map((id) => ({
-  id,
-  label:
-    CONNECTION_TEMPLATE_LABELS[id] ??
-    TEMPLATES.find((template) => template.id === id)?.label ??
+const CONNECTION_TEMPLATES: { id: CardLayoutId; label: string }[] =
+  CONNECTION_LAYOUT_IDS.map((id) => ({
     id,
-}));
-
-const BIO_TEMPLATE_ORDER: CardTemplateId[] = [
-  "minimal",
-  "editorial",
-  "cards",
-  "split",
-];
-
-const BIO_TEMPLATE_LABELS: Partial<Record<CardTemplateId, string>> = {
-  minimal: "Executive Statement",
-  editorial: "Pull Quote",
-  cards: "Story Card",
-  split: "Dual Column Story",
-};
-
-const BIO_TEMPLATES = BIO_TEMPLATE_ORDER.map((id) => ({
-  id,
-  label: BIO_TEMPLATE_LABELS[id] ?? id,
-}));
+    label: CONNECTION_TEMPLATE_LABELS[id],
+  }));
 
 function templatesForSection(
   section: CardSectionId,
 ): { id: CardLayoutId; label: string }[] {
   if (section === "identity") return IDENTITY_TEMPLATES;
   if (section === "professional") return PROFESSIONAL_TEMPLATES;
-  if (section === "bio") return BIO_TEMPLATES;
-  if (section === "connections") return CONNECTION_TEMPLATES;
-  return TEMPLATES;
+  return CONNECTION_TEMPLATES;
 }
 
 const SECTION_TEMPLATE_NAMES: Record<
@@ -169,58 +105,50 @@ const SECTION_TEMPLATE_NAMES: Record<
   identity: {
     classic: "Cover Overlay",
     minimal: "Side Profile",
-    split: "Dual Column",
-    bold: "Hero Banner",
     spotlight: "Halo Spotlight",
     editorial: "Monograph",
-    glass: "Centered Glass",
     compact: "Inline Header",
     banner: "Ribbon Pass",
-    cards: "Floating Card",
     badge: "ID Pass",
-    neon: "Cyber Outline",
+    "classic-new": "Cover Overlay (New)",
+    "minimal-new": "Side Profile (New)",
+    "spotlight-new": "Halo Spotlight (New)",
+    "editorial-new": "Monograph (New)",
+    "compact-new": "Inline Header (New)",
+    "banner-new": "Ribbon Pass (New)",
+    "badge-new": "ID Pass (New)",
   },
   professional: {
     classic: "Executive Minimal",
     minimal: "Executive Line",
-    bold: "Hero Credential",
-    glass: "Frosted Portfolio",
     compact: "Compact Pill",
     editorial: "Headline Stat",
     spotlight: "Enterprise Split",
     banner: "Company Focus",
-    cards: "Modular Grid",
     badge: "Credential Card",
-    split: "Role Split",
-    neon: "Cyber Wire",
-  },
-  bio: {
-    classic: "Editorial Story",
-    minimal: "Executive Statement",
-    bold: "Callout Banner",
-    glass: "Frosted Parchment",
-    compact: "Quote Pill",
-    editorial: "Pull Quote",
-    spotlight: "Featured Memo",
-    banner: "Ribbon Quote",
-    cards: "Story Card",
-    badge: "Mission Badge",
-    split: "Dual Column Story",
-    neon: "Cyber Terminal",
+    "classic-new": "Executive Minimal (New)",
+    "minimal-new": "Executive Line (New)",
+    "compact-new": "Compact Pill (New)",
+    "editorial-new": "Headline Stat (New)",
+    "spotlight-new": "Enterprise Split (New)",
+    "banner-new": "Company Focus (New)",
+    "badge-new": "Credential Card (New)",
   },
   connections: {
     classic: "Action Tiles",
     minimal: "Quick Grid",
-    bold: "Gradient Cards",
-    glass: "Frosted Dock",
     compact: "Direct Contact List",
     editorial: "Contact Ledger",
     spotlight: "Hero Spotlight",
     banner: "Executive Directory",
-    cards: "Floating Tiles",
     badge: "Icon Dock",
-    split: "Channel Matrix",
-    neon: "Cyber Grid",
+    "classic-new": "Action Tiles (New)",
+    "minimal-new": "Quick Grid (New)",
+    "compact-new": "Direct Contact List (New)",
+    "editorial-new": "Contact Ledger (New)",
+    "spotlight-new": "Hero Spotlight (New)",
+    "banner-new": "Executive Directory (New)",
+    "badge-new": "Icon Dock (New)",
   },
 };
 
@@ -234,6 +162,69 @@ function LayoutThumbnail({
   theme: CardVisualTheme;
 }) {
   const slots = resolveLayoutColorSlots({ templateId: template, theme });
+
+  if (template.endsWith("-new")) {
+    const isIdentity = section === "identity";
+    const isProfessional = section === "professional";
+    const isConnections = section === "connections";
+
+    return (
+      <View
+        className="relative mb-2 h-12 overflow-hidden rounded-xl border"
+        style={{
+          backgroundColor: "#070d1e",
+          borderColor: "rgba(56, 189, 248, 0.45)",
+        }}
+      >
+        <View className="h-0.5 w-full bg-sky-400" />
+        {isIdentity && (
+          <View className="flex-1 items-center justify-center p-1">
+            <View className="flex-row items-center gap-2">
+              <View
+                className="h-5 w-5 items-center justify-center rounded-full border-2 border-sky-400"
+                style={{ backgroundColor: "#2563eb" }}
+              >
+                <View className="h-2 w-2 rounded-full bg-white" />
+              </View>
+              <View className="gap-1">
+                <View className="h-1.5 w-12 rounded bg-white" />
+                <View className="h-1 w-8 rounded bg-sky-400" />
+              </View>
+            </View>
+          </View>
+        )}
+        {isProfessional && (
+          <View className="flex-1 justify-center px-2 py-1">
+            <View className="mb-0.5 flex-row items-center justify-between">
+              <View className="h-1 w-6 rounded bg-sky-400" />
+              <View className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            </View>
+            <View className="h-1.5 w-14 rounded bg-white" />
+            <View className="mt-1 h-1 w-10 rounded bg-sky-300" />
+          </View>
+        )}
+        {isConnections && (
+          <View className="flex-1 justify-center gap-1 px-2.5">
+            {[0, 1].map((row) => (
+              <View key={row} className="flex-row items-center gap-1.5">
+                <View
+                  className="h-2.5 w-2.5 rounded-md border border-sky-400/50"
+                  style={{ backgroundColor: "#2563eb" }}
+                />
+                <View
+                  className="h-1.5 rounded"
+                  style={{
+                    backgroundColor: row === 0 ? "#ffffff" : "#94a3b8",
+                    width: row === 0 ? 56 : 42,
+                  }}
+                />
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+    );
+  }
 
   if (template === "compact" && section === "connections") {
     return (
@@ -344,35 +335,6 @@ function LayoutThumbnail({
     );
   }
 
-  if (template === "cards") {
-    return (
-      <View
-        className="relative mb-2 h-12 overflow-hidden rounded-xl p-1"
-        style={{ backgroundColor: slots.background }}
-      >
-        <View
-          className="h-full w-full rounded-lg border p-1 shadow-sm"
-          style={{ backgroundColor: slots.surface, borderColor: slots.accent }}
-        >
-          <View className="flex-row items-center justify-between">
-            <View
-              className="h-3.5 w-3.5 rounded-md"
-              style={{ backgroundColor: slots.accent }}
-            />
-            <View
-              className="h-1.5 w-8 rounded"
-              style={{ backgroundColor: slots.textPrimary }}
-            />
-          </View>
-          <View
-            className="mt-1 h-1 w-full rounded"
-            style={{ backgroundColor: slots.textMuted }}
-          />
-        </View>
-      </View>
-    );
-  }
-
   if (template === "badge") {
     return (
       <View
@@ -393,66 +355,6 @@ function LayoutThumbnail({
         <View
           className="mt-0.5 h-1 w-8 rounded"
           style={{ backgroundColor: slots.textPrimary }}
-        />
-      </View>
-    );
-  }
-
-  if (template === "split") {
-    return (
-      <View
-        className="relative mb-2 h-12 flex-row overflow-hidden rounded-xl border"
-        style={{ backgroundColor: slots.surface, borderColor: slots.textMuted }}
-      >
-        <View
-          className="w-[45%] items-center justify-center border-r p-1"
-          style={{
-            backgroundColor: slots.background,
-            borderRightColor: slots.textMuted,
-          }}
-        >
-          <View
-            className="h-4 w-4 rounded-full"
-            style={{ backgroundColor: slots.accent }}
-          />
-        </View>
-        <View className="flex-1 justify-center p-1.5">
-          <View
-            className="h-1.5 w-full rounded"
-            style={{ backgroundColor: slots.textPrimary }}
-          />
-          <View
-            className="mt-1 h-1 w-3/4 rounded"
-            style={{ backgroundColor: slots.textMuted }}
-          />
-        </View>
-      </View>
-    );
-  }
-
-  if (template === "neon") {
-    return (
-      <View
-        className="relative mb-2 h-12 overflow-hidden rounded-xl p-1.5"
-        style={{
-          backgroundColor: "#0F172A",
-          borderColor: slots.accent,
-          borderWidth: 1.5,
-        }}
-      >
-        <View className="flex-row items-center justify-between">
-          <View
-            className="h-2 w-2 rounded-full"
-            style={{ backgroundColor: slots.accent }}
-          />
-          <View
-            className="h-1.5 w-10 rounded"
-            style={{ backgroundColor: "#FFFFFF" }}
-          />
-        </View>
-        <View
-          className="mt-1.5 h-1 w-full rounded"
-          style={{ backgroundColor: `${slots.accent}80` }}
         />
       </View>
     );
@@ -485,30 +387,6 @@ function LayoutThumbnail({
             style={{ backgroundColor: slots.textPrimary }}
           />
         </View>
-      );
-    }
-    if (template === "bold") {
-      return (
-        <LinearGradient
-          colors={theme.gradient}
-          className="relative mb-2 h-12 overflow-hidden rounded-xl"
-        >
-          <View
-            className="absolute right-2 top-2 h-2 w-7 rounded"
-            style={{ backgroundColor: slots.surface }}
-          />
-          <View
-            className="absolute bottom-2 left-2 h-5 w-5 rounded-md border"
-            style={{
-              backgroundColor: slots.background,
-              borderColor: slots.accent,
-            }}
-          />
-          <View
-            className="absolute bottom-2 left-9 h-2 w-12 rounded"
-            style={{ backgroundColor: slots.surface }}
-          />
-        </LinearGradient>
       );
     }
     if (template === "classic") {
@@ -579,87 +457,6 @@ function LayoutThumbnail({
   }
 
   if (section === "professional") {
-    if (template === "minimal") {
-      return (
-        <View
-          className="relative mb-2 h-12 overflow-hidden rounded-xl border-l-4 p-1.5"
-          style={{
-            backgroundColor: slots.background,
-            borderLeftColor: slots.accent,
-          }}
-        >
-          <View
-            className="h-2 w-16 rounded"
-            style={{ backgroundColor: slots.textPrimary }}
-          />
-          <View
-            className="mt-1 h-1.5 w-10 rounded"
-            style={{ backgroundColor: slots.accent }}
-          />
-          <View
-            className="mt-1.5 h-1 w-20 rounded"
-            style={{ backgroundColor: slots.textMuted }}
-          />
-        </View>
-      );
-    }
-    if (template === "bold") {
-      return (
-        <View className="relative mb-2 h-12 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 justify-between">
-          <View className="flex-row justify-between items-center">
-            <View
-              className="h-1 w-9 rounded"
-              style={{ backgroundColor: "#0f172a" }}
-            />
-            <View
-              className="h-1.5 w-6 rounded-full"
-              style={{ backgroundColor: slots.accent }}
-            />
-          </View>
-          <View className="items-center">
-            <View
-              className="h-2 w-16 rounded"
-              style={{ backgroundColor: slots.accent }}
-            />
-            <View
-              className="mt-0.5 h-1 w-10 rounded"
-              style={{ backgroundColor: "#0f172a" }}
-            />
-          </View>
-          <View className="border-t border-slate-100 pt-0.5 items-center">
-            <View
-              className="h-1 w-14 rounded"
-              style={{ backgroundColor: "#64748b" }}
-            />
-          </View>
-        </View>
-      );
-    }
-    if (template === "glass") {
-      return (
-        <View
-          className="relative mb-2 h-12 overflow-hidden rounded-xl p-1.5"
-          style={{ backgroundColor: slots.background }}
-        >
-          <View
-            className="h-full w-full rounded-lg border p-1"
-            style={{
-              backgroundColor: slots.surface,
-              borderColor: slots.accent,
-            }}
-          >
-            <View
-              className="h-2 w-14 rounded"
-              style={{ backgroundColor: slots.textPrimary }}
-            />
-            <View
-              className="mt-1 h-1.5 w-8 rounded"
-              style={{ backgroundColor: slots.accent }}
-            />
-          </View>
-        </View>
-      );
-    }
     return (
       <View
         className="relative mb-2 h-12 overflow-hidden rounded-xl border p-2"
@@ -687,240 +484,7 @@ function LayoutThumbnail({
     );
   }
 
-  if (section === "bio") {
-    const gradientContrast = getGradientContrastPalette(theme.gradient);
-    if (template === "minimal") {
-      return (
-        <View
-          className="relative mb-2 h-12 justify-center overflow-hidden rounded-xl px-3"
-          style={{ backgroundColor: slots.background }}
-        >
-          <View
-            className="border-l-4 pl-2"
-            style={{ borderLeftColor: slots.accent }}
-          >
-            <View
-              className="h-1.5 w-full rounded"
-              style={{ backgroundColor: slots.textPrimary }}
-            />
-            <View
-              className="mt-1 h-1.5 w-4/5 rounded"
-              style={{ backgroundColor: slots.textMuted }}
-            />
-            <View
-              className="mt-1 h-1.5 w-3/5 rounded"
-              style={{ backgroundColor: slots.textMuted }}
-            />
-          </View>
-        </View>
-      );
-    }
-    if (template === "bold") {
-      return (
-        <LinearGradient
-          colors={theme.gradient}
-          className="relative mb-2 h-12 items-center justify-center overflow-hidden rounded-xl px-4"
-        >
-          <View
-            className="mb-1 h-1 w-7 rounded"
-            style={{ backgroundColor: gradientContrast.primary }}
-          />
-          <View
-            className="h-1.5 w-full rounded"
-            style={{ backgroundColor: gradientContrast.primary }}
-          />
-          <View
-            className="mt-1 h-1.5 w-3/4 rounded"
-            style={{ backgroundColor: gradientContrast.secondary }}
-          />
-          <View
-            className="mt-1 h-1 w-4 rounded"
-            style={{ backgroundColor: slots.accent }}
-          />
-        </LinearGradient>
-      );
-    }
-    if (template === "glass") {
-      return (
-        <LinearGradient
-          colors={theme.gradient}
-          className="relative mb-2 h-12 overflow-hidden rounded-xl p-1.5"
-        >
-          <View
-            className="absolute bottom-1 right-1 h-9 w-[88%] rounded-lg"
-            style={{ backgroundColor: slots.accent }}
-          />
-          <View
-            className="h-9 w-[94%] rounded-lg border p-1.5"
-            style={{
-              backgroundColor: slots.surface,
-              borderColor: slots.textMuted,
-            }}
-          >
-            <View className="mb-1 flex-row items-center justify-between">
-              <View
-                className="h-1 w-5 rounded"
-                style={{ backgroundColor: slots.accent }}
-              />
-              <View
-                className="h-2 w-2 rounded-full"
-                style={{ backgroundColor: slots.accent }}
-              />
-            </View>
-            <View
-              className="h-1.5 w-full rounded"
-              style={{ backgroundColor: slots.textPrimary }}
-            />
-            <View
-              className="mt-1 h-1.5 w-3/4 rounded"
-              style={{ backgroundColor: slots.textMuted }}
-            />
-          </View>
-        </LinearGradient>
-      );
-    }
-    return (
-      <View
-        className="relative mb-2 h-12 flex-row overflow-hidden rounded-xl border p-2"
-        style={{ backgroundColor: slots.surface, borderColor: slots.accent }}
-      >
-        <View className="mr-2 items-center">
-          <View
-            className="h-3 w-3 rounded-full"
-            style={{ backgroundColor: slots.accent }}
-          />
-          <View
-            className="mt-1 w-0.5 flex-1"
-            style={{ backgroundColor: slots.accent }}
-          />
-        </View>
-        <View className="flex-1 pt-0.5">
-          <View
-            className="h-1.5 w-full rounded"
-            style={{ backgroundColor: slots.textPrimary }}
-          />
-          <View
-            className="mt-1 h-1.5 w-4/5 rounded"
-            style={{ backgroundColor: slots.textMuted }}
-          />
-          <View
-            className="mt-1 h-1.5 w-3/5 rounded"
-            style={{ backgroundColor: slots.textMuted }}
-          />
-        </View>
-      </View>
-    );
-  }
-
   // connections
-  const connectionGradientContrast = getGradientContrastPalette(theme.gradient);
-  if (template === "minimal") {
-    return (
-      <View
-        className="relative mb-2 h-12 overflow-hidden rounded-xl p-1.5"
-        style={{ backgroundColor: slots.background }}
-      >
-        <View className="flex-row gap-1">
-          <View
-            className="h-4 flex-1 rounded border"
-            style={{
-              backgroundColor: slots.surface,
-              borderColor: slots.accent,
-            }}
-          />
-          <View
-            className="h-4 flex-1 rounded border"
-            style={{
-              backgroundColor: slots.surface,
-              borderColor: slots.accent,
-            }}
-          />
-        </View>
-        <View className="mt-1 flex-row gap-1">
-          <View
-            className="h-4 flex-1 rounded border"
-            style={{
-              backgroundColor: slots.surface,
-              borderColor: slots.accent,
-            }}
-          />
-          <View
-            className="h-4 flex-1 rounded border"
-            style={{
-              backgroundColor: slots.surface,
-              borderColor: slots.accent,
-            }}
-          />
-        </View>
-      </View>
-    );
-  }
-  if (template === "bold") {
-    return (
-      <LinearGradient
-        colors={theme.gradient}
-        className="relative mb-2 h-12 overflow-hidden rounded-xl p-1.5"
-      >
-        <View
-          className="flex-row items-center rounded border px-1 py-0.5"
-          style={{ borderColor: connectionGradientContrast.secondary }}
-        >
-          <View
-            className="mr-1 h-3 w-3 rounded-sm"
-            style={{ backgroundColor: slots.surface }}
-          />
-          <View
-            className="h-1.5 flex-1 rounded"
-            style={{ backgroundColor: connectionGradientContrast.primary }}
-          />
-        </View>
-        <View
-          className="mt-1 flex-row items-center rounded border px-1 py-0.5"
-          style={{ borderColor: connectionGradientContrast.secondary }}
-        >
-          <View
-            className="mr-1 h-3 w-3 rounded-sm"
-            style={{ backgroundColor: slots.surface }}
-          />
-          <View
-            className="h-1.5 flex-1 rounded"
-            style={{ backgroundColor: connectionGradientContrast.primary }}
-          />
-        </View>
-      </LinearGradient>
-    );
-  }
-  if (template === "glass") {
-    return (
-      <View
-        className="relative mb-2 h-12 overflow-hidden rounded-xl p-1.5"
-        style={{ backgroundColor: slots.background }}
-      >
-        <View className="flex-row gap-1">
-          {[0, 1].map((item) => (
-            <View
-              key={item}
-              className="h-9 flex-1 overflow-hidden rounded-md border"
-              style={{
-                backgroundColor: slots.surface,
-                borderColor: slots.textMuted,
-              }}
-            >
-              <LinearGradient colors={theme.gradient} style={{ height: 3 }} />
-              <View
-                className="mx-auto mt-1 h-2 w-2 rounded-full"
-                style={{ backgroundColor: slots.accent }}
-              />
-              <View
-                className="mx-auto mt-1 h-1 w-8 rounded"
-                style={{ backgroundColor: slots.textPrimary }}
-              />
-            </View>
-          ))}
-        </View>
-      </View>
-    );
-  }
   return (
     <View
       className="relative mb-2 h-12 overflow-hidden rounded-xl px-2 py-1"
@@ -986,7 +550,7 @@ export function LayoutTemplatePicker({
       ? resolveIdentityLayoutId(selectedTemplateId)
       : section === "professional"
         ? resolveProfessionalLayoutId(selectedTemplateId)
-        : selectedTemplateId;
+        : resolveConnectionsLayoutId(selectedTemplateId);
 
   // Chunk templates into pages of 4 items (2x2 grid per slide)
   const templatePages = useMemo(() => {

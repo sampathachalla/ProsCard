@@ -1,18 +1,33 @@
 // pages/contacts/Components/ContactRow.tsx
 import { View, Text, TouchableOpacity, Alert, Linking } from 'react-native';
-import { Phone } from 'lucide-react-native';
+import { Check, Phone } from 'lucide-react-native';
 import { Colors } from '@/constants/Colors';
 import { MediaImage } from '@/common/ui/MediaImage';
 import type { Contact } from '../types/contact.types';
+import { isBadgeContact } from '../Utils/contactFilters';
 
 type ContactRowProps = {
   contact: Contact;
+  selectionMode?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (contact: Contact) => void;
   onPress?: (contact: Contact) => void;
   onDelete?: (contact: Contact) => void;
 };
 
-export function ContactRow({ contact, onPress, onDelete }: ContactRowProps) {
-  const subtitle = [contact.title, contact.company].filter(Boolean).join(' · ');
+export function ContactRow({
+  contact,
+  selectionMode = false,
+  selected = false,
+  onToggleSelect,
+  onPress,
+  onDelete,
+}: ContactRowProps) {
+  const subtitleParts = [contact.title, contact.company].filter(Boolean);
+  if (isBadgeContact(contact) && contact.eventName?.trim()) {
+    subtitleParts.push(contact.eventName.trim());
+  }
+  const subtitle = subtitleParts.join(' · ');
 
   const call = () => {
     if (!contact.phone) {
@@ -33,15 +48,44 @@ export function ContactRow({ contact, onPress, onDelete }: ContactRowProps) {
   };
 
   // The details area and the call button are siblings: on web both render as <button>, which cannot nest.
+  const open = () => {
+    if (selectionMode) {
+      onToggleSelect?.(contact);
+      return;
+    }
+    onPress?.(contact);
+  };
+
   return (
-    <View className="flex-row items-center bg-card dark:bg-dark-card rounded-2xl px-4 py-3 mb-3">
+    <View
+      className={`flex-row items-center rounded-2xl px-4 py-3 mb-3 ${
+        selected ? 'border-2 border-primary bg-primary/5 dark:border-dark-primary' : 'bg-card dark:bg-dark-card'
+      }`}
+    >
+      {selectionMode ? (
+        <TouchableOpacity
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: selected }}
+          accessibilityLabel={`Select ${contact.name}`}
+          onPress={() => onToggleSelect?.(contact)}
+          className="mr-3 h-8 w-8 items-center justify-center rounded-full border border-slate-300 dark:border-slate-600"
+        >
+          {selected ? <Check color="#2563eb" size={18} strokeWidth={3} /> : null}
+        </TouchableOpacity>
+      ) : null}
       <TouchableOpacity
         accessibilityRole="button"
         accessibilityLabel={subtitle ? `${contact.name}, ${subtitle}` : contact.name}
         className="flex-1 flex-row items-center"
-        accessibilityHint={onDelete ? 'Opens the contact. Long press to remove' : 'Opens the contact'}
-        onPress={() => onPress?.(contact)}
-        onLongPress={confirmDelete}
+        accessibilityHint={
+          selectionMode
+            ? 'Toggles selection'
+            : onDelete
+              ? 'Opens the contact. Long press to remove'
+              : 'Opens the contact'
+        }
+        onPress={open}
+        onLongPress={selectionMode ? undefined : confirmDelete}
       >
         {contact.cardImageUrl ? (
           <MediaImage
@@ -69,14 +113,16 @@ export function ContactRow({ contact, onPress, onDelete }: ContactRowProps) {
           ) : null}
         </View>
       </TouchableOpacity>
-      <TouchableOpacity
-        accessibilityRole="button"
-        accessibilityLabel={`Call ${contact.name}`}
-        className="w-9 h-9 ml-3 rounded-full bg-background dark:bg-dark-background items-center justify-center"
-        onPress={call}
-      >
-        <Phone color={Colors.light.tint} size={16} strokeWidth={2.2} />
-      </TouchableOpacity>
+      {!selectionMode ? (
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={`Call ${contact.name}`}
+          className="w-9 h-9 ml-3 rounded-full bg-background dark:bg-dark-background items-center justify-center"
+          onPress={call}
+        >
+          <Phone color={Colors.light.tint} size={16} strokeWidth={2.2} />
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 }

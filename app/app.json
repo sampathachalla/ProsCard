@@ -71,7 +71,32 @@
           "cameraPermission": "VC Pros uses the camera to scan business cards and VC Pros QR codes."
         }
       ],
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "expo-widgets",
+        {
+          "enableAndroid": true,
+          "widgets": [
+            {
+              "name": "VCProsCardWidget",
+              "displayName": "VC Pros QR Card",
+              "description": "Keep your VC Pros card QR code ready on your home screen.",
+              "ios": {
+                "supportedFamilies": [
+                  "systemSmall",
+                  "systemMedium"
+                ],
+                "contentMarginsDisabled": true
+              },
+              "android": {
+                "targetCellWidth": 4,
+                "targetCellHeight": 2,
+                "resizeMode": "horizontal"
+              }
+            }
+          ]
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

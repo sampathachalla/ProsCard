@@ -8,6 +8,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -37,6 +38,7 @@ import {
 } from './Config/addCardFields';
 import { useAddCard } from './Hooks/useAddCard';
 import type { AddCardPanel, AddCardTextFieldId, ContactOption } from './types/addCard.types';
+import { validateAddCard } from './Utils/validateAddCard';
 
 function textValue(
   id: AddCardTextFieldId,
@@ -77,6 +79,7 @@ export default function AddCardPage() {
     cardId: isCreateFlow ? undefined : cardId,
     creationSession: isCreateFlow ? creationSession : undefined,
   });
+  const [formStep, setFormStep] = useState<1 | 2>(1);
   const [panel, setPanel] = useState<AddCardPanel>(null);
   const [previewVisible, setPreviewVisible] = useState(false);
 
@@ -92,6 +95,10 @@ export default function AddCardPage() {
   );
 
   const leave = () => {
+    if (formStep === 2) {
+      setFormStep(1);
+      return;
+    }
     const goBack = () => {
       if (router.canGoBack()) router.back();
       else router.replace('/(tabs)/homepage');
@@ -110,7 +117,21 @@ export default function AddCardPage() {
     );
   };
 
+  const advanceToDesign = () => {
+    const problem = validateAddCard(editor.draft);
+    if (problem) {
+      Alert.alert(problem.title, problem.message);
+      return;
+    }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    setFormStep(2);
+  };
+
   const save = async () => {
+    if (formStep === 1) {
+      advanceToDesign();
+      return;
+    }
     const saved = await editor.save();
     if (!saved) return;
     if (router.canGoBack()) router.back();
@@ -125,7 +146,16 @@ export default function AddCardPage() {
   return (
     <View className="flex-1 bg-background dark:bg-dark-background">
       <AddCardHeader
-        title={editor.isEditMode ? 'Edit card' : 'Add card'}
+        title={
+          formStep === 2
+            ? editor.isEditMode
+              ? 'Edit design'
+              : 'Card design'
+            : editor.isEditMode
+              ? 'Edit card'
+              : 'Add card'
+        }
+        primaryLabel={formStep === 1 ? 'Next' : 'Save'}
         isSaving={editor.isSaving}
         onBack={leave}
         onSave={() => void save()}
@@ -144,6 +174,33 @@ export default function AddCardPage() {
           showsVerticalScrollIndicator={false}
         >
           <View className="w-full max-w-[560px] self-center">
+            {formStep === 2 ? (
+              <>
+                <View className="mb-4">
+                  <Text variant="subtitle">Layout & theme</Text>
+                  <Text variant="muted">Choose how each section looks, then preview the full card.</Text>
+                </View>
+                <EditorRow
+                  icon={LayoutTemplate}
+                  label="Layout"
+                  value={`${editor.draft.sectionLayouts.identity} · ${editor.draft.sectionLayouts.professional} · ${editor.draft.sectionLayouts.connections}`}
+                  onPress={() => setPanel('layout')}
+                />
+                <EditorRow
+                  icon={Palette}
+                  label="Card theme"
+                  value={editor.draft.cardTheme.customThemeName ?? editor.draft.cardTheme.id}
+                  onPress={() => setPanel('theme')}
+                  accessory={
+                    <LinearGradient
+                      colors={editor.draft.cardTheme.gradient}
+                      className="mr-2 h-8 w-8 rounded-full"
+                    />
+                  }
+                />
+              </>
+            ) : (
+              <>
             <CardMediaHeader
               coverPhoto={editor.draft.sectionOverrides.coverPhoto ?? ''}
               profilePhoto={editor.draft.sectionOverrides.profilePhoto ?? ''}
@@ -157,31 +214,15 @@ export default function AddCardPage() {
               onChange={(value) => editor.setOverride('cardTag', value)}
             />
 
-            <EditorRow
-              icon={LayoutTemplate}
-              label="Layout"
-              value={`${editor.draft.sectionLayouts.identity} · ${editor.draft.sectionLayouts.professional} · ${editor.draft.sectionLayouts.connections}`}
-              onPress={() => setPanel('layout')}
-            />
-            <EditorRow
-              icon={Palette}
-              label="Card theme"
-              value={editor.draft.cardTheme.customThemeName ?? editor.draft.cardTheme.id}
-              onPress={() => setPanel('theme')}
-              accessory={
-                <LinearGradient
-                  colors={editor.draft.cardTheme.gradient}
-                  className="mr-2 h-8 w-8 rounded-full"
-                />
-              }
-            />
-
             <View className="mb-2 mt-4">
               <Text variant="subtitle">Card details</Text>
               <Text variant="muted">Customize what appears on this card.</Text>
             </View>
+              </>
+            )}
 
-            {PROFILE_TEXT_FIELDS.map((field) => (
+            {formStep === 1
+              ? PROFILE_TEXT_FIELDS.map((field) => (
               <FormField
                 key={field.id}
                 label={field.label}
@@ -192,8 +233,11 @@ export default function AddCardPage() {
                 showCount
                 onChangeText={(value) => editor.setTextField(field.id, value)}
               />
-            ))}
+              ))
+              : null}
 
+            {formStep === 1 ? (
+              <>
             <FormField
               label={TAGLINE_FIELD.label}
               value={editor.draft.sectionOverrides.tagline ?? ''}
@@ -215,8 +259,11 @@ export default function AddCardPage() {
               <Text variant="subtitle">Contact methods</Text>
               <Text variant="muted">Add at least the required number of ways to connect.</Text>
             </View>
+              </>
+            ) : null}
 
-            {primaryContacts.map((field) => {
+            {formStep === 1
+              ? primaryContacts.map((field) => {
               const config = contactConfig(field);
               return (
                 <ContactFieldRow
@@ -227,8 +274,10 @@ export default function AddCardPage() {
                   onChangeText={(value) => editor.setContactValue(field.id, value)}
                 />
               );
-            })}
-            {extraContacts.map((field) => {
+              })
+              : null}
+            {formStep === 1
+              ? extraContacts.map((field) => {
               const config = contactConfig(field);
               return (
                 <ContactFieldRow
@@ -240,8 +289,10 @@ export default function AddCardPage() {
                   onRemove={() => editor.removeContact(field.id)}
                 />
               );
-            })}
+              })
+              : null}
 
+            {formStep === 1 ? (
             <Pressable
               accessibilityLabel="Add contact method"
               accessibilityRole="button"
@@ -251,11 +302,14 @@ export default function AddCardPage() {
               <Plus color="#2563eb" size={19} strokeWidth={2.5} />
               <Text className="ml-2 font-bold text-[#2563eb] dark:text-[#38bdf8]">Add contact</Text>
             </Pressable>
+            ) : null}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
 
-      <DraggablePreviewButton bottomOffset={82} onPress={() => setPreviewVisible(true)} />
+      {formStep === 2 ? (
+        <DraggablePreviewButton bottomOffset={82} onPress={() => setPreviewVisible(true)} />
+      ) : null}
 
       <LayoutSheet
         card={editor.draft}

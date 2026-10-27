@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react';
 import { Alert } from 'react-native';
 import type { CardFieldKey, EditableCard } from '../types/editView.types';
 import {
+  resolveConnectionsLayoutId,
   resolveIdentityLayoutId,
   resolveProfessionalLayoutId,
   type CardLayoutId,
@@ -19,7 +20,6 @@ import { validateCard } from '../Utils/validateCard';
 const SECTION_FIELD_IDS: Record<Exclude<CardSectionId, 'connections'>, CardSectionFieldId[]> = {
   identity: ['preferredName', 'cardTag', 'coverPhoto', 'profilePhoto', 'logo'],
   professional: ['accreditations', 'prefix', 'suffix', 'firstName', 'middleName', 'lastName', 'title', 'company', 'tagline', 'bio', 'bioEnabled'],
-  bio: ['tagline', 'bio'],
 };
 
 /** Server-owned metadata (timestamps, primary state) must not make the editor dirty. */
@@ -137,7 +137,7 @@ export function useEditView(
         ? resolveIdentityLayoutId(template)
         : section === 'professional'
           ? resolveProfessionalLayoutId(template)
-          : template;
+          : resolveConnectionsLayoutId(template);
     setDraft((prev) => ({ ...prev, sectionLayouts: { ...prev.sectionLayouts, [section]: resolved } }));
   };
 

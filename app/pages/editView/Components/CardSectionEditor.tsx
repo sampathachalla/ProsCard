@@ -387,6 +387,7 @@ export function CardSectionEditor({
   cardTagRequiredError = false,
   editBarCollapsed = false,
   formLayout = false,
+  formStep = 1,
   fullOpen = false,
   onActiveSectionChange,
   onConnectionScopeDecision,
@@ -411,6 +412,8 @@ export function CardSectionEditor({
   editBarCollapsed?: boolean;
   /** Single scroll form (add/edit wireframe) instead of bottom-sheet sections. */
   formLayout?: boolean;
+  /** Wireframe step 1 = details; step 2 = layout, theme and preview. */
+  formStep?: 1 | 2;
   fullOpen?: boolean;
   profile: Profile;
   onActiveSectionChange: (section: CardSectionId) => void;
@@ -1323,13 +1326,10 @@ export function CardSectionEditor({
         compactHeight={editBarCollapsed ? 370 : 300}
         expandedHeight={780}
       />
-    ) : activeSection === 'bio' ? (
-      bioContent
     ) : (
       connectionsContent
     );
 
-  const identityLayoutSection = sections.find((item) => item.id === 'identity') ?? section;
   const nativeField = formLayout;
   const patchConnectionField = (fieldId: string, title: string, type: DynamicCardFieldType, value: string) => {
     const existing = card.connectionFields.find((field) => field.id === fieldId);
@@ -1344,8 +1344,84 @@ export function CardSectionEditor({
   const connectionFieldValue = (fieldId: string) =>
     card.connectionFields.find((field) => field.id === fieldId)?.value ?? '';
 
+  const layoutDesignSections: { id: CardSectionId; title: string }[] = [
+    { id: 'identity', title: 'Header layout' },
+    { id: 'professional', title: 'Details layout' },
+    { id: 'connections', title: 'Contact layout' },
+  ];
+
   const wireframeForm = formLayout ? (
     <View className="pb-4">
+      {formStep === 2 ? (
+        <>
+          <Text className="mb-4 text-sm text-textMuted dark:text-dark-textMuted">
+            Pick a layout for each part of the card, then choose colors. Use the preview button to see the full card.
+          </Text>
+          {layoutDesignSections.map((item) => {
+            const sectionDef = sections.find((entry) => entry.id === item.id) ?? section;
+            return (
+              <View key={item.id} className="mb-5">
+                <Text className="mb-2 text-sm font-semibold text-textPrimary dark:text-dark-textPrimary">{item.title}</Text>
+                <LayoutTemplatePicker
+                  key={`${item.id}-form-${sectionDef.templateId}`}
+                  editBarCollapsed={false}
+                  fullOpen
+                  section={item.id}
+                  selectedTemplateId={card.sectionLayouts[item.id]}
+                  showHeader={false}
+                  theme={card.sectionThemes[item.id]}
+                  onSelect={(templateId) => onLayoutChange(item.id, templateId)}
+                />
+              </View>
+            );
+          })}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ expanded: formThemeOpen }}
+            onPress={() => setFormThemeOpen((open) => !open)}
+            className="mb-3 min-h-[54px] flex-row items-center justify-between rounded-lg border border-slate-200 bg-slate-100 px-4 dark:border-slate-700 dark:bg-dark-card"
+          >
+            <Text className="text-base font-medium text-textPrimary dark:text-dark-textPrimary">Card theme</Text>
+            <ChevronRight color="#64748b" size={20} style={{ transform: [{ rotate: formThemeOpen ? '90deg' : '0deg' }] }} />
+          </Pressable>
+          {formThemeOpen ? (
+            <View className="mb-4">
+              <CardStylingCustomizer
+                activeTemplateId={resolveLayoutStyle(card.sectionLayouts.identity, 'identity')}
+                backLabel="Back to design"
+                customThemes={card.customThemes ?? []}
+                editBarCollapsed={false}
+                embedded
+                fullOpen
+                onBack={() => setFormThemeOpen(false)}
+                sectionId="identity"
+                theme={card.sectionThemes.identity}
+                onChange={(theme) => {
+                  (Object.keys(card.sectionThemes) as CardSectionId[]).forEach((sectionId) => {
+                    onThemeChange(sectionId, {
+                      ...theme,
+                      gradient: [...theme.gradient],
+                      paletteColors: theme.paletteColors ? [...theme.paletteColors] : undefined,
+                    });
+                  });
+                }}
+                onSaveCustomTheme={(entry) => onSaveCustomTheme('identity', entry)}
+              />
+            </View>
+          ) : null}
+          {onOpenPreview ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Preview card"
+              onPress={onOpenPreview}
+              className="mt-2 min-h-[52px] items-center justify-center rounded-2xl border-2 border-primary bg-primary/10 active:opacity-80 dark:border-dark-primary"
+            >
+              <Text className="text-base font-bold text-primary dark:text-dark-primary">Preview full card</Text>
+            </Pressable>
+          ) : null}
+        </>
+      ) : (
+        <>
       <Pressable
         accessibilityRole="button"
         accessibilityState={{ expanded: cardTagMenuOpen }}
@@ -1358,20 +1434,6 @@ export function CardSectionEditor({
         <ChevronDown color="#64748b" size={20} />
       </Pressable>
       {cardTagMenuOpen ? <View className="mb-3">{cardTagSelector}</View> : null}
-
-      <View className="mb-3">
-        <Text className="mb-2 text-sm font-semibold text-textPrimary dark:text-dark-textPrimary">Layout</Text>
-        <LayoutTemplatePicker
-          key={`identity-form-${resolveIdentityTemplateId(identityLayoutSection.templateId)}`}
-          editBarCollapsed={false}
-          fullOpen
-          section="identity"
-          selectedTemplateId={identityLayoutSection.templateId}
-          showHeader={false}
-          theme={card.sectionThemes.identity}
-          onSelect={(templateId) => onLayoutChange('identity', templateId)}
-        />
-      </View>
 
       <View className="mb-4 overflow-hidden rounded-xl border border-slate-300 dark:border-slate-600">
         <Pressable
@@ -1530,56 +1592,12 @@ export function CardSectionEditor({
         />
       ) : null}
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityState={{ expanded: formThemeOpen }}
-        onPress={() => setFormThemeOpen((open) => !open)}
-        className="mb-3 min-h-[54px] flex-row items-center justify-between rounded-lg border border-slate-200 bg-slate-100 px-4 dark:border-slate-700 dark:bg-dark-card"
-      >
-        <Text className="text-base font-medium text-textPrimary dark:text-dark-textPrimary">Card theme</Text>
-        <ChevronRight color="#64748b" size={20} style={{ transform: [{ rotate: formThemeOpen ? '90deg' : '0deg' }] }} />
-      </Pressable>
-      {formThemeOpen ? (
-        <View className="mb-4">
-          <CardStylingCustomizer
-            activeTemplateId={resolveLayoutStyle(card.sectionLayouts.identity, 'identity')}
-            backLabel="Back to form"
-            customThemes={card.customThemes ?? []}
-            editBarCollapsed={false}
-            embedded
-            fullOpen
-            onBack={() => setFormThemeOpen(false)}
-            sectionId="identity"
-            theme={card.sectionThemes.identity}
-            onChange={(theme) => {
-              (Object.keys(card.sectionThemes) as CardSectionId[]).forEach((sectionId) => {
-                onThemeChange(sectionId, {
-                  ...theme,
-                  gradient: [...theme.gradient],
-                  paletteColors: theme.paletteColors ? [...theme.paletteColors] : undefined,
-                });
-              });
-            }}
-            onSaveCustomTheme={(entry) => onSaveCustomTheme('identity', entry)}
-          />
-        </View>
-      ) : null}
-
       <View className="mb-2 mt-2">
         <Text className="mb-2 text-sm font-semibold text-textPrimary dark:text-dark-textPrimary">Contacts</Text>
         {connectionsContent}
       </View>
-
-      {onOpenPreview ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Preview card"
-          onPress={onOpenPreview}
-          className="mt-4 min-h-[52px] items-center justify-center rounded-2xl border-2 border-primary bg-primary/10 active:opacity-80 dark:border-dark-primary"
-        >
-          <Text className="text-base font-bold text-primary dark:text-dark-primary">Preview</Text>
-        </Pressable>
-      ) : null}
+        </>
+      )}
     </View>
   ) : null;
 

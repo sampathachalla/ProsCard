@@ -12,6 +12,7 @@ import {
   QR_PRESET_STORAGE_KEY,
 } from '../Config/shareActionsConfig';
 import { saveOrShareQrCodePng, type QrSvgRef } from '../Services/qrExportService';
+import { prepareHomeScreenWidget } from '../Services/homeScreenWidgetService';
 import type {
   QrCustomizationPreset,
   ShareActionId,
@@ -136,14 +137,6 @@ export function useSharePageController() {
     void wallet.addToWallet(card.id, card.name || profile.fullName);
   }, [card, profile.fullName, wallet]);
 
-  const handleOpenHomeScreenPage = useCallback(() => {
-    requireCardAndUrl((url) => {
-      void Linking.openURL(url).catch(() => {
-        Alert.alert('Could not open browser', 'Copy the card link and open it in Safari or Chrome.');
-      });
-    });
-  }, [requireCardAndUrl]);
-
   const handleSaveQrToPhotos = useCallback(
     (dialogTitle?: string) => {
       requireCardAndUrl((url, cardName) => {
@@ -157,6 +150,42 @@ export function useSharePageController() {
     },
     [requireCardAndUrl],
   );
+
+  const handlePrepareHomeScreenWidget = useCallback(async () => {
+    if (!card || !shareUrl) {
+      Alert.alert('Widget unavailable', shareError ?? 'Wait for your card link, then try again.');
+      return;
+    }
+    try {
+      const result = await prepareHomeScreenWidget({
+        cardName: card.name || profile.fullName || 'My VC Card',
+        qrSvg: qrSvgRef.current,
+        shareUrl,
+      });
+      if (result === 'requires-native-build') {
+        Alert.alert(
+          'Native build required',
+          'Home-screen widgets are not available in Expo Go. Install the next VC Pros TestFlight build to use this feature.',
+        );
+        return;
+      }
+      if (result === 'unsupported') {
+        Alert.alert('Not supported', 'Home-screen widgets are available on iPhone and Android.');
+        return;
+      }
+      Alert.alert(
+        'Widget is ready',
+        Platform.OS === 'ios'
+          ? 'Touch and hold your Home Screen, tap Edit, tap Add Widget, then choose VC Pros QR Card.'
+          : 'Touch and hold your Home Screen, tap Widgets, then choose VC Pros QR Card.',
+      );
+    } catch (error) {
+      Alert.alert(
+        'Could not prepare widget',
+        error instanceof Error ? error.message : 'Try again in a moment.',
+      );
+    }
+  }, [card, profile.fullName, shareError, shareUrl]);
 
   const handleActionPress = useCallback(
     (actionId: ShareActionId) => {
@@ -291,7 +320,7 @@ export function useSharePageController() {
     setQrRef,
     handleActionPress,
     handleExportWalletPass,
-    handleOpenHomeScreenPage,
+    handlePrepareHomeScreenWidget,
     handleSaveQrToPhotos,
   };
 }

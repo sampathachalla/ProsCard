@@ -1,4 +1,6 @@
 // pages/contacts/types/contact.types.ts
+export type ContactCaptureKind = 'business_card' | 'badge' | 'manual' | 'qr';
+
 export type Contact = {
   id: string;
   name: string;
@@ -14,6 +16,10 @@ export type Contact = {
   initials: string;
   color: string;
   sourceCardId?: string | null;
+  /** How this contact was captured; older records may omit this and are inferred in filters. */
+  captureKind?: ContactCaptureKind;
+  /** Event or conference name for badge scans; also used for search and filters. */
+  eventName?: string;
   createdAt?: string;
   updatedAt?: string;
 };

@@ -293,7 +293,14 @@ export function resolveLayoutColorSlots({
   let accentColor: string;
   let highlightColor: string;
 
-  if (tier === 2) {
+  const isWelcomeStyle = templateId.endsWith('-new');
+
+  if (isWelcomeStyle) {
+    baseColor = '#070d1e';
+    surfaceColor = '#0a1128';
+    accentColor = '#38bdf8';
+    highlightColor = '#2563eb';
+  } else if (tier === 2) {
     baseColor = palette[0];
     accentColor = palette[1];
     const isBaseLight = isColorLight(baseColor);
@@ -314,11 +321,7 @@ export function resolveLayoutColorSlots({
     highlightColor = palette[3] || mixHexColors(accentColor, '#ffffff', 0.3);
   }
 
-  // Layout-specific overrides (e.g. Bold hero layout uses gradient)
-  const isBold = templateId === 'bold';
-  const effectiveBgLuminance = isBold
-    ? (relativeLuminance(theme.gradient[0]) + relativeLuminance(theme.gradient[1])) / 2
-    : relativeLuminance(baseColor);
+  const effectiveBgLuminance = relativeLuminance(baseColor);
   const isDark = effectiveBgLuminance < 0.45;
 
   const isSurfaceLight = isColorLight(surfaceColor);
@@ -346,11 +349,10 @@ export function resolveLayoutColorSlots({
   const accentText = isAccentLight ? '#0f172a' : '#ffffff';
   const gradientText = isGradientLight ? '#0f172a' : '#ffffff';
 
-  // Default textPrimary / textSecondary matches the main container (surface for standard layouts, gradient for bold)
-  const isPrimaryDark = isBold ? !isGradientLight : !isSurfaceLight;
-  let textPrimary = isBold ? gradientText : surfaceTextPrimary;
-  const textSecondary = isBold ? (isPrimaryDark ? '#cbd5e1' : '#334155') : surfaceTextSecondary;
-  const textMuted = isBold ? (isPrimaryDark ? '#cbd5e1' : '#475569') : surfaceTextMuted;
+  // Default textPrimary / textSecondary matches the main container
+  let textPrimary = surfaceTextPrimary;
+  const textSecondary = surfaceTextSecondary;
+  const textMuted = surfaceTextMuted;
 
   const textColorOverride = normalizeHexColor(theme.textColorOverride ?? '');
   if (textColorOverride) {
@@ -367,16 +369,26 @@ export function resolveLayoutColorSlots({
     mixHexColors(mixHexColors(cleanBase, cleanAccent, 0.14), '#030712', 0.65),
     0.88,
   );
-  const logoBackdrop = isSurfaceLight ? darkLogoGlass : lightLogoGlass;
-  const logoBorder = isSurfaceLight
-    ? hexToRgbaString(cleanAccent, 0.3)
-    : hexToRgbaString(mixHexColors(cleanAccent, '#0f172a', 0.25), 0.18);
-  const borderColor = isDark ? mixHexColors(accentColor, '#ffffff', 0.15) : mixHexColors(accentColor, '#020617', 0.12);
+  const logoBackdrop = isWelcomeStyle
+    ? 'rgba(10, 17, 40, 0.88)'
+    : isSurfaceLight
+      ? darkLogoGlass
+      : lightLogoGlass;
+  const logoBorder = isWelcomeStyle
+    ? 'rgba(56, 189, 248, 0.3)'
+    : isSurfaceLight
+      ? hexToRgbaString(cleanAccent, 0.3)
+      : hexToRgbaString(mixHexColors(cleanAccent, '#0f172a', 0.25), 0.18);
+  const borderColor = isWelcomeStyle
+    ? 'rgba(56, 189, 248, 0.25)'
+    : isDark
+      ? mixHexColors(accentColor, '#ffffff', 0.15)
+      : mixHexColors(accentColor, '#020617', 0.12);
 
   return {
     accent: accentColor,
     accentText,
-    background: isBold ? theme.gradient[0] : baseColor,
+    background: baseColor,
     bgTextMuted,
     bgTextPrimary,
     bgTextSecondary,
@@ -439,24 +451,17 @@ export function resolveLogoBoxStyle({
   let effectivePlacement = placement;
   if (!effectivePlacement && templateId) {
     switch (templateId) {
-      case 'bold':
       case 'spotlight':
+      case 'spotlight-new':
         effectivePlacement = 'on-cover';
         break;
-      case 'glass':
-        effectivePlacement = 'glass';
-        break;
-      case 'neon':
-        effectivePlacement = 'neon';
-        break;
       case 'banner':
+      case 'banner-new':
         effectivePlacement = 'banner';
         break;
       case 'badge':
+      case 'badge-new':
         effectivePlacement = 'badge';
-        break;
-      case 'cards':
-        effectivePlacement = 'floating';
         break;
       default:
         effectivePlacement = 'on-surface';

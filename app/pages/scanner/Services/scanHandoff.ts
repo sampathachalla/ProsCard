@@ -1,8 +1,21 @@
 // pages/scanner/Services/scanHandoff.ts
+import type { BadgeReading } from '../types/badge.types';
 import type { CardReading, ProcessedCard } from '../types/scanner.types';
 
-/** A processed scan waiting to be reviewed; `reading` is null when the card could not be read. */
-export type ScanResult = { card: ProcessedCard; reading: CardReading | null };
+export type ScanHandoffKind = 'business_card' | 'badge';
+
+export type ScanHandoffMeta = {
+  kind: ScanHandoffKind;
+  /** Session event name chosen before scanning (badge flow). */
+  eventName?: string;
+};
+
+/** A processed scan waiting to be reviewed; `reading` is null when OCR could not run. */
+export type ScanResult = {
+  card: ProcessedCard;
+  reading: CardReading | BadgeReading | null;
+  meta?: ScanHandoffMeta;
+};
 
 const results = new Map<string, ScanResult>();
 

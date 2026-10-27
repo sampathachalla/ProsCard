@@ -6,6 +6,9 @@ import { MAX_FONT_SCALE } from '@/common/ui/Text';
 type ScannerOverlayProps = {
   isActive: boolean;
   isProcessing?: boolean;
+  /** Override the idle hint under the frame. */
+  hintText?: string;
+  processingHint?: string;
   /** Show the fixed card-shaped guide. Keep this off for the live Expo camera. */
   showFrame?: boolean;
   /**
@@ -28,7 +31,15 @@ function fitFrame(container: Size, aspectRatio: number): Size {
   return { width, height: width / aspectRatio };
 }
 
-export function ScannerOverlay({ isActive, isProcessing = false, showFrame = true, imageAspectRatio, hintBottom }: ScannerOverlayProps) {
+export function ScannerOverlay({
+  isActive,
+  isProcessing = false,
+  hintText,
+  processingHint,
+  showFrame = true,
+  imageAspectRatio,
+  hintBottom,
+}: ScannerOverlayProps) {
   const [scanProgress] = useState(() => new Animated.Value(0));
   const [container, setContainer] = useState<Size | null>(null);
 
@@ -97,7 +108,9 @@ export function ScannerOverlay({ isActive, isProcessing = false, showFrame = tru
         </View>
       )}
       <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.hint, hintBottom != null && { position: 'absolute', bottom: hintBottom }]}>
-        {isProcessing ? 'Reading card details…' : showFrame ? 'Fit the whole card inside the guides' : 'Point the camera at a business card'}
+        {isProcessing
+          ? processingHint ?? 'Reading card details…'
+          : hintText ?? (showFrame ? 'Fit the whole card inside the guides' : 'Point the camera at a business card')}
       </Text>
     </View>
   );

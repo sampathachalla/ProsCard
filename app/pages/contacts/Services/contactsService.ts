@@ -44,6 +44,8 @@ function normalizeContact(raw: Contact): Contact {
     address: text(raw.address),
     notes: text(raw.notes),
     cardImageUrl: text(raw.cardImageUrl) || undefined,
+    eventName: text(raw.eventName) || undefined,
+    captureKind: raw.captureKind,
     initials: text(raw.initials) || initialsFor(raw.name),
     color: text(raw.color) || Colors.light.tint,
   };

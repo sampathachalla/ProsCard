@@ -1,6 +1,7 @@
 import { HttpError } from '../../src/errors.js';
-import type { CardBounds, CardReading, ReadCardRequest } from '../utils/scanner.schemas.js';
+import type { BadgeReading, CardBounds, CardReading, ReadCardRequest } from '../utils/scanner.schemas.js';
 import type { CardReaderGateway } from './openai-card-reader.service.js';
+import type { BadgeReaderGateway } from './openai-badge-reader.service.js';
 
 const clamp = (value: number) => Math.min(1, Math.max(0, value));
 const round = (value: number) => Math.round(value * 10000) / 10000;
@@ -39,7 +40,24 @@ export function isPlaceholder(value: string): boolean {
 }
 
 export class ScannerService {
-  constructor(private readonly reader?: CardReaderGateway) {}
+  constructor(
+    private readonly reader?: CardReaderGateway,
+    private readonly badgeReader?: BadgeReaderGateway,
+  ) {}
+
+  async readBadge(input: ReadCardRequest): Promise<BadgeReading> {
+    if (!this.badgeReader) throw new HttpError(503, 'Badge reading is not configured on the server.');
+    const reading = await this.badgeReader.readBadge(input);
+    const contact = Object.fromEntries(
+      Object.entries(reading.contact).map(([key, value]) => [key, isPlaceholder(value) ? '' : value.trim()]),
+    ) as BadgeReading['contact'];
+    return {
+      ...reading,
+      cardBounds: reading.isEventBadge ? normalizeBounds(reading.cardBounds) : null,
+      contact,
+      printedEventName: isPlaceholder(reading.printedEventName) ? '' : reading.printedEventName.trim(),
+    };
+  }
 
   async readCard(input: ReadCardRequest): Promise<CardReading> {
     if (!this.reader) throw new HttpError(503, 'Card reading is not configured on the server.');

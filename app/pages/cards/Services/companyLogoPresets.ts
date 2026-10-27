@@ -1,24 +1,18 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SimpleIcons from 'simple-icons';
+import type { SimpleIcon } from 'simple-icons';
 import { apiRequest } from '@/services/api/client';
 
 export const COMPANY_LOGO_PRESET_PREFIX = 'proscard-logo:';
 const COMMUNITY_LOGOS_STORAGE_KEY = 'proscard:community-company-logos-v1';
 
-export type CompanyLogoCategory =
-  | 'all'
-  | 'big-tech'
-  | 'ai-cloud'
-  | 'enterprise-saas'
-  | 'finance-consulting';
-
 export type CompanyLogoPreset = {
   id: string;
   label: string;
-  domain: string;
-  category: Exclude<CompanyLogoCategory, 'all'>;
   keywords: string[];
   value: string;
-  source: number;
+  source: number | { uri: string };
+  brandColor?: string;
 };
 
 export type CommunityCompanyLogoItem = {
@@ -29,283 +23,68 @@ export type CommunityCompanyLogoItem = {
   createdAt?: string;
 };
 
-export type GlobalCompanySearchResult = {
-  id: string;
-  name: string;
-  domain: string;
-  logoUrl: string;
-};
-
-function logoPreset(
-  id: string,
-  label: string,
-  domain: string,
-  category: Exclude<CompanyLogoCategory, 'all'>,
-  keywords: string[],
-  source: number,
-): CompanyLogoPreset {
-  return {
-    id,
-    label,
-    domain,
-    category,
-    keywords,
-    source,
-    value: `${COMPANY_LOGO_PRESET_PREFIX}${id}`,
-  };
+function isSimpleIcon(value: unknown): value is SimpleIcon {
+  if (!value || typeof value !== 'object') return false;
+  const icon = value as Partial<SimpleIcon>;
+  return Boolean(icon.title && icon.slug && icon.hex && icon.path);
 }
 
-export const COMPANY_LOGO_CATEGORIES: { id: CompanyLogoCategory; label: string }[] = [
-  { id: 'all', label: 'All Brands' },
-  { id: 'big-tech', label: 'Big Tech' },
-  { id: 'ai-cloud', label: 'AI & Cloud' },
-  { id: 'enterprise-saas', label: 'Enterprise & SaaS' },
-  { id: 'finance-consulting', label: 'Finance & Consulting' },
+function iconDataUri(icon: SimpleIcon): string {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="#${icon.hex}" d="${icon.path}"/></svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
+/**
+ * The complete local Simple Icons catalog. It is searchable offline and adds no API keys,
+ * network requests, attribution service, or user tracking to the logo picker.
+ */
+export const COMPANY_LOGO_PRESETS: CompanyLogoPreset[] = Object.values(SimpleIcons)
+  .filter(isSimpleIcon)
+  .map((icon) => ({
+    id: icon.slug,
+    label: icon.title,
+    keywords: [icon.slug, icon.title],
+    value: `${COMPANY_LOGO_PRESET_PREFIX}${icon.slug}`,
+    source: { uri: iconDataUri(icon) },
+    brandColor: `#${icon.hex}`,
+  }))
+  .sort((left, right) => left.label.localeCompare(right.label));
+
+const POPULAR_SIMPLE_ICON_SLUGS = [
+  'google', 'apple', 'meta', 'nvidia', 'netflix', 'tesla', 'stripe', 'shopify',
+  'spotify', 'uber', 'airbnb', 'github', 'atlassian', 'accenture', 'goldmansachs',
+  'cisco', 'intel', 'samsung', 'anthropic', 'amd', 'cloudflare', 'dropbox', 'zoom',
+  'paypal', 'visa', 'mastercard', 'databricks', 'snowflake', 'hubspot', 'tcs', 'wipro',
 ];
 
-/** Curated, high-resolution bundled logos for famous global companies. */
-export const COMPANY_LOGO_PRESETS: CompanyLogoPreset[] = [
-  logoPreset(
-    'microsoft',
-    'Microsoft',
-    'microsoft.com',
-    'big-tech',
-    ['microsoft', 'msft', 'azure', 'windows', 'xbox', 'office'],
-    require('@/assets/company-logos/microsoft.png'),
-  ),
-  logoPreset(
-    'google',
-    'Google',
-    'google.com',
-    'big-tech',
-    ['google', 'alphabet', 'gcp', 'android', 'youtube', 'deepmind'],
-    require('@/assets/company-logos/google.png'),
-  ),
-  logoPreset(
-    'apple',
-    'Apple',
-    'apple.com',
-    'big-tech',
-    ['apple', 'ios', 'mac', 'iphone', 'cupertino'],
-    require('@/assets/company-logos/apple.png'),
-  ),
-  logoPreset(
-    'amazon',
-    'Amazon',
-    'amazon.com',
-    'big-tech',
-    ['amazon', 'aws', 'prime', 'alexa'],
-    require('@/assets/company-logos/amazon.png'),
-  ),
-  logoPreset(
-    'meta',
-    'Meta',
-    'meta.com',
-    'big-tech',
-    ['meta', 'facebook', 'instagram', 'whatsapp', 'threads'],
-    require('@/assets/company-logos/meta.png'),
-  ),
-  logoPreset(
-    'nvidia',
-    'NVIDIA',
-    'nvidia.com',
-    'ai-cloud',
-    ['nvidia', 'gpu', 'cuda', 'ai', 'geforce'],
-    require('@/assets/company-logos/nvidia.png'),
-  ),
-  logoPreset(
-    'openai',
-    'OpenAI',
-    'openai.com',
-    'ai-cloud',
-    ['openai', 'chatgpt', 'gpt', 'ai'],
-    require('@/assets/company-logos/openai.png'),
-  ),
-  logoPreset(
-    'netflix',
-    'Netflix',
-    'netflix.com',
-    'big-tech',
-    ['netflix', 'streaming', 'entertainment'],
-    require('@/assets/company-logos/netflix.png'),
-  ),
-  logoPreset(
-    'tesla',
-    'Tesla',
-    'tesla.com',
-    'big-tech',
-    ['tesla', 'ev', 'automotive', 'energy'],
-    require('@/assets/company-logos/tesla.png'),
-  ),
-  logoPreset(
-    'ibm',
-    'IBM',
-    'ibm.com',
-    'ai-cloud',
-    ['ibm', 'watson', 'red hat', 'cloud', 'consulting'],
-    require('@/assets/company-logos/ibm.png'),
-  ),
-  logoPreset(
-    'oracle',
-    'Oracle',
-    'oracle.com',
-    'ai-cloud',
-    ['oracle', 'oci', 'database', 'cloud', 'java'],
-    require('@/assets/company-logos/oracle.png'),
-  ),
-  logoPreset(
-    'salesforce',
-    'Salesforce',
-    'salesforce.com',
-    'enterprise-saas',
-    ['salesforce', 'crm', 'cloud', 'tableau', 'mulesoft'],
-    require('@/assets/company-logos/salesforce.png'),
-  ),
-  logoPreset(
-    'adobe',
-    'Adobe',
-    'adobe.com',
-    'enterprise-saas',
-    ['adobe', 'creative cloud', 'photoshop', 'acrobat'],
-    require('@/assets/company-logos/adobe.png'),
-  ),
-  logoPreset(
-    'stripe',
-    'Stripe',
-    'stripe.com',
-    'finance-consulting',
-    ['stripe', 'payments', 'fintech', 'billing'],
-    require('@/assets/company-logos/stripe.png'),
-  ),
-  logoPreset(
-    'shopify',
-    'Shopify',
-    'shopify.com',
-    'enterprise-saas',
-    ['shopify', 'ecommerce', 'commerce', 'retail'],
-    require('@/assets/company-logos/shopify.png'),
-  ),
-  logoPreset(
-    'spotify',
-    'Spotify',
-    'spotify.com',
-    'big-tech',
-    ['spotify', 'audio', 'music', 'streaming'],
-    require('@/assets/company-logos/spotify.png'),
-  ),
-  logoPreset(
-    'uber',
-    'Uber',
-    'uber.com',
-    'big-tech',
-    ['uber', 'mobility', 'uber eats', 'rides'],
-    require('@/assets/company-logos/uber.png'),
-  ),
-  logoPreset(
-    'airbnb',
-    'Airbnb',
-    'airbnb.com',
-    'big-tech',
-    ['airbnb', 'travel', 'hospitality'],
-    require('@/assets/company-logos/airbnb.png'),
-  ),
-  logoPreset(
-    'github',
-    'GitHub',
-    'github.com',
-    'ai-cloud',
-    ['github', 'git', 'copilot', 'developer', 'open source'],
-    require('@/assets/company-logos/github.png'),
-  ),
-  logoPreset(
-    'slack',
-    'Slack',
-    'slack.com',
-    'enterprise-saas',
-    ['slack', 'messaging', 'collaboration', 'workplace'],
-    require('@/assets/company-logos/slack.png'),
-  ),
-  logoPreset(
-    'atlassian',
-    'Atlassian',
-    'atlassian.com',
-    'enterprise-saas',
-    ['atlassian', 'jira', 'confluence', 'trello', 'bitbucket'],
-    require('@/assets/company-logos/atlassian.png'),
-  ),
-  logoPreset(
-    'deloitte',
-    'Deloitte',
-    'deloitte.com',
-    'finance-consulting',
-    ['deloitte', 'consulting', 'advisory', 'audit', 'big four'],
-    require('@/assets/company-logos/deloitte.png'),
-  ),
-  logoPreset(
-    'accenture',
-    'Accenture',
-    'accenture.com',
-    'finance-consulting',
-    ['accenture', 'consulting', 'strategy', 'digital'],
-    require('@/assets/company-logos/accenture.png'),
-  ),
-  logoPreset(
-    'jpmorgan',
-    'J.P. Morgan',
-    'jpmorgan.com',
-    'finance-consulting',
-    ['jpmorgan', 'jp morgan', 'chase', 'banking', 'finance'],
-    require('@/assets/company-logos/jpmorgan.png'),
-  ),
-  logoPreset(
-    'goldmansachs',
-    'Goldman Sachs',
-    'goldmansachs.com',
-    'finance-consulting',
-    ['goldman sachs', 'gs', 'investment banking', 'finance'],
-    require('@/assets/company-logos/goldmansachs.png'),
-  ),
-  logoPreset(
-    'cisco',
-    'Cisco',
-    'cisco.com',
-    'ai-cloud',
-    ['cisco', 'networking', 'webex', 'security', 'cloud'],
-    require('@/assets/company-logos/cisco.png'),
-  ),
-  logoPreset(
-    'intel',
-    'Intel',
-    'intel.com',
-    'big-tech',
-    ['intel', 'semiconductor', 'processors', 'chips'],
-    require('@/assets/company-logos/intel.png'),
-  ),
-  logoPreset(
-    'samsung',
-    'Samsung',
-    'samsung.com',
-    'big-tech',
-    ['samsung', 'galaxy', 'electronics', 'mobile'],
-    require('@/assets/company-logos/samsung.png'),
-  ),
-  logoPreset(
-    'mindpros',
-    'MindPros',
-    'mindpros.com',
-    'enterprise-saas',
-    ['mindpros', 'vcpros', 'proscard', 'consulting', 'technology'],
-    require('@/assets/company-logos/mindpros.png'),
-  ),
-  logoPreset(
-    'vcpros',
-    'VC Pros',
-    'vcpros.app',
-    'enterprise-saas',
-    ['vcpros', 'vc pros', 'proscard', 'digital card'],
-    require('@/assets/vcpros-logo-v3-dark.png'),
-  ),
-];
+/** Read-only compatibility for cards saved before the Simple Icons migration. */
+const LEGACY_COMPANY_LOGO_PRESETS: Omit<CompanyLogoPreset, 'source'>[] = [
+  ['microsoft', 'Microsoft'], ['amazon', 'Amazon'], ['openai', 'OpenAI'], ['ibm', 'IBM'],
+  ['oracle', 'Oracle'], ['salesforce', 'Salesforce'], ['adobe', 'Adobe'], ['slack', 'Slack'],
+  ['deloitte', 'Deloitte'], ['jpmorgan', 'J.P. Morgan'], ['mindpros', 'MindPros'],
+].map(([id, label]) => ({
+  id,
+  label,
+  keywords: [id, label],
+  value: `${COMPANY_LOGO_PRESET_PREFIX}${id}`,
+}));
+
+function legacyLogoSource(id: string): number {
+  switch (id) {
+    case 'microsoft': return require('../../../assets/company-logos/microsoft.png');
+    case 'amazon': return require('../../../assets/company-logos/amazon.png');
+    case 'openai': return require('../../../assets/company-logos/openai.png');
+    case 'ibm': return require('../../../assets/company-logos/ibm.png');
+    case 'oracle': return require('../../../assets/company-logos/oracle.png');
+    case 'salesforce': return require('../../../assets/company-logos/salesforce.png');
+    case 'adobe': return require('../../../assets/company-logos/adobe.png');
+    case 'slack': return require('../../../assets/company-logos/slack.png');
+    case 'deloitte': return require('../../../assets/company-logos/deloitte.png');
+    case 'jpmorgan': return require('../../../assets/company-logos/jpmorgan.png');
+    case 'mindpros': return require('../../../assets/company-logos/mindpros.png');
+    default: return require('../../../assets/vcpros-logo-v3-dark.png');
+  }
+}
 
 export function isCompanyLogoPreset(value: string): boolean {
   return Boolean(value && value.startsWith(COMPANY_LOGO_PRESET_PREFIX));
@@ -313,80 +92,49 @@ export function isCompanyLogoPreset(value: string): boolean {
 
 export function resolveCompanyLogoPreset(value: string): CompanyLogoPreset | undefined {
   if (!isCompanyLogoPreset(value)) return undefined;
-  return COMPANY_LOGO_PRESETS.find((item) => item.value === value);
+  const current = COMPANY_LOGO_PRESETS.find((item) => item.value === value);
+  if (current) return current;
+  const legacy = LEGACY_COMPANY_LOGO_PRESETS.find((item) => item.value === value);
+  return legacy ? { ...legacy, source: legacyLogoSource(legacy.id) } : undefined;
 }
 
 export function filterCompanyLogoPresets(
   query: string,
-  category: CompanyLogoCategory = 'all',
 ): CompanyLogoPreset[] {
   const cleanQuery = query.trim().toLowerCase();
-  return COMPANY_LOGO_PRESETS.filter((preset) => {
-    if (category !== 'all' && preset.category !== category) {
-      return false;
-    }
-    if (!cleanQuery) return true;
+  if (!cleanQuery) {
+    const popularOrder = new Map(POPULAR_SIMPLE_ICON_SLUGS.map((slug, index) => [slug, index]));
+    return COMPANY_LOGO_PRESETS
+      .filter((preset) => popularOrder.has(preset.id))
+      .sort((left, right) => (popularOrder.get(left.id) ?? 0) - (popularOrder.get(right.id) ?? 0));
+  }
+  const matches = COMPANY_LOGO_PRESETS.filter((preset) => {
     return (
       preset.label.toLowerCase().includes(cleanQuery) ||
-      preset.domain.toLowerCase().includes(cleanQuery) ||
       preset.keywords.some((kw) => kw.toLowerCase().includes(cleanQuery))
     );
   });
-}
-
-/**
- * Searches global companies via Clearbit's public company autocomplete API
- * so users can find and select logos for any company worldwide.
- */
-export async function searchGlobalCompanyLogos(
-  query: string,
-  signal?: AbortSignal,
-): Promise<GlobalCompanySearchResult[]> {
-  const trimmed = query.trim();
-  if (trimmed.length < 2) return [];
-  try {
-    const response = await fetch(
-      `https://autocomplete.clearbit.com/v1/companies/suggest?query=${encodeURIComponent(trimmed)}`,
-      { signal },
-    );
-    if (!response.ok) return [];
-    const data = (await response.json()) as Array<{
-      name?: string;
-      domain?: string;
-      logo?: string;
-    }>;
-    if (!Array.isArray(data)) return [];
-    const presetDomains = new Set(COMPANY_LOGO_PRESETS.map((p) => p.domain.toLowerCase()));
-    return data
-      .filter(
-        (item): item is { name: string; domain: string; logo: string } =>
-          Boolean(
-            item &&
-              typeof item.name === 'string' &&
-              typeof item.domain === 'string' &&
-              typeof item.logo === 'string' &&
-              item.logo.startsWith('https://') &&
-              !presetDomains.has(item.domain.toLowerCase()),
-          ),
-      )
-      .slice(0, 12)
-      .map((item) => ({
-        id: `global-${item.domain}`,
-        name: item.name,
-        domain: item.domain,
-        logoUrl: item.logo,
-      }));
-  } catch {
-    return [];
-  }
+  return matches.slice(0, 60);
 }
 
 async function readLocalCommunityLogos(): Promise<CommunityCompanyLogoItem[]> {
   try {
     const raw = await AsyncStorage.getItem(COMMUNITY_LOGOS_STORAGE_KEY);
     if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.flatMap((candidate): CommunityCompanyLogoItem[] => {
+      if (!candidate || typeof candidate !== 'object') return [];
+      const item = candidate as Partial<CommunityCompanyLogoItem>;
+      if (typeof item.id !== 'string' || typeof item.value !== 'string' || !item.value.trim()) return [];
+      return [{
+        id: item.id,
+        name: typeof item.name === 'string' && item.name.trim() ? item.name.trim() : 'Uploaded Company Logo',
+        value: item.value.trim(),
+        isOwn: true,
+        createdAt: typeof item.createdAt === 'string' ? item.createdAt : undefined,
+      }];
+    });
   } catch {
     return [];
   }
@@ -419,44 +167,38 @@ export async function recordCommunityUploadedLogo(entry: {
 }
 
 /**
- * Fetches company logos uploaded by users across the platform (backend `/media/company-logos`)
- * combined with locally cached user uploads.
+ * Returns public company-logo uploads from other VC Pros users. The response is treated as
+ * untrusted data so a malformed legacy record can never crash the picker.
  */
 export async function fetchCommunityUploadedLogos(
   query = '',
 ): Promise<CommunityCompanyLogoItem[]> {
   const cleanQuery = query.trim().toLowerCase();
-  const [localItems, remoteItems] = await Promise.all([
-    readLocalCommunityLogos(),
-    apiRequest<{
-      items?: Array<{
-        mediaId: string;
-        name: string;
-        contentUrl: string;
-        isOwn?: boolean;
-        createdAt?: string;
-      }>;
-    }>(`/media/company-logos${cleanQuery ? `?q=${encodeURIComponent(cleanQuery)}` : ''}`)
-      .then((res) =>
-        (res.items ?? []).map((item) => ({
-          id: item.mediaId,
-          name: item.name || 'Company Logo',
-          value: item.contentUrl,
-          isOwn: item.isOwn,
-          createdAt: item.createdAt,
-        })),
-      )
-      .catch(() => [] as CommunityCompanyLogoItem[]),
-  ]);
-
+  const response = await apiRequest<{ items?: unknown }>(
+    `/media/company-logos${cleanQuery ? `?q=${encodeURIComponent(cleanQuery)}` : ''}`,
+  )
+    .catch(() => ({ items: [] }));
+  const candidates = Array.isArray(response.items) ? response.items : [];
   const seenValues = new Set<string>();
   const merged: CommunityCompanyLogoItem[] = [];
 
-  for (const item of [...remoteItems, ...localItems]) {
-    if (!item.value || seenValues.has(item.value)) continue;
-    if (cleanQuery && !item.name.toLowerCase().includes(cleanQuery)) continue;
-    seenValues.add(item.value);
-    merged.push(item);
+  for (const candidate of candidates) {
+    if (!candidate || typeof candidate !== 'object') continue;
+    const item = candidate as {
+      mediaId?: unknown; name?: unknown; contentUrl?: unknown; isOwn?: unknown; createdAt?: unknown;
+    };
+    if (item.isOwn !== false || typeof item.mediaId !== 'string' || typeof item.contentUrl !== 'string') continue;
+    const name = typeof item.name === 'string' && item.name.trim() ? item.name.trim() : 'Company Logo';
+    const value = item.contentUrl.trim();
+    if (!value || seenValues.has(value) || (cleanQuery && !name.toLowerCase().includes(cleanQuery))) continue;
+    seenValues.add(value);
+    merged.push({
+      id: item.mediaId,
+      name,
+      value,
+      isOwn: false,
+      createdAt: typeof item.createdAt === 'string' ? item.createdAt : undefined,
+    });
   }
 
   return merged;

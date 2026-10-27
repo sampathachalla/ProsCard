@@ -8,7 +8,7 @@ import { MediaImage } from './MediaImage';
 import { CompanyLogoPickerModal } from './CompanyLogoPickerModal';
 import { COVER_PHOTO_PRESETS } from '@/pages/cards/Services/coverPhotoPresets';
 import {
-  COMPANY_LOGO_PRESETS,
+  filterCompanyLogoPresets,
   recordCommunityUploadedLogo,
 } from '@/pages/cards/Services/companyLogoPresets';
 import { AUTH_TEST_MODE } from '@/pages/auth/Config/authMode';
@@ -280,7 +280,7 @@ export function ImageUploadField({
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ gap: 8, paddingRight: 4 }}
           >
-            {COMPANY_LOGO_PRESETS.slice(0, 10).map((preset) => {
+            {filterCompanyLogoPresets('').slice(0, 10).map((preset) => {
               const selected = value === preset.value;
               return (
                 <Pressable
@@ -293,18 +293,21 @@ export function ImageUploadField({
                     Haptics.selectionAsync().catch(() => {});
                     onChange(preset.value);
                   }}
-                  className={`items-center justify-center rounded-xl border px-2.5 py-2 active:opacity-80 ${
+                  className={`flex-row items-center rounded-xl border px-2.5 py-2 active:opacity-80 ${
                     selected
                       ? 'border-sky-400 bg-sky-500/15 dark:border-sky-400 dark:bg-[#132038]'
-                      : 'border-slate-200 bg-slate-900 dark:border-slate-700 dark:bg-[#070d19]'
+                      : 'border-slate-200 bg-white dark:border-slate-700 dark:bg-white'
                   }`}
-                  style={{ height: 54, width: 108 }}
+                  style={{ height: 60, width: 148 }}
                 >
                   <MediaImage
                     sourceUrl={preset.value}
                     contentFit="contain"
-                    style={{ width: '100%', height: 34 }}
+                    style={{ width: 32, height: 32 }}
                   />
+                  <Text numberOfLines={2} className="ml-2 flex-1 text-xs font-semibold text-slate-900">
+                    {preset.label}
+                  </Text>
                   {selected ? (
                     <View className="absolute right-1 top-1 size-4 items-center justify-center rounded-full bg-sky-500">
                       <Check color="#ffffff" size={10} strokeWidth={3} />

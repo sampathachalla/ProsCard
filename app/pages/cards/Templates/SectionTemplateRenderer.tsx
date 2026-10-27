@@ -3,7 +3,6 @@ import type { CardDetailSection } from './cardDetailTemplate';
 import type { CardVisualTheme } from '../types/card.types';
 import { IdentitySectionRenderer } from './sections/IdentitySectionRenderer';
 import { ProfessionalSectionRenderer } from './sections/ProfessionalSectionRenderer';
-import { BioSectionRenderer } from './sections/BioSectionRenderer';
 import { ConnectionsSectionRenderer } from './sections/ConnectionsSectionRenderer';
 
 export type SectionTemplateRendererProps = {
@@ -56,6 +55,8 @@ export function SectionTemplateRenderer({
           cardTheme={cardTheme}
           fullCardView={fullCardView}
           gradient={gradient}
+          interactiveActions={interactiveActions}
+          onShareCard={onShareCard}
           section={section}
           seamless={seamless}
           showEmpty={showEmpty}
@@ -70,20 +71,8 @@ export function SectionTemplateRenderer({
           contentDriven={contentDriven}
           fullCardView={fullCardView}
           gradient={gradient}
-          section={section}
-          seamless={seamless}
-          showEmpty={showEmpty}
-        />
-      );
-
-    case 'bio':
-      return (
-        <BioSectionRenderer
-          compact={compact}
-          cardTheme={cardTheme}
-          fullCardView={fullCardView}
-          gradient={gradient}
-          preserveTypeScale={preserveTypeScale}
+          interactiveActions={interactiveActions}
+          onSaveContact={onSaveContact}
           section={section}
           seamless={seamless}
           showEmpty={showEmpty}

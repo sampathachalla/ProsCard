@@ -22,6 +22,7 @@ export async function saveScannedContact(card: SharedCard): Promise<Contact> {
     initials: initialsFor(card.name),
     color: card.gradient?.[0] ?? Colors.light.tint,
     sourceCardId: card.id,
+    captureKind: 'qr',
   });
   await queryClient.invalidateQueries({ queryKey: queryKeys.contacts });
   return contact;
