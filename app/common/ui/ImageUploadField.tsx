@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Check, ImagePlus, Pencil, Search, Trash2, Upload } from 'lucide-react-native';
 import { Text } from './Text';
-import { pickImageFromLibrary } from './usePickImage';
+import { pickImageAssetFromLibrary, takePhotoAsset, type PickedImage } from './usePickImage';
+import { PhotoAdjustmentModal } from './PhotoAdjustmentModal';
 import { MediaImage } from './MediaImage';
 import { CompanyLogoPickerModal } from './CompanyLogoPickerModal';
 import { COVER_PHOTO_PRESETS } from '@/pages/cards/Services/coverPhotoPresets';
@@ -74,44 +75,65 @@ export function ImageUploadField({
 }: ImageUploadFieldProps) {
   const [isPicking, setIsPicking] = useState(false);
   const [logoModalVisible, setLogoModalVisible] = useState(false);
+  const [pendingAsset, setPendingAsset] = useState<PickedImage | null>(null);
   const config = VARIANT_CONFIG[variant];
   const hasImage = Boolean(value?.trim());
 
-  const handlePickFromDevice = async () => {
+  const uploadAdjustedImage = async (uri: string) => {
+    setPendingAsset(null);
+    if (AUTH_TEST_MODE) {
+      onChange(uri);
+      if (variant === 'logo') {
+        void recordCommunityUploadedLogo({ value: uri, isOwn: true });
+        setLogoModalVisible(false);
+      }
+      setIsPicking(false);
+      return;
+    }
+    try {
+      const remoteUrl = await commitPendingMedia(uri, VARIANT_MEDIA_KIND[variant]);
+      onChange(remoteUrl);
+      if (variant === 'logo') {
+        void recordCommunityUploadedLogo({ value: remoteUrl, isOwn: true });
+        setLogoModalVisible(false);
+      }
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    } catch (error) {
+      clearPendingMedia(uri);
+      const message = error instanceof Error && error.message.trim() ? error.message : 'The uploaded image type or size is not allowed.';
+      Alert.alert('Couldn’t upload image', message);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+    } finally {
+      setIsPicking(false);
+    }
+  };
+
+  const pickSource = async (source: 'camera' | 'library') => {
     if (disabled || isPicking) return;
     setIsPicking(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     try {
-      const uri = await pickImageFromLibrary({ aspect: config.aspect, allowsEditing: true });
-      if (!uri) return;
-      if (AUTH_TEST_MODE) {
-        onChange(uri);
-        if (variant === 'logo') {
-          void recordCommunityUploadedLogo({ value: uri, isOwn: true });
-          setLogoModalVisible(false);
-        }
+      const asset = source === 'camera'
+        ? await takePhotoAsset()
+        : await pickImageAssetFromLibrary({ allowsEditing: false });
+      if (!asset) {
+        setIsPicking(false);
         return;
       }
-      try {
-        const remoteUrl = await commitPendingMedia(uri, VARIANT_MEDIA_KIND[variant]);
-        onChange(remoteUrl);
-        if (variant === 'logo') {
-          void recordCommunityUploadedLogo({ value: remoteUrl, isOwn: true });
-          setLogoModalVisible(false);
-        }
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      } catch (error) {
-        clearPendingMedia(uri);
-        const message =
-          error instanceof Error && error.message.trim()
-            ? error.message
-            : 'The uploaded image type or size is not allowed.';
-        Alert.alert('Couldn’t upload image', message);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
-      }
-    } finally {
+      setPendingAsset(asset);
+    } catch (error) {
       setIsPicking(false);
+      Alert.alert('Couldn’t open photo', error instanceof Error ? error.message : 'Please try again.');
     }
+  };
+
+  const handlePickFromDevice = () => {
+    if (disabled || isPicking) return;
+    Alert.alert(`Add ${label || 'photo'}`, 'Choose a photo source.', [
+      { text: 'Take Photo', onPress: () => { void pickSource('camera'); } },
+      { text: 'Photo Library', onPress: () => { void pickSource('library'); } },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   };
 
   const handlePrimaryPress = () => {
@@ -121,7 +143,7 @@ export function ImageUploadField({
       setLogoModalVisible(true);
       return;
     }
-    void handlePickFromDevice();
+    handlePickFromDevice();
   };
 
   const handleRemove = () => {
@@ -133,6 +155,7 @@ export function ImageUploadField({
 
   if (presentation === 'compact' && variant === 'avatar') {
     return (
+      <Fragment>
       <View className="mb-5 items-center">
         <Pressable
           accessibilityLabel={hasImage ? `Edit ${label || 'profile photo'}` : `Upload ${label || 'profile photo'}`}
@@ -173,6 +196,14 @@ export function ImageUploadField({
           ) : null}
         </Pressable>
       </View>
+      <PhotoAdjustmentModal
+        asset={pendingAsset}
+        aspect={config.aspect}
+        title={`Adjust ${label || 'photo'}`}
+        onCancel={() => { setPendingAsset(null); setIsPicking(false); }}
+        onSave={uploadAdjustedImage}
+      />
+      </Fragment>
     );
   }
 
@@ -366,10 +397,17 @@ export function ImageUploadField({
           isUploading={isPicking}
           onClose={() => setLogoModalVisible(false)}
           onSelectLogo={(logoUri) => onChange(logoUri)}
-          onUploadFromDevice={() => void handlePickFromDevice()}
+          onUploadFromDevice={handlePickFromDevice}
           onRemoveLogo={hasImage ? handleRemove : undefined}
         />
       ) : null}
+      <PhotoAdjustmentModal
+        asset={pendingAsset}
+        aspect={config.aspect}
+        title={`Adjust ${label || 'photo'}`}
+        onCancel={() => { setPendingAsset(null); setIsPicking(false); }}
+        onSave={uploadAdjustedImage}
+      />
     </View>
   );
 }

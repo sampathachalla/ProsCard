@@ -12,7 +12,8 @@ import {
 import { Text } from '@/common/ui/Text';
 import { ImageUploadField } from '@/common/ui/ImageUploadField';
 import { MediaImage } from '@/common/ui/MediaImage';
-import { pickImageFromLibrary } from '@/common/ui/usePickImage';
+import { PhotoAdjustmentModal } from '@/common/ui/PhotoAdjustmentModal';
+import { pickImageAssetFromLibrary, takePhotoAsset, type PickedImage } from '@/common/ui/usePickImage';
 import { AUTH_TEST_MODE } from '@/pages/auth/Config/authMode';
 import {
   clearPendingMedia,
@@ -85,6 +86,7 @@ function OnboardingMediaRowCard({
   onChange: (uri: string) => void;
 }) {
   const [isPicking, setIsPicking] = useState(false);
+  const [pendingAsset, setPendingAsset] = useState<PickedImage | null>(null);
   const { theme } = useThemeContext();
   const isDark = theme === 'dark';
   const tintColor = isDark ? Colors.dark.tint : Colors.light.tint;
@@ -92,33 +94,50 @@ function OnboardingMediaRowCard({
   const hasImage = Boolean(value?.trim());
   const Icon = config.icon;
 
-  const handlePick = async () => {
+  const pickSource = async (source: 'camera' | 'library') => {
     if (isPicking) return;
     setIsPicking(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     try {
-      const uri = await pickImageFromLibrary({
-        aspect: config.aspect,
-        allowsEditing: true,
-      });
-      if (!uri) return;
-      if (AUTH_TEST_MODE) {
-        onChange(uri);
+      const asset = source === 'camera'
+        ? await takePhotoAsset()
+        : await pickImageAssetFromLibrary({ allowsEditing: false });
+      if (!asset) {
+        setIsPicking(false);
         return;
       }
-      try {
-        const remoteUrl = await commitPendingMedia(uri, config.mediaKind);
-        onChange(remoteUrl);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      } catch (err) {
-        clearPendingMedia(uri);
-        const message =
-          err instanceof Error && err.message.trim()
-            ? err.message
-            : 'The uploaded image type or size is not allowed.';
-        Alert.alert('Couldn’t upload image', message);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
-      }
+      setPendingAsset(asset);
+    } catch (err) {
+      setIsPicking(false);
+      Alert.alert('Couldn’t open photo', err instanceof Error ? err.message : 'Please try again.');
+    }
+  };
+
+  const handlePick = () => {
+    if (isPicking) return;
+    Alert.alert(`Add ${config.title}`, 'Choose a photo source.', [
+      { text: 'Take Photo', onPress: () => { void pickSource('camera'); } },
+      { text: 'Photo Library', onPress: () => { void pickSource('library'); } },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
+  const saveAdjusted = async (uri: string) => {
+    setPendingAsset(null);
+    if (AUTH_TEST_MODE) {
+      onChange(uri);
+      setIsPicking(false);
+      return;
+    }
+    try {
+      const remoteUrl = await commitPendingMedia(uri, config.mediaKind);
+      onChange(remoteUrl);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    } catch (err) {
+      clearPendingMedia(uri);
+      const message = err instanceof Error && err.message.trim() ? err.message : 'The uploaded image type or size is not allowed.';
+      Alert.alert('Couldn’t upload image', message);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
     } finally {
       setIsPicking(false);
     }
@@ -196,6 +215,13 @@ function OnboardingMediaRowCard({
           </View>
         </View>
       </Pressable>
+      <PhotoAdjustmentModal
+        asset={pendingAsset}
+        aspect={config.aspect}
+        title={`Adjust ${config.title}`}
+        onCancel={() => { setPendingAsset(null); setIsPicking(false); }}
+        onSave={saveAdjusted}
+      />
 
       {error ? (
         <Text className="mt-1.5 px-1 text-xs font-medium text-error dark:text-dark-error">

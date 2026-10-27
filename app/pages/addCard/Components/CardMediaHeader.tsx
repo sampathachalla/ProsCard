@@ -6,7 +6,8 @@ import { Building2, ImagePlus, UserRound } from 'lucide-react-native';
 import { CompanyLogoPickerModal } from '@/common/ui/CompanyLogoPickerModal';
 import { MediaImage } from '@/common/ui/MediaImage';
 import { Text } from '@/common/ui/Text';
-import { pickImageFromLibrary } from '@/common/ui/usePickImage';
+import { PhotoAdjustmentModal } from '@/common/ui/PhotoAdjustmentModal';
+import { pickImageAssetFromLibrary, takePhotoAsset, type PickedImage } from '@/common/ui/usePickImage';
 import { recordCommunityUploadedLogo } from '@/pages/cards/Services/companyLogoPresets';
 import { IMAGE_ASPECTS, IMAGE_LABELS } from '../Config/addCardFields';
 import { uploadCardImage } from '../Services/addCardService';
@@ -24,13 +25,33 @@ type Props = {
 export function CardMediaHeader({ coverPhoto, profilePhoto, logo, gradient, onChange }: Props) {
   const [busyField, setBusyField] = useState<AddCardImageField | null>(null);
   const [logoModalVisible, setLogoModalVisible] = useState(false);
+  const [pendingAsset, setPendingAsset] = useState<PickedImage | null>(null);
+  const [pendingField, setPendingField] = useState<AddCardImageField | null>(null);
 
-  const pick = async (field: AddCardImageField) => {
+  const pick = async (field: AddCardImageField, source: 'camera' | 'library') => {
     setBusyField(field);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     try {
-      const uri = await pickImageFromLibrary({ aspect: IMAGE_ASPECTS[field], allowsEditing: true });
-      if (!uri) return;
+      const asset = source === 'camera'
+        ? await takePhotoAsset()
+        : await pickImageAssetFromLibrary({ allowsEditing: false });
+      if (!asset) {
+        setBusyField(null);
+        return;
+      }
+      setPendingField(field);
+      setPendingAsset(asset);
+    } catch (error) {
+      setBusyField(null);
+      Alert.alert('Couldn’t open photo', error instanceof Error ? error.message : 'Please try again.');
+    }
+  };
+
+  const uploadAdjusted = async (uri: string) => {
+    if (!pendingField) return;
+    const field = pendingField;
+    setPendingAsset(null);
+    try {
       const uploadedUrl = await uploadCardImage(uri, field);
       onChange(field, uploadedUrl);
       if (field === 'logo') {
@@ -44,7 +65,16 @@ export function CardMediaHeader({ coverPhoto, profilePhoto, logo, gradient, onCh
       );
     } finally {
       setBusyField(null);
+      setPendingField(null);
     }
+  };
+
+  const chooseSource = (field: AddCardImageField) => {
+    Alert.alert(`Add ${IMAGE_LABELS[field]}`, 'Choose a photo source.', [
+      { text: 'Take Photo', onPress: () => { void pick(field, 'camera'); } },
+      { text: 'Photo Library', onPress: () => { void pick(field, 'library'); } },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   };
 
   const edit = (field: AddCardImageField, current: string) => {
@@ -55,11 +85,11 @@ export function CardMediaHeader({ coverPhoto, profilePhoto, logo, gradient, onCh
       return;
     }
     if (!current.trim()) {
-      void pick(field);
+      chooseSource(field);
       return;
     }
     Alert.alert(IMAGE_LABELS[field], undefined, [
-      { text: 'Replace', onPress: () => void pick(field) },
+      { text: 'Replace', onPress: () => chooseSource(field) },
       { text: 'Remove', style: 'destructive', onPress: () => onChange(field, '') },
       { text: 'Cancel', style: 'cancel' },
     ]);
@@ -114,8 +144,15 @@ export function CardMediaHeader({ coverPhoto, profilePhoto, logo, gradient, onCh
         isUploading={busyField === 'logo'}
         onClose={() => setLogoModalVisible(false)}
         onSelectLogo={(logoValue) => onChange('logo', logoValue)}
-        onUploadFromDevice={() => void pick('logo')}
+        onUploadFromDevice={() => chooseSource('logo')}
         onRemoveLogo={logo.trim() ? () => onChange('logo', '') : undefined}
+      />
+      <PhotoAdjustmentModal
+        asset={pendingAsset}
+        aspect={pendingField ? IMAGE_ASPECTS[pendingField] : [1, 1]}
+        title={`Adjust ${pendingField ? IMAGE_LABELS[pendingField] : 'photo'}`}
+        onCancel={() => { setPendingAsset(null); setPendingField(null); setBusyField(null); }}
+        onSave={uploadAdjusted}
       />
     </View>
   );
