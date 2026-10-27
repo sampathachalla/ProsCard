@@ -9,10 +9,9 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronDown, LayoutTemplate, Palette, Plus, SlidersHorizontal } from 'lucide-react-native';
+import { Plus } from 'lucide-react-native';
 
 import { Text } from '@/common/ui/Text';
 import { CardPreviewModal } from '@/pages/previewCard/Components/CardPreviewModal';
@@ -24,7 +23,6 @@ import { BioField } from './Components/BioField';
 import { CardMediaHeader } from './Components/CardMediaHeader';
 import { CardTagDropdown } from './Components/CardTagDropdown';
 import { ContactFieldRow } from './Components/ContactFieldRow';
-import { EditorRow } from './Components/EditorRow';
 import { FormField } from './Components/FormField';
 import { LayoutSheet } from './Components/LayoutSheet';
 import { ThemeSheet } from './Components/ThemeSheet';
@@ -80,7 +78,6 @@ export default function AddCardPage() {
   });
   const [panel, setPanel] = useState<AddCardPanel>(null);
   const [previewVisible, setPreviewVisible] = useState(false);
-  const [advancedDesignOpen, setAdvancedDesignOpen] = useState(false);
   const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => () => {
@@ -189,48 +186,12 @@ export default function AddCardPage() {
 
             <CardTagDropdown
               value={editor.draft.sectionOverrides.cardTag ?? ''}
+              layoutValue={`${editor.draft.sectionLayouts.identity} · ${editor.draft.sectionLayouts.professional} · ${editor.draft.sectionLayouts.connections}`}
+              themeValue={`${editor.draft.cardTheme.customThemeName ?? editor.draft.cardTheme.id} · ${editor.draft.cardTheme.fontStyle}`}
               onChange={editor.applyCardTag}
+              onCustomizeLayout={() => setPanel('layout')}
+              onCustomizeTheme={() => setPanel('theme')}
             />
-
-            <Pressable
-              accessibilityLabel="Advanced design customization"
-              accessibilityRole="button"
-              accessibilityState={{ expanded: advancedDesignOpen }}
-              onPress={() => setAdvancedDesignOpen((open) => !open)}
-              className="mb-3 mt-1 min-h-[52px] flex-row items-center rounded-2xl border border-slate-200 bg-card px-4 active:opacity-75 dark:border-slate-800 dark:bg-dark-card"
-            >
-              <SlidersHorizontal color="#2563eb" size={19} strokeWidth={2.3} />
-              <View className="ml-3 flex-1">
-                <Text className="font-bold">Advanced customization</Text>
-                <Text variant="muted">Override the design selected for this tag.</Text>
-              </View>
-              <View style={{ transform: [{ rotate: advancedDesignOpen ? '180deg' : '0deg' }] }}>
-                <ChevronDown color="#64748b" size={20} strokeWidth={2.3} />
-              </View>
-            </Pressable>
-
-            {advancedDesignOpen ? (
-              <View className="mb-2">
-                <EditorRow
-                  icon={LayoutTemplate}
-                  label="Layout"
-                  value={`${editor.draft.sectionLayouts.identity} · ${editor.draft.sectionLayouts.professional} · ${editor.draft.sectionLayouts.connections}`}
-                  onPress={() => setPanel('layout')}
-                />
-                <EditorRow
-                  icon={Palette}
-                  label="Card theme & font"
-                  value={editor.draft.cardTheme.customThemeName ?? editor.draft.cardTheme.id}
-                  onPress={() => setPanel('theme')}
-                  accessory={
-                    <LinearGradient
-                      colors={editor.draft.cardTheme.gradient}
-                      className="mr-2 h-8 w-8 rounded-full"
-                    />
-                  }
-                />
-              </View>
-            ) : null}
 
             <View className="mb-2 mt-4">
               <Text variant="subtitle">Card details</Text>

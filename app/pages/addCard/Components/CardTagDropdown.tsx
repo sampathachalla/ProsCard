@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { Briefcase, Check, ChevronDown, FolderKanban, Network, Tag, UserRound, type LucideIcon } from 'lucide-react-native';
+import { Briefcase, Check, ChevronDown, FolderKanban, LayoutTemplate, Network, Palette, Tag, UserRound, type LucideIcon } from 'lucide-react-native';
 import { Text } from '@/common/ui/Text';
 import { CARD_TAG_OPTIONS } from '@/pages/cards/types/card.types';
 
@@ -14,11 +14,22 @@ const TAG_ICONS: Record<string, LucideIcon> = {
 
 type Props = {
   value: string;
+  layoutValue: string;
+  themeValue: string;
   onChange: (tag: string) => void;
+  onCustomizeLayout: () => void;
+  onCustomizeTheme: () => void;
 };
 
 /** Pill-shaped select for the required card tag; options expand inline below it. */
-export function CardTagDropdown({ value, onChange }: Props) {
+export function CardTagDropdown({
+  value,
+  layoutValue,
+  themeValue,
+  onChange,
+  onCustomizeLayout,
+  onCustomizeTheme,
+}: Props) {
   const [open, setOpen] = useState(false);
   const SelectedIcon = TAG_ICONS[value] ?? Tag;
 
@@ -73,6 +84,42 @@ export function CardTagDropdown({ value, onChange }: Props) {
               </Pressable>
             );
           })}
+          {value ? (
+            <View className="border-t border-slate-200 p-3 dark:border-slate-700">
+              <View className="mb-2 px-2">
+                <Text className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Customize {value} design
+                </Text>
+                <Text variant="muted">Optional overrides for this tag.</Text>
+              </View>
+              <Pressable
+                accessibilityLabel={`Customize ${value} layouts`}
+                accessibilityRole="button"
+                onPress={() => { setOpen(false); onCustomizeLayout(); }}
+                className="min-h-[48px] flex-row items-center rounded-xl px-2 active:bg-slate-100 dark:active:bg-slate-800"
+              >
+                <LayoutTemplate color="#2563eb" size={18} strokeWidth={2.2} />
+                <View className="ml-3 min-w-0 flex-1">
+                  <Text className="font-semibold">Layouts</Text>
+                  <Text variant="muted" numberOfLines={1}>{layoutValue}</Text>
+                </View>
+                <ChevronDown color="#94a3b8" size={18} style={{ transform: [{ rotate: '-90deg' }] }} />
+              </Pressable>
+              <Pressable
+                accessibilityLabel={`Customize ${value} theme and font`}
+                accessibilityRole="button"
+                onPress={() => { setOpen(false); onCustomizeTheme(); }}
+                className="min-h-[48px] flex-row items-center rounded-xl px-2 active:bg-slate-100 dark:active:bg-slate-800"
+              >
+                <Palette color="#2563eb" size={18} strokeWidth={2.2} />
+                <View className="ml-3 min-w-0 flex-1">
+                  <Text className="font-semibold">Theme & font</Text>
+                  <Text variant="muted" numberOfLines={1}>{themeValue}</Text>
+                </View>
+                <ChevronDown color="#94a3b8" size={18} style={{ transform: [{ rotate: '-90deg' }] }} />
+              </Pressable>
+            </View>
+          ) : null}
         </View>
       ) : null}
     </View>
