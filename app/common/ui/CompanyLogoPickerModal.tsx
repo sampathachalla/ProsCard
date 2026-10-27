@@ -54,14 +54,22 @@ export function CompanyLogoPickerModal({
   const insets = useSafeAreaInsets();
   const { theme } = useThemeContext();
   const isDark = theme === 'dark';
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const isExpanded = isSearchFocused || searchQuery.trim().length > 0;
   const sheetTranslateY = useSharedValue(0);
   const sheetAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: sheetTranslateY.get() }],
   }));
+  const handleClose = () => {
+    setSearchQuery('');
+    setIsSearchFocused(false);
+    onClose();
+  };
   const closeFromSwipe = () => {
     sheetTranslateY.set(0);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    onClose();
+    handleClose();
   };
   const dragHandleGesture = Gesture.Pan()
     .activeOffsetY(4)
@@ -80,8 +88,6 @@ export function CompanyLogoPickerModal({
       }
     });
 
-  const [searchQuery, setSearchQuery] = useState('');
-
   const filteredPresets = useMemo(
     () => filterCompanyLogoPresets(searchQuery),
     [searchQuery],
@@ -90,7 +96,7 @@ export function CompanyLogoPickerModal({
   const handlePick = (logoValue: string, label?: string) => {
     Haptics.selectionAsync().catch(() => {});
     onSelectLogo(logoValue, label);
-    onClose();
+    handleClose();
   };
 
   const hasCurrentLogo = Boolean(value.trim());
@@ -100,13 +106,14 @@ export function CompanyLogoPickerModal({
       visible={visible}
       animationType="slide"
       transparent
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
       <View className="flex-1 justify-end bg-black/75">
         <Animated.View
-          className="h-[56%] w-full overflow-hidden rounded-t-[28px] border-t border-slate-200 bg-background dark:border-slate-800 dark:bg-[#020617]"
+          className="w-full overflow-hidden rounded-t-[28px] border-t border-slate-200 bg-background dark:border-slate-800 dark:bg-[#020617]"
           style={[{
             paddingBottom: Math.max(insets.bottom, 16),
+            height: isExpanded ? '92%' : '56%',
             maxHeight: '90%',
           }, sheetAnimatedStyle]}
         >
@@ -134,7 +141,7 @@ export function CompanyLogoPickerModal({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Close logo picker"
-              onPress={onClose}
+              onPress={handleClose}
               className="h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-slate-100 active:opacity-80 dark:border-slate-700 dark:bg-[#0f172a]"
             >
               <X color={isDark ? '#cbd5e1' : '#334155'} size={18} strokeWidth={2.4} />
@@ -179,7 +186,7 @@ export function CompanyLogoPickerModal({
                           style: 'destructive',
                           onPress: () => {
                             onRemoveLogo();
-                            onClose();
+                            handleClose();
                           },
                         },
                       ],
@@ -201,6 +208,10 @@ export function CompanyLogoPickerModal({
               <TextInput
                 value={searchQuery}
                 onChangeText={setSearchQuery}
+                onFocus={() => setIsSearchFocused(true)}
+                onBlur={() => {
+                  if (!searchQuery.trim()) setIsSearchFocused(false);
+                }}
                 placeholder="Type a company name..."
                 placeholderTextColor={isDark ? '#94a3b8' : '#64748b'}
                 autoCapitalize="none"
