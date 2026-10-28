@@ -22,7 +22,7 @@ function theme(
 
 export const CARD_TAG_DESIGN_PRESETS: Record<CardTag, CardTagDesignPreset> = {
   Business: {
-    layouts: { identity: 'layout-1', professional: 'layout-1', connections: 'editorial' },
+    layouts: { identity: 'layout-1', professional: 'layout-1', connections: 'compact' },
     theme: theme('ocean', 'modern'),
   },
   Personal: {
@@ -34,7 +34,7 @@ export const CARD_TAG_DESIGN_PRESETS: Record<CardTag, CardTagDesignPreset> = {
     theme: theme('aurora', 'modern'),
   },
   Portfolio: {
-    layouts: { identity: 'layout-6', professional: 'layout-5', connections: 'editorial' },
+    layouts: { identity: 'layout-6', professional: 'layout-5', connections: 'compact' },
     theme: theme('violet', 'classic'),
   },
 };

@@ -98,7 +98,7 @@ const CONNECTION_TEMPLATE_LABELS: Record<
 
 const CONNECTION_TEMPLATES: { id: CardLayoutId; label: string }[] =
   CONNECTION_LAYOUT_IDS
-    .filter((id) => id === "editorial" || id === "compact")
+    .filter((id) => id === "compact")
     .map((id) => ({
       id,
       label: CONNECTION_TEMPLATE_LABELS[id],
