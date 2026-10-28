@@ -105,6 +105,9 @@ export function resolveCardSectionTheme(
   if (options.logoThemesEnabled && options.logoTheme && !card.cardTheme?.customThemeId) {
     return options.logoTheme;
   }
+  if (options.tagDesignEnabled && !card.cardTheme?.customThemeId) {
+    return getCardTagDesignPreset(resolveCardTag(card)).theme;
+  }
   // Tag presets are written into the card's own themes when the tag is picked (applyCardTagDesign).
   return card.sectionThemes[sectionId] ?? card.cardTheme;
 }
@@ -122,9 +125,12 @@ export function withResolvedCardTheme(
   },
 ): BusinessCard {
   const cardTag = resolveCardTag(card);
-  // Off (or no usable logo) leaves the card's own theme, which already carries any tag preset.
-  const appliedTheme = options.logoThemesEnabled && options.logoPalette && !card.cardTheme?.customThemeId
-    ? buildThemeFromLogoPalette(options.logoPalette, card.cardTheme?.fontStyle, cardTag)
+  const appliedTheme = !card.cardTheme?.customThemeId
+    ? options.logoThemesEnabled && options.logoPalette
+      ? buildThemeFromLogoPalette(options.logoPalette, card.cardTheme?.fontStyle, cardTag)
+      : options.tagDesignEnabled
+        ? getCardTagDesignPreset(cardTag).theme
+        : null
     : null;
   return { ...card, appliedTheme: appliedTheme ? { ...appliedTheme, gradient: [...appliedTheme.gradient] as [string, string] } : null };
 }

@@ -32,14 +32,14 @@ function minimalCard(overrides: Partial<BusinessCard> = {}): BusinessCard {
 }
 
 describe('resolveCardSectionTheme', () => {
-  it('keeps the card\'s own theme when logo themes are off, even with tag design on', () => {
+  it('uses the card tag theme when logo themes are off and tag design is on', () => {
     const card = minimalCard({ sectionOverrides: { cardTag: 'Personal' } });
     const resolved = resolveCardSectionTheme('identity', card, {
       tagDesignEnabled: true,
       logoThemesEnabled: false,
       logoTheme: null,
     });
-    expect(resolved.gradient).toEqual(card.sectionThemes.identity.gradient);
+    expect(resolved.gradient).toEqual(CARD_THEME_PRESETS.slate.gradient);
   });
 
   it('uses saved section theme when tag design is off and logo themes are off', () => {
@@ -106,12 +106,12 @@ describe('withResolvedCardTheme / savedSectionTheme', () => {
     expect(savedSectionTheme(applied, 'identity')).toEqual(applied.appliedTheme);
   });
 
-  it('restores the card\'s own theme when logo themes are switched off', () => {
-    const card = minimalCard({ sectionOverrides: { logo: 'https://example.com/logo.png' } });
+  it('restores the card tag theme when logo themes are switched off', () => {
+    const card = minimalCard({ sectionOverrides: { logo: 'https://example.com/logo.png', cardTag: 'Personal' } });
     const on = withResolvedCardTheme(card, { tagDesignEnabled: true, logoThemesEnabled: true, logoPalette: palette });
     const off = withResolvedCardTheme(on, { tagDesignEnabled: true, logoThemesEnabled: false });
-    expect(off.appliedTheme).toBeNull();
-    expect(savedSectionTheme(off, 'professional')).toEqual(card.sectionThemes.professional);
+    expect(off.appliedTheme).toBeTruthy();
+    expect(savedSectionTheme(off, 'professional').gradient).toEqual(CARD_THEME_PRESETS.slate.gradient);
   });
 
   it('never overrides a custom theme', () => {
