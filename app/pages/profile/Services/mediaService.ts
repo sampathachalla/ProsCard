@@ -92,7 +92,9 @@ export function resolveProtectedMediaUrl(contentUrl: string): string {
       const url = new URL(contentUrl);
       const brandId = url.pathname.split('/').filter(Boolean)[0];
       if (brandId) {
-        url.pathname = `/${brandId}/w/256/h/256/theme/dark/fallback/transparent/symbol.webp`;
+        // Keep this extensionless: Brandfetch's `symbol.webp` variant can be a
+        // fully transparent image even when the extensionless symbol exists.
+        url.pathname = `/${brandId}/w/256/h/256/theme/dark/symbol`;
         return url.toString();
       }
     } catch {

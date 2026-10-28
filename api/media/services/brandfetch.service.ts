@@ -23,7 +23,9 @@ function transparentLogoUrl(iconUrl: string): string {
     if (url.hostname !== 'cdn.brandfetch.io') return iconUrl;
     const brandId = url.pathname.split('/').filter(Boolean)[0];
     if (!brandId) return iconUrl;
-    url.pathname = `/${brandId}/w/256/h/256/theme/dark/fallback/transparent/symbol.webp`;
+    // Brandfetch's symbol endpoint is extensionless. Adding `.webp` can return a
+    // valid but fully transparent image for some brands (notably Apple).
+    url.pathname = `/${brandId}/w/256/h/256/theme/dark/symbol`;
     return url.toString();
   } catch {
     return iconUrl;
