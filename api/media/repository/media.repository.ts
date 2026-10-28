@@ -1,4 +1,5 @@
 import type { Queryable } from '../../src/types.js';
+import type { ExtractedLogoPalette } from '../services/palette-extractor.service.js';
 
 export type MediaKind = 'profilePhoto' | 'coverPhoto' | 'companyLogo' | 'contactCard';
 export type MediaScope = 'profile' | 'card' | 'contact';
@@ -32,6 +33,39 @@ export class MediaRepository {
       "SELECT * FROM media WHERE id=$1 AND (user_id=$2 OR (kind='companyLogo' AND status='ready'))",
       [id, userId],
     ).then((result) => result.rows[0] ?? null);
+  }
+
+  findLogoThemeBySourceKey(sourceKey: string) {
+    return this.db.query<{ palette: ExtractedLogoPalette }>(
+      `UPDATE logo_theme_cache
+       SET hit_count=hit_count+1,last_used_at=now()
+       WHERE content_hash=(SELECT content_hash FROM logo_theme_cache WHERE $1=ANY(source_keys) LIMIT 1)
+       RETURNING palette`,
+      [sourceKey],
+    ).then((result) => result.rows[0]?.palette ?? null);
+  }
+
+  findLogoThemeByContentHash(contentHash: string) {
+    return this.db.query<{ palette: ExtractedLogoPalette }>(
+      `UPDATE logo_theme_cache SET hit_count=hit_count+1,last_used_at=now()
+       WHERE content_hash=$1 RETURNING palette`,
+      [contentHash],
+    ).then((result) => result.rows[0]?.palette ?? null);
+  }
+
+  saveLogoTheme(contentHash: string, palette: ExtractedLogoPalette, sourceKey?: string) {
+    const sourceKeys = sourceKey ? [sourceKey] : [];
+    return this.db.query<{ palette: ExtractedLogoPalette }>(
+      `INSERT INTO logo_theme_cache(content_hash,source_keys,palette)
+       VALUES($1,$2::text[],$3::jsonb)
+       ON CONFLICT(content_hash) DO UPDATE SET
+         source_keys=(SELECT ARRAY(SELECT DISTINCT source_key FROM unnest(logo_theme_cache.source_keys || EXCLUDED.source_keys) AS source_key)),
+         palette=EXCLUDED.palette,
+         updated_at=now(),
+         last_used_at=now()
+       RETURNING palette`,
+      [contentHash, sourceKeys, JSON.stringify(palette)],
+    ).then((result) => result.rows[0]!.palette);
   }
 
   listCommunityCompanyLogos(userId: string, query?: string, limit = 48) {

@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { HttpError } from '../../src/errors.js';
 import { log } from '../../src/logger.js';
 import type { MediaKind, MediaRepository, MediaRow, MediaScope } from '../repository/media.repository.js';
@@ -33,6 +33,16 @@ const LOGO_FETCH_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) A
 
 export class MediaService {
   constructor(private readonly repo: MediaRepository, private readonly storage: ObjectStorageGateway) {}
+
+  private async paletteForBuffer(buffer: Buffer, sourceKey?: string): Promise<ExtractedLogoPalette> {
+    const contentHash = createHash('sha256').update(buffer).digest('hex');
+    const cached = await this.repo.findLogoThemeByContentHash(contentHash);
+    if (cached) return sourceKey
+      ? this.repo.saveLogoTheme(contentHash, cached, sourceKey)
+      : cached;
+    const palette = await extractPaletteFromBuffer(buffer);
+    return this.repo.saveLogoTheme(contentHash, palette, sourceKey);
+  }
 
   async requestUpload(userId: string, input: UploadInput) {
     if (input.scope === 'card' && (!input.cardId || !await this.repo.cardOwned(userId, input.cardId))) {
@@ -138,7 +148,7 @@ export class MediaService {
         const res = await fetch(signed.url);
         if (res.ok) {
           const buffer = Buffer.from(await res.arrayBuffer());
-          palette = await extractPaletteFromBuffer(buffer);
+          palette = await this.paletteForBuffer(buffer);
         }
       } catch (paletteErr) {
         log('warn', 'palette_extraction_failed', {
@@ -336,6 +346,7 @@ export class MediaService {
 
   async extractPalette(userId: string, input: { mediaId?: string; imageUrl?: string }) {
     let buffer: Buffer | null = null;
+    let sourceKey: string | undefined;
     let targetMediaId = input.mediaId;
     if (!targetMediaId && input.imageUrl) {
       const match = input.imageUrl.match(/\/api\/v1\/media\/([^/]+)\/content/);
@@ -357,6 +368,9 @@ export class MediaService {
         const base64Data = input.imageUrl.split(',')[1];
         if (base64Data) buffer = Buffer.from(base64Data, 'base64');
       } else if (input.imageUrl.startsWith('https://')) {
+        sourceKey = `url:${createHash('sha256').update(input.imageUrl.trim()).digest('hex')}`;
+        const cached = await this.repo.findLogoThemeBySourceKey(sourceKey);
+        if (cached) return cached;
         // Brandfetch's CDN serves its HTML website to non-browser agents; ask explicitly for an image.
         const res = await fetch(input.imageUrl, {
           headers: { 'User-Agent': LOGO_FETCH_USER_AGENT, Accept: 'image/webp,image/png,image/svg+xml,image/*' },
@@ -370,6 +384,6 @@ export class MediaService {
     if (!buffer) {
       throw new HttpError(400, 'Could not load image data for palette extraction.');
     }
-    return extractPaletteFromBuffer(buffer);
+    return this.paletteForBuffer(buffer, sourceKey);
   }
 }
