@@ -11,8 +11,8 @@ export function useSignup() {
   const initialFields = getSignupInitialFields();
   const [email, setEmail] = useState(initialFields.email);
   const [password, setPassword] = useState(initialFields.password);
-  const [confirmPassword, setConfirmPassword] = useState(initialFields.confirmPassword);
   const [errors, setErrors] = useState<AuthFieldErrors>({});
+  const [formError, setFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const clearFieldError = (field: string) => {
@@ -25,15 +25,16 @@ export function useSignup() {
   };
 
   const handleSignup = async () => {
-    const nextErrors = validateSignupFields({ email, password, confirmPassword });
+    const nextErrors = validateSignupFields({ email, password });
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
       return;
     }
 
+    setFormError('');
     setIsSubmitting(true);
     try {
-      const user = await signup({ email: email.trim(), password, confirmPassword });
+      const user = await signup({ email: email.trim(), password, confirmPassword: password });
       if (user.emailConfirmationRequired) {
         Alert.alert('Check your email', 'Confirm your email address, then sign in to continue.');
         router.replace('/auth/login');
@@ -41,7 +42,7 @@ export function useSignup() {
       }
       router.replace('/onboarding');
     } catch (err) {
-      Alert.alert('Signup Failed', err instanceof Error ? err.message : 'Could not create your account. Please try again.');
+      setFormError(err instanceof Error ? err.message : 'Could not create your account. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -52,18 +53,17 @@ export function useSignup() {
     setEmail: (value: string) => {
       setEmail(value);
       clearFieldError('email');
+      if (formError) setFormError('');
     },
     password,
     setPassword: (value: string) => {
       setPassword(value);
       clearFieldError('password');
-    },
-    confirmPassword,
-    setConfirmPassword: (value: string) => {
-      setConfirmPassword(value);
-      clearFieldError('confirmPassword');
+      if (formError) setFormError('');
     },
     errors,
+    formError,
+    setFormError,
     isSubmitting,
     handleSignup,
   };

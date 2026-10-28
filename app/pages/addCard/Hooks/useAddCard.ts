@@ -15,12 +15,21 @@ import {
   type SavedSectionTheme,
 } from '@/pages/cards/types/card.types';
 import { useProfileSnapshot } from '@/pages/profile/Hooks/useProfileSnapshot';
-import { themeFromSavedSectionTheme } from '@/utils/cardThemeColor';
+import { useCardTagDesignPreference } from '@/pages/profile/Hooks/useCardTagDesignPreference';
+import { useLogoThemePreference } from '@/pages/profile/Hooks/useLogoThemePreference';
+import type { LogoPalette } from '@/services/api/types';
+import { buildDynamicTagThemes, themeFromSavedSectionTheme } from '@/utils/cardThemeColor';
 import { buildAddCardDraft, buildAddCardDraftForEditor, createCard } from '../Services/addCardService';
 import type { AddCardTextFieldId, ContactOption } from '../types/addCard.types';
 import { splitName } from '../Utils/addCardName';
 import { validateAddCard } from '../Utils/validateAddCard';
-import { CARD_TAG_DESIGN_PRESETS, isCardTag } from '../Config/cardTagDesignPresets';
+import {
+  applyCardTagDesign,
+  type CardTag,
+  getCardTagDesignPreset,
+  isCardTag,
+} from '../Config/cardTagDesignPresets';
+import { getCachedLogoPalette } from '@/pages/profile/Services/mediaService';
 
 /** Applies one theme to every card section so the whole card matches. */
 function withThemeEverywhere(card: BusinessCard, theme: CardVisualTheme): BusinessCard {
@@ -40,6 +49,8 @@ type UseAddCardOptions = {
 
 export function useAddCard(options: UseAddCardOptions = {}) {
   const { profile } = useProfileSnapshot();
+  const { enabled: logoThemesEnabled } = useLogoThemePreference();
+  const { enabled: tagDesignEnabled } = useCardTagDesignPreference();
   const isEditMode = Boolean(options.cardId);
   const [draft, setDraft] = useState<BusinessCard>(() =>
     buildAddCardDraftForEditor(profile, options.cardId),
@@ -57,13 +68,63 @@ export function useAddCard(options: UseAddCardOptions = {}) {
       setOverride('cardTag', tag);
       return;
     }
-    const preset = CARD_TAG_DESIGN_PRESETS[tag];
-    setDraft((prev) => withThemeEverywhere({
-      ...prev,
-      sectionLayouts: { ...preset.layouts },
-      sectionOverrides: { ...prev.sectionOverrides, cardTag: tag },
-    }, preset.theme));
-  }, [setOverride]);
+    if (!tagDesignEnabled) {
+      setOverride('cardTag', tag);
+      return;
+    }
+    setDraft((prev) => {
+      const logoUrl = prev.sectionOverrides?.logo;
+      const cachedPalette = logoUrl ? getCachedLogoPalette(logoUrl) : undefined;
+      return applyCardTagDesign(prev, tag, { logoThemesEnabled, logoPalette: cachedPalette });
+    });
+  }, [logoThemesEnabled, setOverride, tagDesignEnabled]);
+
+  const applyLogoThemes = useCallback((palette: LogoPalette) => {
+    if (!logoThemesEnabled) {
+      if (!tagDesignEnabled) return;
+      setDraft((prev) => {
+        const currentTag = prev.sectionOverrides?.cardTag;
+        const activeTag = currentTag && isCardTag(currentTag) ? currentTag : 'Business';
+        const preset = getCardTagDesignPreset(activeTag);
+        return withThemeEverywhere({
+          ...prev,
+          sectionLayouts: { ...preset.layouts },
+          customThemes: (prev.customThemes ?? []).filter((item) => !item.id.startsWith('logo-tag-')),
+        }, preset.theme);
+      });
+      return;
+    }
+    const dynamicTagThemes = buildDynamicTagThemes(palette);
+    const savedCustomThemes: SavedSectionTheme[] = (
+      Object.keys(dynamicTagThemes) as CardTag[]
+    ).map((tagKey) => {
+      const t = dynamicTagThemes[tagKey];
+      return {
+        id: `logo-tag-${tagKey.toLowerCase()}`,
+        name: t.customThemeName || `Brand ${tagKey}`,
+        gradient: [...t.gradient],
+        paletteTier: 3,
+        paletteColors: t.paletteColors ? [...t.paletteColors] : [t.gradient[0], t.surfaceColor, t.gradient[1]],
+      };
+    });
+
+    setDraft((prev) => {
+      const currentTag = prev.sectionOverrides?.cardTag;
+      const activeTag = currentTag && isCardTag(currentTag) ? currentTag : 'Business';
+      const activeDynamicTheme = dynamicTagThemes[activeTag] || dynamicTagThemes.Business;
+
+      return withThemeEverywhere(
+        {
+          ...prev,
+          customThemes: [
+            ...savedCustomThemes,
+            ...(prev.customThemes ?? []).filter((item) => !item.id.startsWith('logo-tag-')),
+          ],
+        },
+        activeDynamicTheme,
+      );
+    });
+  }, [logoThemesEnabled, tagDesignEnabled]);
 
   const setTextField = useCallback((field: AddCardTextFieldId, value: string) => {
     setDraft((prev) => {
@@ -188,6 +249,7 @@ export function useAddCard(options: UseAddCardOptions = {}) {
     removeContact,
     setLayout,
     setTheme,
+    applyLogoThemes,
     saveCustomTheme,
     save,
     reset,

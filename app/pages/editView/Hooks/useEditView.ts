@@ -14,6 +14,10 @@ import {
   type SavedSectionTheme,
 } from '@/pages/cards/types/card.types';
 import { themeFromSavedSectionTheme } from '@/utils/cardThemeColor';
+import { applyCardTagDesign, isCardTag } from '@/pages/addCard/Config/cardTagDesignPresets';
+import { useCardTagDesignPreference } from '@/pages/profile/Hooks/useCardTagDesignPreference';
+import { useLogoThemePreference } from '@/pages/profile/Hooks/useLogoThemePreference';
+import { getCachedLogoPalette } from '@/pages/profile/Services/mediaService';
 import { getEditableCard, saveCard } from '../Services/editViewService';
 import { validateCard } from '../Utils/validateCard';
 
@@ -48,6 +52,8 @@ export function useEditView(
   initialCard?: EditableCard,
   beforeSave?: (card: EditableCard) => Promise<void>,
 ) {
+  const { enabled: tagDesignEnabled } = useCardTagDesignPreference();
+  const { enabled: logoThemesEnabled } = useLogoThemePreference();
   const [card, setCard] = useState<EditableCard>(() => initialCard ?? getEditableCard(cardId));
   const [draft, setDraft] = useState<EditableCard>(() => initialCard ?? getEditableCard(cardId));
   const [isEditing, setIsEditing] = useState(startInEditMode);
@@ -142,6 +148,21 @@ export function useEditView(
   };
 
   const updateSectionField = (field: CardSectionFieldId, value: string) => {
+    if (field === 'cardTag') {
+      if (!isCardTag(value) || !tagDesignEnabled) {
+        setDraft((prev) => ({
+          ...prev,
+          sectionOverrides: { ...prev.sectionOverrides, cardTag: value },
+        }));
+        return;
+      }
+      setDraft((prev) => {
+        const logoUrl = prev.sectionOverrides?.logo;
+        const cachedPalette = logoUrl ? getCachedLogoPalette(logoUrl) : undefined;
+        return applyCardTagDesign(prev, value, { logoThemesEnabled, logoPalette: cachedPalette });
+      });
+      return;
+    }
     setDraft((prev) => ({
       ...prev,
       ...(field === 'preferredName' ? { name: value } : {}),

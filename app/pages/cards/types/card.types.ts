@@ -169,7 +169,16 @@ export function resolveIdentityPreferredName(input: {
 
 export type DynamicCardFieldType = 'text' | 'email' | 'phone' | 'url';
 export type CardFontStyle = 'modern' | 'classic' | 'rounded' | 'mono';
-export type CardThemeId = 'ocean' | 'midnight' | 'violet' | 'sand' | 'sunset' | 'aurora' | 'custom';
+export type CardThemeId =
+  | 'ocean'
+  | 'midnight'
+  | 'navy'
+  | 'slate'
+  | 'violet'
+  | 'sand'
+  | 'sunset'
+  | 'aurora'
+  | 'custom';
 
 export type ThemePaletteTier = 2 | 3 | 4;
 
@@ -264,6 +273,24 @@ export const CARD_THEME_PRESETS: Record<CardThemePresetId, Omit<CardVisualTheme,
     mutedTextColor: '#94a3b8',
     accentColor: '#38bdf8',
     gradient: ['#111827', '#020617'],
+  },
+  navy: {
+    id: 'navy',
+    backgroundColor: '#f8fafc',
+    surfaceColor: '#ffffff',
+    textColor: '#0f172a',
+    mutedTextColor: '#475569',
+    accentColor: '#1e40af',
+    gradient: ['#1e3a8a', '#1e40af'],
+  },
+  slate: {
+    id: 'slate',
+    backgroundColor: '#f1f5f9',
+    surfaceColor: '#ffffff',
+    textColor: '#1e293b',
+    mutedTextColor: '#64748b',
+    accentColor: '#475569',
+    gradient: ['#64748b', '#334155'],
   },
   violet: {
     id: 'violet',
@@ -373,6 +400,8 @@ export type BusinessCard = {
   cardTheme: CardVisualTheme;
   /** User-created gradient themes for this card (shown first in the theme picker). */
   customThemes?: SavedSectionTheme[];
+  /** Theme from the owner's profile toggles (logo colors / tag styles); null when they leave the card's own theme. */
+  appliedTheme?: CardVisualTheme | null;
   createdAt?: string;
   updatedAt?: string;
 };

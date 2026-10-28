@@ -3,6 +3,7 @@ import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { ApiError, NETWORK_ERROR_STATUS } from '@/services/api/client';
 import type { MediaKind, MediaScope } from '@/services/api/types';
 import {
+  cacheLogoPalette,
   cacheMediaFileFromUri,
   confirmMedia,
   readUriAsArrayBuffer,
@@ -138,6 +139,10 @@ export async function commitPendingMedia(
     });
     await uploadToObjectStorage(ticket, bytes);
     const confirmed = await confirmMedia(ticket.mediaId);
+    if (confirmed.palette) {
+      cacheLogoPalette(confirmed.contentUrl, confirmed.palette);
+      cacheLogoPalette(ticket.mediaId, confirmed.palette);
+    }
     await cacheMediaFileFromUri(ticket.mediaId, optimized.uri);
     if (confirmed.replacedMediaId) await invalidateCachedMedia(confirmed.replacedMediaId);
     pendingAssets.delete(uri);

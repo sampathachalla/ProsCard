@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Check, ChevronLeft, Palette, Type as TypeIcon } from 'lucide-react-native';
+import { Check, ChevronLeft, Palette, Sparkles, Type as TypeIcon } from 'lucide-react-native';
 import {
   type CardFontStyle,
   type CardSectionId,
@@ -10,6 +10,10 @@ import {
   type SavedSectionTheme,
 } from '@/pages/cards/types/card.types';
 import { getCardFontFamily } from '@/pages/cards/Templates/cardTheme';
+import { extractLogoPalette, getCachedLogoPalette } from '@/pages/profile/Services/mediaService';
+import { useLogoThemePreference } from '@/pages/profile/Hooks/useLogoThemePreference';
+import type { LogoPalette } from '@/services/api/types';
+import { buildDynamicTagThemes, buildThemeFromLogoPalette } from '@/utils/cardThemeColor';
 import { Text } from '@/common/ui/Text';
 import { EditorSectionLabel } from '@/common/ui/editor/EditorSectionLabel';
 
@@ -144,6 +148,7 @@ export function CardStylingCustomizer({
   embedded = false,
   editBarCollapsed = false,
   fullOpen = false,
+  logoUrl,
   onBack,
   onChange,
   theme,
@@ -154,6 +159,7 @@ export function CardStylingCustomizer({
   editBarCollapsed?: boolean;
   embedded?: boolean;
   fullOpen?: boolean;
+  logoUrl?: string;
   onBack: () => void;
   onChange: (theme: CardVisualTheme) => void;
   onSaveCustomTheme: (entry: SavedSectionTheme) => void;
@@ -166,11 +172,93 @@ export function CardStylingCustomizer({
   const cardWidth = (editorPaneWidth - gridGap) / 2;
   const [activePanel, setActivePanel] = useState<'themes' | 'fonts'>('themes');
   const [themePage, setThemePage] = useState(0);
+  const { enabled: logoThemesEnabled } = useLogoThemePreference();
+  const [extractingLogo, setExtractingLogo] = useState(false);
+  const [logoPalette, setLogoPalette] = useState<LogoPalette | null>(() => {
+    if (!logoUrl?.trim()) return null;
+    return getCachedLogoPalette(logoUrl.trim()) ?? null;
+  });
+
+  useEffect(() => {
+    if (!logoThemesEnabled || !logoUrl?.trim() || logoPalette) return;
+    let active = true;
+    extractLogoPalette({ imageUrl: logoUrl.trim() })
+      .then((pal) => {
+        if (active && pal) setLogoPalette(pal);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [logoThemesEnabled, logoUrl, logoPalette]);
+
+  const dynamicTagThemes = useMemo(() => {
+    return logoThemesEnabled && logoPalette ? buildDynamicTagThemes(logoPalette) : null;
+  }, [logoThemesEnabled, logoPalette]);
+
+  const TAG_THEME_KEYS = ['Business', 'Networking', 'Personal', 'Portfolio'] as const;
+  const TAG_DESCRIPTIONS: Record<(typeof TAG_THEME_KEYS)[number], string> = {
+    Business: 'Executive brand contrast',
+    Networking: 'High-energy electric spotlight',
+    Personal: 'Warm & approachable harmony',
+    Portfolio: 'Minimalist studio editorial',
+  };
+
   const themePages = Array.from({ length: Math.ceil(GLOBAL_THEME_OPTIONS.length / 4) }, (_, index) =>
     GLOBAL_THEME_OPTIONS.slice(index * 4, index * 4 + 4),
   );
   const compactThemeCards = !editBarCollapsed;
   const useThemeCarousel = !fullOpen || compactThemeCards;
+
+  const handleAutoMatchLogo = async () => {
+    if (!logoUrl?.trim() || extractingLogo) return;
+    setExtractingLogo(true);
+    try {
+      const palette = await extractLogoPalette({ imageUrl: logoUrl.trim() });
+      setLogoPalette(palette);
+      const brandTheme = buildThemeFromLogoPalette(palette, theme.fontStyle);
+      onChange(brandTheme);
+    } catch (error) {
+      Alert.alert(
+        'Couldn’t match logo colors',
+        error instanceof Error ? error.message : 'Please check your connection and try again.',
+      );
+    } finally {
+      setExtractingLogo(false);
+    }
+  };
+
+  const renderDynamicTheme = (tagKey: (typeof TAG_THEME_KEYS)[number]) => {
+    if (!dynamicTagThemes) return null;
+    const dynamicTheme = dynamicTagThemes[tagKey];
+    const selected = theme.customThemeName === dynamicTheme.customThemeName
+      || (theme.gradient[0] === dynamicTheme.gradient[0] && theme.gradient[1] === dynamicTheme.gradient[1]);
+    return (
+      <Pressable
+        key={tagKey}
+        accessibilityLabel={`Apply ${dynamicTheme.customThemeName} theme`}
+        accessibilityRole="button"
+        accessibilityState={{ selected }}
+        onPress={() => onChange({ ...dynamicTheme, fontStyle: theme.fontStyle })}
+        className={`overflow-hidden rounded-2xl border bg-card active:opacity-80 dark:bg-dark-card ${selected ? 'border-2 border-primary' : 'border-slate-200 dark:border-slate-700'}`}
+        style={{ height: compactThemeCards ? 104 : 148, width: cardWidth }}
+      >
+        <LinearGradient colors={dynamicTheme.gradient} style={{ height: compactThemeCards ? 40 : 64, width: '100%' }} />
+        <View className={compactThemeCards ? 'px-3 py-2' : 'p-3'}>
+          <View className="flex-row items-center">
+            <Sparkles color="#2563eb" size={12} />
+            <Text numberOfLines={1} className="ml-1 text-sm font-bold text-textPrimary dark:text-dark-textPrimary">{dynamicTheme.customThemeName}</Text>
+          </View>
+          <Text numberOfLines={compactThemeCards ? 1 : 2} className="mt-1 text-xs leading-4 text-textMuted dark:text-slate-400">{TAG_DESCRIPTIONS[tagKey]}</Text>
+        </View>
+        {selected ? (
+          <View className="absolute right-2 top-2 h-6 w-6 items-center justify-center rounded-full bg-white">
+            <Check color="#2563eb" size={14} strokeWidth={3} />
+          </View>
+        ) : null}
+      </Pressable>
+    );
+  };
 
   const applyPreset = (option: GlobalThemeOption) => {
     onChange({
@@ -240,6 +328,66 @@ export function CardStylingCustomizer({
 
       {activePanel === 'themes' ? (
         <>
+          {logoThemesEnabled && logoUrl?.trim() ? (
+            <Pressable
+              accessibilityLabel="Auto-match card theme to company logo"
+              accessibilityRole="button"
+              onPress={() => { void handleAutoMatchLogo(); }}
+              disabled={extractingLogo}
+              className={`mb-3.5 flex-row items-center rounded-2xl border p-3 active:opacity-80 ${
+                theme.customThemeName === 'Brand Match'
+                  ? 'border-2 border-primary bg-primary/10 dark:bg-primary/20'
+                  : 'border-blue-200 bg-blue-50/70 dark:border-blue-900/50 dark:bg-blue-950/20'
+              }`}
+            >
+              <View className="h-10 w-10 items-center justify-center rounded-xl bg-primary/15 dark:bg-primary/25">
+                {extractingLogo ? (
+                  <ActivityIndicator size="small" color="#2563eb" />
+                ) : (
+                  <Sparkles color="#2563eb" size={20} />
+                )}
+              </View>
+              <View className="ml-3 flex-1">
+                <View className="flex-row items-center">
+                  <Text className="text-sm font-bold text-textPrimary dark:text-dark-textPrimary">
+                    Auto-match Company Logo
+                  </Text>
+                  {theme.customThemeName === 'Brand Match' ? (
+                    <View className="ml-2 rounded-full bg-primary px-2 py-0.5">
+                      <Text className="text-[10px] font-bold text-white">Active</Text>
+                    </View>
+                  ) : null}
+                </View>
+                <Text numberOfLines={1} className="mt-0.5 text-xs text-textMuted dark:text-slate-400">
+                  Extracts brand colors & protects logo visibility
+                </Text>
+              </View>
+            </Pressable>
+          ) : null}
+
+          {dynamicTagThemes ? (
+            <View className="mb-4">
+              <View className="mb-1.5 flex-row items-center justify-between">
+                <View className="flex-row items-center">
+                  <Sparkles color="#2563eb" size={14} />
+                  <Text className="ml-1.5 text-xs font-bold uppercase tracking-wider text-primary">
+                    Dynamic Brand Themes
+                  </Text>
+                </View>
+                {logoPalette?.paletteSource === 'llm' ? (
+                  <View className="rounded-full bg-primary/10 px-2 py-0.5">
+                    <Text className="text-[10px] font-bold text-primary">AI Detected</Text>
+                  </View>
+                ) : null}
+              </View>
+              <Text className="mb-3 text-xs text-textMuted dark:text-slate-400">
+                4 dynamic themes tuned specifically for your logo across card styles:
+              </Text>
+              <View className="flex-row flex-wrap" style={{ gap: gridGap }}>
+                {TAG_THEME_KEYS.map(renderDynamicTheme)}
+              </View>
+            </View>
+          ) : null}
           {!embedded ? <EditorSectionLabel title="Card themes" subtitle="One selection styles every card section." /> : null}
           {!useThemeCarousel ? (
             <View className="flex-row flex-wrap" style={{ gap: gridGap }}>

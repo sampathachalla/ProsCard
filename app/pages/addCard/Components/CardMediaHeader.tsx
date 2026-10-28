@@ -9,6 +9,11 @@ import { Text } from '@/common/ui/Text';
 import { PhotoAdjustmentModal } from '@/common/ui/PhotoAdjustmentModal';
 import { pickImageAssetFromLibrary, takePhotoAsset, type PickedImage } from '@/common/ui/usePickImage';
 import { recordCommunityUploadedLogo } from '@/pages/cards/Services/companyLogoPresets';
+import type { CardVisualTheme } from '@/pages/cards/types/card.types';
+import { extractLogoPalette } from '@/pages/profile/Services/mediaService';
+import { useLogoThemePreference } from '@/pages/profile/Hooks/useLogoThemePreference';
+import type { LogoPalette } from '@/services/api/types';
+import { buildThemeFromLogoPalette } from '@/utils/cardThemeColor';
 import { IMAGE_ASPECTS, IMAGE_LABELS } from '../Config/addCardFields';
 import { uploadCardImage } from '../Services/addCardService';
 import type { AddCardImageField } from '../types/addCard.types';
@@ -19,10 +24,13 @@ type Props = {
   logo: string;
   gradient: [string, string];
   onChange: (field: AddCardImageField, value: string) => void;
+  onAutoThemeFromLogo?: (theme: CardVisualTheme) => void;
+  onPaletteExtracted?: (palette: LogoPalette) => void;
 };
 
 /** Cover banner with the profile photo on the left and the logo on the right, each tappable. */
-export function CardMediaHeader({ coverPhoto, profilePhoto, logo, gradient, onChange }: Props) {
+export function CardMediaHeader({ coverPhoto, profilePhoto, logo, gradient, onChange, onAutoThemeFromLogo, onPaletteExtracted }: Props) {
+  const { enabled: logoThemesEnabled } = useLogoThemePreference();
   const [busyField, setBusyField] = useState<AddCardImageField | null>(null);
   const [logoModalVisible, setLogoModalVisible] = useState(false);
   const [pendingAsset, setPendingAsset] = useState<PickedImage | null>(null);
@@ -57,6 +65,18 @@ export function CardMediaHeader({ coverPhoto, profilePhoto, logo, gradient, onCh
       if (field === 'logo') {
         void recordCommunityUploadedLogo({ value: uploadedUrl, isOwn: true });
         setLogoModalVisible(false);
+        if (!logoThemesEnabled) return;
+        try {
+          const palette = await extractLogoPalette({ imageUrl: uploadedUrl });
+          if (onPaletteExtracted) {
+            onPaletteExtracted(palette);
+          } else {
+            const brandTheme = buildThemeFromLogoPalette(palette);
+            onAutoThemeFromLogo?.(brandTheme);
+          }
+        } catch {
+          // If auto-theming cannot extract palette, retain current theme
+        }
       }
     } catch (error) {
       Alert.alert(
@@ -143,7 +163,23 @@ export function CardMediaHeader({ coverPhoto, profilePhoto, logo, gradient, onCh
         value={logo}
         isUploading={busyField === 'logo'}
         onClose={() => setLogoModalVisible(false)}
-        onSelectLogo={(logoValue) => onChange('logo', logoValue)}
+        onSelectLogo={async (logoValue) => {
+          onChange('logo', logoValue);
+          setLogoModalVisible(false);
+          if (logoThemesEnabled && logoValue.trim()) {
+            try {
+              const palette = await extractLogoPalette({ imageUrl: logoValue });
+              if (onPaletteExtracted) {
+                onPaletteExtracted(palette);
+              } else {
+                const brandTheme = buildThemeFromLogoPalette(palette);
+                onAutoThemeFromLogo?.(brandTheme);
+              }
+            } catch {
+              // Retain current theme on error
+            }
+          }
+        }}
         onUploadFromDevice={() => chooseSource('logo')}
         onRemoveLogo={logo.trim() ? () => onChange('logo', '') : undefined}
       />

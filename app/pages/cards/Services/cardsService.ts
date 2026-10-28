@@ -3,11 +3,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '@/constants/Colors';
 import { buildCustomSectionTheme } from '@/utils/cardThemeColor';
 import { parseStoredJson } from '@/utils/safeJson';
-import { CARD_THEME_PRESETS, createDefaultCardSectionThemes, DEFAULT_CARD_SECTION_LAYOUTS, DEFAULT_CARD_THEME, resolveConnectionsLayoutId, resolveIdentityLayoutId, resolveProfessionalLayoutId, type BusinessCard, type CardVisualTheme } from '../types/card.types';
+import { getCardTagDesignPreset, resolveCardTag, withResolvedCardTheme } from '@/pages/addCard/Config/cardTagDesignPresets';
+import { CARD_THEME_PRESETS, createDefaultCardSectionThemes, DEFAULT_CARD_SECTION_LAYOUTS, DEFAULT_CARD_THEME, resolveConnectionsLayoutId, resolveIdentityLayoutId, resolveProfessionalLayoutId, type BusinessCard, type CardThemeId, type CardVisualTheme } from '../types/card.types';
 import { apiRequest } from '@/services/api/client';
 import { AUTH_TEST_MODE } from '@/pages/auth/Config/authMode';
 import { commitPendingMedia, isPendingMediaUrl, mediaIdFromContentUrl } from '@/pages/profile/Services/pendingMedia';
-import { deleteMedia, prefetchMedia } from '@/pages/profile/Services/mediaService';
+import { deleteMedia, extractLogoPalette, prefetchMedia } from '@/pages/profile/Services/mediaService';
+import { useEditorPreferenceStore } from '@/pages/profile/Stores/editorPreferenceStore';
 import { getSession } from '@/services/api/session';
 import { queryClient, queryKeys } from '@/services/api/queryClient';
 import type { Profile } from '@/pages/profile/types/profile.types';
@@ -39,6 +41,33 @@ function themeForGradient(input: [string, string] | undefined): CardVisualTheme 
   return buildCustomSectionTheme(gradient, 'modern');
 }
 
+const DEPRECATED_TAG_THEME_IDS = new Set<CardThemeId>(['violet', 'aurora']);
+
+function copyTheme(theme: CardVisualTheme): CardVisualTheme {
+  return { ...theme, gradient: [theme.gradient[0], theme.gradient[1]] };
+}
+
+/** Cards saved under old tag presets (violet / aurora) pick up the current professional tag palette. */
+function upgradeDeprecatedTagThemes(card: BusinessCard): BusinessCard {
+  const usesDeprecated =
+    (card.cardTheme?.id && DEPRECATED_TAG_THEME_IDS.has(card.cardTheme.id)) ||
+    Object.values(card.sectionThemes).some((theme) => theme.id && DEPRECATED_TAG_THEME_IDS.has(theme.id));
+  if (!usesDeprecated) return card;
+
+  const preset = getCardTagDesignPreset(resolveCardTag(card));
+  const theme = copyTheme(preset.theme);
+  return {
+    ...card,
+    gradient: [theme.gradient[0], theme.gradient[1]],
+    cardTheme: theme,
+    sectionThemes: {
+      identity: copyTheme(theme),
+      professional: copyTheme(theme),
+      connections: copyTheme(theme),
+    },
+  };
+}
+
 function defaultSectionData(gradient: [string, string] = DEFAULT_CARD_THEME.gradient) {
   const cardTheme = themeForGradient(gradient);
   return {
@@ -54,7 +83,7 @@ function defaultSectionData(gradient: [string, string] = DEFAULT_CARD_THEME.grad
 export function normalizeCard(card: BusinessCard | (Omit<BusinessCard, 'sectionLayouts' | 'sectionThemes' | 'sectionOverrides' | 'connectionFields' | 'connectionFieldsCustomized' | 'cardTheme'> & Partial<Pick<BusinessCard, 'sectionLayouts' | 'sectionThemes' | 'sectionOverrides' | 'connectionFields' | 'connectionFieldsCustomized' | 'cardTheme'>>)): BusinessCard {
   const cardTheme = card.cardTheme ? { ...DEFAULT_CARD_THEME, ...card.cardTheme, gradient: card.cardTheme.gradient ?? card.gradient } : themeForGradient(card.gradient);
   const defaultThemes = createDefaultCardSectionThemes(cardTheme);
-  return {
+  return upgradeDeprecatedTagThemes({
     ...card,
     isPrimary: card.isPrimary ?? false,
     sectionLayouts: {
@@ -82,7 +111,7 @@ export function normalizeCard(card: BusinessCard | (Omit<BusinessCard, 'sectionL
         ...item,
         gradient: [item.gradient[0], item.gradient[1]] as [string, string],
       })),
-  };
+  });
 }
 
 export const CARDS: BusinessCard[] = AUTH_TEST_MODE ? [
@@ -315,6 +344,8 @@ export async function hydrateCards(): Promise<BusinessCard[]> {
         await AsyncStorage.setItem(userCardsKey, JSON.stringify(normalizedCards));
         notifyCardListeners();
         prefetchCardMedia(normalizedCards);
+        // Cards saved before a logo or toggle change catch up without waiting for the next edit.
+        void refreshAppliedCardThemes().catch(() => {});
         return CARDS;
       } catch {
         lastCardsSyncFailed = true;
@@ -410,7 +441,7 @@ export async function saveCard(updated: BusinessCard): Promise<BusinessCard> {
   if (!AUTH_TEST_MODE) {
     if (existingIndex >= 0 && isServerCardId(normalized.id)) {
       normalized = await prepareCardMedia(normalized, CARDS[existingIndex]);
-      normalized = await updateRemoteCard(normalized.id, normalized);
+      normalized = await updateRemoteCard(normalized.id, await withSavedDisplayTheme(normalized));
     } else {
       const withoutLocalMedia = {
         ...normalized,
@@ -418,8 +449,10 @@ export async function saveCard(updated: BusinessCard): Promise<BusinessCard> {
       };
       const created = await createRemoteCard(withoutLocalMedia);
       normalized = await prepareCardMedia({ ...normalized, id: created.id }, created);
-      normalized = await updateRemoteCard(created.id, normalized);
+      normalized = await updateRemoteCard(created.id, await withSavedDisplayTheme(normalized));
     }
+  } else {
+    normalized = await withSavedDisplayTheme(normalized);
   }
   const index = CARDS.findIndex((card) => card.id === normalized.id);
   if (index >= 0) CARDS[index] = normalized;
@@ -431,6 +464,48 @@ export async function saveCard(updated: BusinessCard): Promise<BusinessCard> {
     await AsyncStorage.setItem(await scopedCardKey(PRIMARY_CARD_KEY), JSON.stringify(normalized));
   }
   return normalized;
+}
+
+/**
+ * Bakes the owner's profile theme toggles (tag styles, logo-adapted colors) into the stored card,
+ * so the public share link renders exactly what the phone shows.
+ */
+async function withSavedDisplayTheme(card: BusinessCard): Promise<BusinessCard> {
+  const preferences = useEditorPreferenceStore.getState();
+  const tagDesignEnabled = preferences.cardTagDesignEnabled ?? true;
+  const logoThemesEnabled = preferences.logoThemesEnabled ?? true;
+  const logoUrl = card.sectionOverrides.logo?.trim();
+  const logoPalette = logoThemesEnabled && logoUrl && !card.cardTheme?.customThemeId
+    ? await extractLogoPalette({ imageUrl: logoUrl }).catch(() => undefined)
+    : undefined;
+  return normalizeCard(withResolvedCardTheme(card, { tagDesignEnabled, logoThemesEnabled, logoPalette }));
+}
+
+/**
+ * Re-applies the profile theme toggles to every card right away (called when a toggle changes),
+ * so the phone and each public share link switch together without re-saving cards by hand.
+ */
+export async function refreshAppliedCardThemes(): Promise<void> {
+  // The persisted toggles load lazily; never fall back to the defaults over the owner's choice.
+  if (!useEditorPreferenceStore.persist.hasHydrated()) await useEditorPreferenceStore.persist.rehydrate();
+  let changed = false;
+  for (const card of [...CARDS]) {
+    const next = await withSavedDisplayTheme(card);
+    if (JSON.stringify(next.appliedTheme ?? null) === JSON.stringify(card.appliedTheme ?? null)) continue;
+    const saved = !AUTH_TEST_MODE && isServerCardId(card.id)
+      ? normalizeCard(await apiRequest<BusinessCard>(`/cards/${encodeURIComponent(card.id)}`, {
+        method: 'PUT', body: { appliedTheme: next.appliedTheme ?? null },
+      }))
+      : next;
+    const index = CARDS.findIndex((item) => item.id === card.id);
+    if (index >= 0) CARDS[index] = saved;
+    queryClient.invalidateQueries({ queryKey: queryKeys.card(card.id) });
+    changed = true;
+  }
+  if (!changed) return;
+  notifyCardListeners();
+  await AsyncStorage.setItem(await scopedCardKey(USER_CARDS_KEY), JSON.stringify(CARDS));
+  if (CARDS[0]) await AsyncStorage.setItem(await scopedCardKey(PRIMARY_CARD_KEY), JSON.stringify(CARDS[0]));
 }
 
 async function prepareCardMedia(card: BusinessCard, previous: BusinessCard): Promise<BusinessCard> {

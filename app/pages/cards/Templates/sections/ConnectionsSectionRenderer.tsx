@@ -633,12 +633,12 @@ export function ConnectionsSectionRenderer({
     );
   }
 
-  // Direct Contact List (compact): flat rows with standalone contact icons.
+  // Direct Contact List (compact): enterprise directory rows — icon, label, value only.
   if (section.templateId === "compact") {
-    const fieldGap =
-      fixedSlotFieldGap ??
-      (fields.length <= 4 ? 20 : fields.length === 5 ? 18 : 14);
-    const squircleIconSize = compactHomepagePreview ? 15 : densePreview ? 17 : 19;
+    const enterpriseFont = getCardFontFamily("modern");
+    const markIconSize = compactHomepagePreview ? 16 : densePreview ? 17 : 18;
+    const rowPaddingV = compactHomepagePreview ? 10 : densePreview ? 11 : 13;
+    const dockGap = compactHomepagePreview ? 12 : densePreview ? 14 : 18;
 
     return (
       <View
@@ -660,11 +660,11 @@ export function ConnectionsSectionRenderer({
           style={{
             flex: contentDriven ? undefined : 1,
             justifyContent: "flex-start",
-            paddingTop: 8,
+            paddingTop: 6,
             width: "100%",
           }}
         >
-          <View style={{ gap: fieldGap, width: "100%" }}>
+          <View style={{ width: "100%" }}>
             {fields.map((field) => {
               const presentation = getConnectionPresentation(field, showEmpty);
               return (
@@ -675,27 +675,61 @@ export function ConnectionsSectionRenderer({
                   disabled={!interactiveActionUrl(field)}
                   onPress={() => handlePress(field)}
                   className="min-w-0 flex-row items-center active:opacity-75"
-                  style={{ gap: 14 }}
+                  style={{
+                    gap: 14,
+                    paddingVertical: rowPaddingV,
+                  }}
                 >
-                  <View style={{ width: compactHomepagePreview ? 28 : 34, alignItems: "center" }}>
                   <ConnectionIcon
-                    color={getChannelGradient(field, slots.accent)[0]}
+                    color={slots.accent}
                     field={field}
-                    size={squircleIconSize + 3}
+                    size={markIconSize}
                   />
+                  <View className="min-w-0 flex-1">
+                    <Text
+                      variant="none"
+                      numberOfLines={1}
+                      className="text-[10px] font-semibold uppercase"
+                      style={{
+                        color: slots.textSecondary,
+                        fontFamily: enterpriseFont,
+                        letterSpacing: 0.8,
+                      }}
+                    >
+                      {presentation.label}
+                    </Text>
+                    <Text
+                      variant="none"
+                      {...(preserveTypeScale
+                        ? { numberOfLines: 2 }
+                        : {
+                            adjustsFontSizeToFit: true,
+                            minimumFontScale: 0.78,
+                            numberOfLines: 2,
+                          })}
+                      className="mt-0.5 text-[15px] font-medium leading-5"
+                      style={{
+                        color: slots.textPrimary,
+                        fontFamily: enterpriseFont,
+                        fontVariant: ["tabular-nums"],
+                      }}
+                    >
+                      {presentation.value}
+                    </Text>
                   </View>
-                  {renderCopy(
-                    presentation,
-                    slots.textPrimary,
-                    slots.textSecondary,
-                    "left",
-                    false,
-                  )}
+                  {interactiveActionUrl(field) ? (
+                    <FontAwesome6
+                      color={slots.textSecondary}
+                      name="chevron-right"
+                      size={12}
+                      style={{ opacity: 0.55 }}
+                    />
+                  ) : null}
                 </Pressable>
               );
             })}
           </View>
-          <View style={{ marginTop: fieldGap }}>{renderDock()}</View>
+          <View style={{ marginTop: dockGap }}>{renderDock()}</View>
         </View>
       </View>
     );

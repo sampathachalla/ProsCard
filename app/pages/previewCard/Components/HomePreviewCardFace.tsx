@@ -4,6 +4,7 @@ import { MoreHorizontal } from 'lucide-react-native';
 import { QRCodeView } from '@/common/ui/QRCodeView';
 import { Text } from '@/common/ui/Text';
 import type { BusinessCard, ResolvedLayoutSlots } from '@/pages/cards/types/card.types';
+import { savedSectionTheme } from '@/pages/addCard/Config/cardTagDesignPresets';
 import type { Profile } from '@/pages/profile/types/profile.types';
 import { createCardDetailTemplate } from '@/pages/cards/Templates/cardDetailTemplate';
 import {
@@ -11,7 +12,14 @@ import {
   UniversalLogoBadge,
 } from '@/pages/cards/Templates/sections/SectionSharedComponents';
 import { useShareUrl } from '@/pages/share/Hooks/useShareUrl';
-import { isColorLight, mixHexColors, resolveLayoutColorSlots } from '@/utils/cardThemeColor';
+import {
+  HOME_PREVIEW_CARD_BORDER_RADIUS,
+  isColorLight,
+  resolveCardAvatarRing,
+  resolveCardChromeBorder,
+  resolveCardCoverDivider,
+  resolveLayoutColorSlots,
+} from '@/utils/cardThemeColor';
 import { walletField, walletFieldValue } from '@/pages/walletCard/Utils/walletPassFields';
 
 type HomePreviewCardFaceProps = {
@@ -33,15 +41,16 @@ export function HomePreviewCardFace({
   const identity = sections.find((section) => section.id === 'identity');
   const professional = sections.find((section) => section.id === 'professional');
   const share = useShareUrl(card.id);
-
-  const identityTheme = card.sectionThemes.identity;
-  const professionalTheme = card.sectionThemes.professional;
-  const headerSlots = resolveLayoutColorSlots({ templateId: 'classic', theme: identityTheme });
-  const bodySlots = resolveLayoutColorSlots({ templateId: 'classic', theme: professionalTheme });
-
   const coverPhoto = identity ? walletField(identity, 'coverPhoto') : undefined;
   const profilePhoto = identity ? walletField(identity, 'profilePhoto') : undefined;
   const logo = identity ? walletField(identity, 'logo') : undefined;
+
+  // Saved themes only, exactly like the public share page; profile theme toggles are stored on the card.
+  const identityTheme = savedSectionTheme(card, 'identity');
+  const professionalTheme = savedSectionTheme(card, 'professional');
+  const activeTheme = identityTheme;
+  const headerSlots = resolveLayoutColorSlots({ templateId: 'classic', theme: identityTheme });
+  const bodySlots = resolveLayoutColorSlots({ templateId: 'classic', theme: professionalTheme });
 
   const name = identity ? walletFieldValue(identity, 'preferredName', card.name) : card.name;
   const jobTitle = professional ? walletFieldValue(professional, 'title', card.title) : card.title;
@@ -53,40 +62,46 @@ export function HomePreviewCardFace({
   const logoHeight = Math.round(logoWidth * (52 / 152));
   const qrSize = Math.round(Math.min(width * 0.5, height * 0.34));
 
-  // Keep the enterprise dark theme surface on the Home preview card face
-  const rawSurface = bodySlots.surface || '#0f172a';
-  const surface = isColorLight(rawSurface)
-    ? '#0f172a'
-    : mixHexColors(rawSurface, '#0f172a', 0.35);
-  const qrContainerBg = '#111827';
-  const accentColor = headerSlots.accent || '#38bdf8';
-  const textPrimary = '#f8fafc';
-  const textSecondary = '#cbd5e1';
-  const textMuted = '#94a3b8';
-  const qrBorderColor = 'rgba(56, 189, 248, 0.32)';
+  // Respect the card's theme surface (brand-matched or customized)
+  const surface = bodySlots.surface || activeTheme?.surfaceColor || '#ffffff';
+  const isSurfaceLight = isColorLight(surface);
 
-  const darkLogoSlots: ResolvedLayoutSlots = {
+  const qrContainerBg = isSurfaceLight ? '#ffffff' : '#111827';
+  const accentColor = headerSlots.accent || activeTheme?.accentColor || '#38bdf8';
+  const textPrimary = isSurfaceLight ? (bodySlots.textPrimary || '#0f172a') : '#f8fafc';
+  const textSecondary = isSurfaceLight ? (bodySlots.textSecondary || '#334155') : '#cbd5e1';
+  const textMuted = isSurfaceLight ? (bodySlots.textMuted || '#64748b') : '#94a3b8';
+  const chromeBorder = resolveCardChromeBorder(surface, accentColor);
+  const qrBorderColor = chromeBorder;
+
+  const cardLogoSlots: ResolvedLayoutSlots = {
     ...bodySlots,
     surface,
-    background: '#020617',
+    background: bodySlots.background || surface,
     textPrimary,
     textSecondary,
-    isDark: true,
+    isDark: !isSurfaceLight,
   };
 
   return (
     <View
       accessibilityLabel={`${name}, ${jobTitle} preview card`}
       accessibilityRole="summary"
-      className="overflow-hidden rounded-[20px] border"
       style={{
         width,
         height,
         backgroundColor: surface,
-        borderColor: 'rgba(148, 163, 184, 0.18)',
+        borderBottomLeftRadius: HOME_PREVIEW_CARD_BORDER_RADIUS,
+        borderBottomRightRadius: HOME_PREVIEW_CARD_BORDER_RADIUS,
+        borderTopLeftRadius: HOME_PREVIEW_CARD_BORDER_RADIUS,
+        borderTopRightRadius: HOME_PREVIEW_CARD_BORDER_RADIUS,
+        borderRadius: HOME_PREVIEW_CARD_BORDER_RADIUS,
+        borderWidth: 1.5,
+        borderColor: chromeBorder,
+        overflow: 'hidden',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 12 },
-        shadowOpacity: 0.36,
+        shadowOpacity: isSurfaceLight ? 0.12 : 0.36,
         shadowRadius: 20,
         elevation: 10,
       }}
@@ -96,7 +111,7 @@ export function HomePreviewCardFace({
           height: coverHeight,
           width: '100%',
           borderBottomWidth: 1,
-          borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+          borderBottomColor: resolveCardCoverDivider(),
         }}
       >
         <IdentityImage
@@ -134,7 +149,7 @@ export function HomePreviewCardFace({
                 height: profileSize,
                 borderRadius: profileSize / 2,
                 borderWidth: 2.5,
-                borderColor: 'rgba(226, 232, 240, 0.9)',
+                borderColor: resolveCardAvatarRing(surface),
               }}
             />
           </View>
@@ -146,7 +161,7 @@ export function HomePreviewCardFace({
               field={logo}
               logoSize={{ width: logoWidth, height: logoHeight }}
               placement="on-surface"
-              slots={darkLogoSlots}
+              slots={cardLogoSlots}
               templateId="classic"
             />
           </View>
@@ -179,13 +194,14 @@ export function HomePreviewCardFace({
 
         <View className="mt-3 min-h-0 flex-1 items-center justify-center">
           <View
-            className="items-center rounded-2xl border px-4 pb-4 pt-5"
+            className="items-center rounded-2xl px-4 pb-4 pt-5"
             style={{
+              borderWidth: 1.5,
               borderColor: qrBorderColor,
               backgroundColor: qrContainerBg,
               shadowColor: '#000',
               shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.25,
+              shadowOpacity: isSurfaceLight ? 0.06 : 0.25,
               shadowRadius: 10,
               elevation: 4,
             }}
@@ -194,7 +210,7 @@ export function HomePreviewCardFace({
               <QRCodeView
                 value={share.url}
                 size={qrSize}
-                foregroundColor="#ffffff"
+                foregroundColor={isSurfaceLight ? '#0f172a' : '#ffffff'}
                 backgroundColor={qrContainerBg}
                 accentColor={accentColor}
                 framed={false}

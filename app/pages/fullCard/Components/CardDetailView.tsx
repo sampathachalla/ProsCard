@@ -1,5 +1,6 @@
+import { useEffect, useState } from 'react';
 import { Pressable, Share, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
-import type { BusinessCard, CardSectionId } from '@/pages/cards/types/card.types';
+import type { BusinessCard, CardSectionId, CardVisualTheme } from '@/pages/cards/types/card.types';
 import type { Profile } from '@/pages/profile/types/profile.types';
 import { Text } from '@/common/ui/Text';
 import { cardSectionHeight } from '@/pages/cards/cardSectionLayout';
@@ -7,9 +8,18 @@ import { createCardDetailTemplate } from '@/pages/cards/Templates/cardDetailTemp
 import { SectionTemplateRenderer } from '@/pages/cards/Templates/SectionTemplateRenderer';
 import { getCardFontFamily, getCardLetterSpacing } from '@/pages/cards/Templates/cardTheme';
 import { ActiveSectionHighlight } from '@/pages/editView/Components/ActiveSectionHighlight';
+import { extractLogoPalette, getCachedLogoPalette } from '@/pages/profile/Services/mediaService';
+import { useCardTagDesignPreference } from '@/pages/profile/Hooks/useCardTagDesignPreference';
+import { useLogoThemePreference } from '@/pages/profile/Hooks/useLogoThemePreference';
 import { saveDirectlyToNativeContacts } from '@/utils/nativeContacts';
 import { getShareUrl } from '@/pages/share/Services/sharingService';
-import { resolveLayoutColorSlots } from '@/utils/cardThemeColor';
+import {
+  buildThemeFromLogoPalette,
+  resolveCardChromeBorder,
+  resolveFullCardOuterChromeStyle,
+  resolveLayoutColorSlots,
+} from '@/utils/cardThemeColor';
+import { resolveCardSectionTheme, resolveCardTag, savedSectionTheme } from '@/pages/addCard/Config/cardTagDesignPresets';
 
 export function CardDetailView({
   activeSection,
@@ -22,6 +32,8 @@ export function CardDetailView({
   profile,
   vcardDownloadUrl,
   viewportHeight,
+  /** Public share links: always render the owner’s saved themes (no viewer logo/tag overrides). */
+  publicShareView = false,
 }: {
   activeSection?: CardSectionId;
   card: BusinessCard;
@@ -33,6 +45,7 @@ export function CardDetailView({
   profile: Profile;
   vcardDownloadUrl?: string;
   viewportHeight?: number;
+  publicShareView?: boolean;
 }) {
   const { height: windowHeight } = useWindowDimensions();
   const fittedHeight = viewportHeight ?? windowHeight;
@@ -40,9 +53,61 @@ export function CardDetailView({
   // An explicit viewport wins so the editor can ignore window resizes from the
   // sheet or keyboard. fitToViewport still squeezes every section into that box.
   const layoutViewportHeight = viewportHeight ?? (fitToViewport ? fittedHeight : windowHeight);
-
-  const firstTheme = card.sectionThemes[sections[0]?.id];
+  const { enabled: logoThemesEnabled } = useLogoThemePreference();
+  const { enabled: tagDesignEnabled } = useCardTagDesignPreference();
   const isEditing = Boolean(activeSection || onEditSection);
+  // Only the editor previews toggle-driven themes; they are baked into the card on save, so every
+  // saved view (phone and public share link) renders the same stored theme.
+  const applyLiveThemeOverrides = !publicShareView && isEditing;
+
+  const logoUrl = card.sectionOverrides?.logo;
+  const cardTag = resolveCardTag(card);
+  const [logoTheme, setLogoTheme] = useState<CardVisualTheme | null>(() => {
+    if (!applyLiveThemeOverrides || !logoThemesEnabled || !logoUrl) return null;
+    const cached = getCachedLogoPalette(logoUrl);
+    return cached ? buildThemeFromLogoPalette(cached, card.cardTheme?.fontStyle, cardTag) : null;
+  });
+
+  useEffect(() => {
+    if (!applyLiveThemeOverrides || !logoThemesEnabled) return;
+    if (!logoUrl || card.cardTheme?.customThemeId) return;
+    const cached = getCachedLogoPalette(logoUrl);
+    if (cached) {
+      setLogoTheme(buildThemeFromLogoPalette(cached, card.cardTheme?.fontStyle, cardTag));
+      return;
+    }
+    let active = true;
+    extractLogoPalette({ imageUrl: logoUrl })
+      .then((palette) => {
+        if (active && palette) {
+          setLogoTheme(buildThemeFromLogoPalette(palette, card.cardTheme?.fontStyle, cardTag));
+        }
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [
+    applyLiveThemeOverrides,
+    logoThemesEnabled,
+    logoUrl,
+    cardTag,
+    card.cardTheme?.customThemeId,
+    card.cardTheme?.fontStyle,
+  ]);
+
+  const effectiveThemeForSection = (sectionId: CardSectionId) => {
+    if (!applyLiveThemeOverrides) {
+      return savedSectionTheme(card, sectionId);
+    }
+    return resolveCardSectionTheme(sectionId, card, {
+      tagDesignEnabled,
+      logoThemesEnabled,
+      logoTheme,
+    });
+  };
+
+  const firstTheme = effectiveThemeForSection(sections[0]?.id);
 
   const handleSaveContact = () => {
     const socials: { label?: string; type?: string; url: string }[] = [];
@@ -115,17 +180,40 @@ export function CardDetailView({
     }
   };
 
+  const chromeBorder = resolveCardChromeBorder(
+    firstTheme?.surfaceColor ?? '#ffffff',
+    firstTheme?.accentColor,
+  );
+
+  const outerChrome = resolveFullCardOuterChromeStyle({
+    chromeBorder: fullBleed ? chromeBorder : (firstTheme?.accentColor ?? chromeBorder),
+    fitToViewport,
+    fittedHeight: fitToViewport ? fittedHeight : undefined,
+    surfaceColor: firstTheme?.surfaceColor ?? '#ffffff',
+  });
+
   return (
     <View
-      className={fullBleed ? 'overflow-hidden' : 'mb-5 overflow-hidden rounded-[28px] border shadow-sm'}
-      style={{
-        backgroundColor: firstTheme?.surfaceColor,
-        height: fitToViewport ? fittedHeight : undefined,
-        ...(fullBleed ? {} : { borderColor: firstTheme?.accentColor }),
-      }}
+      style={[
+        outerChrome,
+        // The public share page shows the card edge to edge, so its outer corners stay square.
+        publicShareView
+          ? { borderRadius: 0, borderTopLeftRadius: 0, borderTopRightRadius: 0, borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }
+          : null,
+        fullBleed
+          ? null
+          : {
+              marginBottom: 20,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.06,
+              shadowRadius: 2,
+              elevation: 1,
+            },
+      ]}
     >
       {sections.map((section) => {
-        const theme = card.sectionThemes[section.id];
+        const theme = effectiveThemeForSection(section.id);
         const fontFamily = getCardFontFamily(theme.fontStyle);
         const letterSpacing = getCardLetterSpacing(theme.fontStyle);
         const handleLayout = (event: LayoutChangeEvent) => onSectionLayout?.(section.id, event.nativeEvent.layout.y);

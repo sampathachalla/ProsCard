@@ -3,6 +3,7 @@ import { HttpError } from '../../src/errors.js';
 import { log } from '../../src/logger.js';
 import type { MediaKind, MediaRepository, MediaRow, MediaScope } from '../repository/media.repository.js';
 import type { ObjectStorageGateway } from './oci-storage.service.js';
+import { extractPaletteFromBuffer, type ExtractedLogoPalette } from './palette-extractor.service.js';
 import { brandfetchService } from './brandfetch.service.js';
 
 type ProfileMediaKind = Exclude<MediaKind, 'contactCard'>;
@@ -28,6 +29,7 @@ type UploadInput = {
 };
 
 const MAX_MEDIA_SIZE_BYTES = 20 * 1024 * 1024;
+const LOGO_FETCH_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15';
 
 export class MediaService {
   constructor(private readonly repo: MediaRepository, private readonly storage: ObjectStorageGateway) {}
@@ -129,12 +131,29 @@ export class MediaService {
         await this.repo.cleanupFailed(userId, previous.id);
       }
     }
+    let palette: ExtractedLogoPalette | undefined;
+    if (ready.kind === 'companyLogo') {
+      try {
+        const signed = await this.storage.createDownloadUrl(ready.object_name);
+        const res = await fetch(signed.url);
+        if (res.ok) {
+          const buffer = Buffer.from(await res.arrayBuffer());
+          palette = await extractPaletteFromBuffer(buffer);
+        }
+      } catch (paletteErr) {
+        log('warn', 'palette_extraction_failed', {
+          mediaId: id,
+          message: paletteErr instanceof Error ? paletteErr.message : String(paletteErr),
+        });
+      }
+    }
     return {
       mediaId: id, kind: row.kind, scope: row.attachment_scope, cardId: row.card_id, contactId: row.contact_id,
       status: ready.status, profileField: row.attachment_scope === 'profile' ? field : undefined,
       cardField: row.attachment_scope === 'card' ? field : undefined,
       contactField: row.attachment_scope === 'contact' ? field : undefined,
       contentUrl: `/api/v1/media/${id}/content`, replacedMediaId, cleanupPending,
+      palette,
     };
   }
 
@@ -313,5 +332,44 @@ export class MediaService {
     const row = await this.repo.find(userId, id);
     if (!row) throw new HttpError(404, 'Media not found.');
     return row;
+  }
+
+  async extractPalette(userId: string, input: { mediaId?: string; imageUrl?: string }) {
+    let buffer: Buffer | null = null;
+    let targetMediaId = input.mediaId;
+    if (!targetMediaId && input.imageUrl) {
+      const match = input.imageUrl.match(/\/api\/v1\/media\/([^/]+)\/content/);
+      if (match?.[1]) {
+        targetMediaId = match[1];
+      } else if (/^[0-9a-fA-F-]{36}$/.test(input.imageUrl.trim())) {
+        targetMediaId = input.imageUrl.trim();
+      }
+    }
+    if (targetMediaId) {
+      const row = await this.repo.findForDownload(userId, targetMediaId);
+      if (!row) throw new HttpError(404, 'Media not found.');
+      const signed = await this.storage.createDownloadUrl(row.object_name);
+      const res = await fetch(signed.url);
+      if (!res.ok) throw new HttpError(502, 'Could not retrieve media file.');
+      buffer = Buffer.from(await res.arrayBuffer());
+    } else if (input.imageUrl) {
+      if (input.imageUrl.startsWith('data:image/')) {
+        const base64Data = input.imageUrl.split(',')[1];
+        if (base64Data) buffer = Buffer.from(base64Data, 'base64');
+      } else if (input.imageUrl.startsWith('https://')) {
+        // Brandfetch's CDN serves its HTML website to non-browser agents; ask explicitly for an image.
+        const res = await fetch(input.imageUrl, {
+          headers: { 'User-Agent': LOGO_FETCH_USER_AGENT, Accept: 'image/webp,image/png,image/svg+xml,image/*' },
+          signal: AbortSignal.timeout(8000),
+        });
+        if (res.ok && res.headers.get('content-type')?.startsWith('image/')) {
+          buffer = Buffer.from(await res.arrayBuffer());
+        }
+      }
+    }
+    if (!buffer) {
+      throw new HttpError(400, 'Could not load image data for palette extraction.');
+    }
+    return extractPaletteFromBuffer(buffer);
   }
 }

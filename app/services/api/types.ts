@@ -55,6 +55,35 @@ export type MediaUploadTicket = {
   expiresAt?: string;
 };
 
+export type DynamicTagTheme = {
+  id: string;
+  name: string;
+  tag: 'Business' | 'Personal' | 'Networking' | 'Portfolio';
+  gradient: [string, string];
+  surfaceColor: string;
+  backgroundColor: string;
+  textColor: string;
+  mutedTextColor: string;
+  accentColor: string;
+  fontStyle: 'modern' | 'classic' | 'rounded' | 'mono';
+  paletteTier: 3;
+  paletteColors: string[];
+  customThemeName: string;
+};
+
+export type LogoPalette = {
+  dominant: string;
+  secondary: string;
+  accent: string;
+  hasDarkElements: boolean;
+  hasLightElements: boolean;
+  suggestedGradient: [string, string];
+  suggestedSurface: string;
+  isDarkRecommended: boolean;
+  tagThemes?: Record<'Business' | 'Personal' | 'Networking' | 'Portfolio', DynamicTagTheme>;
+  paletteSource?: 'llm' | 'deterministic';
+};
+
 export type ConfirmedMedia = {
   mediaId: string;
   kind: MediaKind;
@@ -68,4 +97,5 @@ export type ConfirmedMedia = {
   contentUrl: string;
   replacedMediaId?: string;
   cleanupPending: boolean;
+  palette?: LogoPalette;
 };

@@ -1,2 +1,5 @@
-// Route file only: the screen lives in pages/account/AccountPage.tsx.
-export { default } from '@/pages/account/AccountPage';
+import { Redirect } from 'expo-router';
+
+export default function AccountPageTabRedirect() {
+  return <Redirect href="/account" />;
+}

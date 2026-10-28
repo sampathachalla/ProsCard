@@ -43,9 +43,10 @@ export function ConnectionsBottomDock({
         accessibilityLabel="Save contact to phone"
         disabled={disabled}
         onPress={onSaveContact}
-        className="w-full flex-row items-center justify-center rounded-xl active:opacity-85"
+        className="w-full flex-row items-center justify-center active:opacity-85"
         style={{
           backgroundColor: accentColor,
+          borderRadius: 0,
           elevation: 2,
           height: buttonHeight,
           paddingHorizontal: 14,

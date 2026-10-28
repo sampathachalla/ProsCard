@@ -8,7 +8,9 @@ export function validateLogin(email: string, password: string): AuthFieldErrors 
   const errors: AuthFieldErrors = {};
   const trimmed = email.trim();
   if (!trimmed) {
-    errors.email = 'Email or username is required.';
+    errors.email = 'Email address is required.';
+  } else if (!EMAIL_PATTERN.test(trimmed)) {
+    errors.email = 'Enter a valid email address.';
   }
   if (!password) {
     errors.password = 'Password is required.';
@@ -27,7 +29,9 @@ export function validateForgotPasswordEmail(email: string): AuthFieldErrors {
   return errors;
 }
 
-export function validateSignupFields(form: Pick<SignupForm, 'email' | 'password' | 'confirmPassword'>): AuthFieldErrors {
+export function validateSignupFields(
+  form: Pick<SignupForm, 'email' | 'password'> & { confirmPassword?: string },
+): AuthFieldErrors {
   const errors: AuthFieldErrors = {};
   const email = form.email.trim();
 
@@ -43,10 +47,10 @@ export function validateSignupFields(form: Pick<SignupForm, 'email' | 'password'
     errors.password = 'Password must be at least 8 characters.';
   }
 
-  if (!form.confirmPassword) {
-    errors.confirmPassword = 'Confirm your password.';
-  } else if (form.password !== form.confirmPassword) {
-    errors.confirmPassword = 'Passwords do not match.';
+  if (form.confirmPassword !== undefined && form.confirmPassword !== '') {
+    if (form.password !== form.confirmPassword) {
+      errors.confirmPassword = 'Passwords do not match.';
+    }
   }
 
   return errors;

@@ -28,3 +28,10 @@ export const mediaRequestSchema = z.object({
     context.addIssue({ code: 'custom', path: ['kind'], message: 'contactCard media must use the contact scope.' });
   }
 });
+
+export const extractPaletteSchema = z.object({
+  mediaId: z.string().optional(),
+  imageUrl: z.string().optional(),
+}).refine((data) => Boolean(data.mediaId || data.imageUrl), {
+  message: 'Either mediaId or imageUrl must be provided.',
+});

@@ -58,6 +58,12 @@ export function useForgotPassword() {
     }
   };
 
+  const changeEmail = () => {
+    setSentTo(null);
+    setRecoveryCode('');
+    setCodeError('');
+  };
+
   return {
     email,
     setEmail: updateEmail,
@@ -70,5 +76,6 @@ export function useForgotPassword() {
     isVerifying,
     handleSendResetLink,
     handleVerifyCode,
+    changeEmail,
   };
 }

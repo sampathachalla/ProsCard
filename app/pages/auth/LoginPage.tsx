@@ -7,6 +7,8 @@ import { Text } from '@/common/ui/Text';
 import { AuthScreenShell } from '@/pages/auth/Components/AuthScreenShell';
 import { AuthSoftInput } from '@/pages/auth/Components/AuthSoftInput';
 import { AuthFooterSwitch } from '@/pages/auth/Components/AuthFooterSwitch';
+import { AuthFormBanner } from '@/pages/auth/Components/AuthFormBanner';
+import { GoogleSignInButton } from '@/pages/auth/Components/GoogleSignInButton';
 import { useLogin } from '@/pages/auth/Hooks/useLogin';
 import { useGoogleAuth } from '@/pages/auth/Hooks/useGoogleAuth';
 
@@ -18,10 +20,14 @@ export default function LoginScreen() {
     password,
     setPassword,
     errors,
+    formError,
+    setFormError,
     isSubmitting,
     handleLogin,
   } = useLogin();
-  const { handleGoogleAuth, isGoogleSubmitting } = useGoogleAuth('login');
+  const { handleGoogleAuth, isGoogleSubmitting } = useGoogleAuth('login', {
+    onError: (message) => setFormError(message),
+  });
 
   return (
     <AuthScreenShell
@@ -33,74 +39,68 @@ export default function LoginScreen() {
         />
       }
     >
-      <View className="w-full gap-14" style={{ gap: 56 }}>
-        <Animated.View entering={FadeIn.duration(400)} className="items-center">
-          <BrandLogo
-            accessibilityLabel="VCPROS logo"
-            size="xxl"
-            variant="wordmark"
-          />
+      <View className="w-full">
+        <Animated.View entering={FadeIn.duration(400)} className="mb-6 items-center">
+          <BrandLogo accessibilityLabel="VCPROS logo" size="xxl" variant="wordmark" />
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(80).duration(400)} className="w-full">
-        <AuthSoftInput
-          value={email}
-          onChangeText={setEmail}
-          placeholder="Phone number, username or email"
-          error={errors.email}
-          keyboardType="email-address"
-          accessibilityLabel="Email or username"
-        />
+          <AuthFormBanner message={formError} />
 
-        <AuthSoftInput
-          value={password}
-          onChangeText={setPassword}
-          placeholder="Password"
-          error={errors.password}
-          secureTextEntry
-          accessibilityLabel="Password"
-        />
+          <AuthSoftInput
+            value={email}
+            onChangeText={setEmail}
+            placeholder="Email address"
+            error={errors.email}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            accessibilityLabel="Email address"
+          />
 
-        <Button
-          label={isSubmitting ? 'Logging in…' : 'Log in'}
-          variant="primary"
-          size="lg"
-          loading={isSubmitting}
-          disabled={isSubmitting}
-          onPress={handleLogin}
-          className="mt-2 w-full rounded-xl"
-        />
+          <AuthSoftInput
+            value={password}
+            onChangeText={setPassword}
+            placeholder="Password"
+            error={errors.password}
+            secureTextEntry
+            accessibilityLabel="Password"
+          />
 
-        <Pressable
-          onPress={() => router.push('/auth/forgot-password')}
-          accessibilityRole="button"
-          accessibilityLabel="Forgot password"
-          className="mt-4 items-center py-1 active:opacity-70"
-        >
-          <Text className="text-[13px] font-medium text-sky-600 dark:text-sky-400">
-            Forgot password?
-          </Text>
-        </Pressable>
+          <Button
+            label={isSubmitting ? 'Logging in…' : 'Log in'}
+            variant="primary"
+            size="lg"
+            loading={isSubmitting}
+            disabled={isSubmitting}
+            onPress={handleLogin}
+            className="mt-2 w-full rounded-xl"
+          />
 
-        <View className="my-7 flex-row items-center">
-          <View className="h-px flex-1 bg-black/10 dark:bg-white/10" />
-          <Text className="mx-4 text-xs font-semibold uppercase tracking-wide text-[#8e8e8e]">
-            Or
-          </Text>
-          <View className="h-px flex-1 bg-black/10 dark:bg-white/10" />
-        </View>
+          <Pressable
+            onPress={() => router.push('/auth/forgot-password')}
+            accessibilityRole="button"
+            accessibilityLabel="Forgot password"
+            className="mt-4 items-center py-1 active:opacity-70"
+          >
+            <Text className="text-[13px] font-medium text-sky-600 dark:text-sky-400">
+              Forgot password?
+            </Text>
+          </Pressable>
 
-        <Pressable
-          onPress={handleGoogleAuth}
-          disabled={isSubmitting || isGoogleSubmitting}
-          accessibilityRole="button"
-          accessibilityLabel="Continue with Google"
-          className="items-center py-2 active:opacity-70"
-        >
-          <Text className="text-[14px] font-semibold text-sky-700 dark:text-sky-400">
-            {isGoogleSubmitting ? 'Connecting to Google…' : 'Continue with Google'}
-          </Text>
-        </Pressable>
+          <View className="my-5 flex-row items-center">
+            <View className="h-px flex-1 bg-black/10 dark:bg-white/10" />
+            <Text className="mx-4 text-xs font-semibold uppercase tracking-wide text-[#8e8e8e]">
+              Or
+            </Text>
+            <View className="h-px flex-1 bg-black/10 dark:bg-white/10" />
+          </View>
+
+          <GoogleSignInButton
+            label={isGoogleSubmitting ? 'Connecting to Google…' : 'Continue with Google'}
+            loading={isGoogleSubmitting}
+            disabled={isSubmitting}
+            onPress={handleGoogleAuth}
+          />
         </Animated.View>
       </View>
     </AuthScreenShell>

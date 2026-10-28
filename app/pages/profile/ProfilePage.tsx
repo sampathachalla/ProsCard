@@ -1,42 +1,46 @@
 // pages/profile/ProfilePage.tsx
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Switch, Linking, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import { Colors } from '@/constants/Colors';
-import { useThemeContext } from '../../context/ThemeContext';
-import { ChevronRight, CreditCard, Focus, HelpCircle, Info, LogOut, Moon, Sparkles, Trash2, User } from 'lucide-react-native';
+import {
+  ChevronRight,
+  CreditCard,
+  HelpCircle,
+  Info,
+  LogOut,
+  Moon,
+  Palette,
+  Trash2,
+  User,
+} from 'lucide-react-native';
 import { SettingsRow } from './Components/SettingsRow';
 import { useProfile } from './Hooks/useProfile';
+import { useEditorPreferenceStore } from './Stores/editorPreferenceStore';
+import { refreshAppliedCardThemes } from '@/pages/cards/Services/cardsService';
 import { PageHeader } from '@/common/ui/PageHeader';
-import { useFloatingTools } from '@/common/toolsButton';
-import { QuickToolsSection } from './Components/QuickToolsSection';
-import { useEditorPreferences } from './Hooks/useEditorPreferences';
+import { useThemeContext } from '@/context/ThemeContext';
 import { confirmAction, showMessage } from '@/common/ui/confirmAction';
 
 const SUPPORT_EMAIL = 'support@proscard.app';
+const switchTrack = { false: Colors.light.border, true: Colors.light.tint } as const;
 
 export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { theme, setPreference } = useThemeContext();
   const { logout, deleteAccount } = useProfile();
+  const logoThemesEnabled = useEditorPreferenceStore((s) => s.logoThemesEnabled ?? true);
+  const setLogoThemesEnabled = useEditorPreferenceStore((s) => s.setLogoThemesEnabled);
   const [accountAction, setAccountAction] = useState<'logout' | 'delete' | null>(null);
-  const {
-    enabled: toolsEnabled,
-    enabledTools,
-    hydrated: toolsHydrated,
-    setEnabled: setToolsEnabled,
-    toggleTool,
-  } = useFloatingTools();
-  const {
-    glassmorphicEditorEnabled,
-    hydrated: editorPreferencesHydrated,
-    sectionHighlightEnabled,
-    setGlassmorphicEditorEnabled,
-    setSectionHighlightEnabled,
-  } = useEditorPreferences();
+
+  useEffect(() => {
+    if (!useEditorPreferenceStore.persist.hasHydrated()) {
+      void useEditorPreferenceStore.persist.rehydrate();
+    }
+  }, []);
 
   const handleLogout = async () => {
     if (accountAction) return;
@@ -103,44 +107,33 @@ export default function ProfileScreen() {
       <Text className="text-textMuted dark:text-dark-textMuted text-xs font-semibold uppercase mb-2 mt-2 px-4">
         Account
       </Text>
-      <View className="mb-3 flex-row gap-3 px-4">
+      <View className="mb-3 gap-2 px-4">
         <TouchableOpacity
           accessibilityRole="button"
           accessibilityLabel="Account"
-          onPress={() => router.push('/(tabs)/accountPage')}
-          className="flex-1 flex-row items-center rounded-2xl bg-card p-3.5 dark:bg-dark-card active:opacity-75"
+          onPress={() => router.push('/account')}
+          className="w-full flex-row items-center rounded-2xl bg-card p-3.5 dark:bg-dark-card active:opacity-75"
         >
           <View className="mr-2.5 h-9 w-9 items-center justify-center rounded-full bg-background dark:bg-dark-background">
             <User color={Colors.light.tint} size={18} strokeWidth={2.2} />
           </View>
-          <Text className="flex-1 text-sm font-medium text-textPrimary dark:text-dark-textPrimary" numberOfLines={1}>
-            Account
-          </Text>
+          <Text className="flex-1 text-sm font-medium text-textPrimary dark:text-dark-textPrimary">Account</Text>
           <ChevronRight color={Colors.light.mutedText} size={16} strokeWidth={2} />
         </TouchableOpacity>
 
         <TouchableOpacity
           accessibilityRole="button"
           accessibilityLabel="Manage my cards"
-          onPress={() => router.push('/(tabs)/cardsPage')}
-          className="flex-1 flex-row items-center rounded-2xl bg-card p-3.5 dark:bg-dark-card active:opacity-75"
+          onPress={() => router.push('/manage-cards')}
+          className="w-full flex-row items-center rounded-2xl bg-card p-3.5 dark:bg-dark-card active:opacity-75"
         >
           <View className="mr-2.5 h-9 w-9 items-center justify-center rounded-full bg-background dark:bg-dark-background">
             <CreditCard color={Colors.light.tint} size={18} strokeWidth={2.2} />
           </View>
-          <Text className="flex-1 text-sm font-medium text-textPrimary dark:text-dark-textPrimary" numberOfLines={1}>
-            Manage cards
-          </Text>
+          <Text className="flex-1 text-sm font-medium text-textPrimary dark:text-dark-textPrimary">Manage cards</Text>
           <ChevronRight color={Colors.light.mutedText} size={16} strokeWidth={2} />
         </TouchableOpacity>
       </View>
-      <QuickToolsSection
-        toolsEnabled={toolsEnabled}
-        setToolsEnabled={setToolsEnabled}
-        enabledTools={enabledTools}
-        hydrated={toolsHydrated}
-        toggleTool={toggleTool}
-      />
 
       <Text className="text-textMuted dark:text-dark-textMuted text-xs font-semibold uppercase mb-2 mt-4 px-4">
         Preferences
@@ -150,39 +143,35 @@ export default function ProfileScreen() {
         label="Dark mode"
         right={
           <Switch
+            accessibilityLabel="Dark mode"
             value={theme === 'dark'}
             onValueChange={(enabled) => setPreference(enabled ? 'dark' : 'light')}
-            trackColor={{ false: Colors.light.border, true: Colors.light.tint }}
+            trackColor={switchTrack}
             thumbColor={Colors.palette.primaryWhite}
           />
         }
       />
       <SettingsRow
-        icon={Focus}
-        label="Editing section highlight"
+        icon={Palette}
+        label="Logo-adapted card themes"
         right={
           <Switch
-            disabled={!editorPreferencesHydrated}
-            value={sectionHighlightEnabled}
-            onValueChange={setSectionHighlightEnabled}
-            trackColor={{ false: Colors.light.border, true: Colors.light.tint }}
+            accessibilityLabel="Logo-adapted card themes"
+            value={logoThemesEnabled}
+            onValueChange={(enabled) => {
+              setLogoThemesEnabled(enabled);
+              // Saved cards (and their share links) switch immediately, not on the next edit.
+              void refreshAppliedCardThemes().catch(() =>
+                showMessage('Card themes', 'Could not update your cards. Check your connection and try again.'));
+            }}
+            trackColor={switchTrack}
             thumbColor={Colors.palette.primaryWhite}
           />
         }
       />
-      <SettingsRow
-        icon={Sparkles}
-        label="Glassmorphic editor chrome"
-        right={
-          <Switch
-            disabled={!editorPreferencesHydrated}
-            value={glassmorphicEditorEnabled}
-            onValueChange={setGlassmorphicEditorEnabled}
-            trackColor={{ false: Colors.light.border, true: Colors.light.tint }}
-            thumbColor={Colors.palette.primaryWhite}
-          />
-        }
-      />
+      <Text className="mb-2 px-4 text-xs leading-4 text-textMuted dark:text-dark-textMuted">
+        When on, card colors follow your company logo after you upload it.
+      </Text>
 
       <Text className="text-textMuted dark:text-dark-textMuted text-xs font-semibold uppercase mb-2 mt-4 px-4">
         Support
@@ -190,13 +179,13 @@ export default function ProfileScreen() {
       <SettingsRow icon={HelpCircle} label="Help & support" onPress={handleHelpAndSupport} />
       <SettingsRow icon={Info} label="About VC Pros" onPress={handleAbout} />
 
-      <View className="mb-2 mt-6 flex-row gap-3 px-4">
+      <View className="mb-2 mt-6 gap-2 px-4">
         <TouchableOpacity
           accessibilityRole="button"
           accessibilityLabel="Log out"
           disabled={accountAction !== null}
           onPress={handleLogout}
-          className={`flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-card py-3.5 dark:border-slate-700 dark:bg-dark-card ${accountAction ? 'opacity-60' : ''}`}
+          className={`w-full flex-row items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-card py-3.5 dark:border-slate-700 dark:bg-dark-card ${accountAction ? 'opacity-60' : ''}`}
         >
           {accountAction === 'logout' ? <ActivityIndicator color={Colors.light.tint} /> : <LogOut color={Colors.light.tint} size={18} strokeWidth={2.2} />}
           <Text className="font-semibold text-textPrimary dark:text-dark-textPrimary">Log out</Text>
@@ -206,7 +195,7 @@ export default function ProfileScreen() {
           accessibilityLabel="Delete account"
           disabled={accountAction !== null}
           onPress={handleDeleteAccount}
-          className={`flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-error py-3.5 dark:border-dark-error ${accountAction ? 'opacity-60' : ''}`}
+          className={`w-full flex-row items-center justify-center gap-2 rounded-2xl border border-error py-3.5 dark:border-dark-error ${accountAction ? 'opacity-60' : ''}`}
         >
           {accountAction === 'delete' ? <ActivityIndicator color="#ef4444" /> : <Trash2 color="#ef4444" size={18} strokeWidth={2.2} />}
           <Text className="font-semibold text-error dark:text-dark-error">Delete account</Text>

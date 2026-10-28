@@ -6,6 +6,7 @@ import {
   type ThemePaletteTier,
   getTemplatePaletteTier,
 } from '@/pages/cards/types/card.types';
+import type { LogoPalette } from '@/services/api/types';
 
 type SavedSectionThemeMeta = {
   customThemeId?: string;
@@ -137,6 +138,71 @@ export function mixHexColors(colorA: string, colorB: string, weightB: number): s
     g: a.g * (1 - t) + b.g * t,
     b: a.b * (1 - t) + b.b * t,
   });
+}
+
+/** Outer border for home preview / public share cards on varied app backgrounds. */
+export function resolveCardChromeBorder(surfaceColor: string, accentColor?: string): string {
+  if (!isColorLight(surfaceColor)) {
+    return 'rgba(148, 163, 184, 0.35)';
+  }
+  const accent = accentColor ? normalizeHexColor(accentColor) : null;
+  if (accent && !isColorLight(accent)) {
+    return hexToRgbaString(accent, 0.28);
+  }
+  return 'rgba(15, 23, 42, 0.18)';
+}
+
+/** Divider between cover photo and card body on compact preview faces. */
+export function resolveCardCoverDivider(): string {
+  return 'rgba(15, 23, 42, 0.14)';
+}
+
+/** Avatar ring on compact preview cards. */
+export function resolveCardAvatarRing(surfaceColor: string): string {
+  return isColorLight(surfaceColor) ? '#94a3b8' : 'rgba(226, 232, 240, 0.88)';
+}
+
+/** Rounded outer chrome — home carousel compact face only. */
+export const HOME_PREVIEW_CARD_BORDER_RADIUS = 20;
+
+/** Full card (detail, editor preview, public share): square outer frame. */
+export const FULL_CARD_OUTER_BORDER_RADIUS = 0;
+
+export function resolveFullCardOuterChromeStyle({
+  chromeBorder,
+  fitToViewport,
+  fittedHeight,
+  surfaceColor,
+}: {
+  chromeBorder: string;
+  fitToViewport: boolean;
+  fittedHeight?: number;
+  surfaceColor: string;
+}): {
+  backgroundColor: string;
+  borderBottomLeftRadius: number;
+  borderBottomRightRadius: number;
+  borderColor?: string;
+  borderTopLeftRadius: number;
+  borderTopRightRadius: number;
+  borderRadius: number;
+  borderWidth: number;
+  height?: number;
+  overflow: 'hidden';
+} {
+  const radius = FULL_CARD_OUTER_BORDER_RADIUS;
+  return {
+    backgroundColor: surfaceColor,
+    borderBottomLeftRadius: radius,
+    borderBottomRightRadius: radius,
+    borderColor: chromeBorder,
+    borderTopLeftRadius: radius,
+    borderTopRightRadius: radius,
+    borderRadius: radius,
+    borderWidth: 1.5,
+    height: fitToViewport ? fittedHeight : undefined,
+    overflow: 'hidden',
+  };
 }
 
 export function relativeLuminance(hex: string): number {
@@ -655,6 +721,129 @@ export function buildCustomSectionTheme(
     paletteColors: [base, surface, end],
     customThemeId: saved?.customThemeId,
     customThemeName: saved?.customThemeName,
+  };
+}
+
+export function adjustHexBrightness(hex: string, percent: number): string {
+  const clean = hex.replace('#', '');
+  const num = parseInt(clean.length === 3 ? clean.split('').map((c) => c + c).join('') : clean, 16);
+  if (Number.isNaN(num)) return '#2563eb';
+  let r = (num >> 16) + Math.round(255 * percent);
+  let g = ((num >> 8) & 0x00ff) + Math.round(255 * percent);
+  let b = (num & 0x0000ff) + Math.round(255 * percent);
+  r = Math.min(255, Math.max(0, r));
+  g = Math.min(255, Math.max(0, g));
+  b = Math.min(255, Math.max(0, b));
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+}
+
+export function buildDynamicTagThemes(
+  palette: LogoPalette,
+): Record<'Business' | 'Personal' | 'Networking' | 'Portfolio', CardVisualTheme> {
+  if (palette.tagThemes) {
+    return {
+      Business: { ...palette.tagThemes.Business, id: 'custom' as const },
+      Personal: { ...palette.tagThemes.Personal, id: 'custom' as const },
+      Networking: { ...palette.tagThemes.Networking, id: 'custom' as const },
+      Portfolio: { ...palette.tagThemes.Portfolio, id: 'custom' as const },
+    };
+  }
+
+  const dom = normalizeHexColor(palette.dominant) ?? '#00bffe';
+  const sec = normalizeHexColor(palette.secondary) ?? '#0072bc';
+  const acc = normalizeHexColor(palette.accent) ?? '#00e0fd';
+  const hasDark = palette.hasDarkElements;
+  const lightSurface = hasDark ? '#ffffff' : palette.suggestedSurface || '#0f172a';
+  const isLight = isColorLight(lightSurface);
+
+  return {
+    Business: {
+      id: 'custom',
+      gradient: [sec, dom],
+      surfaceColor: lightSurface,
+      backgroundColor: isLight ? mixHexColors(sec, '#ffffff', 0.9) : '#020617',
+      textColor: isLight ? '#0f172a' : '#f8fafc',
+      mutedTextColor: isLight ? '#475569' : '#94a3b8',
+      accentColor: dom,
+      fontStyle: 'modern',
+      paletteTier: 3,
+      paletteColors: [sec, lightSurface, dom],
+      customThemeName: 'Brand Business',
+    },
+    Personal: {
+      id: 'custom',
+      gradient: [adjustHexBrightness(dom, 0.15), sec],
+      surfaceColor: hasDark ? '#fffaf5' : '#111827',
+      backgroundColor: isLight ? '#fefce8' : '#0a0a0a',
+      textColor: isLight ? '#1c1917' : '#f5f5f4',
+      mutedTextColor: isLight ? '#78716c' : '#a8a29e',
+      accentColor: sec,
+      fontStyle: 'rounded',
+      paletteTier: 3,
+      paletteColors: [dom, hasDark ? '#fffaf5' : '#111827', sec],
+      customThemeName: 'Brand Personal',
+    },
+    Networking: {
+      id: 'custom',
+      gradient: ['#030712', dom],
+      surfaceColor: lightSurface,
+      backgroundColor: isLight ? mixHexColors(dom, '#ffffff', 0.92) : '#020617',
+      textColor: isLight ? '#0f172a' : '#f8fafc',
+      mutedTextColor: isLight ? '#334155' : '#cbd5e1',
+      accentColor: acc,
+      fontStyle: 'modern',
+      paletteTier: 3,
+      paletteColors: ['#030712', lightSurface, acc],
+      customThemeName: 'Brand Networking',
+    },
+    Portfolio: {
+      id: 'custom',
+      gradient: ['#1e293b', dom],
+      surfaceColor: hasDark ? '#fafafa' : '#18181b',
+      backgroundColor: isLight ? '#f8fafc' : '#09090b',
+      textColor: isLight ? '#18181b' : '#fafafa',
+      mutedTextColor: isLight ? '#52525b' : '#a1a1aa',
+      accentColor: dom,
+      fontStyle: 'classic',
+      paletteTier: 3,
+      paletteColors: ['#1e293b', hasDark ? '#fafafa' : '#18181b', dom],
+      customThemeName: 'Brand Portfolio',
+    },
+  };
+}
+
+export function buildThemeFromLogoPalette(
+  palette: LogoPalette,
+  fontStyle: CardFontStyle = 'modern',
+  tag?: string,
+): CardVisualTheme {
+  const dynamicThemes = buildDynamicTagThemes(palette);
+  if (tag && (tag in dynamicThemes)) {
+    const matched = dynamicThemes[tag as keyof typeof dynamicThemes];
+    return { ...matched, fontStyle };
+  }
+
+  const gradient = palette.suggestedGradient;
+  const start = normalizeHexColor(gradient[0]) ?? '#0284c7';
+  const end = normalizeHexColor(gradient[1]) ?? '#00bffe';
+
+  // If the logo has dark elements (e.g. black "Mind" in MindPros),
+  // use a clean high-contrast light surface (#ffffff), otherwise the suggested surface.
+  const surface = palette.hasDarkElements ? '#ffffff' : palette.suggestedSurface || '#0f172a';
+  const isSurfaceLight = isColorLight(surface);
+
+  return {
+    id: 'custom',
+    gradient: [start, end],
+    backgroundColor: isSurfaceLight ? mixHexColors(start, '#ffffff', 0.88) : mixHexColors(start, '#020617', 0.65),
+    surfaceColor: surface,
+    textColor: isSurfaceLight ? '#0f172a' : '#f8fafc',
+    mutedTextColor: isSurfaceLight ? mixHexColors(end, '#64748b', 0.45) : mixHexColors(end, '#94a3b8', 0.35),
+    accentColor: palette.dominant || end,
+    fontStyle,
+    paletteTier: 3,
+    paletteColors: [start, surface, end],
+    customThemeName: 'Brand Match',
   };
 }
 

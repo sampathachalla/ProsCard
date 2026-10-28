@@ -4,7 +4,11 @@ import { signInWithGoogle } from '../Services/authService';
 import { getHasCompletedOnboarding } from '@/pages/onboarding/Services/onboardingService';
 import { showMessage } from '@/common/ui/confirmAction';
 
-export function useGoogleAuth(action: 'login' | 'signup') {
+type Options = {
+  onError?: (message: string) => void;
+};
+
+export function useGoogleAuth(action: 'login' | 'signup', options: Options = {}) {
   const router = useRouter();
   const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
 
@@ -17,10 +21,11 @@ export function useGoogleAuth(action: 'login' | 'signup') {
       const completed = await getHasCompletedOnboarding();
       router.replace(completed ? '/(tabs)/homepage' : '/onboarding');
     } catch (error) {
-      showMessage(
-        action === 'signup' ? 'Google Signup Failed' : 'Google Sign-In Failed',
-        error instanceof Error ? error.message : 'Could not continue with Google. Please try again.',
-      );
+      const message = error instanceof Error ? error.message : 'Could not continue with Google. Please try again.';
+      if (options.onError) options.onError(message);
+      else {
+        showMessage(action === 'signup' ? 'Google Signup Failed' : 'Google Sign-In Failed', message);
+      }
     } finally {
       setIsGoogleSubmitting(false);
     }

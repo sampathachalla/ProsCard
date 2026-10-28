@@ -1393,6 +1393,7 @@ export function CardSectionEditor({
                 editBarCollapsed={false}
                 embedded
                 fullOpen
+                logoUrl={card.sectionOverrides?.logo}
                 onBack={() => setFormThemeOpen(false)}
                 sectionId="identity"
                 theme={card.sectionThemes.identity}
@@ -1612,6 +1613,7 @@ export function CardSectionEditor({
             editBarCollapsed={editBarCollapsed}
             embedded={activeEditTab === 'styling'}
             fullOpen={fullOpen}
+            logoUrl={card.sectionOverrides?.logo}
             onBack={onCloseStyling}
             sectionId={activeSection}
             theme={card.sectionThemes[activeSection]}

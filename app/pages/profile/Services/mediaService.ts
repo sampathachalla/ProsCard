@@ -2,6 +2,7 @@ import { ApiError, apiRequest, NETWORK_ERROR_STATUS } from '@/services/api/clien
 import { API_BASE_URL } from '@/services/api/config';
 import type {
   ConfirmedMedia,
+  LogoPalette,
   MediaUploadRequest,
   MediaUploadTicket,
 } from '@/services/api/types';
@@ -70,6 +71,114 @@ export async function uploadToObjectStorage(
 
 export async function confirmMedia(mediaId: string): Promise<ConfirmedMedia> {
   return apiRequest(`/media/${encodeURIComponent(mediaId)}/confirm`, { method: 'POST' });
+}
+
+const logoPaletteCache = new Map<string, LogoPalette>();
+
+export function getCachedLogoPalette(key: string): LogoPalette | undefined {
+  return logoPaletteCache.get(key);
+}
+
+export function cacheLogoPalette(key: string, palette: LogoPalette): void {
+  logoPaletteCache.set(key, palette);
+}
+
+export async function extractLogoPalette(input: { mediaId?: string; imageUrl?: string }): Promise<LogoPalette> {
+  const cacheKey = input.mediaId || input.imageUrl;
+  if (cacheKey) {
+    const cached = logoPaletteCache.get(cacheKey);
+    if (cached) return cached;
+  }
+
+  if (input.imageUrl && input.imageUrl.startsWith('proscard-logo:')) {
+    const slug = input.imageUrl.replace('proscard-logo:', '').toLowerCase();
+    const isMindpros = slug === 'mindpros' || slug.includes('mindpros');
+    const dominant = isMindpros ? '#00bffe' : '#2563eb';
+    const secondary = isMindpros ? '#0072bc' : '#1d4ed8';
+    const accent = isMindpros ? '#00e0fd' : '#38bdf8';
+    const hasDarkElements = isMindpros;
+    const palette: LogoPalette = {
+      dominant,
+      secondary,
+      accent,
+      hasDarkElements,
+      hasLightElements: true,
+      suggestedGradient: [secondary, dominant],
+      suggestedSurface: hasDarkElements ? '#ffffff' : '#0f172a',
+      isDarkRecommended: !hasDarkElements,
+      tagThemes: {
+        Business: {
+          id: 'custom-business',
+          name: 'Brand Business',
+          tag: 'Business',
+          gradient: [secondary, dominant],
+          surfaceColor: hasDarkElements ? '#ffffff' : '#0f172a',
+          backgroundColor: hasDarkElements ? '#f1f5f9' : '#020617',
+          textColor: hasDarkElements ? '#0f172a' : '#f8fafc',
+          mutedTextColor: hasDarkElements ? '#475569' : '#94a3b8',
+          accentColor: dominant,
+          fontStyle: 'modern',
+          paletteTier: 3,
+          paletteColors: [secondary, hasDarkElements ? '#ffffff' : '#0f172a', dominant],
+          customThemeName: 'Brand Business',
+        },
+        Personal: {
+          id: 'custom-personal',
+          name: 'Brand Personal',
+          tag: 'Personal',
+          gradient: [isMindpros ? '#38bdf8' : '#60a5fa', secondary],
+          surfaceColor: hasDarkElements ? '#fffaf5' : '#111827',
+          backgroundColor: hasDarkElements ? '#fefce8' : '#0a0a0a',
+          textColor: hasDarkElements ? '#1c1917' : '#f5f5f4',
+          mutedTextColor: hasDarkElements ? '#78716c' : '#a8a29e',
+          accentColor: secondary,
+          fontStyle: 'rounded',
+          paletteTier: 3,
+          paletteColors: [dominant, hasDarkElements ? '#fffaf5' : '#111827', secondary],
+          customThemeName: 'Brand Personal',
+        },
+        Networking: {
+          id: 'custom-networking',
+          name: 'Brand Networking',
+          tag: 'Networking',
+          gradient: ['#030712', dominant],
+          surfaceColor: hasDarkElements ? '#ffffff' : '#0f172a',
+          backgroundColor: hasDarkElements ? '#f0f9ff' : '#020617',
+          textColor: hasDarkElements ? '#0f172a' : '#f8fafc',
+          mutedTextColor: hasDarkElements ? '#334155' : '#cbd5e1',
+          accentColor: accent,
+          fontStyle: 'modern',
+          paletteTier: 3,
+          paletteColors: ['#030712', hasDarkElements ? '#ffffff' : '#0f172a', accent],
+          customThemeName: 'Brand Networking',
+        },
+        Portfolio: {
+          id: 'custom-portfolio',
+          name: 'Brand Portfolio',
+          tag: 'Portfolio',
+          gradient: ['#1e293b', dominant],
+          surfaceColor: hasDarkElements ? '#fafafa' : '#18181b',
+          backgroundColor: hasDarkElements ? '#f8fafc' : '#09090b',
+          textColor: hasDarkElements ? '#18181b' : '#fafafa',
+          mutedTextColor: hasDarkElements ? '#52525b' : '#a1a1aa',
+          accentColor: dominant,
+          fontStyle: 'classic',
+          paletteTier: 3,
+          paletteColors: ['#1e293b', hasDarkElements ? '#fafafa' : '#18181b', dominant],
+          customThemeName: 'Brand Portfolio',
+        },
+      },
+      paletteSource: 'deterministic',
+    };
+    if (cacheKey) logoPaletteCache.set(cacheKey, palette);
+    return palette;
+  }
+
+  const result = await apiRequest<LogoPalette>('/media/extract-palette', { method: 'POST', body: input });
+  if (cacheKey && result) {
+    logoPaletteCache.set(cacheKey, result);
+  }
+  return result;
 }
 
 export async function deleteMedia(mediaId: string): Promise<void> {

@@ -1,6 +1,7 @@
 import { View } from 'react-native';
 import type { Profile } from '@/pages/profile/types/profile.types';
 import type { BusinessCard, CardSectionId } from '@/pages/cards/types/card.types';
+import { savedSectionTheme } from '@/pages/addCard/Config/cardTagDesignPresets';
 import { createCardDetailTemplate } from '@/pages/cards/Templates/cardDetailTemplate';
 import { SectionTemplateRenderer } from '@/pages/cards/Templates/SectionTemplateRenderer';
 
@@ -22,7 +23,7 @@ export function CardSectionFace({
   width: number;
 }) {
   const section = createCardDetailTemplate(card, profile).find((item) => item.id === sectionId);
-  const theme = card.sectionThemes?.[sectionId];
+  const theme = card.sectionThemes?.[sectionId] ? savedSectionTheme(card, sectionId) : undefined;
   // An unknown section id (e.g. from an older build) renders nothing rather than crashing the card.
   if (!section || !theme) return null;
   return (

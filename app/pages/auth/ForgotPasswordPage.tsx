@@ -23,6 +23,7 @@ export default function ForgotPasswordScreen() {
     isVerifying,
     handleSendResetLink,
     handleVerifyCode,
+    changeEmail,
   } = useForgotPassword();
 
   return (
@@ -35,8 +36,8 @@ export default function ForgotPasswordScreen() {
         />
       }
     >
-      <View className="w-full gap-14" style={{ gap: 56 }}>
-        <Animated.View entering={FadeIn.duration(400)} className="items-center">
+      <View className="w-full">
+        <Animated.View entering={FadeIn.duration(400)} className="mb-6 items-center">
           <BrandLogo accessibilityLabel="VCPROS logo" size="xxl" variant="wordmark" />
           <Text className="mt-3 text-center text-[22px] font-bold text-[#1c1c1c] dark:text-white">
             {sentTo ? 'Check your inbox' : 'Reset your password'}
@@ -84,13 +85,23 @@ export default function ForgotPasswordScreen() {
                   {isSubmitting ? 'Sending…' : 'Resend email'}
                 </Text>
               </Pressable>
+              <Pressable
+                onPress={changeEmail}
+                accessibilityRole="button"
+                accessibilityLabel="Change email address"
+                className="mt-2 items-center py-1 active:opacity-70"
+              >
+                <Text className="text-[13px] font-medium text-slate-600 dark:text-slate-400">
+                  Wrong email? Change address
+                </Text>
+              </Pressable>
             </>
           ) : (
             <>
               <AuthSoftInput
                 value={email}
                 onChangeText={setEmail}
-                placeholder="Email"
+                placeholder="Email address"
                 error={errors.email}
                 keyboardType="email-address"
                 accessibilityLabel="Email for password reset"

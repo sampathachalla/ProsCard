@@ -25,7 +25,13 @@ export default function CardsPageScreen() {
   const [deletedCardName, setDeletedCardName] = useState<string | null>(null);
   const boundedActiveIndex = cards.length > 0 ? Math.min(activeIndex, cards.length - 1) : 0;
   const activeCard = cards[boundedActiveIndex];
-  const goBackToProfile = () => router.replace('/(tabs)/profilePage');
+  const goBackToProfile = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)/profilePage');
+    }
+  };
 
   const createCard = () => {
     navigateToCardEditor(router, { create: true });

@@ -1,6 +1,5 @@
 // pages/auth/Hooks/useLogin.ts
 import { useState } from 'react';
-import { Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { login } from '../Services/authService';
 import { getLoginInitialFields } from '../Config/authMode';
@@ -12,17 +11,20 @@ export function useLogin() {
   const [email, setEmail] = useState(initialFields.email);
   const [password, setPassword] = useState(initialFields.password);
   const [errors, setErrors] = useState<AuthFieldErrors>({});
+  const [formError, setFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
   const updateEmail = (value: string) => {
     setEmail(value);
     if (errors.email) setErrors((prev) => ({ ...prev, email: '' }));
+    if (formError) setFormError('');
   };
 
   const updatePassword = (value: string) => {
     setPassword(value);
     if (errors.password) setErrors((prev) => ({ ...prev, password: '' }));
+    if (formError) setFormError('');
   };
 
   const handleLogin = async () => {
@@ -32,12 +34,13 @@ export function useLogin() {
       return;
     }
 
+    setFormError('');
     setIsSubmitting(true);
     try {
       await login({ email: email.trim(), password });
       router.replace(await getHasCompletedOnboarding() ? '/(tabs)/homepage' : '/onboarding');
     } catch (err) {
-      Alert.alert('Login Failed', err instanceof Error ? err.message : 'Could not log in. Please try again.');
+      setFormError(err instanceof Error ? err.message : 'Could not log in. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -49,6 +52,8 @@ export function useLogin() {
     password,
     setPassword: updatePassword,
     errors,
+    formError,
+    setFormError,
     isSubmitting,
     handleLogin,
   };

@@ -182,6 +182,8 @@ export default function AddCardPage() {
               logo={editor.draft.sectionOverrides.logo ?? ''}
               gradient={editor.draft.gradient}
               onChange={editor.setOverride}
+              onAutoThemeFromLogo={editor.setTheme}
+              onPaletteExtracted={editor.applyLogoThemes}
             />
 
             <CardTagDropdown

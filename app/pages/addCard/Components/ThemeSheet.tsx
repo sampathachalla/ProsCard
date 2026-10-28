@@ -23,6 +23,7 @@ export function ThemeSheet({ card, visible, onClose, onPreview, onChange, onSave
         customThemes={card.customThemes ?? []}
         sectionId="identity"
         theme={card.cardTheme}
+        logoUrl={card.sectionOverrides?.logo}
         onBack={onClose}
         onChange={onChange}
         onSaveCustomTheme={onSaveCustomTheme}

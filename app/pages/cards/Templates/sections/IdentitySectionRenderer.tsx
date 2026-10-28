@@ -12,7 +12,7 @@ import {
   IdentityImage,
   UniversalLogoBadge,
 } from './SectionSharedComponents';
-import { resolveLayoutColorSlots } from '@/utils/cardThemeColor';
+import { isColorLight, resolveLayoutColorSlots } from '@/utils/cardThemeColor';
 import { identitySectionHeight } from '../../cardSectionLayout';
 import { getCardSectionSpacing } from './cardSectionSpacing';
 
@@ -119,6 +119,9 @@ export function IdentitySectionRenderer({
             left: spacing.horizontal,
             top: '66%',
             marginTop: -minimalProfileSize / 2,
+            width: minimalProfileSize,
+            height: minimalProfileSize,
+            borderRadius: minimalProfileSize / 2,
             shadowColor: '#000000',
             shadowOffset: { width: 0, height: 5 },
             shadowOpacity: 0.32,
@@ -209,6 +212,9 @@ export function IdentitySectionRenderer({
           {/* Welcome Signature Glowing Halo Avatar */}
           <View
             style={{
+              width: minimalProfileSize + 10,
+              height: minimalProfileSize + 10,
+              borderRadius: (minimalProfileSize + 10) / 2,
               shadowColor: '#38bdf8',
               shadowOffset: { width: 0, height: 4 },
               shadowOpacity: 0.35,
@@ -218,11 +224,16 @@ export function IdentitySectionRenderer({
           >
             <View
               style={{
+                width: minimalProfileSize + 10,
+                height: minimalProfileSize + 10,
                 backgroundColor: 'rgba(56, 189, 248, 0.15)',
                 borderColor: '#38bdf8',
                 borderRadius: (minimalProfileSize + 10) / 2,
                 borderWidth: 2,
                 padding: 3,
+                overflow: 'hidden',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
               <IdentityImage
@@ -289,13 +300,27 @@ export function IdentitySectionRenderer({
         ? 148
         : 200;
     const editorialLogoHeight = Math.round(editorialLogoWidth * (56 / 152));
+    const isLightEditorial = isColorLight(slots.surface);
     return (
       <View
         className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
-        style={[shellStyle, boxed ? BOXED_SHADOW_SM : null]}
+        style={[
+          shellStyle,
+          {
+            backgroundColor: isLightEditorial ? slots.surface : '#020617',
+          },
+          boxed ? BOXED_SHADOW_SM : null,
+        ]}
       >
         <IdentityImage field={cover} {...imageColors} style={StyleSheet.absoluteFill} />
-        <LinearGradient colors={['rgba(2,6,23,0.18)', 'rgba(2,6,23,0.78)']} style={StyleSheet.absoluteFill} />
+        <LinearGradient
+          colors={
+            isLightEditorial
+              ? ['rgba(255, 255, 255, 0.25)', 'rgba(255, 255, 255, 0.88)']
+              : ['rgba(2, 6, 23, 0.18)', 'rgba(2, 6, 23, 0.78)']
+          }
+          style={StyleSheet.absoluteFill}
+        />
         <View className="h-full w-full items-center justify-center px-4">
           <View
             className="w-full items-center justify-center"
@@ -347,21 +372,26 @@ export function IdentitySectionRenderer({
         ? 148
         : 200;
     const editorialLogoHeight = Math.round(editorialLogoWidth * (56 / 152));
+    const isLightNew = isColorLight(slots.surface);
     return (
       <View
         className={`overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
         style={[
           shellStyle,
           {
-            backgroundColor: '#070d1e',
-            borderColor: 'rgba(56, 189, 248, 0.25)',
+            backgroundColor: isLightNew ? slots.surface : '#070d1e',
+            borderColor: isLightNew ? 'rgba(15, 23, 42, 0.08)' : 'rgba(56, 189, 248, 0.25)',
           },
           boxed ? BOXED_SHADOW_SM : null,
         ]}
       >
         <IdentityImage field={cover} {...imageColors} style={StyleSheet.absoluteFill} />
         <LinearGradient
-          colors={['rgba(7,13,30,0.3)', 'rgba(7,13,30,0.95)']}
+          colors={
+            isLightNew
+              ? ['rgba(255, 255, 255, 0.3)', 'rgba(255, 255, 255, 0.95)']
+              : ['rgba(7, 13, 30, 0.3)', 'rgba(7, 13, 30, 0.95)']
+          }
           style={StyleSheet.absoluteFill}
         />
         {/* Top Micro-chip */}
@@ -444,13 +474,28 @@ export function IdentitySectionRenderer({
       : compact
         ? 64
         : 82;
+    const isLightSpotlight = isColorLight(slots.surface);
     return (
       <View
         className={`items-center justify-center overflow-hidden px-5 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
-        style={[shellStyle, { borderColor: slots.accent }, boxed ? BOXED_SHADOW_MD : null]}
+        style={[
+          shellStyle,
+          {
+            backgroundColor: isLightSpotlight ? slots.surface : '#020617',
+            borderColor: slots.accent,
+          },
+          boxed ? BOXED_SHADOW_MD : null,
+        ]}
       >
         <IdentityImage field={cover} {...imageColors} style={StyleSheet.absoluteFill} />
-        <LinearGradient colors={['rgba(2,6,23,0.25)', 'rgba(2,6,23,0.72)']} style={StyleSheet.absoluteFill} />
+        <LinearGradient
+          colors={
+            isLightSpotlight
+              ? ['rgba(255, 255, 255, 0.25)', 'rgba(255, 255, 255, 0.85)']
+              : ['rgba(2, 6, 23, 0.25)', 'rgba(2, 6, 23, 0.72)']
+          }
+          style={StyleSheet.absoluteFill}
+        />
         <View className="h-full w-full items-center justify-center px-4">
           <View
             className="w-full items-center justify-center"
@@ -502,28 +547,33 @@ export function IdentitySectionRenderer({
       : compact
         ? 64
         : 82;
+    const isLightSpotlightNew = isColorLight(slots.surface);
     return (
       <View
         className={`items-center justify-center overflow-hidden px-5 ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
         style={[
           shellStyle,
           {
-            backgroundColor: '#070d1e',
-            borderColor: 'rgba(56, 189, 248, 0.3)',
+            backgroundColor: isLightSpotlightNew ? slots.surface : '#070d1e',
+            borderColor: isLightSpotlightNew ? 'rgba(15, 23, 42, 0.08)' : 'rgba(56, 189, 248, 0.3)',
           },
           boxed ? BOXED_SHADOW_MD : null,
         ]}
       >
         <IdentityImage field={cover} {...imageColors} style={StyleSheet.absoluteFill} />
         <LinearGradient
-          colors={['rgba(7,13,30,0.3)', 'rgba(7,13,30,0.95)']}
+          colors={
+            isLightSpotlightNew
+              ? ['rgba(255, 255, 255, 0.3)', 'rgba(255, 255, 255, 0.95)']
+              : ['rgba(7, 13, 30, 0.3)', 'rgba(7, 13, 30, 0.95)']
+          }
           style={StyleSheet.absoluteFill}
         />
         {/* Ambient Center Glow */}
         <View
           className="absolute h-40 w-40 rounded-full"
           style={{
-            backgroundColor: 'rgba(56, 189, 248, 0.12)',
+            backgroundColor: isLightSpotlightNew ? 'rgba(56, 189, 248, 0.08)' : 'rgba(56, 189, 248, 0.12)',
             transform: [{ scale: 1.5 }],
           }}
         />
@@ -552,6 +602,9 @@ export function IdentitySectionRenderer({
         <View
           className="absolute bottom-2 left-3"
           style={{
+            width: spotlightProfileSize + 9,
+            height: spotlightProfileSize + 9,
+            borderRadius: (spotlightProfileSize + 9) / 2,
             shadowColor: '#38bdf8',
             shadowOffset: { width: 0, height: 4 },
             shadowOpacity: 0.4,
@@ -561,11 +614,16 @@ export function IdentitySectionRenderer({
         >
           <View
             style={{
+              width: spotlightProfileSize + 9,
+              height: spotlightProfileSize + 9,
               backgroundColor: 'rgba(37,99,235,0.25)',
               borderColor: '#38bdf8',
-              borderRadius: (spotlightProfileSize + 8) / 2,
+              borderRadius: (spotlightProfileSize + 9) / 2,
               borderWidth: 2,
               padding: 2.5,
+              overflow: 'hidden',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
             <IdentityImage
@@ -577,6 +635,7 @@ export function IdentitySectionRenderer({
                 borderRadius: spotlightProfileSize / 2,
                 borderWidth: 2,
                 borderColor: '#ffffff',
+                overflow: 'hidden',
               }}
             />
           </View>
@@ -603,8 +662,8 @@ export function IdentitySectionRenderer({
         style={[
           shellStyle,
           {
-            backgroundColor: '#070d1e',
-            borderColor: 'rgba(56, 189, 248, 0.25)',
+            backgroundColor: slots.surface,
+            borderColor: isColorLight(slots.surface) ? 'rgba(15, 23, 42, 0.08)' : 'rgba(56, 189, 248, 0.25)',
           },
           boxed ? BOXED_SHADOW_SM : null,
         ]}
@@ -638,9 +697,9 @@ export function IdentitySectionRenderer({
           <View
             className={`w-full flex-1 items-center ${fullCardView ? 'justify-start' : 'justify-center'}`}
             style={{
-              backgroundColor: '#070d1e',
+              backgroundColor: slots.surface,
               borderTopWidth: 1,
-              borderTopColor: 'rgba(56, 189, 248, 0.2)',
+              borderTopColor: isColorLight(slots.surface) ? 'rgba(15, 23, 42, 0.08)' : 'rgba(56, 189, 248, 0.2)',
               paddingHorizontal: walletPass ? 10 : spacing.horizontal,
               paddingBottom: walletPass ? 4 : spacing.tightVertical,
               paddingTop: fullCardView ? 0 : walletPass ? 4 : spacing.tightVertical,
@@ -657,6 +716,9 @@ export function IdentitySectionRenderer({
           >
             <View
               style={{
+                width: classicProfileSize + 10,
+                height: classicProfileSize + 10,
+                borderRadius: (classicProfileSize + 10) / 2,
                 shadowColor: '#38bdf8',
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.45,
@@ -666,11 +728,16 @@ export function IdentitySectionRenderer({
             >
               <View
                 style={{
+                  width: classicProfileSize + 10,
+                  height: classicProfileSize + 10,
                   backgroundColor: 'rgba(56, 189, 248, 0.18)',
                   borderColor: '#38bdf8',
                   borderRadius: (classicProfileSize + 10) / 2,
                   borderWidth: 2,
                   padding: 3,
+                  overflow: 'hidden',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
               >
                 <IdentityImage
@@ -799,6 +866,9 @@ export function IdentitySectionRenderer({
           {/* Avatar with Elevation Shadow and Crisp Border Ring */}
           <View
             style={{
+              width: classicProfileSize,
+              height: classicProfileSize,
+              borderRadius: classicProfileSize / 2,
               shadowColor: '#000000',
               shadowOffset: { width: 0, height: 6 },
               shadowOpacity: 0.22,

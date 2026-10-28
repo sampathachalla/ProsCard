@@ -15,6 +15,7 @@ export const cardSchema = z.object({
   connectionFieldsCustomized: z.boolean(),
   cardTheme: z.record(z.string(), z.unknown()),
   customThemes: z.array(z.record(z.string(), z.unknown())).optional(),
+  appliedTheme: z.record(z.string(), z.unknown()).nullable().optional(),
 });
 export const cardPatchSchema = z
   .record(z.string(), z.unknown())

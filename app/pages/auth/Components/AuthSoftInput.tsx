@@ -46,11 +46,9 @@ export function AuthSoftInput({
   const [showSecret, setShowSecret] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const isSecure = secureTextEntry && !showSecret;
-  const displayLabel = label ?? placeholder;
-
   return (
     <View className="mb-4 w-full">
-      {displayLabel ? (
+      {label ? (
         <Text
           variant="none"
           className={`mb-2 text-[14px] font-normal ${
@@ -59,7 +57,7 @@ export function AuthSoftInput({
               : 'text-slate-500 dark:text-slate-400'
           }`}
         >
-          {displayLabel}
+          {label}
         </Text>
       ) : null}
       <View

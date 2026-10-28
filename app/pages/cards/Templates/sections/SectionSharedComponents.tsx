@@ -1,5 +1,5 @@
 import React from 'react';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MediaImage } from '@/common/ui/MediaImage';
@@ -175,17 +175,48 @@ export function IdentityImage({
   fit?: 'contain' | 'cover';
   iconColor?: string;
   placeholderColor?: string;
-  style: object;
+  style: any;
 }) {
+  const flattened = StyleSheet.flatten(style) || {};
+  const borderRadius = flattened.borderRadius;
+
   if (!field?.value) {
     if (field?.id === 'coverPhoto') return <DefaultCover style={style} />;
     return (
-      <View style={[style, { backgroundColor: placeholderColor }]} className="items-center justify-center">
+      <View
+        style={[
+          style,
+          {
+            backgroundColor: placeholderColor,
+            overflow: 'hidden',
+          },
+        ]}
+        className="items-center justify-center"
+      >
         <ImageIcon color={iconColor} size={22} />
       </View>
     );
   }
-  return <MediaImage sourceUrl={field.value} contentFit={fit} style={style} />;
+  return (
+    <View
+      style={[
+        style,
+        {
+          overflow: 'hidden',
+        },
+      ]}
+    >
+      <MediaImage
+        sourceUrl={field.value}
+        contentFit={fit}
+        style={{
+          width: '100%',
+          height: '100%',
+          borderRadius,
+        }}
+      />
+    </View>
+  );
 }
 
 export function UniversalLogoBadge({
@@ -223,27 +254,26 @@ export function UniversalLogoBadge({
   const surroundingIsLight = slots ? isRgbaOrHexLight(slots.surface) : false;
   const isBackdropExplicitlyLight = backdropColor ? isRgbaOrHexLight(backdropColor) : undefined;
 
-  // If a backdrop is explicitly given, logo adapts to it.
-  // Otherwise, the container adapts to provide high-contrast for the logo against the card.
-  const isLightLogo = isBackdropExplicitlyLight !== undefined ? !isBackdropExplicitlyLight : !surroundingIsLight;
+  // When a container box is requested (bare=false), it must provide high contrast:
+  // If the surrounding surface is dark, the container must provide a light ceramic backdrop (logoTone: 'dark').
+  const targetTone: 'light' | 'dark' = isBackdropExplicitlyLight !== undefined
+    ? (isBackdropExplicitlyLight ? 'dark' : 'light')
+    : (surroundingIsLight ? 'light' : 'dark');
 
   const engineStyle = resolveLogoBoxStyle({
     compact,
-    logoTone: isLightLogo ? 'light' : 'dark',
+    logoTone: targetTone,
     placement,
     slots,
     templateId,
     theme: cardTheme,
   });
 
-  const logoContrastSample =
-    bare && placement === 'on-cover'
-      ? backdropColor ?? '#0f172a'
-      : bare && placement === 'on-surface' && slots?.surface
-        ? slots.surface
-        : backdropColor || (bare ? slots?.background ?? slots?.surface : undefined) || engineStyle.backgroundColor;
-  const effectiveBg = bare ? 'transparent' : backdropColor || engineStyle.backgroundColor;
-  const isEffectiveBgLight = isRgbaOrHexLight(logoContrastSample);
+  const shouldBeBare = Boolean(bare);
+  const effectiveBg = shouldBeBare ? 'transparent' : backdropColor || engineStyle.backgroundColor;
+  const isEffectiveBgLight = isRgbaOrHexLight(
+    shouldBeBare ? (slots?.surface ?? (surroundingIsLight ? '#ffffff' : '#0f172a')) : effectiveBg,
+  );
 
   // Dark text on light backdrop; White text on dark backdrop
   const defaultBrandLogo = isEffectiveBgLight ? vcProsLogoForLightTheme : vcProsLogoForDarkTheme;
@@ -253,20 +283,20 @@ export function UniversalLogoBadge({
       style={[
         {
           alignItems: 'center',
-          backgroundColor: bare ? 'transparent' : effectiveBg,
-          borderColor: borderColor || engineStyle.borderColor,
-          borderRadius: bare ? 0 : engineStyle.borderRadius,
-          borderWidth: bare ? 0 : engineStyle.borderWidth,
-          height: bare ? logoHeight : logoHeight + (compact ? 8 : 12),
+          backgroundColor: shouldBeBare ? 'transparent' : effectiveBg,
+          borderColor: borderColor || (shouldBeBare ? 'transparent' : engineStyle.borderColor),
+          borderRadius: shouldBeBare ? 0 : engineStyle.borderRadius,
+          borderWidth: shouldBeBare ? 0 : engineStyle.borderWidth,
+          height: shouldBeBare ? logoHeight : logoHeight + (compact ? 8 : 12),
           justifyContent: 'center',
-          paddingHorizontal: bare ? 0 : compact ? 8 : 12,
-          paddingVertical: bare ? 0 : compact ? 4 : 6,
+          paddingHorizontal: shouldBeBare ? 0 : compact ? 8 : 12,
+          paddingVertical: shouldBeBare ? 0 : compact ? 4 : 6,
           shadowColor: engineStyle.shadowColor,
           shadowOffset: engineStyle.shadowOffset,
-          shadowOpacity: bare ? 0 : engineStyle.shadowOpacity,
-          shadowRadius: bare ? 0 : engineStyle.shadowRadius,
-          elevation: bare ? 0 : engineStyle.elevation,
-          width: bare ? logoWidth : logoWidth + (compact ? 14 : 22),
+          shadowOpacity: shouldBeBare ? 0 : engineStyle.shadowOpacity,
+          shadowRadius: shouldBeBare ? 0 : engineStyle.shadowRadius,
+          elevation: shouldBeBare ? 0 : engineStyle.elevation,
+          width: shouldBeBare ? logoWidth : logoWidth + (compact ? 14 : 22),
         },
         style,
       ]}

@@ -1,2 +1,5 @@
-// Route file only: the screen lives in pages/cards/CardsPage.tsx.
-export { default } from '@/pages/cards/CardsPage';
+import { Redirect } from 'expo-router';
+
+export default function CardsPageTabRedirect() {
+  return <Redirect href="/manage-cards" />;
+}

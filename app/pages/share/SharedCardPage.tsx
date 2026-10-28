@@ -99,6 +99,7 @@ export default function SharedCardPage() {
           card={view.data.card}
           fullBleed
           profile={view.data.profile}
+          publicShareView
           vcardDownloadUrl={vcardUrlForSlug(slug)}
         />
         <Text variant="muted" className="mt-6 text-center text-xs">Shared with VC Pros</Text>

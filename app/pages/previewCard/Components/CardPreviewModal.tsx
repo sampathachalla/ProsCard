@@ -27,7 +27,10 @@ export function CardPreviewModal({ card, insets, profile, viewportHeight, visibl
           paddingBottom: Math.max(insets.bottom, 8),
         }}
       >
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 88 }}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 88, width: '100%' }}
+        >
           <CardDetailView card={card} fullBleed profile={profile} viewportHeight={viewportHeight} />
         </ScrollView>
         <Pressable
