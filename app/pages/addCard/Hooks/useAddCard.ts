@@ -30,6 +30,8 @@ import {
   isCardTag,
 } from '../Config/cardTagDesignPresets';
 import { getCachedLogoPalette } from '@/pages/profile/Services/mediaService';
+import { saveProfile } from '@/pages/profile/Services/profileService';
+import { applyCardFieldToProfile, type AccountScopedCardField } from '../Utils/accountFieldScope';
 
 /** Applies one theme to every card section so the whole card matches. */
 function withThemeEverywhere(card: BusinessCard, theme: CardVisualTheme): BusinessCard {
@@ -57,6 +59,9 @@ export function useAddCard(options: UseAddCardOptions = {}) {
   );
   const initialSnapshot = useRef(JSON.stringify(draft));
   const [isSaving, setIsSaving] = useState(false);
+  const [isUpdatingAccount, setIsUpdatingAccount] = useState(false);
+  const profileRef = useRef(profile);
+  profileRef.current = profile;
   const hasChanges = JSON.stringify(draft) !== initialSnapshot.current;
 
   const setOverride = useCallback((field: CardSectionFieldId, value: string) => {
@@ -139,6 +144,25 @@ export function useAddCard(options: UseAddCardOptions = {}) {
       };
     });
   }, []);
+
+  const saveFieldToAccount = useCallback(async (field: AccountScopedCardField, value: string) => {
+    if (isUpdatingAccount) return false;
+    setIsUpdatingAccount(true);
+    try {
+      const saved = await saveProfile(applyCardFieldToProfile(profileRef.current, field, value));
+      profileRef.current = saved;
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      return true;
+    } catch (error) {
+      Alert.alert(
+        'Account update failed',
+        error instanceof Error ? error.message : 'This card still has the change, but the account default could not be updated.',
+      );
+      return false;
+    } finally {
+      setIsUpdatingAccount(false);
+    }
+  }, [isUpdatingAccount]);
 
   const setContactValue = useCallback((id: string, value: string) => {
     setDraft((prev) => ({
@@ -240,9 +264,11 @@ export function useAddCard(options: UseAddCardOptions = {}) {
     hasChanges,
     isEditMode,
     isSaving,
+    isUpdatingAccount,
     setOverride,
     applyCardTag,
     setTextField,
+    saveFieldToAccount,
     setContactValue,
     addContact,
     removeContact,

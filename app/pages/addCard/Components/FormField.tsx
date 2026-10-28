@@ -15,6 +15,8 @@ type Props = {
   /** Rendered at the right of the label row (e.g. a switch or remove button). */
   accessory?: ReactNode;
   showCount?: boolean;
+  onFocus?: () => void;
+  onEndEditing?: () => void;
 };
 
 /** Boxed input with its label inside the box, one per line as in the card form sketch. */
@@ -29,6 +31,8 @@ export function FormField({
   onChangeText,
   accessory,
   showCount = false,
+  onFocus,
+  onEndEditing,
 }: Props) {
   const { theme } = useThemeContext();
 
@@ -56,6 +60,8 @@ export function FormField({
         placeholderTextColor="#94a3b8"
         value={value}
         onChangeText={onChangeText}
+        onFocus={onFocus}
+        onEndEditing={onEndEditing}
         className="py-1.5 text-base text-textPrimary dark:text-dark-textPrimary"
         style={[
           { color: theme === 'dark' ? '#f8fafc' : '#0f172a' },

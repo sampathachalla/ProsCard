@@ -36,6 +36,7 @@ import {
 import { useAddCard } from './Hooks/useAddCard';
 import type { AddCardPanel, AddCardTextFieldId, ContactOption } from './types/addCard.types';
 import { validateAddCard } from './Utils/validateAddCard';
+import type { AccountScopedCardField } from './Utils/accountFieldScope';
 
 function textValue(
   id: AddCardTextFieldId,
@@ -79,6 +80,7 @@ export default function AddCardPage() {
   const [panel, setPanel] = useState<AddCardPanel>(null);
   const [previewVisible, setPreviewVisible] = useState(false);
   const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fieldValueOnFocus = useRef<Partial<Record<AccountScopedCardField, string>>>({});
 
   useEffect(() => () => {
     if (previewTimer.current) clearTimeout(previewTimer.current);
@@ -153,6 +155,27 @@ export default function AddCardPage() {
     setPanel(null);
   };
 
+  const rememberFieldValue = (field: AccountScopedCardField, value: string) => {
+    fieldValueOnFocus.current[field] = value;
+  };
+
+  const chooseFieldScope = (field: AccountScopedCardField, label: string, value: string) => {
+    const startingValue = fieldValueOnFocus.current[field];
+    delete fieldValueOnFocus.current[field];
+    if (startingValue === undefined || startingValue === value) return;
+    Alert.alert(
+      `Save ${label.toLowerCase()} change`,
+      'Where should this change apply?',
+      [
+        { text: 'This card only', style: 'cancel' },
+        {
+          text: 'Account & this card',
+          onPress: () => void editor.saveFieldToAccount(field, value),
+        },
+      ],
+    );
+  };
+
   return (
     <View className="flex-1 bg-background dark:bg-dark-background">
       <AddCardHeader
@@ -210,6 +233,8 @@ export default function AddCardPage() {
                 autoCapitalize={field.autoCapitalize}
                 showCount
                 onChangeText={(value) => editor.setTextField(field.id, value)}
+                onFocus={() => rememberFieldValue(field.id, textValue(field.id, editor.draft))}
+                onEndEditing={() => chooseFieldScope(field.id, field.label, textValue(field.id, editor.draft))}
               />
               ))}
 
@@ -221,6 +246,8 @@ export default function AddCardPage() {
               autoCapitalize={TAGLINE_FIELD.autoCapitalize}
               showCount
               onChangeText={(value) => editor.setTextField('tagline', value)}
+              onFocus={() => rememberFieldValue('tagline', editor.draft.sectionOverrides.tagline ?? '')}
+              onEndEditing={() => chooseFieldScope('tagline', TAGLINE_FIELD.label, editor.draft.sectionOverrides.tagline ?? '')}
             />
 
             <BioField
@@ -228,6 +255,8 @@ export default function AddCardPage() {
               enabled={editor.draft.sectionOverrides.bioEnabled === 'true'}
               onChangeText={(value) => editor.setOverride('bio', value)}
               onToggle={(enabled) => editor.setOverride('bioEnabled', enabled ? 'true' : 'false')}
+              onFocus={() => rememberFieldValue('bio', editor.draft.sectionOverrides.bio ?? '')}
+              onEndEditing={() => chooseFieldScope('bio', 'Bio', editor.draft.sectionOverrides.bio ?? '')}
             />
 
             <View className="mb-2 mt-4">

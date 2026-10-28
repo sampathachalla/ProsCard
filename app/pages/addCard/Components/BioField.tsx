@@ -7,10 +7,12 @@ type Props = {
   enabled: boolean;
   onChangeText: (value: string) => void;
   onToggle: (enabled: boolean) => void;
+  onFocus?: () => void;
+  onEndEditing?: () => void;
 };
 
 /** Biography input; the switch controls whether the bio is shown on the card. */
-export function BioField({ value, enabled, onChangeText, onToggle }: Props) {
+export function BioField({ value, enabled, onChangeText, onToggle, onFocus, onEndEditing }: Props) {
   return (
     <FormField
       label={enabled ? 'Bio · shown on card' : 'Bio · hidden'}
@@ -20,6 +22,8 @@ export function BioField({ value, enabled, onChangeText, onToggle }: Props) {
       multiline
       showCount
       onChangeText={onChangeText}
+      onFocus={onFocus}
+      onEndEditing={onEndEditing}
       accessory={
         <Switch
           accessibilityLabel="Show bio on card"
