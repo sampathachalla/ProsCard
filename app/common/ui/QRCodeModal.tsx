@@ -6,7 +6,7 @@ import * as Haptics from 'expo-haptics';
 import { QRCodeView } from './QRCodeView';
 import { Text } from './Text';
 
-export function QRCodeModal({ cardName, error, onClose, url, visible }: { cardName: string; error?: string; onClose: () => void; url: string; visible: boolean }) {
+export function QRCodeModal({ cardName, centerLogoUrl, error, onClose, url, visible }: { cardName: string; centerLogoUrl?: string; error?: string; onClose: () => void; url: string; visible: boolean }) {
   const translateY = useSharedValue(0);
   const style = useAnimatedStyle(() => ({ transform: [{ translateY: translateY.get() }] }));
   const dismissWithHaptic = () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); onClose(); };
@@ -56,6 +56,7 @@ export function QRCodeModal({ cardName, error, onClose, url, visible }: { cardNa
                         accentColor="#38bdf8"
                         framed={false}
                         showCenterLogo
+                        centerLogoUrl={centerLogoUrl}
                       />
                     ) : (
                       <View className="items-center justify-center" style={{ width: 224, height: 224 }}>

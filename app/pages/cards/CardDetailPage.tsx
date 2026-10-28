@@ -187,7 +187,14 @@ export default function CardDetailPage() {
         </ScrollView>
         <FloatingToolsButton actions={toolActions} />
         <WalletProcessingModal label={wallet.label} visible={wallet.adding} />
-        <QRCodeModal visible={showQr} cardName={card.name} url={share.url} error={share.error instanceof Error ? share.error.message : undefined} onClose={() => setShowQr(false)} />
+        <QRCodeModal
+          visible={showQr}
+          cardName={card.name}
+          centerLogoUrl={card.sectionOverrides.logo?.trim() || profile.companyLogoUrl?.trim() || undefined}
+          url={share.url}
+          error={share.error instanceof Error ? share.error.message : undefined}
+          onClose={() => setShowQr(false)}
+        />
       </CardTapGesture>
       <CardMenuButton bottomInset={insets.bottom} onPress={() => menuRef.current?.snapToIndex(0)} />
       <CardMenuSheet ref={menuRef} title={cardTitle} walletLabel={wallet.label} onSelect={(action) => void handleMenuSelect(action)} />

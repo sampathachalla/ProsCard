@@ -217,6 +217,7 @@ export function HomePreviewCardFace({
                 accentColor={accentColor}
                 framed={false}
                 showCenterLogo
+                centerLogoUrl={logo?.value}
               />
             ) : (
               <View

@@ -13,6 +13,7 @@ export interface ShareQrHeroCardProps {
   loading?: boolean;
   error?: string;
   preset: QrCustomizationPreset;
+  centerLogoUrl?: string;
   onQrRef?: (ref: QrSvgRef | null) => void;
   onPressExpand?: () => void;
 }
@@ -23,6 +24,7 @@ export function ShareQrHeroCard({
   loading = false,
   error,
   preset,
+  centerLogoUrl,
   onQrRef,
   onPressExpand,
 }: ShareQrHeroCardProps) {
@@ -49,6 +51,7 @@ export function ShareQrHeroCard({
           accentColor={preset.accentColor}
           framed={false}
           showCenterLogo
+          centerLogoUrl={centerLogoUrl}
           getRef={onQrRef}
         />
       ) : (

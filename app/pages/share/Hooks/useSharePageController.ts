@@ -84,6 +84,7 @@ export function useSharePageController() {
 
   const boundedIndex = cards.length > 0 ? Math.min(cardIndex, cards.length - 1) : 0;
   const card = cards[boundedIndex];
+  const centerLogoUrl = card?.sectionOverrides.logo?.trim() || profile.companyLogoUrl?.trim() || '';
   const share = useShareUrl(card?.id ?? null);
   const wallet = useAddToWallet();
 
@@ -299,6 +300,7 @@ export function useSharePageController() {
     cards,
     card,
     cardLabel,
+    centerLogoUrl,
     boundedIndex,
     setCardIndex,
     pickerOpen,

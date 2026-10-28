@@ -13,6 +13,7 @@ export interface CustomizeQrModalProps {
   visible: boolean;
   shareUrl: string;
   activePreset: QrCustomizationPreset;
+  centerLogoUrl?: string;
   onSelectPreset: (presetId: string) => void;
   onClose: () => void;
 }
@@ -21,6 +22,7 @@ export function CustomizeQrModal({
   visible,
   shareUrl,
   activePreset,
+  centerLogoUrl,
   onSelectPreset,
   onClose,
 }: CustomizeQrModalProps) {
@@ -79,6 +81,7 @@ export function CustomizeQrModal({
                   accentColor={activePreset.accentColor}
                   framed={false}
                   showCenterLogo
+                  centerLogoUrl={centerLogoUrl}
                 />
               ) : (
                 <View className="h-[156px] w-[156px] items-center justify-center">

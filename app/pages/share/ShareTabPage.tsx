@@ -22,6 +22,7 @@ export default function ShareTabPage() {
     cards,
     card,
     cardLabel,
+    centerLogoUrl,
     boundedIndex,
     setCardIndex,
     pickerOpen,
@@ -130,6 +131,7 @@ export default function ShareTabPage() {
       loading={shareLoading || !fetched}
       error={shareError}
       preset={activeQrPreset}
+      centerLogoUrl={centerLogoUrl}
       onQrRef={setQrRef}
       onPressExpand={() => setQrModalOpen(true)}
     />
@@ -168,6 +170,7 @@ export default function ShareTabPage() {
         cardName={card?.name ?? 'VC Pros'}
         url={shareUrl}
         error={shareError}
+        centerLogoUrl={centerLogoUrl}
         onClose={() => setQrModalOpen(false)}
       />
 
@@ -175,6 +178,7 @@ export default function ShareTabPage() {
         visible={customizeOpen}
         shareUrl={shareUrl}
         activePreset={activeQrPreset}
+        centerLogoUrl={centerLogoUrl}
         onSelectPreset={selectQrPreset}
         onClose={() => setCustomizeOpen(false)}
       />

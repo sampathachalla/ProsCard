@@ -13,6 +13,7 @@ import Svg, {
 // @ts-expect-error qrcode is installed via react-native-qrcode-svg
 import QRCodeGenerator from 'qrcode';
 import { getVcProsIconSource } from './BrandLogo';
+import { MediaImage } from './MediaImage';
 import { isRgbaOrHexLight } from '@/utils/cardThemeColor';
 
 export interface QrSvgRef {
@@ -28,6 +29,8 @@ export type QRCodeViewProps = {
   framed?: boolean;
   padding?: number;
   showCenterLogo?: boolean;
+  /** Company logo shown in the QR center. Empty values fall back to the VC Pros app mark. */
+  centerLogoUrl?: string;
   /** When true, overlays the raster BrandLogo icon PNG; defaults to the exact VC vector mark from the VCPROS logo so SVG-to-PNG export also captures it. */
   useBrandIconAsset?: boolean;
   getRef?: (ref: QrSvgRef | null) => void;
@@ -63,6 +66,7 @@ export function QRCodeView({
   framed = true,
   padding = 16,
   showCenterLogo = true,
+  centerLogoUrl,
   useBrandIconAsset = false,
   getRef,
   style,
@@ -102,6 +106,9 @@ export function QRCodeView({
   const vcTheme = isLightBg ? 'light' : 'dark';
   const vcStroke = isLightBg ? '#00A8E8' : '#E2E8F0';
   const centerIconSize = Math.round(size * 0.27);
+  const customCenterLogo = centerLogoUrl?.trim() ?? '';
+  const customLogoWidth = Math.round(size * 0.3);
+  const customLogoHeight = Math.round(size * 0.18);
 
   const content =
     value && qrData ? (
@@ -185,7 +192,7 @@ export function QRCodeView({
           ))}
 
           {/* Exact Enterprise VC Logo Vector Mark from vcpros-logo-v3 */}
-          {showCenterLogo && !useBrandIconAsset ? (
+          {showCenterLogo && !useBrandIconAsset && !customCenterLogo ? (
             <G
               transform={`translate(${qrData.matrixSize / 2}, ${qrData.matrixSize / 2}) scale(${
                 (qrData.matrixSize * 0.29) / 348
@@ -260,21 +267,29 @@ export function QRCodeView({
           ) : null}
         </Svg>
 
-        {showCenterLogo && useBrandIconAsset ? (
+        {showCenterLogo && (useBrandIconAsset || customCenterLogo) ? (
           <View
             pointerEvents="none"
             style={{
               position: 'absolute',
-              width: centerIconSize,
-              height: centerIconSize,
+              width: customCenterLogo ? customLogoWidth : centerIconSize,
+              height: customCenterLogo ? customLogoHeight : centerIconSize,
             }}
             className="items-center justify-center"
           >
-            <Image
-              source={getVcProsIconSource(vcTheme)}
-              resizeMode="contain"
-              style={{ width: centerIconSize, height: centerIconSize }}
-            />
+            {customCenterLogo ? (
+              <MediaImage
+                sourceUrl={customCenterLogo}
+                contentFit="contain"
+                style={{ width: customLogoWidth, height: customLogoHeight }}
+              />
+            ) : (
+              <Image
+                source={getVcProsIconSource(vcTheme)}
+                resizeMode="contain"
+                style={{ width: centerIconSize, height: centerIconSize }}
+              />
+            )}
           </View>
         ) : null}
       </View>
