@@ -44,6 +44,7 @@ export function HomePreviewCardFace({
   const coverPhoto = identity ? walletField(identity, 'coverPhoto') : undefined;
   const profilePhoto = identity ? walletField(identity, 'profilePhoto') : undefined;
   const logo = identity ? walletField(identity, 'logo') : undefined;
+  const logoBackdrop = identity ? walletFieldValue(identity, 'logoBackdrop', '') : '';
 
   // Saved themes only, exactly like the public share page; profile theme toggles are stored on the card.
   const identityTheme = savedSectionTheme(card, 'identity');
@@ -156,6 +157,7 @@ export function HomePreviewCardFace({
           <View style={{ marginTop: 8, maxWidth: logoWidth }}>
             <UniversalLogoBadge
               bare
+              backdropColor={logoBackdrop || undefined}
               cardTheme={identityTheme}
               compact
               field={logo}

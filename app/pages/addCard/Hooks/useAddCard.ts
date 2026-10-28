@@ -87,7 +87,7 @@ export function useAddCard(options: UseAddCardOptions = {}) {
       setDraft((prev) => {
         const withBackdrop = {
           ...prev,
-          sectionOverrides: { ...prev.sectionOverrides, logoBackdrop: palette.suggestedSurface },
+          sectionOverrides: { ...prev.sectionOverrides, logoBackdrop: palette.logoBackground ?? palette.suggestedSurface },
         };
         if (!tagDesignEnabled) return withBackdrop;
         const currentTag = prev.sectionOverrides?.cardTag;
@@ -123,7 +123,7 @@ export function useAddCard(options: UseAddCardOptions = {}) {
       return withThemeEverywhere(
         {
           ...prev,
-          sectionOverrides: { ...prev.sectionOverrides, logoBackdrop: palette.suggestedSurface },
+          sectionOverrides: { ...prev.sectionOverrides, logoBackdrop: palette.logoBackground ?? palette.suggestedSurface },
           customThemes: [
             ...savedCustomThemes,
             ...(prev.customThemes ?? []).filter((item) => !item.id.startsWith('logo-tag-')),

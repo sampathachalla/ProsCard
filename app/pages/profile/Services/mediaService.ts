@@ -105,6 +105,7 @@ export async function extractLogoPalette(input: { mediaId?: string; imageUrl?: s
       hasLightElements: true,
       suggestedGradient: [secondary, dominant],
       suggestedSurface: hasDarkElements ? '#ffffff' : '#0f172a',
+      logoBackground: hasDarkElements ? '#ffffff' : '#0f172a',
       isDarkRecommended: !hasDarkElements,
       tagThemes: {
         Business: {

@@ -104,6 +104,8 @@ describe('withResolvedCardTheme / savedSectionTheme', () => {
     expect(applied.appliedTheme).toBeTruthy();
     expect(applied.sectionThemes).toEqual(card.sectionThemes);
     expect(savedSectionTheme(applied, 'identity')).toEqual(applied.appliedTheme);
+    expect(savedSectionTheme(applied, 'professional').backgroundColor).toBe(applied.appliedTheme?.backgroundColor);
+    expect(savedSectionTheme(applied, 'connections').surfaceColor).toBe(applied.appliedTheme?.surfaceColor);
   });
 
   it('restores the card tag theme when logo themes are switched off', () => {

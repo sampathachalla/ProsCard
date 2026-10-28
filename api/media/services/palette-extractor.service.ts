@@ -24,6 +24,7 @@ export interface ExtractedLogoPalette {
   hasLightElements: boolean;
   suggestedGradient: [string, string];
   suggestedSurface: string;
+  logoBackground: string;
   isDarkRecommended: boolean;
   tagThemes: Record<'Business' | 'Personal' | 'Networking' | 'Portfolio', DynamicTagTheme>;
   paletteSource?: 'llm' | 'deterministic';
@@ -40,6 +41,20 @@ export function adjustHexBrightness(hex: string, percent: number): string {
   g = Math.min(255, Math.max(0, g));
   b = Math.min(255, Math.max(0, b));
   return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+}
+
+function contrastRatio(foreground: string, background: string): number {
+  const luminance = (hex: string) => {
+    const clean = hex.slice(1);
+    const channels = [0, 2, 4].map((offset) => {
+      const value = parseInt(clean.slice(offset, offset + 2), 16) / 255;
+      return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * channels[0]! + 0.7152 * channels[1]! + 0.0722 * channels[2]!;
+  };
+  const a = luminance(foreground);
+  const b = luminance(background);
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
 }
 
 export function buildDeterministicTagThemes(
@@ -126,9 +141,9 @@ async function requestLlmTagThemes(
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 3500);
+    const timeout = setTimeout(() => controller.abort(), 8000);
 
-    const prompt = `Logo brand colors: dominant=${dominant}, secondary=${secondary}, accent=${accent}, hasDarkElements=${hasDarkElements}.`;
+    const prompt = `Logo brand colors: dominant=${dominant}, secondary=${secondary}, accent=${accent}, hasDarkElements=${hasDarkElements}. Choose colors for the complete card, not only accents.`;
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -142,12 +157,12 @@ async function requestLlmTagThemes(
           {
             role: 'system',
             content:
-              'You are an executive brand identity designer. All 4 themes MUST remain anchored to the logo brand colors. Generate 4 themes: Business (corporate executive), Personal (approachable warm brand tone), Networking (electric high-energy midnight into radiant brand color), Portfolio (minimalist studio slate/monochrome with brand pop). Return JSON with keys Business, Personal, Networking, Portfolio. Each has gradient: [hex1, hex2], surfaceColor: string (#ffffff when hasDarkElements is true), accentColor: hex, textColor: hex.',
+              'You are an executive brand identity designer. All 4 themes MUST remain anchored to the logo brand colors and apply to the complete card. Generate Business, Personal, Networking, and Portfolio. Return only JSON. Every theme must include gradient (two hex colors), backgroundColor, surfaceColor, textColor, mutedTextColor, and accentColor. Text must be readable on surfaceColor. When hasDarkElements is true, use a light surface so the logo cannot disappear.',
           },
           { role: 'user', content: prompt },
         ],
         response_format: { type: 'json_object' },
-        max_tokens: 500,
+        max_tokens: 900,
       }),
     });
 
@@ -156,20 +171,34 @@ async function requestLlmTagThemes(
 
     const data = await res.json();
     const parsed = JSON.parse(data.choices?.[0]?.message?.content || '{}');
+    const fallback = buildDeterministicTagThemes(dominant, secondary, accent, hasDarkElements);
     const base = buildDeterministicTagThemes(dominant, secondary, accent, hasDarkElements);
+    const isHex = (value: unknown): value is string =>
+      typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value);
 
     const tags = ['Business', 'Personal', 'Networking', 'Portfolio'] as const;
     for (const tag of tags) {
-      if (parsed[tag]?.gradient && Array.isArray(parsed[tag].gradient) && parsed[tag].gradient.length >= 2) {
+      if (Array.isArray(parsed[tag]?.gradient) && isHex(parsed[tag].gradient[0]) && isHex(parsed[tag].gradient[1])) {
         base[tag].gradient = [parsed[tag].gradient[0], parsed[tag].gradient[1]];
       }
-      if (parsed[tag]?.accentColor && typeof parsed[tag].accentColor === 'string') {
+      if (isHex(parsed[tag]?.accentColor)) {
         base[tag].accentColor = parsed[tag].accentColor;
+      }
+      for (const key of ['backgroundColor', 'surfaceColor', 'textColor', 'mutedTextColor'] as const) {
+        if (isHex(parsed[tag]?.[key])) base[tag][key] = parsed[tag][key];
       }
       if (hasDarkElements) {
         base[tag].surfaceColor = '#ffffff';
         base[tag].textColor = '#0f172a';
+        base[tag].mutedTextColor = '#475569';
       }
+      if (contrastRatio(base[tag].textColor, base[tag].surfaceColor) < 4.5) {
+        base[tag].textColor = fallback[tag].textColor;
+      }
+      if (contrastRatio(base[tag].mutedTextColor, base[tag].surfaceColor) < 3) {
+        base[tag].mutedTextColor = fallback[tag].mutedTextColor;
+      }
+      base[tag].paletteColors = [base[tag].gradient[0], base[tag].surfaceColor, base[tag].accentColor];
     }
 
     return base;
@@ -234,7 +263,9 @@ export async function extractPaletteFromBuffer(buffer: Buffer): Promise<Extracte
       return `#${avgR}${avgG}${avgB}`;
     });
 
-  const hasDarkElements = totalOpaque > 0 && (darkPixels / totalOpaque) > 0.05;
+  // Wordmarks often contain a narrow dark text run beside a larger colored
+  // symbol. A 5% threshold missed logos such as Meta and Microsoft.
+  const hasDarkElements = totalOpaque > 0 && (darkPixels / totalOpaque) > 0.008;
   const hasLightElements = totalOpaque > 0 && (lightPixels / totalOpaque) > 0.05;
 
   const dominant = sortedColors[0] || (hasDarkElements ? '#00bffe' : '#2563eb');
@@ -256,6 +287,7 @@ export async function extractPaletteFromBuffer(buffer: Buffer): Promise<Extracte
     hasLightElements,
     suggestedGradient: [secondary, dominant],
     suggestedSurface: hasDarkElements ? '#ffffff' : '#0f172a',
+    logoBackground: hasDarkElements ? '#ffffff' : '#0f172a',
     isDarkRecommended: !hasDarkElements,
     tagThemes,
     paletteSource: llmThemes ? 'llm' : 'deterministic',

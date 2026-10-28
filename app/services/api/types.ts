@@ -79,6 +79,7 @@ export type LogoPalette = {
   hasLightElements: boolean;
   suggestedGradient: [string, string];
   suggestedSurface: string;
+  logoBackground?: string;
   isDarkRecommended: boolean;
   tagThemes?: Record<'Business' | 'Personal' | 'Networking' | 'Portfolio', DynamicTagTheme>;
   paletteSource?: 'llm' | 'deterministic';

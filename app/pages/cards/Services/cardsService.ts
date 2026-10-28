@@ -478,7 +478,16 @@ async function withSavedDisplayTheme(card: BusinessCard): Promise<BusinessCard> 
   const logoPalette = logoThemesEnabled && logoUrl && !card.cardTheme?.customThemeId
     ? await extractLogoPalette({ imageUrl: logoUrl }).catch(() => undefined)
     : undefined;
-  return normalizeCard(withResolvedCardTheme(card, { tagDesignEnabled, logoThemesEnabled, logoPalette }));
+  const themedCard = logoPalette
+    ? {
+        ...card,
+        sectionOverrides: {
+          ...card.sectionOverrides,
+          logoBackdrop: logoPalette.logoBackground ?? logoPalette.suggestedSurface,
+        },
+      }
+    : card;
+  return normalizeCard(withResolvedCardTheme(themedCard, { tagDesignEnabled, logoThemesEnabled, logoPalette }));
 }
 
 /**
@@ -491,10 +500,15 @@ export async function refreshAppliedCardThemes(): Promise<void> {
   let changed = false;
   for (const card of [...CARDS]) {
     const next = await withSavedDisplayTheme(card);
-    if (JSON.stringify(next.appliedTheme ?? null) === JSON.stringify(card.appliedTheme ?? null)) continue;
+    const themeChanged = JSON.stringify(next.appliedTheme ?? null) !== JSON.stringify(card.appliedTheme ?? null);
+    const logoBackdropChanged = next.sectionOverrides.logoBackdrop !== card.sectionOverrides.logoBackdrop;
+    if (!themeChanged && !logoBackdropChanged) continue;
     const saved = !AUTH_TEST_MODE && isServerCardId(card.id)
       ? normalizeCard(await apiRequest<BusinessCard>(`/cards/${encodeURIComponent(card.id)}`, {
-        method: 'PUT', body: { appliedTheme: next.appliedTheme ?? null },
+        method: 'PUT', body: {
+          appliedTheme: next.appliedTheme ?? null,
+          sectionOverrides: next.sectionOverrides,
+        },
       }))
       : next;
     const index = CARDS.findIndex((item) => item.id === card.id);
