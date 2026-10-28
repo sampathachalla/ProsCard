@@ -27,13 +27,14 @@ export type CardDetailSection = {
 };
 
 function override(card: BusinessCard, id: keyof BusinessCard['sectionOverrides'], fallback: string): string {
-  return card.sectionOverrides[id] ?? fallback;
+  const value = card.sectionOverrides[id];
+  return typeof value === 'string' && value.trim() ? value : fallback;
 }
 
 function defaultConnections(card: BusinessCard, profile: Profile): DynamicCardField[] {
   return [
-    { id: 'email', title: 'Email', type: 'email', value: profile.email || card.email || '' },
-    { id: 'phone', title: 'Phone', type: 'phone', value: profile.phone || card.phone || '' },
+    { id: 'email', title: 'Email', type: 'email', value: card.email || profile.email || '' },
+    { id: 'phone', title: 'Phone', type: 'phone', value: card.phone || profile.phone || '' },
     { id: 'website', title: 'Website', type: 'url', value: profile.website || '' },
     { id: 'address', title: 'Address', type: 'text', value: profile.businessAddress || '' },
     { id: 'linkedin', title: 'LinkedIn', type: 'url', value: profile.social?.linkedin || '' },
@@ -104,13 +105,13 @@ export function createCardDetailTemplate(card: BusinessCard, profile: Profile): 
           id: 'title',
           title: 'Job title',
           type: 'text',
-          value: override(card, 'title', profile.title || card.title || ''),
+          value: override(card, 'title', card.title || profile.title || ''),
         },
         {
           id: 'company',
           title: 'Company name',
           type: 'text',
-          value: override(card, 'company', profile.organization || card.company || ''),
+          value: override(card, 'company', card.company || profile.organization || ''),
         },
         {
           id: 'tagline',

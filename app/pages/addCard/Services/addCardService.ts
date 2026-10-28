@@ -8,7 +8,10 @@ import { clearPendingMedia, commitPendingMedia } from '@/pages/profile/Services/
 import type { Profile } from '@/pages/profile/types/profile.types';
 import { IMAGE_MEDIA_KINDS, PRIMARY_CONTACT_IDS } from '../Config/addCardFields';
 import type { AddCardImageField } from '../types/addCard.types';
+import { buildAddCardDraftFromCard } from '../Utils/addCardDraft';
 import { splitName } from '../Utils/addCardName';
+
+export { buildAddCardDraftFromCard } from '../Utils/addCardDraft';
 
 /** Profile-backed values copied onto the draft so the form edits one source of truth. */
 const PREFILLED_OVERRIDES: CardSectionFieldId[] = [
@@ -42,27 +45,10 @@ export function buildAddCardDraft(profile: Profile): BusinessCard {
   return { ...card, sectionOverrides, connectionFields, connectionFieldsCustomized: true };
 }
 
-/** Existing card loaded into the add/edit form shape. */
-export function buildAddCardDraftFromCard(card: BusinessCard): BusinessCard {
-  const preferredName = card.sectionOverrides.preferredName?.trim() || card.name;
-  return {
-    ...card,
-    name: preferredName,
-    sectionOverrides: {
-      ...card.sectionOverrides,
-      preferredName,
-      firstName: card.sectionOverrides.firstName ?? splitName(preferredName).firstName,
-      lastName: card.sectionOverrides.lastName ?? splitName(preferredName).lastName,
-    },
-    connectionFields: card.connectionFields.map((field) => ({ ...field })),
-    connectionFieldsCustomized: card.connectionFieldsCustomized ?? card.connectionFields.length > 0,
-  };
-}
-
 export function buildAddCardDraftForEditor(profile: Profile, cardId?: string): BusinessCard {
   if (cardId) {
     const existing = getCardById(cardId);
-    if (existing) return buildAddCardDraftFromCard(existing);
+    if (existing) return buildAddCardDraftFromCard(existing, profile);
   }
   return buildAddCardDraft(profile);
 }

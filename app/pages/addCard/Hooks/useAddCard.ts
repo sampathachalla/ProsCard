@@ -19,7 +19,7 @@ import { useCardTagDesignPreference } from '@/pages/profile/Hooks/useCardTagDesi
 import { useLogoThemePreference } from '@/pages/profile/Hooks/useLogoThemePreference';
 import type { LogoPalette } from '@/services/api/types';
 import { buildDynamicTagThemes, themeFromSavedSectionTheme } from '@/utils/cardThemeColor';
-import { buildAddCardDraft, buildAddCardDraftForEditor, createCard } from '../Services/addCardService';
+import { buildAddCardDraft, buildAddCardDraftForEditor, buildAddCardDraftFromCard, createCard } from '../Services/addCardService';
 import type { AddCardTextFieldId, ContactOption } from '../types/addCard.types';
 import { splitName } from '../Utils/addCardName';
 import { validateAddCard } from '../Utils/validateAddCard';
@@ -68,16 +68,16 @@ export function useAddCard(options: UseAddCardOptions = {}) {
       setOverride('cardTag', tag);
       return;
     }
-    if (!tagDesignEnabled) {
-      setOverride('cardTag', tag);
-      return;
-    }
     setDraft((prev) => {
-      const logoUrl = prev.sectionOverrides?.logo;
+      const hydrated = buildAddCardDraftFromCard(prev, profile);
+      if (!tagDesignEnabled) {
+        return { ...hydrated, sectionOverrides: { ...hydrated.sectionOverrides, cardTag: tag } };
+      }
+      const logoUrl = hydrated.sectionOverrides?.logo;
       const cachedPalette = logoUrl ? getCachedLogoPalette(logoUrl) : undefined;
-      return applyCardTagDesign(prev, tag, { logoThemesEnabled, logoPalette: cachedPalette });
+      return applyCardTagDesign(hydrated, tag, { logoThemesEnabled, logoPalette: cachedPalette });
     });
-  }, [logoThemesEnabled, setOverride, tagDesignEnabled]);
+  }, [logoThemesEnabled, profile, setOverride, tagDesignEnabled]);
 
   const applyLogoThemes = useCallback((palette: LogoPalette) => {
     if (!logoThemesEnabled) {
@@ -200,13 +200,12 @@ export function useAddCard(options: UseAddCardOptions = {}) {
     setDraft(next);
   }, [isEditMode, options.creationSession, profile]);
 
-  // The profile loads after first render; re-prefill until the user starts typing.
+  // The profile can load after the editor. Reapply account fallbacks until the user starts typing.
   const hasChangesRef = useRef(hasChanges);
   hasChangesRef.current = hasChanges;
   useEffect(() => {
-    if (isEditMode) return;
     if (!hasChangesRef.current) reset();
-  }, [isEditMode, reset]);
+  }, [reset]);
 
   /** Validates for preview/save. Returns false and explains what is missing when invalid. */
   const checkReady = useCallback(() => {
