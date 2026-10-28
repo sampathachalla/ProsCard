@@ -38,7 +38,7 @@ function mountShareWeb(app:express.Express,webDir:string){
   const index=path.join(webDir,'index.html');
   const webSecurity=helmet({
     contentSecurityPolicy:{directives:{
-      'img-src':["'self'",'data:','blob:','https://*.oraclecloud.com'],
+      'img-src':["'self'",'data:','blob:','https://*.oraclecloud.com','https://cdn.brandfetch.io'],
       'style-src':["'self'","'unsafe-inline'"],
       'font-src':["'self'",'data:'],
       'connect-src':["'self'"],

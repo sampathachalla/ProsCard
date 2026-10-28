@@ -27,7 +27,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeContext } from '@/context/ThemeContext';
 import {
-  filterCompanyLogoPresets,
   fetchCommunityUploadedLogos,
   type CommunityCompanyLogoItem,
 } from '@/pages/cards/Services/companyLogoPresets';
@@ -94,53 +93,30 @@ export function CompanyLogoPickerModal({
       }
     });
 
-  const filteredPresets = useMemo(
-    () => filterCompanyLogoPresets(searchQuery),
-    [searchQuery],
-  );
   const displayedLogos = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return filteredPresets.map((preset) => ({
-        id: `preset-${preset.id}`,
-        label: preset.label,
-        domain: undefined as string | undefined,
-        value: preset.value,
-        isCommunity: false,
-        source: 'preset' as const,
-      }));
-    }
     const seen = new Set<string>();
-    // Bundled presets are only an offline fallback once Brandfetch has official matches.
-    const hasBrandfetchMatches = communityLogos.some((logo) => logo.source === 'brandfetch');
-    return [
-      ...communityLogos.map((logo) => ({
+    return communityLogos
+      .map((logo) => ({
         id: `community-${logo.id}`,
         label: logo.name,
         domain: logo.domain,
         value: logo.value,
         isCommunity: true,
         source: logo.source ?? 'community',
-      })),
-      ...(hasBrandfetchMatches ? [] : filteredPresets).map((preset) => ({
-        id: `preset-${preset.id}`,
-        label: preset.label,
-        domain: undefined as string | undefined,
-        value: preset.value,
-        isCommunity: false,
-        source: 'preset' as const,
-      })),
-    ].filter((logo) => {
-      if (seen.has(logo.value)) return false;
-      seen.add(logo.value);
-      return true;
-    }).slice(0, 4);
-  }, [communityLogos, filteredPresets, searchQuery]);
+      }))
+      .filter((logo) => {
+        if (seen.has(logo.value)) return false;
+        seen.add(logo.value);
+        return true;
+      })
+      .slice(0, 4);
+  }, [communityLogos]);
 
   useEffect(() => {
     let cancelled = false;
     const timer = setTimeout(() => {
       const query = searchQuery.trim();
-      if (!visible || !query) {
+      if (!visible) {
         setCommunityLogos([]);
         setIsSearchingCommunity(false);
         return;
@@ -313,7 +289,7 @@ export function CompanyLogoPickerModal({
               </Text>
             </View>
 
-            {/* Local Simple Icons & Brandfetch catalog */}
+            {/* Brandfetch results and community uploads */}
                 {displayedLogos.length > 0 ? (
                   <View className="flex-row flex-wrap justify-between gap-y-3">
                     {displayedLogos.map((logo) => {

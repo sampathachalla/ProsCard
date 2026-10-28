@@ -236,7 +236,9 @@ export class MediaService {
 
     const brandfetchPromise = cleanQuery.length >= 2
       ? brandfetchService.searchBrands(cleanQuery).catch(() => [])
-      : Promise.resolve([]);
+      : cleanQuery.length === 0
+        ? brandfetchService.popularBrands().catch(() => [])
+        : Promise.resolve([]);
 
     const [communityRows, brandfetchItems] = await Promise.all([
       communityRowsPromise,

@@ -9,7 +9,6 @@ import { MediaImage } from './MediaImage';
 import { CompanyLogoPickerModal } from './CompanyLogoPickerModal';
 import { COVER_PHOTO_PRESETS } from '@/pages/cards/Services/coverPhotoPresets';
 import {
-  filterCompanyLogoPresets,
   recordCommunityUploadedLogo,
 } from '@/pages/cards/Services/companyLogoPresets';
 import { AUTH_TEST_MODE } from '@/pages/auth/Config/authMode';
@@ -62,10 +61,6 @@ const VARIANT_CONFIG: Record<
     contentFit: 'contain',
   },
 };
-
-function popularLogoOptions(): { id: string; label: string; value: string }[] {
-  return filterCompanyLogoPresets('').slice(0, 10);
-}
 
 export function ImageUploadField({
   label,
@@ -286,66 +281,6 @@ export function ImageUploadField({
                   {selected ? (
                     <View className="absolute right-1.5 top-1.5 size-6 items-center justify-center rounded-full bg-white">
                       <Check color="#2563eb" size={14} strokeWidth={3} />
-                    </View>
-                  ) : null}
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </View>
-      ) : null}
-
-      {variant === 'logo' ? (
-        <View className="mt-3">
-          <View className="mb-2 flex-row items-center justify-between">
-            <Text className="text-xs font-bold text-textPrimary dark:text-dark-textPrimary">
-              Popular companies
-            </Text>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => setLogoModalVisible(true)}
-            >
-              <Text className="text-xs font-bold text-sky-500 dark:text-sky-400">
-                Search all & community →
-              </Text>
-            </Pressable>
-          </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 8, paddingRight: 4 }}
-          >
-            {popularLogoOptions().map((preset) => {
-              const selected = value === preset.value;
-              return (
-                <Pressable
-                  key={preset.id}
-                  accessibilityLabel={`Use ${preset.label} logo`}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected }}
-                  disabled={disabled || isPicking}
-                  onPress={() => {
-                    Haptics.selectionAsync().catch(() => {});
-                    onChange(preset.value);
-                  }}
-                  className={`flex-row items-center rounded-xl border px-2.5 py-2 active:opacity-80 ${
-                    selected
-                      ? 'border-sky-400 bg-sky-500/15 dark:border-sky-400 dark:bg-[#132038]'
-                      : 'border-slate-200 bg-white dark:border-slate-700 dark:bg-white'
-                  }`}
-                  style={{ height: 60, width: 148 }}
-                >
-                  <MediaImage
-                    sourceUrl={preset.value}
-                    contentFit="contain"
-                    style={{ width: 32, height: 32 }}
-                  />
-                  <Text numberOfLines={2} className="ml-2 flex-1 text-xs font-semibold text-slate-900">
-                    {preset.label}
-                  </Text>
-                  {selected ? (
-                    <View className="absolute right-1 top-1 size-4 items-center justify-center rounded-full bg-sky-500">
-                      <Check color="#ffffff" size={10} strokeWidth={3} />
                     </View>
                   ) : null}
                 </Pressable>

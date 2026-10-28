@@ -15,6 +15,7 @@ interface CacheEntry {
 }
 
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const POPULAR_BRAND_DOMAINS = ['google.com', 'apple.com', 'microsoft.com', 'meta.com'];
 
 export class BrandfetchService {
   private cache = new Map<string, CacheEntry>();
@@ -93,17 +94,15 @@ export class BrandfetchService {
         if (domain && seenDomains.has(domain)) continue;
         if (domain) seenDomains.add(domain);
 
-        // Fallback to Brandfetch CDN URL if icon not directly provided
-        const finalIcon = icon || (brandId
-          ? `https://cdn.brandfetch.io/${encodeURIComponent(brandId)}/w/128/h/128/fallback/lettermark/icon.webp${this.clientId ? `?c=${encodeURIComponent(this.clientId)}` : ''}`
-          : '');
-        if (!finalIcon) continue;
+        // Use only the exact CDN URL returned by Brandfetch. Its embedded CDN token is
+        // different from the developer client ID and cannot be reconstructed safely.
+        if (!icon) continue;
 
         results.push({
           brandId: brandId || domain,
           name: name || domain,
           domain,
-          icon: finalIcon,
+          icon,
           claimed: brand.claimed === true,
           verified: brand.verified === true,
         });
@@ -124,6 +123,17 @@ export class BrandfetchService {
       // Return empty results on network/timeout/error without failing the user's request
       return [];
     }
+  }
+
+  async popularBrands(): Promise<BrandfetchSearchResult[]> {
+    const searches = await Promise.all(
+      POPULAR_BRAND_DOMAINS.map((domain) => this.searchBrands(domain)),
+    );
+    return searches.flatMap((results, index) => {
+      const expectedDomain = POPULAR_BRAND_DOMAINS[index];
+      const exact = results.find((result) => result.domain === expectedDomain);
+      return exact ? [exact] : results.slice(0, 1);
+    });
   }
 }
 
