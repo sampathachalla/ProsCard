@@ -47,6 +47,7 @@ export function IdentitySectionRenderer({
   const cover = field('coverPhoto');
   const profile = field('profilePhoto');
   const logo = field('logo');
+  const logoBackdrop = field('logoBackdrop')?.value || undefined;
   const layoutId = resolveIdentityTemplateId(section.templateId);
   const slots = resolveLayoutColorSlots({
     templateId: layoutId,
@@ -152,6 +153,7 @@ export function IdentitySectionRenderer({
         >
             <UniversalLogoBadge
               bare
+              backdropColor={logoBackdrop}
               cardTheme={cardTheme}
               compact={compact}
               field={logo}
@@ -270,6 +272,7 @@ export function IdentitySectionRenderer({
           <View className="items-center">
             <UniversalLogoBadge
               bare
+              backdropColor={logoBackdrop}
               cardTheme={cardTheme}
               compact={compact}
               field={logo}
@@ -330,6 +333,7 @@ export function IdentitySectionRenderer({
           >
             <UniversalLogoBadge
               bare
+              backdropColor={logoBackdrop}
               cardTheme={cardTheme}
               field={logo}
               logoSize={{
@@ -412,6 +416,7 @@ export function IdentitySectionRenderer({
           >
             <UniversalLogoBadge
               bare
+              backdropColor={logoBackdrop}
               cardTheme={cardTheme}
               field={logo}
               logoSize={{
@@ -505,6 +510,7 @@ export function IdentitySectionRenderer({
           >
             <UniversalLogoBadge
               bare
+              backdropColor={logoBackdrop}
               cardTheme={cardTheme}
               field={logo}
               logoSize={{
@@ -586,6 +592,7 @@ export function IdentitySectionRenderer({
           >
             <UniversalLogoBadge
               bare
+              backdropColor={logoBackdrop}
               cardTheme={cardTheme}
               field={logo}
               logoSize={{
@@ -831,6 +838,7 @@ export function IdentitySectionRenderer({
             <View className={`absolute ${walletPass ? 'right-2 top-2' : 'right-3 top-3'}`}>
               <UniversalLogoBadge
                 bare
+                backdropColor={logoBackdrop}
                 cardTheme={cardTheme}
                 compact={compact || walletPass}
                 field={logo}

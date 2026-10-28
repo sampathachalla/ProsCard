@@ -11,7 +11,6 @@ import { pickImageAssetFromLibrary, takePhotoAsset, type PickedImage } from '@/c
 import { recordCommunityUploadedLogo } from '@/pages/cards/Services/companyLogoPresets';
 import type { CardVisualTheme } from '@/pages/cards/types/card.types';
 import { extractLogoPalette } from '@/pages/profile/Services/mediaService';
-import { useLogoThemePreference } from '@/pages/profile/Hooks/useLogoThemePreference';
 import type { LogoPalette } from '@/services/api/types';
 import { buildThemeFromLogoPalette } from '@/utils/cardThemeColor';
 import { IMAGE_ASPECTS, IMAGE_LABELS } from '../Config/addCardFields';
@@ -22,6 +21,7 @@ type Props = {
   coverPhoto: string;
   profilePhoto: string;
   logo: string;
+  logoBackdrop: string;
   gradient: [string, string];
   onChange: (field: AddCardImageField, value: string) => void;
   onAutoThemeFromLogo?: (theme: CardVisualTheme) => void;
@@ -29,8 +29,7 @@ type Props = {
 };
 
 /** Cover banner with the profile photo on the left and the logo on the right, each tappable. */
-export function CardMediaHeader({ coverPhoto, profilePhoto, logo, gradient, onChange, onAutoThemeFromLogo, onPaletteExtracted }: Props) {
-  const { enabled: logoThemesEnabled } = useLogoThemePreference();
+export function CardMediaHeader({ coverPhoto, profilePhoto, logo, logoBackdrop, gradient, onChange, onAutoThemeFromLogo, onPaletteExtracted }: Props) {
   const [busyField, setBusyField] = useState<AddCardImageField | null>(null);
   const [logoModalVisible, setLogoModalVisible] = useState(false);
   const [pendingAsset, setPendingAsset] = useState<PickedImage | null>(null);
@@ -65,7 +64,6 @@ export function CardMediaHeader({ coverPhoto, profilePhoto, logo, gradient, onCh
       if (field === 'logo') {
         void recordCommunityUploadedLogo({ value: uploadedUrl, isOwn: true });
         setLogoModalVisible(false);
-        if (!logoThemesEnabled) return;
         try {
           const palette = await extractLogoPalette({ imageUrl: uploadedUrl });
           if (onPaletteExtracted) {
@@ -153,6 +151,7 @@ export function CardMediaHeader({ coverPhoto, profilePhoto, logo, gradient, onCh
           field="logo"
           label="Logo"
           value={logo}
+          backdropColor={logoBackdrop}
           busy={busyField === 'logo'}
           onPress={() => edit('logo', logo)}
         />
@@ -166,7 +165,7 @@ export function CardMediaHeader({ coverPhoto, profilePhoto, logo, gradient, onCh
         onSelectLogo={async (logoValue) => {
           onChange('logo', logoValue);
           setLogoModalVisible(false);
-          if (logoThemesEnabled && logoValue.trim()) {
+          if (logoValue.trim()) {
             try {
               const palette = await extractLogoPalette({ imageUrl: logoValue });
               if (onPaletteExtracted) {
@@ -199,6 +198,7 @@ function MediaSlot({
   label,
   value,
   busy,
+  backdropColor,
   round = false,
   onPress,
 }: {
@@ -206,6 +206,7 @@ function MediaSlot({
   label: string;
   value: string;
   busy: boolean;
+  backdropColor?: string;
   round?: boolean;
   onPress: () => void;
 }) {
@@ -218,9 +219,10 @@ function MediaSlot({
       className="items-center active:opacity-80"
     >
       <View
-        className={`h-20 w-20 items-center justify-center overflow-hidden border-4 border-card bg-slate-100 dark:border-dark-card dark:bg-slate-800 ${
+        className={`h-20 w-20 items-center justify-center overflow-hidden border-4 border-card dark:border-dark-card ${
           round ? 'rounded-full' : 'rounded-2xl'
         }`}
+        style={{ backgroundColor: field === 'logo' ? backdropColor || '#f8fafc' : '#f1f5f9' }}
       >
         {busy ? (
           <ActivityIndicator color="#2563eb" />
@@ -228,7 +230,10 @@ function MediaSlot({
           <MediaImage
             sourceUrl={value}
             contentFit={field === 'logo' ? 'contain' : 'cover'}
-            style={{ width: '100%', height: '100%' }}
+            style={{
+              width: field === 'logo' ? '86%' : '100%',
+              height: field === 'logo' ? '86%' : '100%',
+            }}
           />
         ) : (
           <Icon color="#94a3b8" size={28} strokeWidth={1.8} />

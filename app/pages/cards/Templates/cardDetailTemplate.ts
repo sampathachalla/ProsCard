@@ -94,6 +94,12 @@ export function createCardDetailTemplate(card: BusinessCard, profile: Profile): 
           type: 'image',
           value: override(card, 'logo', profile.companyLogoUrl || ''),
         },
+        {
+          id: 'logoBackdrop',
+          title: 'Logo contrast background',
+          type: 'text',
+          value: override(card, 'logoBackdrop', ''),
+        },
       ],
     },
     {

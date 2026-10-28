@@ -33,6 +33,14 @@ function professionalValue(input: BusinessCard, id: string): string {
 }
 
 describe('account and card field precedence', () => {
+  it('keeps the persisted contrast background beside the logo', () => {
+    const identity = createCardDetailTemplate(card({
+      sectionOverrides: { logo: 'https://example.com/logo.svg', logoBackdrop: '#ffffff' },
+    }), profile).find((section) => section.id === 'identity');
+
+    expect(identity?.fields.find((field) => field.id === 'logoBackdrop')?.value).toBe('#ffffff');
+  });
+
   it('uses account details when card-level values are blank', () => {
     const input = card();
     expect(professionalValue(input, 'title')).toBe('Account Title');

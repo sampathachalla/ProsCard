@@ -203,6 +203,7 @@ export default function AddCardPage() {
               coverPhoto={editor.draft.sectionOverrides.coverPhoto ?? ''}
               profilePhoto={editor.draft.sectionOverrides.profilePhoto ?? ''}
               logo={editor.draft.sectionOverrides.logo ?? ''}
+              logoBackdrop={editor.draft.sectionOverrides.logoBackdrop ?? '#f8fafc'}
               gradient={editor.draft.gradient}
               onChange={editor.setOverride}
               onAutoThemeFromLogo={editor.setTheme}

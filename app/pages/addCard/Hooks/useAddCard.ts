@@ -60,8 +60,6 @@ export function useAddCard(options: UseAddCardOptions = {}) {
   const initialSnapshot = useRef(JSON.stringify(draft));
   const [isSaving, setIsSaving] = useState(false);
   const [isUpdatingAccount, setIsUpdatingAccount] = useState(false);
-  const profileRef = useRef(profile);
-  profileRef.current = profile;
   const hasChanges = JSON.stringify(draft) !== initialSnapshot.current;
 
   const setOverride = useCallback((field: CardSectionFieldId, value: string) => {
@@ -86,13 +84,17 @@ export function useAddCard(options: UseAddCardOptions = {}) {
 
   const applyLogoThemes = useCallback((palette: LogoPalette) => {
     if (!logoThemesEnabled) {
-      if (!tagDesignEnabled) return;
       setDraft((prev) => {
+        const withBackdrop = {
+          ...prev,
+          sectionOverrides: { ...prev.sectionOverrides, logoBackdrop: palette.suggestedSurface },
+        };
+        if (!tagDesignEnabled) return withBackdrop;
         const currentTag = prev.sectionOverrides?.cardTag;
         const activeTag = currentTag && isCardTag(currentTag) ? currentTag : 'Business';
         const preset = getCardTagDesignPreset(activeTag);
         return withThemeEverywhere({
-          ...prev,
+          ...withBackdrop,
           sectionLayouts: { ...preset.layouts },
           customThemes: (prev.customThemes ?? []).filter((item) => !item.id.startsWith('logo-tag-')),
         }, preset.theme);
@@ -121,6 +123,7 @@ export function useAddCard(options: UseAddCardOptions = {}) {
       return withThemeEverywhere(
         {
           ...prev,
+          sectionOverrides: { ...prev.sectionOverrides, logoBackdrop: palette.suggestedSurface },
           customThemes: [
             ...savedCustomThemes,
             ...(prev.customThemes ?? []).filter((item) => !item.id.startsWith('logo-tag-')),
@@ -149,8 +152,7 @@ export function useAddCard(options: UseAddCardOptions = {}) {
     if (isUpdatingAccount) return false;
     setIsUpdatingAccount(true);
     try {
-      const saved = await saveProfile(applyCardFieldToProfile(profileRef.current, field, value));
-      profileRef.current = saved;
+      await saveProfile(applyCardFieldToProfile(profile, field, value));
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       return true;
     } catch (error) {
@@ -162,7 +164,7 @@ export function useAddCard(options: UseAddCardOptions = {}) {
     } finally {
       setIsUpdatingAccount(false);
     }
-  }, [isUpdatingAccount]);
+  }, [isUpdatingAccount, profile]);
 
   const setContactValue = useCallback((id: string, value: string) => {
     setDraft((prev) => ({

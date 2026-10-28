@@ -345,6 +345,7 @@ export type CardSectionFieldId =
   | 'coverPhoto'
   | 'profilePhoto'
   | 'logo'
+  | 'logoBackdrop'
   | 'tagline'
   | 'accreditations'
   | 'prefix'

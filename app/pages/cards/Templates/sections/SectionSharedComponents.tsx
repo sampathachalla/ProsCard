@@ -269,7 +269,10 @@ export function UniversalLogoBadge({
     theme: cardTheme,
   });
 
-  const shouldBeBare = Boolean(bare);
+  // A custom wordmark can contain dark or light pixels that disappear against
+  // a similarly toned card. Keep the built-in theme-aware mark bare, but always
+  // give uploaded/Brandfetch logos the contrast surface computed above.
+  const shouldBeBare = Boolean(bare) && !customLogo;
   const effectiveBg = shouldBeBare ? 'transparent' : backdropColor || engineStyle.backgroundColor;
   const isEffectiveBgLight = isRgbaOrHexLight(
     shouldBeBare ? (slots?.surface ?? (surroundingIsLight ? '#ffffff' : '#0f172a')) : effectiveBg,
