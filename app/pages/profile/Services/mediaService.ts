@@ -86,7 +86,20 @@ export async function getMediaDownloadUrl(mediaId: string): Promise<string> {
 }
 
 export function resolveProtectedMediaUrl(contentUrl: string): string {
-  if (!contentUrl || /^(https?:|file:|content:|ph:\/\/|assets-library:|data:|blob:)/i.test(contentUrl)) return contentUrl;
+  if (!contentUrl) return contentUrl;
+  if (/^https?:\/\/cdn\.brandfetch\.io\//i.test(contentUrl)) {
+    try {
+      const url = new URL(contentUrl);
+      const brandId = url.pathname.split('/').filter(Boolean)[0];
+      if (brandId) {
+        url.pathname = `/${brandId}/w/256/h/256/theme/dark/fallback/transparent/symbol.webp`;
+        return url.toString();
+      }
+    } catch {
+      return contentUrl;
+    }
+  }
+  if (/^(https?:|file:|content:|ph:\/\/|assets-library:|data:|blob:)/i.test(contentUrl)) return contentUrl;
   return `${API_BASE_URL}${contentUrl.startsWith('/') ? '' : '/'}${contentUrl}`;
 }
 

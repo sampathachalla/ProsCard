@@ -17,6 +17,19 @@ interface CacheEntry {
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 const POPULAR_BRAND_DOMAINS = ['google.com', 'apple.com', 'microsoft.com', 'meta.com'];
 
+function transparentLogoUrl(iconUrl: string): string {
+  try {
+    const url = new URL(iconUrl);
+    if (url.hostname !== 'cdn.brandfetch.io') return iconUrl;
+    const brandId = url.pathname.split('/').filter(Boolean)[0];
+    if (!brandId) return iconUrl;
+    url.pathname = `/${brandId}/w/256/h/256/theme/dark/fallback/transparent/symbol.webp`;
+    return url.toString();
+  } catch {
+    return iconUrl;
+  }
+}
+
 export class BrandfetchService {
   private cache = new Map<string, CacheEntry>();
 
@@ -102,7 +115,7 @@ export class BrandfetchService {
           brandId: brandId || domain,
           name: name || domain,
           domain,
-          icon,
+          icon: transparentLogoUrl(icon),
           claimed: brand.claimed === true,
           verified: brand.verified === true,
         });
