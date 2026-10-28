@@ -63,6 +63,10 @@ const VARIANT_CONFIG: Record<
   },
 };
 
+function popularLogoOptions(): { id: string; label: string; value: string }[] {
+  return filterCompanyLogoPresets('').slice(0, 10);
+}
+
 export function ImageUploadField({
   label,
   description,
@@ -311,7 +315,7 @@ export function ImageUploadField({
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ gap: 8, paddingRight: 4 }}
           >
-            {filterCompanyLogoPresets('').slice(0, 10).map((preset) => {
+            {popularLogoOptions().map((preset) => {
               const selected = value === preset.value;
               return (
                 <Pressable

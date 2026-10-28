@@ -18,8 +18,10 @@ export type CompanyLogoPreset = {
 export type CommunityCompanyLogoItem = {
   id: string;
   name: string;
+  domain?: string;
   value: string;
   isOwn?: boolean;
+  source?: 'brandfetch' | 'community';
   createdAt?: string;
 };
 
@@ -263,22 +265,33 @@ export async function fetchCommunityUploadedLogos(
   for (const candidate of candidates) {
     if (!candidate || typeof candidate !== 'object') continue;
     const item = candidate as {
-      mediaId?: unknown; name?: unknown; contentUrl?: unknown; isOwn?: unknown; createdAt?: unknown;
+      mediaId?: unknown;
+      name?: unknown;
+      domain?: unknown;
+      contentUrl?: unknown;
+      isOwn?: unknown;
+      source?: unknown;
+      createdAt?: unknown;
     };
     if (typeof item.mediaId !== 'string' || typeof item.contentUrl !== 'string') continue;
     const name = typeof item.name === 'string' && item.name.trim() ? item.name.trim() : 'Company Logo';
+    const domain = typeof item.domain === 'string' && item.domain.trim() ? item.domain.trim() : undefined;
+    const source = item.source === 'brandfetch' ? 'brandfetch' : 'community';
     const value = item.contentUrl.trim();
-    if (
-      !value ||
-      seenValues.has(value) ||
-      (cleanQuery && !normalizeCompanySearch(name).includes(normalizeCompanySearch(cleanQuery)))
-    ) continue;
+    // Brandfetch results are already ranked server-side; only community uploads need local filtering.
+    const matchesQuery = !cleanQuery || source === 'brandfetch' ||
+      normalizeCompanySearch(name).includes(normalizeCompanySearch(cleanQuery)) ||
+      (domain && normalizeCompanySearch(domain).includes(normalizeCompanySearch(cleanQuery)));
+
+    if (!value || seenValues.has(value) || !matchesQuery) continue;
     seenValues.add(value);
     merged.push({
       id: item.mediaId,
       name,
+      domain,
       value,
       isOwn: item.isOwn === true,
+      source,
       createdAt: typeof item.createdAt === 'string' ? item.createdAt : undefined,
     });
   }

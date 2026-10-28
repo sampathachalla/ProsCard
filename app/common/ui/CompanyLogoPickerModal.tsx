@@ -103,23 +103,31 @@ export function CompanyLogoPickerModal({
       return filteredPresets.map((preset) => ({
         id: `preset-${preset.id}`,
         label: preset.label,
+        domain: undefined as string | undefined,
         value: preset.value,
         isCommunity: false,
+        source: 'preset' as const,
       }));
     }
     const seen = new Set<string>();
+    // Bundled presets are only an offline fallback once Brandfetch has official matches.
+    const hasBrandfetchMatches = communityLogos.some((logo) => logo.source === 'brandfetch');
     return [
       ...communityLogos.map((logo) => ({
         id: `community-${logo.id}`,
         label: logo.name,
+        domain: logo.domain,
         value: logo.value,
         isCommunity: true,
+        source: logo.source ?? 'community',
       })),
-      ...filteredPresets.map((preset) => ({
+      ...(hasBrandfetchMatches ? [] : filteredPresets).map((preset) => ({
         id: `preset-${preset.id}`,
         label: preset.label,
+        domain: undefined as string | undefined,
         value: preset.value,
         isCommunity: false,
+        source: 'preset' as const,
       })),
     ].filter((logo) => {
       if (seen.has(logo.value)) return false;
@@ -301,11 +309,11 @@ export function CompanyLogoPickerModal({
             <View className="mb-4 flex-row items-center justify-between">
               <Text className="text-base font-semibold text-slate-900 dark:text-white">Company logos</Text>
               <Text className="text-sm text-slate-500 dark:text-slate-400">
-                {isSearchingCommunity ? 'Searching uploads…' : searchQuery.trim() ? 'Best matches' : 'Popular suggestions'}
+                {isSearchingCommunity ? 'Searching Brandfetch…' : searchQuery.trim() ? 'Best matches' : 'Popular suggestions'}
               </Text>
             </View>
 
-            {/* Local Simple Icons brand catalog */}
+            {/* Local Simple Icons & Brandfetch catalog */}
                 {displayedLogos.length > 0 ? (
                   <View className="flex-row flex-wrap justify-between gap-y-3">
                     {displayedLogos.map((logo) => {
@@ -314,7 +322,7 @@ export function CompanyLogoPickerModal({
                         <Pressable
                           key={logo.id}
                           accessibilityRole="button"
-                          accessibilityLabel={`Select ${logo.label} logo${logo.isCommunity ? ' from community uploads' : ''}`}
+                          accessibilityLabel={`Select ${logo.label} logo${logo.isCommunity ? ' from Brandfetch' : ''}`}
                           accessibilityState={{ selected }}
                           onPress={() => handlePick(logo.value, logo.label)}
                           style={{ width: '48.2%' }}
@@ -331,12 +339,22 @@ export function CompanyLogoPickerModal({
                               style={{ width: 42, height: 34 }}
                             />
                           </View>
-                          <Text
-                            numberOfLines={2}
-                            className="ml-3 flex-1 text-base font-semibold text-slate-900 dark:text-white"
-                          >
-                            {logo.label}
-                          </Text>
+                          <View className="ml-3 flex-1 justify-center">
+                            <Text
+                              numberOfLines={1}
+                              className="text-base font-semibold text-slate-900 dark:text-white"
+                            >
+                              {logo.label}
+                            </Text>
+                            {logo.domain ? (
+                              <Text
+                                numberOfLines={1}
+                                className="mt-0.5 text-xs text-slate-500 dark:text-slate-400"
+                              >
+                                {logo.domain}
+                              </Text>
+                            ) : null}
+                          </View>
                           {selected ? (
                             <View className="size-5 items-center justify-center rounded-full bg-sky-500">
                               <Check color="#ffffff" size={12} strokeWidth={3} />

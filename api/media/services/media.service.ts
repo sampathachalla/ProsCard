@@ -3,6 +3,7 @@ import { HttpError } from '../../src/errors.js';
 import { log } from '../../src/logger.js';
 import type { MediaKind, MediaRepository, MediaRow, MediaScope } from '../repository/media.repository.js';
 import type { ObjectStorageGateway } from './oci-storage.service.js';
+import { brandfetchService } from './brandfetch.service.js';
 
 type ProfileMediaKind = Exclude<MediaKind, 'contactCard'>;
 const profileField: Record<ProfileMediaKind, string> = {
@@ -227,22 +228,60 @@ export class MediaService {
   }
 
   async listCompanyLogos(userId: string, query?: string) {
-    if (!this.repo.listCommunityCompanyLogos) return { items: [] };
-    const rows = await this.repo.listCommunityCompanyLogos(userId, query);
-    const items = rows.map((row) => {
+    const cleanQuery = (query ?? '').trim();
+
+    const communityRowsPromise = this.repo.listCommunityCompanyLogos
+      ? this.repo.listCommunityCompanyLogos(userId, cleanQuery)
+      : Promise.resolve([]);
+
+    const brandfetchPromise = cleanQuery.length >= 2
+      ? brandfetchService.searchBrands(cleanQuery).catch(() => [])
+      : Promise.resolve([]);
+
+    const [communityRows, brandfetchItems] = await Promise.all([
+      communityRowsPromise,
+      brandfetchPromise,
+    ]);
+
+    const items: Array<{
+      mediaId: string;
+      name: string;
+      domain?: string;
+      contentUrl: string;
+      isOwn?: boolean;
+      source: 'brandfetch' | 'community';
+      createdAt?: string;
+    }> = [];
+
+    // Official Brandfetch logos first when searching
+    for (const bf of brandfetchItems) {
+      items.push({
+        mediaId: `bf-${bf.brandId || bf.domain}`,
+        name: bf.name,
+        domain: bf.domain,
+        contentUrl: bf.icon,
+        isOwn: false,
+        source: 'brandfetch',
+      });
+    }
+
+    // Community uploads
+    for (const row of communityRows) {
       const fallbackLabel = String(row.original_name || 'Company Logo')
         .replace(/\.[a-z0-9]+$/i, '')
         .replace(/^companyLogo-\d+$/i, 'Uploaded Logo')
         .replace(/[-_]+/g, ' ')
         .trim();
-      return {
+      items.push({
         mediaId: row.id,
         name: row.company_name?.trim() || fallbackLabel || 'Company Logo',
         contentUrl: `/api/v1/media/${row.id}/content`,
         isOwn: row.user_id === userId,
+        source: 'community',
         createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at),
-      };
-    });
+      });
+    }
+
     return { items };
   }
   async delete(userId: string, id: string) {

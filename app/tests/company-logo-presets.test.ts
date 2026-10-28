@@ -98,6 +98,30 @@ describe('Simple Icons company-logo library', () => {
     ]);
   });
 
+  it('matches Brandfetch logos with domain and source', async () => {
+    apiRequest.mockResolvedValue({
+      items: [
+        {
+          mediaId: 'bf-uber.com',
+          name: 'Uber',
+          domain: 'uber.com',
+          contentUrl: 'https://cdn.brandfetch.io/domain/uber.com',
+          isOwn: false,
+          source: 'brandfetch',
+        },
+      ],
+    });
+    const result = await fetchCommunityUploadedLogos('uber');
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      id: 'bf-uber.com',
+      name: 'Uber',
+      domain: 'uber.com',
+      value: 'https://cdn.brandfetch.io/domain/uber.com',
+      source: 'brandfetch',
+    });
+  });
+
   it('keeps the logo picker usable when community logos cannot load', async () => {
     apiRequest.mockRejectedValue(new Error('offline'));
     await expect(fetchCommunityUploadedLogos()).resolves.toEqual([]);
