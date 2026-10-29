@@ -20,6 +20,7 @@ import {
   resolveLayoutColorSlots,
 } from '@/utils/cardThemeColor';
 import { resolveCardSectionTheme, resolveCardTag, savedSectionTheme } from '@/pages/addCard/Config/cardTagDesignPresets';
+import { resolveCardDisplayMedia } from '@/pages/cards/Utils/resolveCardDisplayMedia';
 
 export function CardDetailView({
   activeSection,
@@ -49,7 +50,10 @@ export function CardDetailView({
 }) {
   const { height: windowHeight } = useWindowDimensions();
   const fittedHeight = viewportHeight ?? windowHeight;
-  const sections = createCardDetailTemplate(card, profile);
+  // Resolve card/account media once for the entire preview. Logo-adapted themes
+  // may read the logo, but must never change the inherited profile or cover image.
+  const displayCard = resolveCardDisplayMedia(card, profile);
+  const sections = createCardDetailTemplate(displayCard, profile);
   // An explicit viewport wins so the editor can ignore window resizes from the
   // sheet or keyboard. fitToViewport still squeezes every section into that box.
   const layoutViewportHeight = viewportHeight ?? (fitToViewport ? fittedHeight : windowHeight);
@@ -60,7 +64,7 @@ export function CardDetailView({
   // saved view (phone and public share link) renders the same stored theme.
   const applyLiveThemeOverrides = !publicShareView && isEditing;
 
-  const logoUrl = card.sectionOverrides?.logo;
+  const logoUrl = displayCard.sectionOverrides.logo;
   const cardTag = resolveCardTag(card);
   const [logoTheme, setLogoTheme] = useState<CardVisualTheme | null>(() => {
     if (!applyLiveThemeOverrides || !logoThemesEnabled || !logoUrl) return null;
@@ -235,7 +239,7 @@ export function CardDetailView({
               }}
             >
               <SectionTemplateRenderer
-                key={`${section.id}-${theme.backgroundColor}-${theme.surfaceColor}-${theme.textColorOverride ?? theme.textColor}-${theme.accentColor}-${theme.customThemeId ?? ''}`}
+                key={`${card.id}-${section.id}-${section.fields.map((field) => field.type === 'image' ? field.value : '').join('|')}-${theme.backgroundColor}-${theme.surfaceColor}-${theme.textColorOverride ?? theme.textColor}-${theme.accentColor}-${theme.customThemeId ?? ''}`}
                 cardMetadata={{
                   name: card.name,
                   title: card.title,

@@ -9,6 +9,7 @@ import Animated, {
 import type { BusinessCard } from '@/pages/cards/types/card.types';
 import type { Profile } from '@/pages/profile/types/profile.types';
 import { Text } from '@/common/ui/Text';
+import { resolveCardTagLabel } from '@/pages/cards/Utils/resolveCardTagLabel';
 import { getWalletCardDimensions, resolveWalletCardWidth } from '../Utils/walletCardLayout';
 import { WalletDesignEngine } from './WalletDesignEngine';
 
@@ -252,6 +253,7 @@ export function WalletStackView({
 
         const card = cards[index]!;
         const cardTag = card.sectionOverrides.cardTag?.trim();
+        const cardLabel = resolveCardTagLabel(card);
         const CardTagIcon = cardTagIcon(cardTag ?? '');
         return (
           <StackSlot key={card.id} targetScale={targetScale} targetY={targetY} zIndex={zIndex}>
@@ -269,7 +271,7 @@ export function WalletStackView({
                 <View pointerEvents="none" className="absolute -top-3.5 left-3 flex-row items-center rounded-full bg-slate-800 px-2.5 py-0.5 shadow-sm">
                   <CardTagIcon color="#ffffff" size={10} strokeWidth={2.5} />
                   <Text className="ml-1 text-[10px] font-bold uppercase text-white">
-                    {cardTag}
+                    {cardLabel}
                   </Text>
                 </View>
               ) : null}

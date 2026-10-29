@@ -3,15 +3,11 @@ import { ContactRound, Plus } from 'lucide-react-native';
 import { Text } from '@/common/ui/Text';
 
 type ContactMethodsRequiredModalProps = {
-  missingCount: number;
-  minimumCount: number;
   visible: boolean;
   onContinue: () => void;
 };
 
 export function ContactMethodsRequiredModal({
-  missingCount,
-  minimumCount,
   visible,
   onContinue,
 }: ContactMethodsRequiredModalProps) {
@@ -27,8 +23,7 @@ export function ContactMethodsRequiredModal({
             Add more contact methods
           </Text>
           <Text className="mt-2 text-sm leading-5 text-textMuted dark:text-slate-400">
-            Every card needs at least {minimumCount} contact methods. Add {missingCount} more using email, phone,
-            website, address, or a social link.
+            Every card needs an email address and at least one website or social link.
           </Text>
 
           <Pressable

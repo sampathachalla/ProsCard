@@ -231,7 +231,10 @@ export function runAdversarialTests(): {
     lastName: 'Doe',
     title: 'Engineer',
     email: 'john@doe.com',
+    phone: '+1 555 123 4567',
+    businessAddress: 'Baltimore, MD',
     website: 'https://example.com',
+    linkedin: 'https://linkedin.com/in/john-doe',
     cardCategory: '',
   });
   record(s7, 'all_steps_step4_filled_stops_at_step_5', a4.isValid === false && a4.firstErrorStep === 5 && Boolean(a4.errors.cardCategory));
@@ -242,7 +245,10 @@ export function runAdversarialTests(): {
     lastName: 'Doe',
     title: 'Engineer',
     email: 'john@doe.com',
+    phone: '+1 555 123 4567',
+    businessAddress: 'Baltimore, MD',
     website: 'https://example.com',
+    linkedin: 'https://linkedin.com/in/john-doe',
   });
   record(s7, 'all_steps_minimal_required_succeeds', a5.isValid === true && a5.firstErrorStep === null && Object.keys(a5.errors).length === 0);
 

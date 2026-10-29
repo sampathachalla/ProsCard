@@ -74,11 +74,22 @@ export function useAddCard(options: UseAddCardOptions = {}) {
     setDraft((prev) => {
       const hydrated = buildAddCardDraftFromCard(prev, profile);
       if (!tagDesignEnabled) {
-        return { ...hydrated, sectionOverrides: { ...hydrated.sectionOverrides, cardTag: tag } };
+        return {
+          ...hydrated,
+          ...(!(hydrated.displayNameCustomized || hydrated.sectionOverrides.displayNameCustomized === 'true') ? { displayName: undefined } : {}),
+          sectionOverrides: {
+            ...hydrated.sectionOverrides,
+            ...(!(hydrated.displayNameCustomized || hydrated.sectionOverrides.displayNameCustomized === 'true') ? { displayName: '' } : {}),
+            cardTag: tag,
+          },
+        };
       }
       const logoUrl = hydrated.sectionOverrides?.logo;
       const cachedPalette = logoUrl ? getCachedLogoPalette(logoUrl) : undefined;
-      return applyCardTagDesign(hydrated, tag, { logoThemesEnabled, logoPalette: cachedPalette });
+      const tagged = applyCardTagDesign(hydrated, tag, { logoThemesEnabled, logoPalette: cachedPalette });
+      return tagged.displayNameCustomized || tagged.sectionOverrides.displayNameCustomized === 'true'
+        ? tagged
+        : { ...tagged, displayName: undefined, sectionOverrides: { ...tagged.sectionOverrides, displayName: '' } };
     });
   }, [logoThemesEnabled, profile, setOverride, tagDesignEnabled]);
 
@@ -146,6 +157,19 @@ export function useAddCard(options: UseAddCardOptions = {}) {
         sectionOverrides: { ...prev.sectionOverrides, [field]: value },
       };
     });
+  }, []);
+
+  const setDisplayName = useCallback((value: string) => {
+    setDraft((prev) => ({
+      ...prev,
+      displayName: value,
+      displayNameCustomized: Boolean(value.trim()),
+      sectionOverrides: {
+        ...prev.sectionOverrides,
+        displayName: value,
+        displayNameCustomized: value.trim() ? 'true' : 'false',
+      },
+    }));
   }, []);
 
   const saveFieldToAccount = useCallback(async (field: AccountScopedCardField, value: string) => {
@@ -270,6 +294,7 @@ export function useAddCard(options: UseAddCardOptions = {}) {
     setOverride,
     applyCardTag,
     setTextField,
+    setDisplayName,
     saveFieldToAccount,
     setContactValue,
     addContact,

@@ -65,15 +65,19 @@ export function runValidateOnboardingFlowGroupTests(): { passed: number; failed:
       },
     ],
     [
-      'validateFlowGroup social_links requires at least one link',
+      'validateFlowGroup social_links requires five contact methods',
       () => {
         const emptyErrors = validateFlowGroup('social_links', INITIAL_ONBOARDING_DRAFT);
         if (!emptyErrors.socialLinks) throw new Error('Expected minimum social link error');
         const validErrors = validateFlowGroup('social_links', {
           ...INITIAL_ONBOARDING_DRAFT,
+          email: 'person@example.com',
+          phone: '+1 555 123 4567',
+          businessAddress: 'Baltimore, MD',
           website: 'https://example.com',
+          linkedin: 'https://linkedin.com/in/person',
         });
-        if (validErrors.socialLinks) throw new Error('Website should satisfy minimum link count');
+        if (validErrors.socialLinks) throw new Error('Five contact methods should satisfy the minimum');
       },
     ],
   ];

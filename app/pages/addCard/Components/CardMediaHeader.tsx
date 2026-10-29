@@ -13,6 +13,7 @@ import { recordCommunityUploadedLogo } from '@/pages/cards/Services/companyLogoP
 import type { CardVisualTheme } from '@/pages/cards/types/card.types';
 import { extractLogoPalette } from '@/pages/profile/Services/mediaService';
 import type { LogoPalette } from '@/services/api/types';
+import type { MediaScope } from '@/services/api/types';
 import { buildThemeFromLogoPalette } from '@/utils/cardThemeColor';
 import { IMAGE_ASPECTS, IMAGE_LABELS } from '../Config/addCardFields';
 import { uploadCardImage } from '../Services/addCardService';
@@ -27,10 +28,12 @@ type Props = {
   onChange: (field: AddCardImageField, value: string) => void;
   onAutoThemeFromLogo?: (theme: CardVisualTheme) => void;
   onPaletteExtracted?: (palette: LogoPalette) => void;
+  uploadScope?: MediaScope;
+  uploadCardId?: string;
 };
 
 /** Cover banner with the profile photo on the left and the logo on the right, each tappable. */
-export function CardMediaHeader({ coverPhoto, profilePhoto, logo, logoBackdrop, gradient, onChange, onAutoThemeFromLogo, onPaletteExtracted }: Props) {
+export function CardMediaHeader({ coverPhoto, profilePhoto, logo, logoBackdrop, gradient, onChange, onAutoThemeFromLogo, onPaletteExtracted, uploadScope = 'profile', uploadCardId }: Props) {
   const [busyField, setBusyField] = useState<AddCardImageField | null>(null);
   const [logoModalVisible, setLogoModalVisible] = useState(false);
   const [mediaPickerField, setMediaPickerField] = useState<'coverPhoto' | 'profilePhoto' | null>(null);
@@ -61,7 +64,10 @@ export function CardMediaHeader({ coverPhoto, profilePhoto, logo, logoBackdrop, 
     const field = pendingField;
     setPendingAsset(null);
     try {
-      const uploadedUrl = await uploadCardImage(uri, field);
+      const uploadedUrl = await uploadCardImage(uri, field, {
+        scope: uploadScope,
+        cardId: uploadScope === 'card' ? uploadCardId : undefined,
+      });
       onChange(field, uploadedUrl);
       if (field === 'logo') {
         void recordCommunityUploadedLogo({ value: uploadedUrl, isOwn: true });

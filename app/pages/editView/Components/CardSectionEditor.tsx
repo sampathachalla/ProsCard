@@ -56,6 +56,7 @@ import { fitAccreditationsToViewport, fitTaglineToViewport, getResponsiveAccredi
 import {
   connectionCounts,
   MINIMUM_CARD_CONNECTION_FIELDS,
+  requiredCardConnectionStatus,
   reusableConnectionValue,
 } from '@/pages/profile/Services/profileConnections';
 import { getCards } from '@/pages/cards/Services/cardsService';
@@ -510,6 +511,7 @@ export function CardSectionEditor({
   ).filter((field) => field.value.trim().length > 0 || field.id === editingConnectionId);
   const connectionFieldsRef = useRef(connectionFields);
   const contactCounts = connectionCounts(connectionFields);
+  const requiredContactStatus = requiredCardConnectionStatus(connectionFields);
   useEffect(() => {
     connectionFieldsRef.current = connectionFields;
   }, [connectionFields]);
@@ -1056,18 +1058,18 @@ export function CardSectionEditor({
         <View className="flex-row items-center justify-between">
           <Text className="font-bold text-textPrimary dark:text-white">Contact methods</Text>
           <Text
-            accessibilityLabel={`${contactCounts.total} of ${MINIMUM_CARD_CONNECTION_FIELDS} required contact methods`}
+            accessibilityLabel={`${requiredContactStatus.completedCount} of ${MINIMUM_CARD_CONNECTION_FIELDS} required contact groups`}
             className={`text-sm font-black ${
-              contactCounts.total >= MINIMUM_CARD_CONNECTION_FIELDS
+              requiredContactStatus.complete
                 ? 'text-emerald-600 dark:text-emerald-400'
                 : 'text-amber-600 dark:text-amber-400'
             }`}
           >
-            {contactCounts.total}/{MINIMUM_CARD_CONNECTION_FIELDS}
+            {requiredContactStatus.completedCount}/{MINIMUM_CARD_CONNECTION_FIELDS}
           </Text>
         </View>
         <Text className="mt-1 text-xs leading-5 text-textMuted dark:text-slate-400">
-          {contactCounts.social} social {contactCounts.social === 1 ? 'link' : 'links'} on this card. Saved account values are filled in automatically.
+          Required: email plus one website or social link. Saved account values are filled in automatically.
         </Text>
       </View>
       <View className="mb-4">

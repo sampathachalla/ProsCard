@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { resolveCardTagLabel } from '@/pages/cards/Utils/resolveCardTagLabel';
 import { ChevronDown } from 'lucide-react-native';
 
 import { QRCodeModal } from '@/common/ui/QRCodeModal';
@@ -121,7 +122,7 @@ export default function ShareTabPage() {
                       : 'font-normal text-textPrimary dark:text-dark-textPrimary'
                   }`}
                 >
-                  {item.sectionOverrides?.cardTag?.trim() || item.category?.trim() || item.name}
+                  {resolveCardTagLabel(item)}
                 </Text>
               </Pressable>
             );

@@ -16,7 +16,6 @@ import { useThemeContext } from '@/context/ThemeContext';
 import { OnboardingFormField } from './OnboardingFormField';
 import {
   countOnboardingLinks,
-  MIN_ONBOARDING_LINKS,
 } from '../Utils/validateOnboarding';
 
 export type SocialDraftKey = keyof Pick<
@@ -34,6 +33,9 @@ export type SocialDraftKey = keyof Pick<
 
 export type SocialLinksDraft = Record<SocialDraftKey, string | undefined> & {
   website?: string;
+  email?: string;
+  phone?: string;
+  businessAddress?: string;
 };
 
 const SOCIAL_PLATFORMS: {
@@ -107,11 +109,13 @@ export function SocialLinksFieldsBlock({
   draft,
   updateDraft,
   errors,
+  minimumContactMethods = 0,
 }: {
   draft: SocialLinksDraft;
   updateDraft: (fields: Partial<SocialLinksDraft>) => void;
   errors: Record<string, string>;
   embedded?: boolean;
+  minimumContactMethods?: number;
 }) {
   const { theme } = useThemeContext();
   const isDark = theme === 'dark';
@@ -134,7 +138,7 @@ export function SocialLinksFieldsBlock({
     [draft]
   );
   const linkCount = countOnboardingLinks(draft);
-  const hasMinimumLinks = linkCount >= MIN_ONBOARDING_LINKS;
+  const hasMinimumLinks = linkCount >= minimumContactMethods;
 
   const selectedPlatform = selectedKey ? platformByKey.get(selectedKey) : undefined;
 
@@ -201,10 +205,12 @@ export function SocialLinksFieldsBlock({
             variant="none"
             className="mt-0.5 text-[12px] text-slate-500 dark:text-slate-400"
           >
-            Add at least one website or social profile to continue.
+            {minimumContactMethods > 0
+              ? 'Add at least one website or social profile to continue.'
+              : 'Add the social profiles you want to show on your cards.'}
           </Text>
         </View>
-        <View
+        {minimumContactMethods > 0 ? <View
           className={`rounded-full px-2.5 py-1 ${
             hasMinimumLinks
               ? 'bg-emerald-500/15'
@@ -219,9 +225,9 @@ export function SocialLinksFieldsBlock({
                 : 'text-slate-600 dark:text-slate-300'
             }`}
           >
-            {linkCount}/{MIN_ONBOARDING_LINKS} added
+            {linkCount}/{minimumContactMethods} added
           </Text>
-        </View>
+        </View> : null}
       </View>
 
       {errors.socialLinks && !hasMinimumLinks ? (
@@ -328,10 +334,10 @@ export function SocialLinksFieldsBlock({
                           idx < SOCIAL_PLATFORMS.length - 1
                             ? 'border-b border-slate-200/60 dark:border-slate-800/80'
                             : ''
-                        } ${
-                          isSelected
-                            ? 'bg-primary/10 dark:bg-sky-500/15'
-                            : 'active:bg-slate-200/50 dark:active:bg-slate-800/50'
+                        } active:bg-slate-200/50 dark:active:bg-slate-800/50 ${
+                          // Keep the active: utilities on every row; toggling them
+                          // after mount makes NativeWind remount and crash in dev.
+                          isSelected ? 'bg-primary/10 dark:bg-sky-500/15' : ''
                         }`}
                       >
                         <View className="h-9 w-9 items-center justify-center rounded-lg bg-slate-200/70 dark:bg-slate-800/90">

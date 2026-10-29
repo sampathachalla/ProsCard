@@ -1,7 +1,8 @@
 import type { BusinessCard, DynamicCardField } from '@/pages/cards/types/card.types';
 import type { Profile, SocialFieldKey } from '../types/profile.types';
 
-export const MINIMUM_CARD_CONNECTION_FIELDS = 5;
+/** Required card reachability: one email plus one website or social profile. */
+export const MINIMUM_CARD_CONNECTION_FIELDS = 2;
 
 const SOCIAL_TITLES: Record<string, SocialFieldKey> = {
   linkedin: 'linkedin',
@@ -81,6 +82,21 @@ export function connectionCounts(fields: DynamicCardField[]): {
   return {
     total: populated.length,
     social: populated.filter((field) => Boolean(socialKeyForConnection(field))).length,
+  };
+}
+
+export function requiredCardConnectionStatus(fields: DynamicCardField[]) {
+  const populated = fields.filter((field) => field.value.trim());
+  const hasEmail = populated.some((field) => connectionProfileKey(field) === 'email');
+  const hasWebsiteOrSocial = populated.some((field) => {
+    const key = connectionProfileKey(field);
+    return key === 'website' || Boolean(socialKeyForConnection(field));
+  });
+  return {
+    hasEmail,
+    hasWebsiteOrSocial,
+    complete: hasEmail && hasWebsiteOrSocial,
+    completedCount: Number(hasEmail) + Number(hasWebsiteOrSocial),
   };
 }
 

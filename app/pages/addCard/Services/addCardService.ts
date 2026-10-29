@@ -6,6 +6,7 @@ import type { BusinessCard, CardSectionFieldId, DynamicCardField } from '@/pages
 import { saveCard } from '@/pages/editView/Services/editViewService';
 import { clearPendingMedia, commitPendingMedia } from '@/pages/profile/Services/pendingMedia';
 import type { Profile } from '@/pages/profile/types/profile.types';
+import type { MediaScope } from '@/services/api/types';
 import { IMAGE_MEDIA_KINDS, PRIMARY_CONTACT_IDS } from '../Config/addCardFields';
 import type { AddCardImageField } from '../types/addCard.types';
 import { buildAddCardDraftFromCard } from '../Utils/addCardDraft';
@@ -15,9 +16,6 @@ export { buildAddCardDraftFromCard } from '../Utils/addCardDraft';
 
 /** Profile-backed values copied onto the draft so the form edits one source of truth. */
 const PREFILLED_OVERRIDES: CardSectionFieldId[] = [
-  'coverPhoto',
-  'profilePhoto',
-  'logo',
   'accreditations',
   'tagline',
   'bio',
@@ -54,10 +52,22 @@ export function buildAddCardDraftForEditor(profile: Profile, cardId?: string): B
 }
 
 /** Uploads a picked image and returns the URL to store on the card. */
-export async function uploadCardImage(uri: string, field: AddCardImageField): Promise<string> {
+export async function uploadCardImage(
+  uri: string,
+  field: AddCardImageField,
+  options?: { scope?: MediaScope; cardId?: string },
+): Promise<string> {
   if (AUTH_TEST_MODE) return uri;
+  // Card editors keep the picked file local until the user chooses its scope.
+  // The account and card saves then create independent media attachments.
+  if (options?.scope === 'card') return uri;
   try {
-    return await commitPendingMedia(uri, IMAGE_MEDIA_KINDS[field]);
+    return await commitPendingMedia(
+      uri,
+      IMAGE_MEDIA_KINDS[field],
+      options?.scope ?? 'profile',
+      options?.cardId,
+    );
   } catch (error) {
     clearPendingMedia(uri);
     throw error;

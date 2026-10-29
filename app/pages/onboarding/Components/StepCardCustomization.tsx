@@ -45,6 +45,14 @@ import { PUBLIC_WEB_URL } from '@/pages/share/Services/sharingService';
 
 export const CARD_ASPECT_RATIO = 1.586;
 
+const SELECTED_PRESET_SHADOW = {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 1 },
+  shadowOpacity: 0.05,
+  shadowRadius: 2,
+  elevation: 1,
+};
+
 export const PRESET_CATEGORY_MAP: Record<string, string> = {
   'pro-cyan': 'Professional',
   midnight: 'Personal',
@@ -304,9 +312,12 @@ export function StepCardCustomization({
                   accessibilityState={{ selected: isSelected }}
                   className={`mb-3 w-[48%] rounded-2xl border p-2.5 active:scale-[0.98] ${
                     isSelected
-                      ? 'border-primary bg-blue-50/50 shadow-sm dark:border-dark-primary dark:bg-blue-950/20'
+                      ? 'border-primary bg-blue-50/50 dark:border-dark-primary dark:bg-blue-950/20'
                       : 'border-slate-200 bg-card dark:border-slate-800 dark:bg-dark-card'
                   }`}
+                  // Shadow via style: toggling shadow-* (CSS variables) after mount
+                  // makes NativeWind remount the Pressable and crash in dev.
+                  style={isSelected ? SELECTED_PRESET_SHADOW : undefined}
                 >
                   <LinearGradient
                     colors={preset.gradient}

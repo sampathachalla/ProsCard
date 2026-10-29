@@ -3,6 +3,7 @@ import { buildAddCardDraftFromCard } from '@/pages/addCard/Utils/addCardDraft';
 import { createCardDetailTemplate } from '@/pages/cards/Templates/cardDetailTemplate';
 import { CARD_THEME_PRESETS, type BusinessCard } from '@/pages/cards/types/card.types';
 import type { Profile } from '@/pages/profile/types/profile.types';
+import { resolveCardDisplayMedia } from '@/pages/cards/Utils/resolveCardDisplayMedia';
 
 const profile: Profile = {
   prefix: '', firstName: 'Account', middleName: '', lastName: 'Person', suffix: '',
@@ -39,6 +40,27 @@ function identityValue(input: BusinessCard, id: string): string {
 }
 
 describe('account and card field precedence', () => {
+  it('resolves inherited media before logo-adapted presentation reads the card', () => {
+    const resolved = resolveCardDisplayMedia(card(), profile);
+
+    expect(resolved.sectionOverrides.profilePhoto).toBe(profile.photoUrl);
+    expect(resolved.sectionOverrides.coverPhoto).toBe(profile.coverPhotoUrl);
+    expect(resolved.sectionOverrides.logo).toBe(profile.companyLogoUrl);
+  });
+
+  it('does not let account media replace a card-level image', () => {
+    const resolved = resolveCardDisplayMedia(card({
+      sectionOverrides: {
+        profilePhoto: 'https://example.com/card-photo.png',
+        logo: 'https://example.com/card-logo.png',
+      },
+    }), profile);
+
+    expect(resolved.sectionOverrides.profilePhoto).toBe('https://example.com/card-photo.png');
+    expect(resolved.sectionOverrides.coverPhoto).toBe(profile.coverPhotoUrl);
+    expect(resolved.sectionOverrides.logo).toBe('https://example.com/card-logo.png');
+  });
+
   it('keeps the persisted contrast background beside the logo', () => {
     const identity = createCardDetailTemplate(card({
       sectionOverrides: { logo: 'https://example.com/logo.svg', logoBackdrop: '#ffffff' },
@@ -62,9 +84,9 @@ describe('account and card field precedence', () => {
     expect(draft.company).toBe('Account Company');
     expect(draft.sectionOverrides.tagline).toBe('Account tagline');
     expect(draft.sectionOverrides.bio).toBe('Account biography');
-    expect(draft.sectionOverrides.coverPhoto).toBe('https://example.com/account-cover.png');
-    expect(draft.sectionOverrides.profilePhoto).toBe('https://example.com/account-photo.png');
-    expect(draft.sectionOverrides.logo).toBe('https://example.com/account-logo.png');
+    expect(draft.sectionOverrides.coverPhoto).toBeUndefined();
+    expect(draft.sectionOverrides.profilePhoto).toBeUndefined();
+    expect(draft.sectionOverrides.logo).toBeUndefined();
   });
 
   it('keeps card-level details ahead of account defaults', () => {

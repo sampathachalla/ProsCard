@@ -3,6 +3,7 @@ import {
   Camera,
   Copy,
   Download,
+  Globe,
   LayoutGrid,
   Link2,
   Lock,
@@ -14,7 +15,7 @@ import {
   Smartphone,
   Wallet,
 } from 'lucide-react-native';
-import type { QrCustomization, QrCustomizationPreset, ShareActionItemConfig } from '../types/share.types';
+import type { ShareActionId, ShareActionItemConfig } from '../types/share.types';
 
 /**
  * Row sequence from the Share Page wireframe:
@@ -64,13 +65,6 @@ export const SHARE_PAGE_ACTIONS: ShareActionItemConfig[] = [
     iconColor: '#38bdf8',
   },
   {
-    id: 'show_live_activity',
-    label: 'Show in Dynamic Island',
-    icon: PanelTop,
-    iconColor: '#38bdf8',
-    platforms: ['ios'],
-  },
-  {
     id: 'save_qr_photos',
     label: 'Save QR to Photos',
     icon: Download,
@@ -81,6 +75,13 @@ export const SHARE_PAGE_ACTIONS: ShareActionItemConfig[] = [
     label: 'Customize QR code',
     icon: Palette,
     iconColor: '#818cf8',
+  },
+  {
+    id: 'show_live_activity',
+    label: 'Show in Dynamic Island',
+    icon: PanelTop,
+    iconColor: '#38bdf8',
+    platforms: [],
   },
   {
     id: 'share_email',
@@ -120,54 +121,20 @@ export const SHARE_PAGE_ACTIONS: ShareActionItemConfig[] = [
   },
 ];
 
-export const QR_CUSTOMIZATION_PRESETS: QrCustomizationPreset[] = [
-  {
-    id: 'signature-dark',
-    label: 'Signature Dark',
-    foregroundColor: '#ffffff',
-    backgroundColor: '#111827',
-    accentColor: '#38bdf8',
-  },
-  {
-    id: 'classic-light',
-    label: 'Clean Light',
-    foregroundColor: '#0f172a',
-    backgroundColor: '#ffffff',
-    accentColor: '#2563eb',
-  },
-  {
-    id: 'vcpros-blue',
-    label: 'VC Pros Blue',
-    foregroundColor: '#ffffff',
-    backgroundColor: '#0f172a',
-    accentColor: '#38bdf8',
-  },
-  {
-    id: 'cyber-cyan',
-    label: 'Cyber Cyan',
-    foregroundColor: '#38bdf8',
-    backgroundColor: '#090d16',
-    accentColor: '#ffffff',
-  },
-  {
-    id: 'emerald-pro',
-    label: 'Emerald Pro',
-    foregroundColor: '#ffffff',
-    backgroundColor: '#064e3b',
-    accentColor: '#34d399',
-  },
-];
+import { SOCIAL_SHARE_ACTION_IDS } from './shareActionIds';
 
-export const QR_PRESET_STORAGE_KEY = 'vcpros.share.qrPresetId.v2';
-export const QR_CUSTOMIZATION_STORAGE_KEY = 'vcpros.share.qrCustomizationByCard.v1';
+export { SOCIAL_SHARE_ACTION_IDS };
 
-export const DEFAULT_QR_CUSTOMIZATION: QrCustomization = {
-  presetId: QR_CUSTOMIZATION_PRESETS[0].id,
-  patternStyle: 'dots',
-  cornerStyle: 'rounded',
-  logoSize: 'medium',
-  frameStyle: 'rounded',
-  captionVisible: true,
-  caption: 'Scan to share card',
-  exportFormat: 'png',
+export const SHARE_VIA_SOCIAL_ACTION: ShareActionItemConfig = {
+  id: 'share_social',
+  label: 'Share via social',
+  icon: Globe,
+  iconColor: '#38bdf8',
 };
+
+export {
+  DEFAULT_QR_CUSTOMIZATION,
+  QR_CUSTOMIZATION_PRESETS,
+  QR_CUSTOMIZATION_STORAGE_KEY,
+  QR_PRESET_STORAGE_KEY,
+} from './qrCustomizationDefaults';

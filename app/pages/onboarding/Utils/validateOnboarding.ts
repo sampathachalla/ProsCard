@@ -169,7 +169,7 @@ export function validateProfessionalStep(
   return errors;
 }
 
-/** Step 4 — Presence: all optional */
+/** Step 4 — Presence: at least one website or social profile. */
 export function validateSocialStep(
   draft: Partial<
     Pick<
@@ -192,7 +192,7 @@ export function validateSocialStep(
   const errors: ValidationErrors = {};
 
   if (countOnboardingLinks(draft) < MIN_ONBOARDING_LINKS) {
-    errors.socialLinks = `Add at least ${MIN_ONBOARDING_LINKS} website or social link.`;
+    errors.socialLinks = 'Add at least 1 website or social link.';
   }
 
   const isLocalOrEmptyUri = (value: string) => !value || isMediaReference(value);

@@ -18,6 +18,30 @@ vi.mock('expo-sharing', () => ({
 }));
 
 vi.mock('expo-clipboard', () => ({ setStringAsync: vi.fn().mockResolvedValue(undefined) }));
+vi.mock('lucide-react-native', () => {
+  const Dummy = () => null;
+  return {
+    AtSign: Dummy,
+    Camera: Dummy,
+    Check: Dummy,
+    ChevronDown: Dummy,
+    ChevronRight: Dummy,
+    ChevronUp: Dummy,
+    Copy: Dummy,
+    Download: Dummy,
+    Globe: Dummy,
+    LayoutGrid: Dummy,
+    Link2: Dummy,
+    Lock: Dummy,
+    Mail: Dummy,
+    MessageCircle: Dummy,
+    Palette: Dummy,
+    PanelTop: Dummy,
+    Share2: Dummy,
+    Smartphone: Dummy,
+    Wallet: Dummy,
+  };
+});
 
 vi.mock('expo-file-system', () => {
   class File {
@@ -31,6 +55,10 @@ vi.mock('expo-file-system', () => {
 });
 
 import { SHARE_ACTION_IDS } from '@/pages/share/Config/shareActionIds';
+import {
+  SHARE_VIA_SOCIAL_ACTION,
+  SOCIAL_SHARE_ACTION_IDS,
+} from '@/pages/share/Config/shareActionsConfig';
 import { saveOrShareQrCodePng } from '@/pages/share/Services/qrExportService';
 import {
   buildEmailShareUrl,
@@ -48,9 +76,9 @@ describe('share-page shipping contract', () => {
       'add_to_wallet',
       'add_qr_lockscreen',
       'add_qr_homescreen',
-      'show_live_activity',
       'save_qr_photos',
       'customize_qr',
+      'show_live_activity',
       'share_email',
       'share_namedrop',
       'share_linkedin',
@@ -88,5 +116,16 @@ describe('share-page shipping contract', () => {
     expect(saveToLibraryAsync).toHaveBeenCalledWith(expect.stringContaining('sampath-qr.png'));
     expect(shareAsync).not.toHaveBeenCalled();
     Platform.OS = originalOs;
+  });
+
+  it('groups social sharing channels under the dropdown contract', () => {
+    expect(SHARE_VIA_SOCIAL_ACTION.id).toBe('share_social');
+    expect(SHARE_VIA_SOCIAL_ACTION.label).toBe('Share via social');
+    expect(SOCIAL_SHARE_ACTION_IDS).toEqual([
+      'share_linkedin',
+      'share_whatsapp',
+      'share_instagram',
+      'share_x',
+    ]);
   });
 });

@@ -5,9 +5,13 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  StyleSheet,
+  Text as NativeText,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Palette, X } from 'lucide-react-native';
 
 import { QRCodeView } from '@/common/ui/QRCodeView';
@@ -77,6 +81,13 @@ const EXPORT_OPTIONS: SegmentOption<QrExportFormat>[] = [
   { value: 'pdf', label: 'PDF' },
 ];
 
+// ThemeContext resolves the user's light/dark/system preference and drives
+// NativeWind's `dark:` classes, so inline colors must follow it alone.
+function useIsDarkMode() {
+  const { theme } = useThemeContext();
+  return theme === 'dark';
+}
+
 function SegmentedRow<T extends string>({
   label,
   value,
@@ -88,6 +99,13 @@ function SegmentedRow<T extends string>({
   options: SegmentOption<T>[];
   onSelect: (value: T) => void;
 }) {
+  const isDark = useIsDarkMode();
+
+  const selectedBg = isDark ? '#0ea5e9' : '#2563eb';
+  const selectedBorder = isDark ? '#38bdf8' : '#2563eb';
+  const selectedTextColor = '#ffffff';
+  const unselectedTextColor = isDark ? '#94a3b8' : '#64748b';
+
   return (
     <View className="mt-4">
       <Text
@@ -96,32 +114,51 @@ function SegmentedRow<T extends string>({
       >
         {label}
       </Text>
-      <View className="flex-row rounded-xl border border-slate-200/60 bg-slate-100 p-1 dark:border-slate-800 dark:bg-slate-800/80">
+      <View
+        className="flex-row rounded-xl border p-1"
+        style={{
+          backgroundColor: isDark ? 'rgba(30, 41, 59, 0.7)' : '#f1f5f9',
+          borderColor: isDark ? 'rgba(51, 65, 85, 0.8)' : '#e2e8f0',
+        }}
+      >
         {options.map((option) => {
           const selected = value === option.value;
           return (
             <Pressable
               key={option.value}
+              hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
               onPress={() => onSelect(option.value)}
               accessibilityRole="button"
               accessibilityState={{ selected }}
-              className={`min-h-[34px] flex-1 flex-row items-center justify-center rounded-lg px-2 py-1.5 ${
+              className="min-h-[36px] flex-1 flex-row items-center justify-center rounded-lg px-2 py-1.5 active:opacity-80"
+              style={
                 selected
-                  ? 'bg-white shadow-sm dark:bg-slate-700/90'
-                  : 'active:opacity-75'
-              }`}
+                  ? {
+                      backgroundColor: selectedBg,
+                      borderColor: selectedBorder,
+                      borderWidth: 1,
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: isDark ? 0.3 : 0.08,
+                      shadowRadius: 2,
+                      elevation: 2,
+                    }
+                  : undefined
+              }
             >
-              <Text
-                variant="none"
+              <NativeText
                 numberOfLines={1}
-                className={`text-[13px] ${
-                  selected
-                    ? 'font-semibold text-primary dark:text-white'
-                    : 'font-medium text-slate-600 dark:text-slate-400'
-                }`}
+                pointerEvents="none"
+                maxFontSizeMultiplier={1.2}
+                style={{
+                  color: selected ? selectedTextColor : unselectedTextColor,
+                  fontSize: options.length > 3 ? 12 : 13,
+                  fontWeight: selected ? '700' : '500',
+                  textAlign: 'center',
+                }}
               >
                 {option.label}
-              </Text>
+              </NativeText>
             </Pressable>
           );
         })}
@@ -141,9 +178,20 @@ export function CustomizeQrModal({
   onChange,
   onClose,
 }: CustomizeQrModalProps) {
-  const { theme } = useThemeContext();
-  const isDark = theme === 'dark';
+  const isDark = useIsDarkMode();
   const tint = isDark ? Colors.dark.tint : Colors.light.tint;
+  const insets = useSafeAreaInsets();
+  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
+  const compactHeight = windowHeight < 720;
+  const sheetMaxHeight = Math.max(
+    420,
+    windowHeight - Math.max(insets.top, 12) - Math.max(insets.bottom, 8) - 12,
+  );
+  const previewSize = Math.max(
+    116,
+    Math.min(compactHeight ? 132 : 168, windowWidth - 112),
+  );
+  const caption = customization.caption ?? '';
 
   return (
     <Modal
@@ -151,55 +199,83 @@ export function CustomizeQrModal({
       visible={visible}
       animationType="fade"
       onRequestClose={onClose}
+      statusBarTranslucent
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        className="flex-1 items-center justify-center bg-black/60 px-4 py-6"
+        style={styles.backdropOverlay}
       >
-        <View className="max-h-[90%] w-full max-w-[420px] flex-col overflow-hidden rounded-3xl border border-slate-200/80 bg-card shadow-2xl dark:border-slate-800 dark:bg-dark-card">
-          {/* 1. Header (Sticky) */}
-          <View className="flex-row items-center justify-between border-b border-slate-100 px-5 py-4 dark:border-slate-800/80">
-            <View className="flex-row items-center gap-2.5">
-              <View className="h-9 w-9 items-center justify-center rounded-xl bg-primary/10 dark:bg-sky-500/15">
-                <Palette size={18} color={tint} strokeWidth={2.2} />
-              </View>
-              <View>
-                <Text
-                  variant="none"
-                  className="text-[17px] font-bold tracking-tight text-textPrimary dark:text-dark-textPrimary"
-                >
-                  Customize QR Code
-                </Text>
-                <Text
-                  variant="none"
-                  className="text-[12px] font-normal text-slate-500 dark:text-slate-400"
-                >
-                  Real-time pattern, style & export options
-                </Text>
-              </View>
-            </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Dismiss modal"
+          style={[StyleSheet.absoluteFill, styles.backdropPressable]}
+          onPress={onClose}
+        />
 
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Close customize QR modal"
-              hitSlop={8}
-              onPress={onClose}
-              className="h-8 w-8 items-center justify-center rounded-full bg-slate-100 active:opacity-75 dark:bg-slate-800"
-            >
-              <X size={16} color={isDark ? '#cbd5e1' : '#64748b'} strokeWidth={2.2} />
-            </Pressable>
-          </View>
-
-          {/* 2. Scrollable Options Body */}
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{
-              paddingHorizontal: 20,
-              paddingTop: 16,
-              paddingBottom: 20,
+        {/* Tap-through wrapper; sheet uses pointerEvents="auto" so touches reach controls. */}
+        <View pointerEvents="box-none" style={styles.sheetAnchor}>
+          <View
+            pointerEvents="auto"
+            style={{
+              width: '100%',
+              maxWidth: 420,
+              height: sheetMaxHeight,
+              maxHeight: sheetMaxHeight,
             }}
+            className="flex-col overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-2xl dark:border-slate-800 dark:bg-dark-card"
           >
+              {/* 1. Header (Sticky) */}
+              <View className="flex-row items-center justify-between border-b border-slate-100 px-5 py-4 dark:border-slate-800/80">
+                <View className="flex-row items-center gap-2.5">
+                  <View
+                    className="h-9 w-9 items-center justify-center rounded-xl"
+                    style={{
+                      backgroundColor: isDark
+                        ? 'rgba(56, 189, 248, 0.15)'
+                        : 'rgba(37, 99, 235, 0.1)',
+                    }}
+                  >
+                    <Palette size={18} color={tint} strokeWidth={2.2} />
+                  </View>
+                  <View className="min-w-0 flex-1 pr-2">
+                    <Text
+                      variant="none"
+                      className="text-[17px] font-bold tracking-tight text-textPrimary dark:text-dark-textPrimary"
+                    >
+                      Customize QR Code
+                    </Text>
+                    <Text
+                      variant="none"
+                      className="text-[12px] font-normal text-slate-500 dark:text-slate-400"
+                    >
+                      Real-time pattern, style & export options
+                    </Text>
+                  </View>
+                </View>
+
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Close customize QR modal"
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  onPress={onClose}
+                  className="h-8 w-8 items-center justify-center rounded-full bg-slate-100 active:opacity-75 dark:bg-slate-800"
+                >
+                  <X size={16} color={isDark ? '#cbd5e1' : '#64748b'} strokeWidth={2.2} />
+                </Pressable>
+              </View>
+
+              <ScrollView
+                style={styles.scrollArea}
+                showsVerticalScrollIndicator={true}
+                keyboardShouldPersistTaps="always"
+                keyboardDismissMode="on-drag"
+                nestedScrollEnabled={true}
+                contentContainerStyle={{
+                  paddingHorizontal: 20,
+                  paddingTop: 16,
+                  paddingBottom: 24,
+                }}
+              >
             {/* Live QR Preview Pedestal */}
             <View className="items-center justify-center rounded-2xl border border-slate-200/70 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900/50">
               <View
@@ -221,7 +297,7 @@ export function CustomizeQrModal({
                 {shareUrl ? (
                   <QRCodeView
                     value={shareUrl}
-                    size={148}
+                    size={previewSize}
                     foregroundColor={activePreset.foregroundColor}
                     backgroundColor={activePreset.backgroundColor}
                     accentColor={activePreset.accentColor}
@@ -235,7 +311,10 @@ export function CustomizeQrModal({
                     logoSize={customization.logoSize}
                   />
                 ) : (
-                  <View className="h-[148px] w-[148px] items-center justify-center">
+                  <View
+                    style={{ width: previewSize, height: previewSize }}
+                    className="items-center justify-center"
+                  >
                     <Text
                       variant="none"
                       style={{ color: activePreset.foregroundColor }}
@@ -246,7 +325,7 @@ export function CustomizeQrModal({
                   </View>
                 )}
 
-                {customization.captionVisible && customization.caption.trim() ? (
+                {customization.captionVisible && caption.trim() ? (
                   <View
                     style={
                       customization.frameStyle === 'badge'
@@ -267,7 +346,7 @@ export function CustomizeQrModal({
                       style={{ color: activePreset.foregroundColor }}
                       className="text-center text-[12px] font-medium"
                     >
-                      {customization.caption}
+                      {caption}
                     </Text>
                   </View>
                 ) : null}
@@ -324,23 +403,31 @@ export function CustomizeQrModal({
                     variant="none"
                     className="text-[11px] text-slate-400 dark:text-slate-500"
                   >
-                    {customization.caption.length}/48
+                    {caption.length}/48
                   </Text>
                 </View>
-                <View className="h-11 flex-row items-center rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 focus-within:border-primary focus-within:bg-white dark:border-slate-700 dark:bg-slate-800/40 dark:focus-within:border-sky-400 dark:focus-within:bg-slate-800">
+                <View
+                  className="h-11 flex-row items-center rounded-xl border px-3.5"
+                  style={{
+                    borderColor: isDark ? 'rgba(51, 65, 85, 0.8)' : '#e2e8f0',
+                    backgroundColor: isDark
+                      ? 'rgba(30, 41, 59, 0.4)'
+                      : 'rgba(248, 250, 252, 0.7)',
+                  }}
+                >
                   <TextInput
-                    value={customization.caption}
+                    value={caption}
                     maxLength={48}
                     onChangeText={(caption) => onChange({ caption })}
                     placeholder="Scan to share card"
                     placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
                     className="flex-1 text-[14px] text-textPrimary dark:text-dark-textPrimary"
                   />
-                  {customization.caption ? (
+                  {caption ? (
                     <Pressable
                       accessibilityRole="button"
                       accessibilityLabel="Clear caption"
-                      hitSlop={8}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                       onPress={() => onChange({ caption: '' })}
                       className="ml-2 h-5 w-5 items-center justify-center rounded-full bg-slate-200 active:opacity-75 dark:bg-slate-700"
                     >
@@ -364,23 +451,49 @@ export function CustomizeQrModal({
           </ScrollView>
 
           {/* 3. Pinned Action Footer (Always visible, perfectly positioned) */}
-          <View className="border-t border-slate-100 bg-card px-5 py-3.5 dark:border-slate-800/80 dark:bg-dark-card">
+          <View
+            className="border-t border-slate-100 bg-white px-5 pt-3.5 dark:border-slate-800/80 dark:bg-dark-card"
+            style={{ paddingBottom: Math.max(insets.bottom, 14) }}
+          >
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Done customizing QR code"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               onPress={onClose}
-              className="h-12 w-full items-center justify-center rounded-xl bg-primary shadow-sm active:opacity-90 dark:bg-dark-primary"
+              className="min-h-[48px] w-full items-center justify-center rounded-xl bg-primary active:opacity-90"
             >
-              <Text
-                variant="none"
-                className="text-[15px] font-semibold text-white dark:text-slate-950"
-              >
+              <Text variant="none" className="text-[15px] font-semibold text-white">
                 Done
               </Text>
             </Pressable>
           </View>
         </View>
+        </View>
       </KeyboardAvoidingView>
     </Modal>
   );
 }
+
+const styles = StyleSheet.create({
+  backdropOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 24,
+  },
+  backdropPressable: {
+    zIndex: 0,
+  },
+  sheetAnchor: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    zIndex: 1,
+  },
+  scrollArea: {
+    flex: 1,
+    minHeight: 0,
+  },
+});

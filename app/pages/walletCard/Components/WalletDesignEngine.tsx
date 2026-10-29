@@ -10,6 +10,8 @@ import { IdentityImage, UniversalLogoBadge } from '@/pages/cards/Templates/secti
 import { getCardFontFamily, getCardLetterSpacing } from '@/pages/cards/Templates/cardTheme';
 import { Text } from '@/common/ui/Text';
 import { useShareUrl } from '@/pages/share/Hooks/useShareUrl';
+import { useQrCustomization } from '@/pages/share/Hooks/useQrCustomization';
+import { resolveQrPreset } from '@/pages/share/Utils/resolveQrPreset';
 import { resolveLayoutColorSlots } from '@/utils/cardThemeColor';
 import { getWalletCardDimensions } from '../Utils/walletCardLayout';
 import { walletField, walletFieldValue } from '../Utils/walletPassFields';
@@ -82,6 +84,8 @@ export function WalletStackedPass({ card, profile, width, height, qrValue, style
   const fontFamily = getCardFontFamily(professionalTheme.fontStyle);
   const letterSpacing = getCardLetterSpacing(professionalTheme.fontStyle);
   const share = useShareUrl(qrValue ? null : card.id);
+  const qrCustomization = useQrCustomization(card.id);
+  const qrPreset = resolveQrPreset(card, qrCustomization);
   const effectiveQrValue = qrValue || share.url;
   const preferredName = identity ? walletFieldValue(identity, 'preferredName') : '';
   const jobTitle = professional ? walletFieldValue(professional, 'title') : '';
@@ -164,7 +168,21 @@ export function WalletStackedPass({ card, profile, width, height, qrValue, style
               {jobTitle}
             </Text>
           </View>
-          <WalletQRCodeView size={qrSize} value={effectiveQrValue} borderColor={bodySlots.accent} style={{ alignSelf: 'flex-start', borderRadius: 10, padding: 4 }} />
+          <WalletQRCodeView
+            size={qrSize}
+            value={effectiveQrValue}
+            foregroundColor={qrPreset.foregroundColor}
+            backgroundColor={qrPreset.backgroundColor}
+            containerColor={qrPreset.backgroundColor}
+            borderColor={bodySlots.accent}
+            accentColor={qrPreset.accentColor}
+            centerLogoUrl={logo?.value}
+            centerLogoBackground={
+              card.sectionOverrides.logoBackdrop || card.appliedTheme?.surfaceColor
+            }
+            customization={qrCustomization}
+            style={{ alignSelf: 'flex-start' }}
+          />
         </View>
 
         <View className="min-w-0 flex-1 px-3 py-2.5" style={{ gap: 7 }}>

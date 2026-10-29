@@ -9,6 +9,7 @@ export function orderedVisibleShareActions(): ShareActionItemConfig[] {
   const byId = new Map(SHARE_PAGE_ACTIONS.map((item) => [item.id, item]));
   return SHARE_ACTION_IDS.map((id) => byId.get(id)).filter((item): item is ShareActionItemConfig => {
     if (!item) return false;
+    if (item.id === 'show_live_activity') return false;
     return !item.platforms || item.platforms.includes(Platform.OS as 'ios' | 'android' | 'web');
   });
 }

@@ -12,6 +12,8 @@ import {
   UniversalLogoBadge,
 } from '@/pages/cards/Templates/sections/SectionSharedComponents';
 import { useShareUrl } from '@/pages/share/Hooks/useShareUrl';
+import { useQrCustomization } from '@/pages/share/Hooks/useQrCustomization';
+import { resolveQrPreset } from '@/pages/share/Utils/resolveQrPreset';
 import {
   isColorLight,
   resolveCardAvatarRing,
@@ -21,6 +23,7 @@ import {
   resolveLayoutColorSlots,
 } from '@/utils/cardThemeColor';
 import { walletField, walletFieldValue } from '@/pages/walletCard/Utils/walletPassFields';
+import { resolveCardDisplayMedia } from '@/pages/cards/Utils/resolveCardDisplayMedia';
 
 type HomePreviewCardFaceProps = {
   card: BusinessCard;
@@ -37,10 +40,13 @@ export function HomePreviewCardFace({
   height,
   onMenuPress,
 }: HomePreviewCardFaceProps) {
-  const sections = createCardDetailTemplate(card, profile);
+  const displayCard = resolveCardDisplayMedia(card, profile);
+  const sections = createCardDetailTemplate(displayCard, profile);
   const identity = sections.find((section) => section.id === 'identity');
   const professional = sections.find((section) => section.id === 'professional');
   const share = useShareUrl(card.id);
+  const qrCustomization = useQrCustomization(card.id);
+  const qrPreset = resolveQrPreset(card, qrCustomization);
   const coverPhoto = identity ? walletField(identity, 'coverPhoto') : undefined;
   const profilePhoto = identity ? walletField(identity, 'profilePhoto') : undefined;
   const logo = identity ? walletField(identity, 'logo') : undefined;
@@ -67,7 +73,7 @@ export function HomePreviewCardFace({
   const surface = bodySlots.surface || activeTheme?.surfaceColor || '#ffffff';
   const isSurfaceLight = isColorLight(surface);
 
-  const qrContainerBg = isSurfaceLight ? '#ffffff' : '#111827';
+  const qrContainerBg = qrPreset.backgroundColor;
   const accentColor = headerSlots.accent || activeTheme?.accentColor || '#38bdf8';
   const textPrimary = isSurfaceLight ? (bodySlots.textPrimary || '#0f172a') : '#f8fafc';
   const textSecondary = isSurfaceLight ? (bodySlots.textSecondary || '#334155') : '#cbd5e1';
@@ -125,6 +131,7 @@ export function HomePreviewCardFace({
         }}
       >
         <IdentityImage
+          key={`${card.id}-cover-${coverPhoto?.value ?? 'account-fallback'}`}
           field={coverPhoto}
           fit="cover"
           style={{ position: 'absolute', inset: 0, width, height: coverHeight }}
@@ -151,6 +158,7 @@ export function HomePreviewCardFace({
         <View className="mb-2.5 flex-row items-start justify-between">
           <View style={{ marginTop: -Math.round(profileSize * 0.48) }}>
             <IdentityImage
+              key={`${card.id}-profile-${profilePhoto?.value ?? 'account-fallback'}`}
               field={profilePhoto}
               iconColor="#94a3b8"
               placeholderColor="#1e293b"
@@ -165,6 +173,7 @@ export function HomePreviewCardFace({
           </View>
           <View style={{ marginTop: 8, maxWidth: logoWidth }}>
             <UniversalLogoBadge
+              key={`${card.id}-logo-${logo?.value ?? 'account-fallback'}`}
               bare
               backdropColor={logoBackdrop || undefined}
               cardTheme={identityTheme}
@@ -205,11 +214,20 @@ export function HomePreviewCardFace({
 
         <View className="mt-3 min-h-0 flex-1 items-center justify-center">
           <View
-            className="items-center rounded-2xl px-4 pb-4 pt-5"
+            className="items-center px-4 pb-4 pt-5"
             style={{
-              borderWidth: 1.5,
-              borderColor: qrBorderColor,
+              borderWidth: qrCustomization.frameStyle === 'none' ? 0 : 1.5,
+              borderColor:
+                qrCustomization.frameStyle === 'badge'
+                  ? qrPreset.accentColor
+                  : qrBorderColor,
               backgroundColor: qrContainerBg,
+              borderRadius:
+                qrCustomization.frameStyle === 'none'
+                  ? 0
+                  : qrCustomization.frameStyle === 'simple'
+                    ? 8
+                    : 16,
               shadowColor: '#000',
               shadowOffset: { width: 0, height: 4 },
               shadowOpacity: isSurfaceLight ? 0.06 : 0.25,
@@ -221,12 +239,17 @@ export function HomePreviewCardFace({
               <QRCodeView
                 value={share.url}
                 size={qrSize}
-                foregroundColor={isSurfaceLight ? '#0f172a' : '#ffffff'}
-                backgroundColor={qrContainerBg}
-                accentColor={accentColor}
+                foregroundColor={qrPreset.foregroundColor}
+                backgroundColor={qrPreset.backgroundColor}
+                accentColor={qrPreset.accentColor}
                 framed={false}
                 showCenterLogo
                 centerLogoUrl={logo?.value}
+                centerLogoBackground={logoBackdrop || card.appliedTheme?.surfaceColor}
+                centerLogoBorderColor={qrPreset.accentColor}
+                patternStyle={qrCustomization.patternStyle}
+                cornerStyle={qrCustomization.cornerStyle}
+                logoSize={qrCustomization.logoSize}
               />
             ) : (
               <View
@@ -236,13 +259,31 @@ export function HomePreviewCardFace({
                 <ActivityIndicator color={textPrimary} />
               </View>
             )}
-            <Text
-              variant="none"
-              className="mt-3.5 text-center text-[13px] font-medium tracking-wide"
-              style={{ color: textSecondary }}
-            >
-              Scan to share card
-            </Text>
+            {qrCustomization.captionVisible && qrCustomization.caption.trim() ? (
+              <View
+                className={
+                  qrCustomization.frameStyle === 'badge'
+                    ? 'mt-3.5 rounded-full border px-3 py-1.5'
+                    : 'mt-3.5'
+                }
+                style={
+                  qrCustomization.frameStyle === 'badge'
+                    ? {
+                        borderColor: qrPreset.accentColor,
+                        backgroundColor: `${qrPreset.accentColor}22`,
+                      }
+                    : undefined
+                }
+              >
+                <Text
+                  variant="none"
+                  className="text-center text-[13px] font-medium"
+                  style={{ color: qrPreset.foregroundColor }}
+                >
+                  {qrCustomization.caption}
+                </Text>
+              </View>
+            ) : null}
           </View>
         </View>
       </View>

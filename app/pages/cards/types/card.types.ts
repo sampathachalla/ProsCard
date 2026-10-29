@@ -342,6 +342,8 @@ export type DynamicCardField = {
 export type CardSectionFieldId =
   | 'preferredName'
   | 'cardTag'
+  | 'displayName'
+  | 'displayNameCustomized'
   | 'coverPhoto'
   | 'profilePhoto'
   | 'logo'
@@ -386,6 +388,9 @@ export function createDefaultCardSectionThemes(theme: CardVisualTheme = DEFAULT_
 export type BusinessCard = {
   id: string;
   isPrimary?: boolean;
+  /** User-facing card label; independent from the design tag. */
+  displayName?: string;
+  displayNameCustomized?: boolean;
   category: string;
   name: string;
   title: string;

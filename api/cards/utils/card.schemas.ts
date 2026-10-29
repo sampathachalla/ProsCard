@@ -1,6 +1,8 @@
 import { z } from 'zod';
 
 export const cardSchema = z.object({
+  displayName: z.string().trim().max(100).optional(),
+  displayNameCustomized: z.boolean().optional(),
   category: z.string().trim().min(1).max(100),
   name: z.string().trim().min(1).max(200),
   title: z.string().trim().max(200).default(''),

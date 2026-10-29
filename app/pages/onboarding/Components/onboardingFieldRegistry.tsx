@@ -291,6 +291,7 @@ export function renderOnboardingField(
           draft={draft}
           updateDraft={updateDraft}
           errors={errors}
+          minimumContactMethods={1}
         />
       </View>
     );

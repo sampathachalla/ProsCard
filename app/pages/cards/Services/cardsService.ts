@@ -7,8 +7,8 @@ import { getCardTagDesignPreset, resolveCardTag, withResolvedCardTheme } from '@
 import { CARD_THEME_PRESETS, createDefaultCardSectionThemes, DEFAULT_CARD_SECTION_LAYOUTS, DEFAULT_CARD_THEME, resolveConnectionsLayoutId, resolveIdentityLayoutId, resolveProfessionalLayoutId, type BusinessCard, type CardThemeId, type CardVisualTheme } from '../types/card.types';
 import { apiRequest } from '@/services/api/client';
 import { AUTH_TEST_MODE } from '@/pages/auth/Config/authMode';
-import { commitPendingMedia, isPendingMediaUrl, mediaIdFromContentUrl } from '@/pages/profile/Services/pendingMedia';
-import { deleteMedia, extractLogoPalette, prefetchMedia } from '@/pages/profile/Services/mediaService';
+import { commitPendingMedia, isPendingMediaUrl } from '@/pages/profile/Services/pendingMedia';
+import { extractLogoPalette, prefetchMedia } from '@/pages/profile/Services/mediaService';
 import { useEditorPreferenceStore } from '@/pages/profile/Stores/editorPreferenceStore';
 import { getSession } from '@/services/api/session';
 import { queryClient, queryKeys } from '@/services/api/queryClient';
@@ -16,11 +16,52 @@ import type { Profile } from '@/pages/profile/types/profile.types';
 
 const PRIMARY_CARD_KEY = 'primaryCard';
 const USER_CARDS_KEY = 'userCards';
+const CARD_LABEL_COUNTERS_KEY = 'cardDisplayNameCounters';
 let lastCardsSyncFailed = false;
 export const cardsAreOffline = () => lastCardsSyncFailed;
 async function scopedCardKey(key: string) {
   const session = await getSession();
   return session?.user.id ? `${key}:${session.user.id}` : key;
+}
+
+async function ensureCardDisplayName(card: BusinessCard): Promise<BusinessCard> {
+  const storedLabel = card.displayName?.trim() || card.sectionOverrides.displayName?.trim();
+  const customized = card.displayNameCustomized || card.sectionOverrides.displayNameCustomized === 'true';
+  if (customized && storedLabel) {
+    return {
+      ...card,
+      displayName: storedLabel,
+      displayNameCustomized: true,
+      sectionOverrides: { ...card.sectionOverrides, displayName: storedLabel, displayNameCustomized: 'true' },
+    };
+  }
+  if (storedLabel) return card;
+
+  const tag = resolveCardTag(card);
+  const counterKey = await scopedCardKey(CARD_LABEL_COUNTERS_KEY);
+  const stored = parseStoredJson<Record<string, number>>(await AsyncStorage.getItem(counterKey)) ?? {};
+  const usedNumbers = CARDS
+    .filter((item) => item.id !== card.id && resolveCardTag(item) === tag)
+    .map((item) => {
+      const label = item.displayName?.trim() || item.sectionOverrides.displayName?.trim();
+      if (!label || label === tag) return 1;
+      const match = label.match(new RegExp(`^${tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s+(\\d+)$`, 'i'));
+      return match ? Number(match[1]) : 0;
+    });
+  const highest = Math.max(stored[tag] ?? 0, ...usedNumbers, 0);
+  const sequence = highest + 1;
+  stored[tag] = sequence;
+  await AsyncStorage.setItem(counterKey, JSON.stringify(stored));
+  return {
+    ...card,
+    displayName: sequence === 1 ? tag : `${tag} ${sequence}`,
+    displayNameCustomized: false,
+    sectionOverrides: {
+      ...card.sectionOverrides,
+      displayName: sequence === 1 ? tag : `${tag} ${sequence}`,
+      displayNameCustomized: 'false',
+    },
+  };
 }
 
 function isGradient(value: unknown): value is [string, string] {
@@ -441,7 +482,7 @@ export async function savePrimaryCard(profileData: Partial<BusinessCard>): Promi
 }
 
 export async function saveCard(updated: BusinessCard): Promise<BusinessCard> {
-  let normalized = normalizeCard(updated);
+  let normalized = normalizeCard(await ensureCardDisplayName(updated));
   const existingIndex = CARDS.findIndex((card) => card.id === normalized.id);
   if (!AUTH_TEST_MODE) {
     if (existingIndex >= 0 && isServerCardId(normalized.id)) {
@@ -537,9 +578,6 @@ async function prepareCardMedia(card: BusinessCard, previous: BusinessCard): Pro
     const old = previous.sectionOverrides[field] ?? '';
     if (isPendingMediaUrl(next)) {
       nextOverrides[field] = await commitPendingMedia(next, kind, 'card', card.id);
-    } else if (!next && old) {
-      const mediaId = mediaIdFromContentUrl(old);
-      if (mediaId) await deleteMedia(mediaId);
     }
   }
   return normalizeCard({ ...card, sectionOverrides: nextOverrides });

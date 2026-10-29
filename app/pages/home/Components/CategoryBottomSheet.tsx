@@ -8,6 +8,7 @@ import { closeBottomSheet } from '@/common/ui/closeBottomSheet';
 import { SheetActionRow } from '@/common/ui/SheetActionRow';
 import { SheetHeader } from '@/common/ui/SheetHeader';
 import { ThemedBottomSheet } from '@/common/ui/ThemedBottomSheet';
+import { resolveCardTagLabel } from '@/pages/cards/Utils/resolveCardTagLabel';
 
 const CARD_ICONS = [Briefcase, Heart, Sparkles, Users] as const;
 
@@ -44,7 +45,7 @@ export const CategoryBottomSheet = forwardRef<BottomSheet, CategoryBottomSheetPr
               return (
                 <SheetActionRow
                   key={card.id}
-                  label={card.category}
+                  label={resolveCardTagLabel(card)}
                   description={`${card.company} · ${card.title}`}
                   icon={Icon}
                   variant="selectable"

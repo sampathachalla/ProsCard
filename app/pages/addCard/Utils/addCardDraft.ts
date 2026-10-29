@@ -13,9 +13,6 @@ export function buildAddCardDraftFromCard(card: BusinessCard, profile: Profile):
   const tagline = values.get('tagline') ?? '';
   const bio = values.get('bio') ?? '';
   const accreditations = values.get('accreditations') ?? '';
-  const coverPhoto = values.get('coverPhoto') ?? '';
-  const profilePhoto = values.get('profilePhoto') ?? '';
-  const logo = values.get('logo') ?? '';
 
   return {
     ...card,
@@ -32,9 +29,6 @@ export function buildAddCardDraftFromCard(card: BusinessCard, profile: Profile):
       tagline,
       bio,
       accreditations,
-      coverPhoto: card.sectionOverrides.coverPhoto !== undefined ? card.sectionOverrides.coverPhoto : coverPhoto,
-      profilePhoto: card.sectionOverrides.profilePhoto !== undefined ? card.sectionOverrides.profilePhoto : profilePhoto,
-      logo: card.sectionOverrides.logo !== undefined ? card.sectionOverrides.logo : logo,
       bioEnabled: card.sectionOverrides.bioEnabled ?? (bio.trim() ? 'true' : 'false'),
     },
     connectionFields: card.connectionFields.map((field) => ({ ...field })),

@@ -238,11 +238,13 @@ export default function AddCardPage() {
         >
           <View className="w-full max-w-[560px] self-center">
             <CardMediaHeader
-              coverPhoto={editor.draft.sectionOverrides.coverPhoto ?? ''}
-              profilePhoto={editor.draft.sectionOverrides.profilePhoto ?? ''}
-              logo={editor.draft.sectionOverrides.logo ?? ''}
+              coverPhoto={editor.draft.sectionOverrides.coverPhoto?.trim() || profile.coverPhotoUrl || ''}
+              profilePhoto={editor.draft.sectionOverrides.profilePhoto?.trim() || profile.photoUrl || ''}
+              logo={editor.draft.sectionOverrides.logo?.trim() || profile.companyLogoUrl || ''}
               logoBackdrop={editor.draft.sectionOverrides.logoBackdrop ?? '#f8fafc'}
               gradient={editor.draft.gradient}
+              uploadScope="card"
+              uploadCardId={editor.isEditMode ? editor.draft.id : undefined}
               onChange={handleMediaChange}
               onAutoThemeFromLogo={editor.setTheme}
               onPaletteExtracted={editor.applyLogoThemes}
@@ -261,6 +263,16 @@ export default function AddCardPage() {
               <Text variant="subtitle">Card details</Text>
               <Text variant="muted">Customize what appears on this card.</Text>
             </View>
+
+            <FormField
+              label="Card name"
+              value={editor.draft.displayName ?? editor.draft.sectionOverrides.displayName ?? ''}
+              placeholder="Automatically named from the card tag"
+              maxLength={100}
+              autoCapitalize="words"
+              showCount
+              onChangeText={editor.setDisplayName}
+            />
 
             {PROFILE_TEXT_FIELDS.map((field) => (
               <FormField

@@ -217,7 +217,10 @@ export function runValidateOnboardingTests(): { passed: number; failed: number }
           lastName: 'K',
           title: 'Engineer',
           email: 'sampath@proscard.app',
+          phone: '+1 555 123 4567',
+          businessAddress: 'Baltimore, MD',
           website: 'https://proscard.app',
+          linkedin: 'https://linkedin.com/in/sampath',
         };
         const result = validateOnboardingDraft(completeDraft);
         assertEqual(result.isValid, true);

@@ -34,7 +34,10 @@ import {
   buildXShareUrl,
   copyTextToClipboard,
 } from '../Utils/shareFormatters';
+import { normalizeQrCustomization } from '../Utils/normalizeQrCustomization';
+import { publishQrCustomization } from '../Services/qrCustomizationStorage';
 import { useShareUrl } from './useShareUrl';
+import { resolveCardTagLabel } from '@/pages/cards/Utils/resolveCardTagLabel';
 
 export function useSharePageController() {
   const { cards, fetched, offline } = useCards();
@@ -92,24 +95,51 @@ export function useSharePageController() {
     AsyncStorage.getItem(QR_CUSTOMIZATION_STORAGE_KEY)
       .then((raw) => {
         const saved = raw ? JSON.parse(raw) as Record<string, Partial<QrCustomization>> : {};
-        if (!cancelled) setQrCustomization({ ...DEFAULT_QR_CUSTOMIZATION, ...(saved[card.id] ?? {}) });
+        if (!cancelled) setQrCustomization(normalizeQrCustomization(saved[card.id]));
       })
       .catch(() => { if (!cancelled) setQrCustomization(DEFAULT_QR_CUSTOMIZATION); });
     return () => { cancelled = true; };
   }, [card?.id]);
 
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingSaveRef = useRef<(() => void) | null>(null);
+
+  // Flush (not drop) a pending debounced save so the last edit survives leaving the page.
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      pendingSaveRef.current?.();
+      pendingSaveRef.current = null;
+    };
+  }, []);
+
   const updateQrCustomization = useCallback((patch: Partial<QrCustomization>) => {
-    Haptics.selectionAsync().catch(() => {});
+    if (!('caption' in patch)) {
+      Haptics.selectionAsync().catch(() => {});
+    }
     setQrCustomization((current) => {
-      const next = { ...current, ...patch };
+      const next = normalizeQrCustomization({ ...current, ...patch });
       if (card?.id) {
-        AsyncStorage.getItem(QR_CUSTOMIZATION_STORAGE_KEY)
-          .then((raw) => {
-            const saved = raw ? JSON.parse(raw) as Record<string, QrCustomization> : {};
-            saved[card.id] = next;
-            return AsyncStorage.setItem(QR_CUSTOMIZATION_STORAGE_KEY, JSON.stringify(saved));
-          })
-          .catch(() => {});
+        const cardId = card.id;
+        publishQrCustomization(cardId, next);
+        const save = () => {
+          AsyncStorage.getItem(QR_CUSTOMIZATION_STORAGE_KEY)
+            .then((raw) => {
+              const saved = raw ? (JSON.parse(raw) as Record<string, QrCustomization>) : {};
+              saved[cardId] = next;
+              return AsyncStorage.setItem(
+                QR_CUSTOMIZATION_STORAGE_KEY,
+                JSON.stringify(saved),
+              );
+            })
+            .catch(() => {});
+        };
+        if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+        pendingSaveRef.current = save;
+        saveTimeoutRef.current = setTimeout(() => {
+          pendingSaveRef.current = null;
+          save();
+        }, 300);
       }
       return next;
     });
@@ -142,7 +172,7 @@ export function useSharePageController() {
 
   const cardLabel = useMemo(() => {
     if (!card) return 'No card';
-    return card.sectionOverrides?.cardTag?.trim() || card.category?.trim() || card.name || 'My card';
+    return resolveCardTagLabel(card);
   }, [card]);
 
   const setQrRef = useCallback((ref: QrSvgRef | null) => {
@@ -398,6 +428,9 @@ export function useSharePageController() {
         case 'customize_qr':
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
           setCustomizeOpen(true);
+          break;
+
+        case 'share_social':
           break;
       }
     },

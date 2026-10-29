@@ -12,9 +12,9 @@ import type { EditHomeTab } from '@/common/ui/EditHomeBar';
 import { useProfileSnapshot } from '@/pages/profile/Hooks/useProfileSnapshot';
 import { saveProfile } from '@/pages/profile/Services/profileService';
 import {
-  connectionCounts,
   connectionProfileKey,
   MINIMUM_CARD_CONNECTION_FIELDS,
+  requiredCardConnectionStatus,
   profileValueForConnection,
   profileConnectionsChanged,
   profileWithConnectionFields,
@@ -166,11 +166,11 @@ export default function EditViewPage() {
           type: field.type === 'image' || field.type === 'multiline' ? ('text' as const) : field.type,
           value: field.value,
         })) ?? [];
-    const { total } = connectionCounts(fields);
-    if (total >= MINIMUM_CARD_CONNECTION_FIELDS) return true;
+    const status = requiredCardConnectionStatus(fields);
+    if (status.complete) return true;
 
     setPreviewVisible(false);
-    setMissingContactMethodCount(MINIMUM_CARD_CONNECTION_FIELDS - total);
+    setMissingContactMethodCount(MINIMUM_CARD_CONNECTION_FIELDS - status.completedCount);
     return false;
   };
 
@@ -274,8 +274,6 @@ export default function EditViewPage() {
       {formStep === 2 ? <DraggablePreviewButton onPress={previewCard} /> : null}
 
       <ContactMethodsRequiredModal
-        minimumCount={MINIMUM_CARD_CONNECTION_FIELDS}
-        missingCount={missingContactMethodCount ?? 0}
         visible={missingContactMethodCount !== null}
         onContinue={() => setMissingContactMethodCount(null)}
       />
