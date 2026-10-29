@@ -17,21 +17,20 @@ import {
 import type { QrCustomization, QrCustomizationPreset, ShareActionItemConfig } from '../types/share.types';
 
 /**
- * Row sequence from the Share Page wireframe, plus the iOS-only Live Activity row:
+ * Row sequence from the Share Page wireframe:
  * 1. Share card
  * 2. Copy link
  * 3. Add card to wallet
  * 4. Add QR to lockscreen
  * 5. Add QR to homescreen
- * 5a. Show in Dynamic Island (iOS Live Activity)
- * 6. Share via email
- * 7. Share with NameDrop
- * 8. Share via linkedin
- * 9. Share via whatsapp
- * 10. Share via insta
- * 11. Share via X
- * 12. Save QR to Photos
- * 13. Customize QR code
+ * 6. Save QR to Photos
+ * 7. Customize QR code
+ * 8. Share via email
+ * 9. Share with NameDrop
+ * 10. Share via linkedin
+ * 11. Share via whatsapp
+ * 12. Share via insta
+ * 13. Share via X
  */
 export const SHARE_PAGE_ACTIONS: ShareActionItemConfig[] = [
   {
@@ -72,6 +71,18 @@ export const SHARE_PAGE_ACTIONS: ShareActionItemConfig[] = [
     platforms: ['ios'],
   },
   {
+    id: 'save_qr_photos',
+    label: 'Save QR to Photos',
+    icon: Download,
+    iconColor: '#38bdf8',
+  },
+  {
+    id: 'customize_qr',
+    label: 'Customize QR code',
+    icon: Palette,
+    iconColor: '#818cf8',
+  },
+  {
     id: 'share_email',
     label: 'Share via email',
     icon: Mail,
@@ -106,18 +117,6 @@ export const SHARE_PAGE_ACTIONS: ShareActionItemConfig[] = [
     label: 'Share via X',
     icon: AtSign,
     iconColor: '#38bdf8',
-  },
-  {
-    id: 'save_qr_photos',
-    label: 'Save QR to Photos',
-    icon: Download,
-    iconColor: '#38bdf8',
-  },
-  {
-    id: 'customize_qr',
-    label: 'Customize QR code',
-    icon: Palette,
-    iconColor: '#818cf8',
   },
 ];
 

@@ -75,12 +75,12 @@ const GUIDE_CONTENT: Record<Exclude<ShareGuideModalKind, null>, GuideCopy> = {
   },
   liveactivity: {
     title: 'Show in Dynamic Island',
-    subtitle: 'Pin a full-size, scannable QR to your Lock Screen and Dynamic Island as a Live Activity.',
+    subtitle: 'Pin a scannable QR to your Lock Screen and Dynamic Island as a Live Activity.',
     icon: PanelTop,
     steps: [
       'Tap "Start Live Activity" below to pin this card’s QR.',
-      'Lock your phone: the QR banner appears on the Lock Screen, ready to scan.',
-      'Long-press the Dynamic Island to expand the QR. iOS ends it after about 8 hours.',
+      'Lock your phone to see the QR banner on the Lock Screen.',
+      'Long-press the Dynamic Island to expand the activity.',
     ],
     primaryLabel: 'Start Live Activity',
   },
@@ -127,12 +127,8 @@ export function ShareFeatureGuideModal({
   if (!kind) return null;
   const content = GUIDE_CONTENT[kind];
   const Icon = content.icon;
-  const primaryLabel = kind === 'liveactivity' && liveActivityActive
-    ? 'Update Live Activity'
-    : content.primaryLabel;
-  const secondaryLabel = kind === 'liveactivity' && liveActivityActive
-    ? 'Stop Live Activity'
-    : content.secondaryLabel;
+  const primaryLabel = kind === 'liveactivity' && liveActivityActive ? 'Update Live Activity' : content.primaryLabel;
+  const secondaryLabel = kind === 'liveactivity' && liveActivityActive ? 'Stop Live Activity' : content.secondaryLabel;
 
   const handlePrimaryAction = () => {
     onClose();
@@ -171,9 +167,7 @@ export function ShareFeatureGuideModal({
       onSaveQrImage('Save QR for Lockscreen');
       return;
     }
-    if (kind === 'liveactivity') {
-      void onStopLiveActivity();
-    }
+    if (kind === 'liveactivity') void onStopLiveActivity();
   };
 
   if (kind === 'homescreen') {

@@ -1,13 +1,9 @@
-import React from 'react';
-import { Platform, View } from 'react-native';
+import React, { useMemo } from 'react';
+import { View } from 'react-native';
 
-import { SHARE_PAGE_ACTIONS } from '../Config/shareActionsConfig';
 import type { ShareActionId } from '../types/share.types';
+import { orderedVisibleShareActions } from '../Utils/shareActionsOrder';
 import { ShareActionRow } from './ShareActionRow';
-
-const VISIBLE_ACTIONS = SHARE_PAGE_ACTIONS.filter(
-  (item) => !item.platforms || item.platforms.includes(Platform.OS as 'ios' | 'android' | 'web'),
-);
 
 export interface ShareActionsListProps {
   copiedLink?: boolean;
@@ -18,14 +14,16 @@ export interface ShareActionsListProps {
 
 export function ShareActionsList({
   copiedLink = false,
-  activeQrPresetLabel,
   liveActivityActive = false,
+  activeQrPresetLabel,
   onActionPress,
 }: ShareActionsListProps) {
+  const actions = useMemo(() => orderedVisibleShareActions(), []);
+
   return (
     <View className="w-full overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-100/90 dark:border-slate-800/90 dark:bg-dark-card">
-      {VISIBLE_ACTIONS.map((item, index) => {
-        const isLast = index === VISIBLE_ACTIONS.length - 1;
+      {actions.map((item, index) => {
+        const isLast = index === actions.length - 1;
         let badgeText: string | undefined;
         if (item.id === 'copy_link' && copiedLink) {
           badgeText = 'Copied!';

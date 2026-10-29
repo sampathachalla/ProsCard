@@ -49,14 +49,14 @@ describe('share-page shipping contract', () => {
       'add_qr_lockscreen',
       'add_qr_homescreen',
       'show_live_activity',
+      'save_qr_photos',
+      'customize_qr',
       'share_email',
       'share_namedrop',
       'share_linkedin',
       'share_whatsapp',
       'share_instagram',
       'share_x',
-      'save_qr_photos',
-      'customize_qr',
     ]);
     expect(new Set(SHARE_ACTION_IDS).size).toBe(14);
   });

@@ -47,7 +47,6 @@ export function useSharePageController() {
   const [copiedLink, setCopiedLink] = useState(false);
   const [qrCustomization, setQrCustomization] = useState<QrCustomization>(DEFAULT_QR_CUSTOMIZATION);
   const [liveActivityActive, setLiveActivityActive] = useState(false);
-
   const qrSvgRef = useRef<QrSvgRef | null>(null);
   const router = useRouter();
   const params = useLocalSearchParams<{ cardId?: string; guide?: string }>();
@@ -69,8 +68,6 @@ export function useSharePageController() {
     return () => cancelAnimationFrame(frame);
   }, [cards, params.cardId, params.guide, router]);
 
-  // The system can end a Live Activity on its own (after 8 hours, or from the Lock Screen),
-  // so re-check whenever the app comes back to the foreground.
   useEffect(() => {
     const refresh = () => {
       isCardLiveActivityRunning().then(setLiveActivityActive).catch(() => {});
@@ -145,7 +142,7 @@ export function useSharePageController() {
 
   const cardLabel = useMemo(() => {
     if (!card) return 'No card';
-    return card.category?.trim() || card.name || 'My card';
+    return card.sectionOverrides?.cardTag?.trim() || card.category?.trim() || card.name || 'My card';
   }, [card]);
 
   const setQrRef = useCallback((ref: QrSvgRef | null) => {
@@ -260,10 +257,7 @@ export function useSharePageController() {
         shareUrl,
       });
       if (result === 'requires-native-build') {
-        Alert.alert(
-          'Native build required',
-          'Live Activities are not available in Expo Go. Install the next VC Pros TestFlight build to use this feature.',
-        );
+        Alert.alert('Native build required', 'Install the VC Pros TestFlight build to use Live Activities.');
         return;
       }
       if (result === 'unsupported') {
@@ -274,14 +268,12 @@ export function useSharePageController() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       Alert.alert(
         result === 'updated' ? 'Live Activity updated' : 'Live Activity started',
-        'Your QR is now on the Lock Screen and in the Dynamic Island. iOS ends it automatically after about 8 hours.',
+        'Your QR is now on the Lock Screen and in the Dynamic Island.',
       );
     } catch (error) {
       Alert.alert(
         'Could not start Live Activity',
-        error instanceof Error
-          ? `${error.message}\n\nCheck Settings → VC Pros → Live Activities is turned on.`
-          : 'Try again in a moment.',
+        error instanceof Error ? `${error.message}\n\nCheck Settings → VC Pros → Live Activities is turned on.` : 'Try again in a moment.',
       );
     }
   }, [card, profile.fullName, shareError, shareUrl]);
@@ -291,10 +283,7 @@ export function useSharePageController() {
       await stopCardLiveActivity();
       setLiveActivityActive(false);
     } catch (error) {
-      Alert.alert(
-        'Could not stop Live Activity',
-        error instanceof Error ? error.message : 'Try again in a moment.',
-      );
+      Alert.alert('Could not stop Live Activity', error instanceof Error ? error.message : 'Try again in a moment.');
     }
   }, []);
 

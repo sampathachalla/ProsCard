@@ -57,41 +57,43 @@ export default function ShareTabPage() {
   const headerSection = (
     <View>
       <View className="flex-row items-center justify-between">
-        <View>
-          <Text
-            variant="none"
-            className="text-[28px] font-bold tracking-tight text-textPrimary dark:text-dark-textPrimary"
-          >
-            Share
-          </Text>
-          <Text
-            variant="none"
-            className="mt-0.5 text-[14px] font-normal text-slate-500 dark:text-slate-400"
-          >
-            Scan your QR code or share your card anywhere
-          </Text>
-        </View>
+        <Text
+          variant="none"
+          className="text-[28px] font-bold tracking-tight text-textPrimary dark:text-dark-textPrimary"
+        >
+          Share
+        </Text>
 
         {cards.length > 1 ? (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`Active card ${cardLabel}. Tap to switch card.`}
             onPress={() => setPickerOpen((open) => !open)}
-            className="h-10 flex-row items-center gap-1.5 rounded-xl border border-slate-200/80 bg-slate-100 px-3.5 active:opacity-85 dark:border-slate-800 dark:bg-dark-card"
+            className="h-9 flex-row items-center gap-1.5 rounded-full border border-slate-200/80 bg-slate-100 px-3.5 active:opacity-85 dark:border-slate-800 dark:bg-dark-card"
           >
             <Text
               variant="none"
               numberOfLines={1}
-              className="max-w-[120px] text-[14px] font-semibold text-textPrimary dark:text-dark-textPrimary"
+              className="max-w-[140px] text-[13px] font-semibold text-textPrimary dark:text-dark-textPrimary"
             >
               {cardLabel}
             </Text>
             <ChevronDown
-              size={16}
+              size={15}
               color={isDark ? '#94a3b8' : '#64748b'}
               strokeWidth={2.2}
             />
           </Pressable>
+        ) : cardLabel && cardLabel !== 'No card' ? (
+          <View className="h-8 flex-row items-center rounded-full border border-slate-200/80 bg-slate-100 px-3.5 dark:border-slate-800 dark:bg-dark-card">
+            <Text
+              variant="none"
+              numberOfLines={1}
+              className="max-w-[140px] text-[13px] font-semibold text-textPrimary dark:text-dark-textPrimary"
+            >
+              {cardLabel}
+            </Text>
+          </View>
         ) : null}
       </View>
 
@@ -119,7 +121,7 @@ export default function ShareTabPage() {
                       : 'font-normal text-textPrimary dark:text-dark-textPrimary'
                   }`}
                 >
-                  {item.category?.trim() || item.name}
+                  {item.sectionOverrides?.cardTag?.trim() || item.category?.trim() || item.name}
                 </Text>
               </Pressable>
             );
