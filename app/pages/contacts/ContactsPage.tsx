@@ -23,6 +23,7 @@ import { AddContactBottomSheet } from './Components/AddContactBottomSheet';
 import { ContactExportSheet } from './Components/ContactExportSheet';
 import { ContactFilterBar } from './Components/ContactFilterBar';
 import { ContactRow } from './Components/ContactRow';
+import { ExportClosePromptModal } from './Components/ExportClosePromptModal';
 import { useContacts } from './Hooks/useContacts';
 import { deleteContact } from './Services/contactsService';
 import { exportContactList } from './Services/contactExportService';
@@ -64,6 +65,7 @@ export default function ContactsScreen() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [exportOpen, setExportOpen] = useState(false);
+  const [closePromptOpen, setClosePromptOpen] = useState(false);
   const [exportScope, setExportScope] = useState<ContactExportScope>('filtered');
   const [exporting, setExporting] = useState(false);
 
@@ -91,8 +93,8 @@ export default function ContactsScreen() {
         id: 'selected' as const,
         label: 'Selected only',
         count: selectedIds.size,
-        disabled: selectedIds.size === 0,
-        hint: selectedIds.size === 0 ? 'Tap Select, then choose contacts in the list' : undefined,
+        disabled: false,
+        hint: selectedIds.size === 0 ? 'Tap to choose contacts from the list' : undefined,
       },
     ],
     [contacts.length, filterSummary, filtered.length, filtersActive, selectedIds.size],
@@ -146,7 +148,40 @@ export default function ContactsScreen() {
     setExportOpen(true);
   };
 
+  const handleCloseExport = () => {
+    setExportOpen(false);
+  };
+
+  const handlePromptEditSelection = () => {
+    setClosePromptOpen(false);
+    setExportOpen(false);
+  };
+
+  const handlePromptCancelExport = () => {
+    setClosePromptOpen(false);
+    setExportOpen(false);
+    exitSelectionMode();
+  };
+
+  const handlePromptKeepExporting = () => {
+    setClosePromptOpen(false);
+  };
+
+  const handleScopeChange = (scope: ContactExportScope) => {
+    if (scope === 'selected' && selectedIds.size === 0) {
+      setExportOpen(false);
+      enterSelectionMode();
+      return;
+    }
+    setExportScope(scope);
+  };
+
   const runExport = async (format: ContactExportFormat) => {
+    if (exportScope === 'selected' && selectedIds.size === 0) {
+      setExportOpen(false);
+      enterSelectionMode();
+      return;
+    }
     const list = resolveExportContacts(exportScope, { all: contacts, filtered, selectedIds });
     setExporting(true);
     try {
@@ -180,16 +215,38 @@ export default function ContactsScreen() {
         right={
           <View className="flex-row items-center gap-1">
             {selectionMode ? (
-              <Pressable onPress={exitSelectionMode} hitSlop={8} className="mr-1 px-2 py-1">
-                <Text className="text-sm font-semibold text-primary dark:text-dark-primary">Cancel</Text>
-              </Pressable>
-            ) : (
               <>
-                <IconButton icon={Share2} accessibilityLabel="Export contacts" variant="ghost" onPress={openExport} />
-                <Pressable onPress={enterSelectionMode} hitSlop={8} className="mr-1 min-h-[44px] justify-center px-1">
-                  <Text className="text-sm font-semibold text-primary dark:text-dark-primary">Select</Text>
+                <Pressable
+                  onPress={() => {
+                    if (selectedIds.size === filtered.length) {
+                      setSelectedIds(new Set());
+                    } else {
+                      setSelectedIds(new Set(filtered.map((c) => c.id)));
+                    }
+                  }}
+                  hitSlop={8}
+                  className="mr-2 px-1"
+                >
+                  <Text className="text-sm font-semibold text-primary dark:text-dark-primary">
+                    {selectedIds.size === filtered.length && filtered.length > 0 ? 'Deselect all' : 'Select all'}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    if (selectedIds.size > 0) {
+                      setClosePromptOpen(true);
+                    } else {
+                      exitSelectionMode();
+                    }
+                  }}
+                  hitSlop={8}
+                  className="mr-1 px-1"
+                >
+                  <Text className="text-sm font-semibold text-slate-500 dark:text-slate-400">Cancel</Text>
                 </Pressable>
               </>
+            ) : (
+              <IconButton icon={Share2} accessibilityLabel="Export contacts" variant="ghost" onPress={openExport} />
             )}
             <IconButton icon={Plus} accessibilityLabel="Add contact" variant="primary" onPress={addContact} />
           </View>
@@ -249,7 +306,9 @@ export default function ContactsScreen() {
               selectedIds.size === 0 ? 'opacity-40' : ''
             }`}
           >
-            <Text className="font-bold text-white dark:text-slate-950">Export selected</Text>
+            <Text className="font-bold text-white dark:text-slate-950">
+              {selectedIds.size > 0 ? `Export selected (${selectedIds.size})` : 'Select contacts to export'}
+            </Text>
           </Pressable>
         </View>
       ) : null}
@@ -287,9 +346,20 @@ export default function ContactsScreen() {
         exporting={exporting}
         scopes={exportScopes}
         selectedScope={exportScope}
-        onScopeChange={setExportScope}
+        selectedCount={selectedIds.size}
+        onScopeChange={handleScopeChange}
         onExport={(format) => { void runExport(format); }}
-        onClose={() => setExportOpen(false)}
+        onClose={handleCloseExport}
+        onEditSelection={handlePromptEditSelection}
+        onCancelExport={handlePromptCancelExport}
+      />
+
+      <ExportClosePromptModal
+        visible={closePromptOpen}
+        selectedCount={selectedIds.size}
+        onEditSelection={handlePromptEditSelection}
+        onCancelExport={handlePromptCancelExport}
+        onKeepExporting={handlePromptKeepExporting}
       />
     </KeyboardAvoidingView>
   );

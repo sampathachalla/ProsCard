@@ -8,8 +8,8 @@ const profile: Profile = {
   prefix: '', firstName: 'Account', middleName: '', lastName: 'Person', suffix: '',
   preferredName: 'Account Person', accreditations: 'PMP', fullName: 'Account Person',
   title: 'Account Title', department: '', organization: 'Account Company',
-  companyLogoUrl: '', coverPhotoUrl: '', email: 'account@example.com', phone: '5551234567',
-  photoUrl: '', website: '', social: { linkedin: '', x: '', instagram: '', facebook: '', whatsapp: '', youtube: '', tiktok: '' },
+  companyLogoUrl: 'https://example.com/account-logo.png', coverPhotoUrl: 'https://example.com/account-cover.png', email: 'account@example.com', phone: '5551234567',
+  photoUrl: 'https://example.com/account-photo.png', website: '', social: { linkedin: '', x: '', instagram: '', facebook: '', whatsapp: '', youtube: '', tiktok: '' },
   tagline: 'Account tagline', businessAddress: '', shortBio: 'Account biography',
 };
 
@@ -32,6 +32,12 @@ function professionalValue(input: BusinessCard, id: string): string {
     ?.fields.find((field) => field.id === id)?.value ?? '';
 }
 
+function identityValue(input: BusinessCard, id: string): string {
+  return createCardDetailTemplate(input, profile)
+    .find((section) => section.id === 'identity')
+    ?.fields.find((field) => field.id === id)?.value ?? '';
+}
+
 describe('account and card field precedence', () => {
   it('keeps the persisted contrast background beside the logo', () => {
     const identity = createCardDetailTemplate(card({
@@ -47,23 +53,44 @@ describe('account and card field precedence', () => {
     expect(professionalValue(input, 'company')).toBe('Account Company');
     expect(professionalValue(input, 'tagline')).toBe('Account tagline');
     expect(professionalValue(input, 'bio')).toBe('Account biography');
+    expect(identityValue(input, 'coverPhoto')).toBe('https://example.com/account-cover.png');
+    expect(identityValue(input, 'profilePhoto')).toBe('https://example.com/account-photo.png');
+    expect(identityValue(input, 'logo')).toBe('https://example.com/account-logo.png');
 
     const draft = buildAddCardDraftFromCard(input, profile);
     expect(draft.title).toBe('Account Title');
     expect(draft.company).toBe('Account Company');
     expect(draft.sectionOverrides.tagline).toBe('Account tagline');
     expect(draft.sectionOverrides.bio).toBe('Account biography');
+    expect(draft.sectionOverrides.coverPhoto).toBe('https://example.com/account-cover.png');
+    expect(draft.sectionOverrides.profilePhoto).toBe('https://example.com/account-photo.png');
+    expect(draft.sectionOverrides.logo).toBe('https://example.com/account-logo.png');
   });
 
   it('keeps card-level details ahead of account defaults', () => {
     const input = card({
       title: 'Card Title',
       company: 'Card Company',
-      sectionOverrides: { cardTag: 'Personal', tagline: 'Card tagline', bio: 'Card biography' },
+      sectionOverrides: {
+        cardTag: 'Personal',
+        tagline: 'Card tagline',
+        bio: 'Card biography',
+        coverPhoto: 'https://example.com/card-cover.png',
+        profilePhoto: 'https://example.com/card-photo.png',
+        logo: 'https://example.com/card-logo.png',
+      },
     });
     expect(professionalValue(input, 'title')).toBe('Card Title');
     expect(professionalValue(input, 'company')).toBe('Card Company');
     expect(professionalValue(input, 'tagline')).toBe('Card tagline');
     expect(professionalValue(input, 'bio')).toBe('Card biography');
+    expect(identityValue(input, 'coverPhoto')).toBe('https://example.com/card-cover.png');
+    expect(identityValue(input, 'profilePhoto')).toBe('https://example.com/card-photo.png');
+    expect(identityValue(input, 'logo')).toBe('https://example.com/card-logo.png');
+
+    const draft = buildAddCardDraftFromCard(input, profile);
+    expect(draft.sectionOverrides.coverPhoto).toBe('https://example.com/card-cover.png');
+    expect(draft.sectionOverrides.profilePhoto).toBe('https://example.com/card-photo.png');
+    expect(draft.sectionOverrides.logo).toBe('https://example.com/card-logo.png');
   });
 });

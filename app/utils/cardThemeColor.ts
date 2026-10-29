@@ -140,7 +140,7 @@ export function mixHexColors(colorA: string, colorB: string, weightB: number): s
   });
 }
 
-/** Outer border for home preview / public share cards on varied app backgrounds. */
+/** Outer border for full card / public share on varied backgrounds. */
 export function resolveCardChromeBorder(surfaceColor: string, accentColor?: string): string {
   if (!isColorLight(surfaceColor)) {
     return 'rgba(148, 163, 184, 0.35)';
@@ -150,6 +150,65 @@ export function resolveCardChromeBorder(surfaceColor: string, accentColor?: stri
     return hexToRgbaString(accent, 0.28);
   }
   return 'rgba(15, 23, 42, 0.18)';
+}
+
+/** Stronger outer ring for the home carousel preview (sits on app chrome, needs clear edges). */
+export function resolveHomePreviewChromeBorder(surfaceColor: string, accentColor?: string): string {
+  if (!isColorLight(surfaceColor)) {
+    return 'rgba(203, 213, 225, 0.52)';
+  }
+  const accent = accentColor ? normalizeHexColor(accentColor) : null;
+  if (accent && !isColorLight(accent)) {
+    return hexToRgbaString(accent, 0.42);
+  }
+  return 'rgba(15, 23, 42, 0.34)';
+}
+
+export const HOME_PREVIEW_OUTER_BORDER_WIDTH = 2;
+
+export function resolveHomePreviewOuterChromeStyle({
+  chromeBorder,
+  height,
+  surfaceColor,
+  width,
+}: {
+  chromeBorder: string;
+  height: number;
+  surfaceColor: string;
+  width: number;
+}): {
+  innerClipRadius: number;
+  outer: {
+    backgroundColor: string;
+    borderBottomLeftRadius: number;
+    borderBottomRightRadius: number;
+    borderColor: string;
+    borderTopLeftRadius: number;
+    borderTopRightRadius: number;
+    borderRadius: number;
+    borderWidth: number;
+    height: number;
+    width: number;
+  };
+} {
+  const radius = HOME_PREVIEW_CARD_BORDER_RADIUS;
+  const borderWidth = HOME_PREVIEW_OUTER_BORDER_WIDTH;
+  const innerClipRadius = Math.max(0, radius - borderWidth);
+  return {
+    innerClipRadius,
+    outer: {
+      width,
+      height,
+      backgroundColor: surfaceColor,
+      borderBottomLeftRadius: radius,
+      borderBottomRightRadius: radius,
+      borderTopLeftRadius: radius,
+      borderTopRightRadius: radius,
+      borderRadius: radius,
+      borderWidth,
+      borderColor: chromeBorder,
+    },
+  };
 }
 
 /** Divider between cover photo and card body on compact preview faces. */

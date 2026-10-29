@@ -25,11 +25,6 @@ import { navigateToSharePreview } from '@/pages/share/Utils/navigateToSharePrevi
 import { resolveCardTagLabel } from '@/pages/cards/Utils/resolveCardTagLabel';
 import { queryClient, queryKeys } from '@/services/api/queryClient';
 import { useProfileSnapshot } from '@/pages/profile/Hooks/useProfileSnapshot';
-import {
-  FLOATING_TOOL_DEFINITIONS,
-  FloatingToolsButton,
-  type FloatingToolAction,
-} from '@/common/toolsButton';
 
 export const generateMetadata: GenerateMetadataFunction = async (_request, params) => {
   const cardId = Array.isArray(params.cardId) ? params.cardId[0] : params.cardId;
@@ -141,38 +136,6 @@ export default function CardDetailPage() {
     }
   };
 
-  const toolActions: FloatingToolAction[] = FLOATING_TOOL_DEFINITIONS.map((tool) => ({
-    ...tool,
-    onSelect: async () => {
-      const url = tool.id === 'copy' || tool.id === 'open' ? await fetchShareUrl() : '';
-      if ((tool.id === 'copy' || tool.id === 'open') && !url) return;
-
-      try {
-        switch (tool.id) {
-          case 'copy':
-            if (Platform.OS === 'web' && navigator.clipboard) {
-              await navigator.clipboard.writeText(url);
-              Alert.alert('Link copied', 'The card URL was copied to your clipboard.');
-            } else {
-              await Share.share({ message: url, title: `${card.name} | VC Pros`, url });
-            }
-            break;
-          case 'wallet':
-            await wallet.addToWallet(card.id, card.name);
-            break;
-          case 'edit':
-            navigateToCardEditorAfterSheet(router, { cardId: card.id });
-            break;
-          case 'open':
-            await Linking.openURL(url);
-            break;
-        }
-      } catch (reason) {
-        Alert.alert('Something went wrong', reason instanceof Error ? reason.message : 'Please try again.');
-      }
-    },
-  }));
-
   return (
     <View className="flex-1 bg-background dark:bg-dark-background">
       <CardTitleBadge title={cardTitle} topInset={insets.top} onBackPress={goBackToCaller} />
@@ -185,12 +148,13 @@ export default function CardDetailPage() {
         <ScrollView showsVerticalScrollIndicator={false}>
           <CardDetailView card={card} fullBleed profile={profile} />
         </ScrollView>
-        <FloatingToolsButton actions={toolActions} />
         <WalletProcessingModal label={wallet.label} visible={wallet.adding} />
         <QRCodeModal
           visible={showQr}
           cardName={card.name}
           centerLogoUrl={card.sectionOverrides.logo?.trim() || profile.companyLogoUrl?.trim() || undefined}
+          centerLogoBackground={card.sectionOverrides.logoBackdrop?.trim() || card.appliedTheme?.surfaceColor}
+          centerLogoBorderColor={card.appliedTheme?.accentColor}
           url={share.url}
           error={share.error instanceof Error ? share.error.message : undefined}
           onClose={() => setShowQr(false)}

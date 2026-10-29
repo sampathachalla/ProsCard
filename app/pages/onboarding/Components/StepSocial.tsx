@@ -28,7 +28,7 @@ export function StepSocial({ draft, updateDraft, errors }: StepSocialProps) {
         <StepInfoBanner
           icon={Share2}
           title="Photo & links"
-          description="Optional. Skip anytime — you can add a photo and social profiles from Profile after your card is created."
+          description="Optional. Skip anytime — you can add a photo and social links from Account details after your card is created."
         />
 
         <ImageUploadField

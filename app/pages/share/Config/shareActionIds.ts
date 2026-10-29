@@ -1,10 +1,11 @@
-/** Stable public contract for the 13 actions rendered by the Share page. */
+/** Stable public contract for the 14 actions rendered by the Share page. */
 export const SHARE_ACTION_IDS = [
   'share_card',
   'copy_link',
   'add_to_wallet',
   'add_qr_lockscreen',
   'add_qr_homescreen',
+  'show_live_activity',
   'share_email',
   'share_namedrop',
   'share_linkedin',

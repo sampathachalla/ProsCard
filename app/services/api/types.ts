@@ -28,6 +28,15 @@ export type OnboardingState<TDraft> = {
 };
 
 export type MediaKind = 'profilePhoto' | 'coverPhoto' | 'companyLogo' | 'contactCard';
+export type ProfileMediaKind = Exclude<MediaKind, 'contactCard'>;
+export type UserMediaLibraryItem = {
+  mediaId: string;
+  kind: ProfileMediaKind;
+  contentUrl: string;
+  originalName: string;
+  createdAt: string;
+  inUse: boolean;
+};
 export type MediaScope = 'profile' | 'card' | 'contact';
 export type MediaStatus = 'pending' | 'ready' | 'cleanup_failed';
 

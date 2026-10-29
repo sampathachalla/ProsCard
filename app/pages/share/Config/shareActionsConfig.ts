@@ -8,20 +8,22 @@ import {
   Lock,
   Mail,
   MessageCircle,
+  PanelTop,
   Palette,
   Share2,
   Smartphone,
   Wallet,
 } from 'lucide-react-native';
-import type { QrCustomizationPreset, ShareActionItemConfig } from '../types/share.types';
+import type { QrCustomization, QrCustomizationPreset, ShareActionItemConfig } from '../types/share.types';
 
 /**
- * Exact 13-row sequence from the Share Page wireframe:
+ * Row sequence from the Share Page wireframe, plus the iOS-only Live Activity row:
  * 1. Share card
  * 2. Copy link
  * 3. Add card to wallet
  * 4. Add QR to lockscreen
  * 5. Add QR to homescreen
+ * 5a. Show in Dynamic Island (iOS Live Activity)
  * 6. Share via email
  * 7. Share with NameDrop
  * 8. Share via linkedin
@@ -61,6 +63,13 @@ export const SHARE_PAGE_ACTIONS: ShareActionItemConfig[] = [
     label: 'Add QR to homescreen',
     icon: LayoutGrid,
     iconColor: '#38bdf8',
+  },
+  {
+    id: 'show_live_activity',
+    label: 'Show in Dynamic Island',
+    icon: PanelTop,
+    iconColor: '#38bdf8',
+    platforms: ['ios'],
   },
   {
     id: 'share_email',
@@ -151,3 +160,15 @@ export const QR_CUSTOMIZATION_PRESETS: QrCustomizationPreset[] = [
 ];
 
 export const QR_PRESET_STORAGE_KEY = 'vcpros.share.qrPresetId.v2';
+export const QR_CUSTOMIZATION_STORAGE_KEY = 'vcpros.share.qrCustomizationByCard.v1';
+
+export const DEFAULT_QR_CUSTOMIZATION: QrCustomization = {
+  presetId: QR_CUSTOMIZATION_PRESETS[0].id,
+  patternStyle: 'dots',
+  cornerStyle: 'rounded',
+  logoSize: 'medium',
+  frameStyle: 'rounded',
+  captionVisible: true,
+  caption: 'Scan to share card',
+  exportFormat: 'png',
+};

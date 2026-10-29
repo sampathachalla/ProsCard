@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, useWindowDimensions } from 'react-native';
+import { Platform, View, useWindowDimensions } from 'react-native';
 import { Award, Building2 } from 'lucide-react-native';
 import { Text } from '@/common/ui/Text';
 import type { CardDetailSection } from '../cardDetailTemplate';
@@ -8,6 +8,8 @@ import { getCardFontFamily, getCardLetterSpacing } from '../cardTheme';
 import {
   fitAccreditationsToViewport,
   fitTaglineToViewport,
+  getEffectiveCardContentWidth,
+  getProfessionalTaglineFontSize,
   getResponsiveSingleLineFontSize,
 } from '@/utils/cardTextLayout';
 import { resolveLayoutColorSlots } from '@/utils/cardThemeColor';
@@ -175,22 +177,26 @@ function ProfessionalTagline({
   numberOfLines?: number;
 }) {
   if (!tagline) return null;
-  const textSizeClass = emphasized
-    ? compact
-      ? 'text-lg leading-6'
-      : 'text-xl leading-7'
-    : compact
-      ? 'text-base leading-6'
-      : 'text-lg leading-7';
+  const textSizeClass =
+    fontSize != null
+      ? ''
+      : emphasized
+        ? compact
+          ? 'text-lg leading-6'
+          : 'text-xl leading-7'
+        : compact
+          ? 'text-base leading-6'
+          : 'text-lg leading-7';
   const lineLimit = numberOfLines ?? (emphasized && compact ? 3 : compact ? 4 : 5);
+  const webTagline = Platform.OS === 'web';
 
   return (
-    <View className={centered ? 'w-full items-center' : 'w-full'}>
+    <View className={centered ? 'w-full items-center' : 'w-full'} style={{ minWidth: 0 }}>
       <Text
         variant="none"
-        adjustsFontSizeToFit
-        minimumFontScale={0.8}
-        numberOfLines={lineLimit}
+        adjustsFontSizeToFit={webTagline ? false : true}
+        minimumFontScale={webTagline ? undefined : 0.8}
+        numberOfLines={webTagline ? undefined : lineLimit}
         className={`font-bold italic ${textSizeClass} ${centered ? 'text-center' : ''}`}
         style={{
           color: slots.textPrimary,
@@ -217,6 +223,7 @@ function ProfessionalTagline({
 function ProfessionalTaglineFooter({
   centered = false,
   compact,
+  contentWidth,
   fillGap = false,
   fullCardView,
   horizontalPadding,
@@ -226,6 +233,7 @@ function ProfessionalTaglineFooter({
 }: {
   centered?: boolean;
   compact: boolean;
+  contentWidth: number;
   fillGap?: boolean;
   fullCardView: boolean;
   horizontalPadding: number;
@@ -235,11 +243,17 @@ function ProfessionalTaglineFooter({
 }) {
   if (!tagline) return null;
   const accent = shared.slots.accent;
-  const fontSize = fillGap ? (compact ? 22 : 26) : compact ? 17 : 18;
+  const taglineTextWidth = Math.max(
+    160,
+    contentWidth - horizontalPadding * 2 - (mark === 'quote' ? 36 : 28),
+  );
+  const responsiveFontSize = fillGap
+    ? (compact ? 22 : 26)
+    : getProfessionalTaglineFontSize(taglineTextWidth, tagline.length, compact);
   const quoteSize = fillGap ? (compact ? 40 : 48) : compact ? 28 : 34;
   const chevronSize = fillGap ? (compact ? 36 : 44) : compact ? 26 : 32;
   const starSize = compact ? 22 : 26;
-  const diamondSize = compact ? 16 : 18;
+  const diamondSize = compact ? 14 : 16;
   const symbol =
     mark === 'quote' ? (
       <Text
@@ -278,18 +292,18 @@ function ProfessionalTaglineFooter({
         marginTop: fillGap ? 0 : 8,
         paddingBottom: fillGap ? 10 : 4,
         paddingLeft: horizontalPadding,
-        paddingRight: fullCardView ? 36 : horizontalPadding,
+        paddingRight: horizontalPadding,
         paddingTop: fillGap ? 8 : 0,
       }}
     >
-      <View style={{ marginRight: 8 }}>{symbol}</View>
-      <View style={{ flex: centered ? undefined : 1, maxWidth: centered ? '78%' : undefined }}>
+      <View style={{ marginRight: 8, flexShrink: 0 }}>{symbol}</View>
+      <View style={{ flex: 1, minWidth: 0, maxWidth: centered ? '94%' : undefined }}>
         <ProfessionalTagline
           {...shared}
           centered={centered}
-          fontSize={fontSize}
-          lineHeight={fillGap ? (compact ? 28 : 32) : compact ? 22 : 24}
-          numberOfLines={fillGap ? 2 : 1}
+          fontSize={responsiveFontSize}
+          lineHeight={fillGap ? (compact ? 28 : 32) : compact ? 20 : 22}
+          numberOfLines={Platform.OS === 'web' ? undefined : 2}
           slots={{ ...shared.slots, textPrimary: shared.slots.textSecondary }}
           tagline={tagline}
         />
@@ -311,6 +325,7 @@ export function ProfessionalSectionRenderer({
   interactiveActions,
 }: Props) {
   const { height: viewportHeight, width: viewportWidth } = useWindowDimensions();
+  const contentWidth = getEffectiveCardContentWidth(viewportWidth);
   const [companyFocusMeasuredHeight, setCompanyFocusMeasuredHeight] = useState(0);
   const spacing = getCardSectionSpacing(viewportWidth);
   const boxed = compact && !seamless;
@@ -466,7 +481,7 @@ export function ProfessionalSectionRenderer({
   if (section.templateId === 'classic') {
     return (
       <View
-        className={`justify-start overflow-hidden ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
+        className={`justify-start ${contentDriven ? '' : 'overflow-hidden'} ${boxed ? 'mb-5 rounded-[28px] border' : ''}`}
         style={[
           {
             ...sectionBoundsStyle,
@@ -542,6 +557,7 @@ export function ProfessionalSectionRenderer({
         {showTagline ? (
           <ProfessionalTaglineFooter
             compact={compact}
+            contentWidth={contentWidth}
             fullCardView={fullCardView}
             horizontalPadding={spacing.horizontal}
             mark="quote"
@@ -676,6 +692,7 @@ export function ProfessionalSectionRenderer({
           >
             <ProfessionalTaglineFooter
               compact={compact}
+              contentWidth={contentWidth}
               fullCardView={fullCardView}
               horizontalPadding={spacing.horizontal}
               mark="quote"
@@ -814,6 +831,7 @@ export function ProfessionalSectionRenderer({
           <ProfessionalTaglineFooter
             centered
             compact={compact}
+            contentWidth={contentWidth}
             fullCardView={fullCardView}
             horizontalPadding={spacing.horizontal}
             mark="diamond"
@@ -967,6 +985,7 @@ export function ProfessionalSectionRenderer({
         {showTagline ? (
           <ProfessionalTaglineFooter
             compact={compact}
+            contentWidth={contentWidth}
             fullCardView={fullCardView}
             horizontalPadding={spacing.horizontal}
             mark="chevron"
@@ -1066,6 +1085,7 @@ export function ProfessionalSectionRenderer({
         {showTagline ? (
           <ProfessionalTaglineFooter
             compact={compact}
+            contentWidth={contentWidth}
             fullCardView={fullCardView}
             horizontalPadding={spacing.horizontal}
             mark="chevron"
@@ -1187,6 +1207,7 @@ export function ProfessionalSectionRenderer({
         {showTagline ? (
           <ProfessionalTaglineFooter
             compact={compact}
+            contentWidth={contentWidth}
             fullCardView={fullCardView}
             horizontalPadding={spacing.horizontal}
             mark="star"
@@ -1278,6 +1299,7 @@ export function ProfessionalSectionRenderer({
         {showTagline ? (
           <ProfessionalTaglineFooter
             compact={compact}
+            contentWidth={contentWidth}
             fullCardView={fullCardView}
             horizontalPadding={spacing.horizontal}
             mark="diamond"
@@ -1382,6 +1404,7 @@ export function ProfessionalSectionRenderer({
         {showTagline ? (
           <ProfessionalTaglineFooter
             compact={compact}
+            contentWidth={contentWidth}
             fullCardView={fullCardView}
             horizontalPadding={spacing.horizontal}
             mark="star"
@@ -1537,6 +1560,7 @@ export function ProfessionalSectionRenderer({
       {showTagline || showEmpty ? (
         <ProfessionalTaglineFooter
           compact={compact}
+          contentWidth={contentWidth}
           fullCardView={fullCardView}
           horizontalPadding={spacing.horizontal}
           mark="diamond"

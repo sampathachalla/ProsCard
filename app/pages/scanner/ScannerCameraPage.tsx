@@ -24,6 +24,7 @@ import {
 import { PermissionGate } from './Components/PermissionGate';
 import { ScannerModeBar, type ScannerKind } from './Components/ScannerModeBar';
 import { ScannerOverlay } from './Components/ScannerOverlay';
+import { LiveCaptureInstructions } from './Components/LiveCaptureInstructions';
 import { useScanner } from './Hooks/useScanner';
 import { PageHeader } from '@/common/ui/PageHeader';
 import { useCardCapture } from './Hooks/useCardCapture';
@@ -307,6 +308,9 @@ export default function ScannerScreen() {
   }
 
   const controlsBottom = Math.max(insets.bottom, 12) + 18;
+  const instructionsBottom = controlsBottom + 108;
+  const showLiveInstructions =
+    stage === 'camera' && !capturing && !shooting && (!liveCardDetection || cardState === 'none');
 
   return (
     <View style={styles.screen}>
@@ -324,11 +328,18 @@ export default function ScannerScreen() {
             }}
             onCameraError={({ nativeEvent }) => Alert.alert('Camera unavailable', nativeEvent.message)}
           />
-          <View pointerEvents="none" style={[styles.hintPill, { bottom: controlsBottom + 96 }]}>
-            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.hintText}>
-              {shooting ? 'Capturing…' : (badgeMode ? BADGE_HINTS : CARD_HINTS)[cardState]}
-            </Text>
-          </View>
+          {liveCardDetection && cardState !== 'none' ? (
+            <View pointerEvents="none" style={[styles.hintPill, { bottom: instructionsBottom }]}>
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.hintText}>
+                {shooting ? 'Capturing…' : (badgeMode ? BADGE_HINTS : CARD_HINTS)[cardState]}
+              </Text>
+            </View>
+          ) : null}
+          <ScannerOverlay
+            showFrame={showLiveInstructions}
+            showHint={false}
+            isActive={showLiveInstructions}
+          />
         </>
       ) : stage === 'camera' ? (
         <>
@@ -341,10 +352,9 @@ export default function ScannerScreen() {
             onBarcodeScanned={isActive && !badgeMode ? ({ data }) => processDetectedCode(data) : undefined}
           />
           <ScannerOverlay
-            showFrame={false}
-            isActive={!capturing && !shooting}
-            hintBottom={controlsBottom + 96}
-            hintText={badgeMode ? 'Point the camera at the event badge' : 'Point the camera at a business card'}
+            showFrame
+            showHint={false}
+            isActive={showLiveInstructions}
           />
         </>
       ) : photo ? (
@@ -460,6 +470,14 @@ export default function ScannerScreen() {
           onEventNameChange={setActiveEventName}
         />
       )}
+
+      {stage === 'camera' ? (
+        <LiveCaptureInstructions
+          enabled={showLiveInstructions}
+          variant={badgeMode ? 'badge' : 'card'}
+          bottom={instructionsBottom}
+        />
+      ) : null}
 
       {stage === 'camera' && (
         <View style={[styles.controls, { bottom: controlsBottom }]}>

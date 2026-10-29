@@ -9,6 +9,9 @@ const profile = {
   accreditations: '',
   tagline: '',
   shortBio: '',
+  coverPhotoUrl: '',
+  photoUrl: '',
+  companyLogoUrl: '',
 } as Profile;
 
 describe('card detail account scope', () => {
@@ -19,6 +22,9 @@ describe('card detail account scope', () => {
     ['accreditations', 'accreditations'],
     ['tagline', 'tagline'],
     ['bio', 'shortBio'],
+    ['coverPhoto', 'coverPhotoUrl'],
+    ['profilePhoto', 'photoUrl'],
+    ['logo', 'companyLogoUrl'],
   ] as const)('maps %s to the account %s field', (cardField, profileField) => {
     const updated = applyCardFieldToProfile(profile, cardField, 'Updated value');
     expect(updated[profileField]).toBe('Updated value');

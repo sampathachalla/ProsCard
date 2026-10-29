@@ -117,7 +117,7 @@ export default function ProfileScreen() {
           <View className="mr-2.5 h-9 w-9 items-center justify-center rounded-full bg-background dark:bg-dark-background">
             <User color={Colors.light.tint} size={18} strokeWidth={2.2} />
           </View>
-          <Text className="flex-1 text-sm font-medium text-textPrimary dark:text-dark-textPrimary">Account</Text>
+          <Text className="flex-1 text-sm font-medium text-textPrimary dark:text-dark-textPrimary">Account details</Text>
           <ChevronRight color={Colors.light.mutedText} size={16} strokeWidth={2} />
         </TouchableOpacity>
 

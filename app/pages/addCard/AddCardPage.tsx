@@ -34,7 +34,7 @@ import {
   TAGLINE_FIELD,
 } from './Config/addCardFields';
 import { useAddCard } from './Hooks/useAddCard';
-import type { AddCardPanel, AddCardTextFieldId, ContactOption } from './types/addCard.types';
+import type { AddCardImageField, AddCardPanel, AddCardTextFieldId, ContactOption } from './types/addCard.types';
 import { validateAddCard } from './Utils/validateAddCard';
 import type { AccountScopedCardField } from './Utils/accountFieldScope';
 
@@ -176,6 +176,44 @@ export default function AddCardPage() {
     );
   };
 
+  const handleMediaChange = (field: AddCardImageField, value: string) => {
+    editor.setOverride(field, value);
+
+    const labels: Record<AddCardImageField, string> = {
+      coverPhoto: 'Cover photo',
+      profilePhoto: 'Profile photo',
+      logo: 'Logo',
+    };
+    const label = labels[field];
+
+    const currentAccountValue =
+      field === 'coverPhoto'
+        ? (profile.coverPhotoUrl ?? '')
+        : field === 'profilePhoto'
+          ? (profile.photoUrl ?? '')
+          : (profile.companyLogoUrl ?? '');
+
+    if ((currentAccountValue || '') === (value || '')) {
+      return;
+    }
+
+    const prompt = () => {
+      Alert.alert(
+        `Save ${label.toLowerCase()} change`,
+        'Where should this change apply?',
+        [
+          { text: 'This card only', style: 'cancel' },
+          {
+            text: 'Account & this card',
+            onPress: () => void editor.saveFieldToAccount(field, value),
+          },
+        ],
+      );
+    };
+
+    setTimeout(prompt, Platform.OS === 'ios' ? 350 : 50);
+  };
+
   return (
     <View className="flex-1 bg-background dark:bg-dark-background">
       <AddCardHeader
@@ -205,7 +243,7 @@ export default function AddCardPage() {
               logo={editor.draft.sectionOverrides.logo ?? ''}
               logoBackdrop={editor.draft.sectionOverrides.logoBackdrop ?? '#f8fafc'}
               gradient={editor.draft.gradient}
-              onChange={editor.setOverride}
+              onChange={handleMediaChange}
               onAutoThemeFromLogo={editor.setTheme}
               onPaletteExtracted={editor.applyLogoThemes}
             />

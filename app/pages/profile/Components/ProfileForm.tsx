@@ -15,21 +15,20 @@ type ProfileSection = { id: ProfileSectionId; heading: string; description: stri
 
 export const PROFILE_SECTIONS: ProfileSection[] = [
   {
-    id: 'identity', heading: 'Name & identity', description: 'Name, degrees and tagline', icon: Contact2,
+    id: 'identity', heading: 'Name & identity', description: 'Name, title, degrees and tagline', icon: Contact2,
     fields: [
-      { key: 'prefix', label: 'Prefix' }, { key: 'firstName', label: 'First name' }, { key: 'middleName', label: 'Middle name' },
-      { key: 'lastName', label: 'Last name' }, { key: 'suffix', label: 'Suffix' }, { key: 'preferredName', label: 'Preferred name' },
-      { key: 'accreditations', label: 'Accreditations / degrees' }, { key: 'tagline', label: 'Tagline' },
+      { key: 'firstName', label: 'First name' }, { key: 'lastName', label: 'Last name' }, { key: 'title', label: 'Title' },
+      { key: 'middleName', label: 'Middle name' }, { key: 'accreditations', label: 'Accreditations / degrees' }, { key: 'tagline', label: 'Tagline' },
     ],
   },
   {
-    id: 'professional', heading: 'Professional', description: 'Role and organization', icon: Briefcase,
-    fields: [{ key: 'title', label: 'Title' }, { key: 'department', label: 'Department' }, { key: 'organization', label: 'Company' }],
+    id: 'professional', heading: 'Professional', description: 'Company and department', icon: Briefcase,
+    fields: [{ key: 'organization', label: 'Company' }, { key: 'department', label: 'Department' }],
   },
   {
     id: 'contact', heading: 'Contact', description: 'Email, phone and website', icon: Phone,
     fields: [
-      { key: 'email', label: 'Email', keyboardType: 'email-address' }, { key: 'phone', label: 'Phone', keyboardType: 'phone-pad' },
+      { key: 'email', label: 'Work email', keyboardType: 'email-address' }, { key: 'phone', label: 'Phone', keyboardType: 'phone-pad' },
       { key: 'website', label: 'Website', keyboardType: 'url' },
     ],
   },

@@ -28,7 +28,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeContext } from '@/context/ThemeContext';
 import {
   fetchCommunityUploadedLogos,
+  partitionCompanyLogoPickerResults,
   type CommunityCompanyLogoItem,
+  type CompanyLogoPickerItem,
 } from '@/pages/cards/Services/companyLogoPresets';
 import { MediaImage } from './MediaImage';
 import { Text } from './Text';
@@ -93,24 +95,11 @@ export function CompanyLogoPickerModal({
       }
     });
 
-  const displayedLogos = useMemo(() => {
-    const seen = new Set<string>();
-    return communityLogos
-      .map((logo) => ({
-        id: `community-${logo.id}`,
-        label: logo.name,
-        domain: logo.domain,
-        value: logo.value,
-        isCommunity: true,
-        source: logo.source ?? 'community',
-      }))
-      .filter((logo) => {
-        if (seen.has(logo.value)) return false;
-        seen.add(logo.value);
-        return true;
-      })
-      .slice(0, 4);
-  }, [communityLogos]);
+  const { brandfetch: brandLogos, community: uploadedLogos } = useMemo(
+    () => partitionCompanyLogoPickerResults(communityLogos),
+    [communityLogos],
+  );
+  const hasAnyLogos = brandLogos.length > 0 || uploadedLogos.length > 0;
 
   useEffect(() => {
     let cancelled = false;
@@ -143,6 +132,54 @@ export function CompanyLogoPickerModal({
   };
 
   const hasCurrentLogo = Boolean(value.trim());
+
+  const renderLogoGrid = (logos: CompanyLogoPickerItem[]) => (
+    <View className="flex-row flex-wrap justify-between gap-y-3">
+      {logos.map((logo) => {
+        const selected = value === logo.value;
+        const sourceHint =
+          logo.source === 'brandfetch' ? ' from Brandfetch' : logo.isOwn ? ', your upload' : ', community upload';
+        return (
+          <Pressable
+            key={logo.id}
+            accessibilityRole="button"
+            accessibilityLabel={`Select ${logo.label} logo${sourceHint}`}
+            accessibilityState={{ selected }}
+            onPress={() => handlePick(logo.value, logo.label)}
+            style={{ width: '48.2%' }}
+            className={`min-h-20 flex-row items-center rounded-2xl border p-3 active:opacity-85 ${
+              selected
+                ? 'border-sky-400 bg-sky-500/10 dark:border-sky-400 dark:bg-[#132038]'
+                : 'border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-[#0f172a]'
+            }`}
+          >
+            <View className="size-12 items-center justify-center rounded-xl border border-slate-200 bg-white px-1">
+              <MediaImage sourceUrl={logo.value} contentFit="contain" style={{ width: 42, height: 34 }} />
+            </View>
+            <View className="ml-3 min-w-0 flex-1 justify-center">
+              <Text numberOfLines={1} className="text-base font-semibold text-slate-900 dark:text-white">
+                {logo.label}
+              </Text>
+              {logo.domain ? (
+                <Text numberOfLines={1} className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                  {logo.domain}
+                </Text>
+              ) : logo.isOwn ? (
+                <Text numberOfLines={1} className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                  Your upload
+                </Text>
+              ) : null}
+            </View>
+            {selected ? (
+              <View className="size-5 items-center justify-center rounded-full bg-sky-500">
+                <Check color="#ffffff" size={12} strokeWidth={3} />
+              </View>
+            ) : null}
+          </Pressable>
+        );
+      })}
+    </View>
+  );
 
   return (
     <Modal
@@ -282,67 +319,35 @@ export function CompanyLogoPickerModal({
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            <View className="mb-4 flex-row items-center justify-between">
-              <Text className="text-base font-semibold text-slate-900 dark:text-white">Company logos</Text>
-              <Text className="text-sm text-slate-500 dark:text-slate-400">
-                {isSearchingCommunity ? 'Searching Brandfetch…' : searchQuery.trim() ? 'Best matches' : 'Popular suggestions'}
-              </Text>
-            </View>
+            {brandLogos.length > 0 ? (
+              <>
+                <View className="mb-4 flex-row items-center justify-between">
+                  <Text className="text-base font-semibold text-slate-900 dark:text-white">
+                    {searchQuery.trim() ? 'Brand matches' : 'Popular brands'}
+                  </Text>
+                  <Text className="text-sm text-slate-500 dark:text-slate-400">
+                    {isSearchingCommunity ? 'Searching…' : 'Brandfetch'}
+                  </Text>
+                </View>
+                {renderLogoGrid(brandLogos)}
+              </>
+            ) : null}
 
-            {/* Brandfetch results and community uploads */}
-                {displayedLogos.length > 0 ? (
-                  <View className="flex-row flex-wrap justify-between gap-y-3">
-                    {displayedLogos.map((logo) => {
-                      const selected = value === logo.value;
-                      return (
-                        <Pressable
-                          key={logo.id}
-                          accessibilityRole="button"
-                          accessibilityLabel={`Select ${logo.label} logo${logo.isCommunity ? ' from Brandfetch' : ''}`}
-                          accessibilityState={{ selected }}
-                          onPress={() => handlePick(logo.value, logo.label)}
-                          style={{ width: '48.2%' }}
-                          className={`min-h-20 flex-row items-center rounded-2xl border p-3 active:opacity-85 ${
-                            selected
-                              ? 'border-sky-400 bg-sky-500/10 dark:border-sky-400 dark:bg-[#132038]'
-                              : 'border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-[#0f172a]'
-                          }`}
-                        >
-                          <View className="size-12 items-center justify-center rounded-xl border border-slate-200 bg-white px-1">
-                            <MediaImage
-                              sourceUrl={logo.value}
-                              contentFit="contain"
-                              style={{ width: 42, height: 34 }}
-                            />
-                          </View>
-                          <View className="ml-3 flex-1 justify-center">
-                            <Text
-                              numberOfLines={1}
-                              className="text-base font-semibold text-slate-900 dark:text-white"
-                            >
-                              {logo.label}
-                            </Text>
-                            {logo.domain ? (
-                              <Text
-                                numberOfLines={1}
-                                className="mt-0.5 text-xs text-slate-500 dark:text-slate-400"
-                              >
-                                {logo.domain}
-                              </Text>
-                            ) : null}
-                          </View>
-                          {selected ? (
-                            <View className="size-5 items-center justify-center rounded-full bg-sky-500">
-                              <Check color="#ffffff" size={12} strokeWidth={3} />
-                            </View>
-                          ) : null}
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                ) : null}
+            {uploadedLogos.length > 0 ? (
+              <View className={brandLogos.length > 0 ? 'mt-8' : ''}>
+                <View className="mb-4 flex-row items-center justify-between">
+                  <Text className="text-base font-semibold text-slate-900 dark:text-white">
+                    Community uploads
+                  </Text>
+                  <Text className="text-sm text-slate-500 dark:text-slate-400">
+                    {searchQuery.trim() ? 'Matching uploads' : 'From VC Pros users'}
+                  </Text>
+                </View>
+                {renderLogoGrid(uploadedLogos)}
+              </View>
+            ) : null}
 
-                {searchQuery.trim().length > 0 && displayedLogos.length === 0 && !isSearchingCommunity ? (
+            {searchQuery.trim().length > 0 && !hasAnyLogos && !isSearchingCommunity ? (
                   <View className="items-center rounded-xl border border-slate-200 bg-slate-50 p-6 dark:border-slate-800 dark:bg-[#0f172a]">
                     <Building2 color="#64748b" size={28} />
                     <Text className="mt-2 text-center text-sm font-bold text-slate-800 dark:text-slate-200">

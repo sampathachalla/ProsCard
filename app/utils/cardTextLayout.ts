@@ -1,12 +1,33 @@
-export function getResponsiveTaglineLimit(viewportWidth: number): number {
-  const usableWidth = Math.min(720, Math.max(260, viewportWidth - 48));
-  return Math.min(120, Math.max(32, Math.floor((usableWidth - 32) / 7)));
+/** Matches SharedCardPage column max width — share URL renders inside this box. */
+export const SHARE_CARD_MAX_CONTENT_WIDTH = 520;
+
+export function getEffectiveCardContentWidth(viewportWidth: number): number {
+  return Math.min(Math.max(280, viewportWidth), SHARE_CARD_MAX_CONTENT_WIDTH);
+}
+
+export function getResponsiveTaglineLimit(_viewportWidth?: number): number {
+  return 50;
 }
 
 export function fitTaglineToViewport(tagline: string, _viewportWidth?: number): string {
-  const normalized = (tagline || '').trim();
-  if (!_viewportWidth) return normalized;
-  return normalized.slice(0, getResponsiveTaglineLimit(_viewportWidth)).trimEnd();
+  return (tagline || '').trim();
+}
+
+/** Tagline font size for up to two lines inside the share card column (web-safe, no adjustsFontSizeToFit). */
+export function getProfessionalTaglineFontSize(
+  availableWidth: number,
+  characterCount: number,
+  compact: boolean,
+): number {
+  const width = Math.max(180, availableWidth);
+  const chars = Math.max(1, characterCount);
+  const lines = 2;
+  const charsPerLine = Math.ceil(chars / lines);
+  // Italic bold runs wider than body copy on web.
+  const widthLimited = Math.floor(width / (charsPerLine * 0.62));
+  const min = compact ? 13 : 14;
+  const max = compact ? 16 : 18;
+  return Math.max(min, Math.min(max, widthLimited));
 }
 
 /**

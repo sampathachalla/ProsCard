@@ -1,5 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import { Image, View, type StyleProp, type ViewStyle } from 'react-native';
+import { captureRef } from 'react-native-view-shot';
 import Svg, {
   Circle,
   Defs,
@@ -15,9 +16,12 @@ import QRCodeGenerator from 'qrcode';
 import { getVcProsIconSource } from './BrandLogo';
 import { MediaImage } from './MediaImage';
 import { isRgbaOrHexLight } from '@/utils/cardThemeColor';
+import type { QrCornerStyle, QrLogoSize, QrPatternStyle } from '@/pages/share/types/share.types';
 
 export interface QrSvgRef {
   toDataURL?: (callback: (dataUrl: string) => void) => void;
+  /** Rasterizes the on-screen QR (native) for Photos / widget export. */
+  capturePngUri?: () => Promise<string | null>;
 }
 
 export type QRCodeViewProps = {
@@ -31,6 +35,11 @@ export type QRCodeViewProps = {
   showCenterLogo?: boolean;
   /** Company logo shown in the QR center. Empty values fall back to the VC Pros app mark. */
   centerLogoUrl?: string;
+  centerLogoBackground?: string;
+  centerLogoBorderColor?: string;
+  patternStyle?: QrPatternStyle;
+  cornerStyle?: QrCornerStyle;
+  logoSize?: QrLogoSize;
   /** When true, overlays the raster BrandLogo icon PNG; defaults to the exact VC vector mark from the VCPROS logo so SVG-to-PNG export also captures it. */
   useBrandIconAsset?: boolean;
   getRef?: (ref: QrSvgRef | null) => void;
@@ -67,10 +76,41 @@ export function QRCodeView({
   padding = 16,
   showCenterLogo = true,
   centerLogoUrl,
+  centerLogoBackground,
+  centerLogoBorderColor,
+  patternStyle = 'dots',
+  cornerStyle = 'rounded',
+  logoSize = 'medium',
   useBrandIconAsset = false,
   getRef,
   style,
 }: QRCodeViewProps) {
+  const captureRootRef = useRef<any>(null);
+
+  const publishExportRef = useCallback(() => {
+    if (!getRef) return;
+    getRef({
+      capturePngUri: async () => {
+        const node = captureRootRef.current;
+        if (!node) return null;
+        try {
+          return await captureRef(node, {
+            format: 'png',
+            quality: 1,
+            result: 'tmpfile',
+          });
+        } catch {
+          return null;
+        }
+      },
+    });
+  }, [getRef]);
+
+  React.useEffect(() => {
+    publishExportRef();
+    return () => getRef?.(null);
+  }, [getRef, publishExportRef, value, size, foregroundColor, backgroundColor, showCenterLogo, centerLogoUrl, centerLogoBackground, centerLogoBorderColor, patternStyle, cornerStyle, logoSize]);
+
   const qrData = useMemo(() => {
     if (!value) return null;
     try {
@@ -107,17 +147,26 @@ export function QRCodeView({
   const vcStroke = isLightBg ? '#00A8E8' : '#E2E8F0';
   const centerIconSize = Math.round(size * 0.27);
   const customCenterLogo = centerLogoUrl?.trim() ?? '';
-  const customLogoWidth = Math.round(size * 0.3);
-  const customLogoHeight = Math.round(size * 0.18);
+  const logoScale = logoSize === 'small' ? 0.78 : logoSize === 'large' ? 1.16 : 1;
+  const customLogoWidth = Math.round(size * 0.25 * logoScale);
+  const customLogoHeight = Math.round(size * 0.15 * logoScale);
+  const logoPlateWidth = Math.round(customLogoWidth + size * 0.045);
+  const logoPlateHeight = Math.round(customLogoHeight + size * 0.04);
+  const resolvedLogoBackground = centerLogoBackground?.trim() || (isLightBg ? '#ffffff' : '#f8fafc');
+  const resolvedLogoBorder = centerLogoBorderColor?.trim() || accentColor;
 
   const content =
     value && qrData ? (
-      <View style={{ width: size, height: size }} className="items-center justify-center">
+      <View
+        ref={captureRootRef}
+        collapsable={false}
+        style={{ width: size, height: size }}
+        className="items-center justify-center"
+      >
         <Svg
           width={size}
           height={size}
           viewBox={`0 0 ${qrData.matrixSize} ${qrData.matrixSize}`}
-          ref={(ref) => getRef?.(ref as unknown as QrSvgRef | null)}
         >
           <Defs>
             {/* Enterprise Dark Navy-Slate Fill (keeps the dark color in the theme) */}
@@ -155,40 +204,30 @@ export function QRCodeView({
             { row: qrData.matrixSize - 7, col: 0 },
           ].map((eye, idx) => (
             <G key={`eye-${idx}`}>
-              {/* Outer rounded-square ring */}
-              <Rect
-                x={eye.col + 0.5}
-                y={eye.row + 0.5}
-                width={6}
-                height={6}
-                rx={1.85}
-                ry={1.85}
-                fill="none"
-                stroke={foregroundColor}
-                strokeWidth={1.05}
-              />
-              {/* Inner rounded-square core */}
-              <Rect
-                x={eye.col + 2}
-                y={eye.row + 2}
-                width={3}
-                height={3}
-                rx={0.85}
-                ry={0.85}
-                fill={foregroundColor}
-              />
+              {cornerStyle === 'circle' ? (
+                <>
+                  <Circle cx={eye.col + 3.5} cy={eye.row + 3.5} r={3} fill="none" stroke={foregroundColor} strokeWidth={1.05} />
+                  <Circle cx={eye.col + 3.5} cy={eye.row + 3.5} r={1.5} fill={foregroundColor} />
+                </>
+              ) : (
+                <>
+                  <Rect x={eye.col + 0.5} y={eye.row + 0.5} width={6} height={6}
+                    rx={cornerStyle === 'rounded' ? 1.85 : 0} ry={cornerStyle === 'rounded' ? 1.85 : 0}
+                    fill="none" stroke={foregroundColor} strokeWidth={1.05} />
+                  <Rect x={eye.col + 2} y={eye.row + 2} width={3} height={3}
+                    rx={cornerStyle === 'rounded' ? 0.85 : 0} ry={cornerStyle === 'rounded' ? 0.85 : 0}
+                    fill={foregroundColor} />
+                </>
+              )}
             </G>
           ))}
 
           {/* Circular Data Dots */}
-          {qrData.dots.map((dot, idx) => (
-            <Circle
-              key={`dot-${idx}`}
-              cx={dot.col + 0.5}
-              cy={dot.row + 0.5}
-              r={0.41}
-              fill={foregroundColor}
-            />
+          {qrData.dots.map((dot, idx) => patternStyle === 'dots' ? (
+            <Circle key={`dot-${idx}`} cx={dot.col + 0.5} cy={dot.row + 0.5} r={0.41} fill={foregroundColor} />
+          ) : (
+            <Rect key={`dot-${idx}`} x={dot.col + 0.08} y={dot.row + 0.08} width={0.84} height={0.84}
+              rx={patternStyle === 'rounded' ? 0.25 : 0} fill={foregroundColor} />
           ))}
 
           {/* Exact Enterprise VC Logo Vector Mark from vcpros-logo-v3 */}
@@ -272,8 +311,13 @@ export function QRCodeView({
             pointerEvents="none"
             style={{
               position: 'absolute',
-              width: customCenterLogo ? customLogoWidth : centerIconSize,
-              height: customCenterLogo ? customLogoHeight : centerIconSize,
+              width: customCenterLogo ? logoPlateWidth : centerIconSize,
+              height: customCenterLogo ? logoPlateHeight : centerIconSize,
+              borderRadius: Math.round(size * 0.035),
+              backgroundColor: customCenterLogo ? resolvedLogoBackground : 'transparent',
+              borderColor: customCenterLogo ? resolvedLogoBorder : 'transparent',
+              borderWidth: customCenterLogo ? Math.max(1, Math.round(size * 0.006)) : 0,
+              padding: customCenterLogo ? Math.round(size * 0.018) : 0,
             }}
             className="items-center justify-center"
           >

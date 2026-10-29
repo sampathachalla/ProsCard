@@ -202,7 +202,7 @@ export default function HomepageScreen() {
         </View>
       ) : null}
       {showcaseHeight > 0 && hasCard ? (
-        <View className="overflow-hidden" style={{ height: showcaseHeight }}>
+        <View style={{ height: showcaseHeight }}>
           <CardShowcaseSection
             activeIndex={boundedCardIndex}
             addingCard={needsDefaultCard}

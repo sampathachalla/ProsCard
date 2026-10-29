@@ -13,11 +13,11 @@ import {
 } from '@/pages/cards/Templates/sections/SectionSharedComponents';
 import { useShareUrl } from '@/pages/share/Hooks/useShareUrl';
 import {
-  HOME_PREVIEW_CARD_BORDER_RADIUS,
   isColorLight,
   resolveCardAvatarRing,
-  resolveCardChromeBorder,
   resolveCardCoverDivider,
+  resolveHomePreviewChromeBorder,
+  resolveHomePreviewOuterChromeStyle,
   resolveLayoutColorSlots,
 } from '@/utils/cardThemeColor';
 import { walletField, walletFieldValue } from '@/pages/walletCard/Utils/walletPassFields';
@@ -72,8 +72,14 @@ export function HomePreviewCardFace({
   const textPrimary = isSurfaceLight ? (bodySlots.textPrimary || '#0f172a') : '#f8fafc';
   const textSecondary = isSurfaceLight ? (bodySlots.textSecondary || '#334155') : '#cbd5e1';
   const textMuted = isSurfaceLight ? (bodySlots.textMuted || '#64748b') : '#94a3b8';
-  const chromeBorder = resolveCardChromeBorder(surface, accentColor);
+  const chromeBorder = resolveHomePreviewChromeBorder(surface, accentColor);
   const qrBorderColor = chromeBorder;
+  const { innerClipRadius, outer: outerChrome } = resolveHomePreviewOuterChromeStyle({
+    chromeBorder,
+    height,
+    surfaceColor: surface,
+    width,
+  });
 
   const cardLogoSlots: ResolvedLayoutSlots = {
     ...bodySlots,
@@ -91,15 +97,6 @@ export function HomePreviewCardFace({
       style={{
         width,
         height,
-        backgroundColor: surface,
-        borderBottomLeftRadius: HOME_PREVIEW_CARD_BORDER_RADIUS,
-        borderBottomRightRadius: HOME_PREVIEW_CARD_BORDER_RADIUS,
-        borderTopLeftRadius: HOME_PREVIEW_CARD_BORDER_RADIUS,
-        borderTopRightRadius: HOME_PREVIEW_CARD_BORDER_RADIUS,
-        borderRadius: HOME_PREVIEW_CARD_BORDER_RADIUS,
-        borderWidth: 1.5,
-        borderColor: chromeBorder,
-        overflow: 'hidden',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 12 },
         shadowOpacity: isSurfaceLight ? 0.12 : 0.36,
@@ -107,6 +104,18 @@ export function HomePreviewCardFace({
         elevation: 10,
       }}
     >
+      <View style={outerChrome}>
+        <View
+          style={{
+            flex: 1,
+            borderBottomLeftRadius: innerClipRadius,
+            borderBottomRightRadius: innerClipRadius,
+            borderTopLeftRadius: innerClipRadius,
+            borderTopRightRadius: innerClipRadius,
+            borderRadius: innerClipRadius,
+            overflow: 'hidden',
+          }}
+        >
       <View
         style={{
           height: coverHeight,
@@ -235,6 +244,8 @@ export function HomePreviewCardFace({
               Scan to share card
             </Text>
           </View>
+        </View>
+      </View>
         </View>
       </View>
     </View>

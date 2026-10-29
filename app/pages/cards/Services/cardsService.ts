@@ -294,6 +294,11 @@ export function buildDefaultCard(profile: Partial<Profile>): BusinessCard {
     email: profile.email?.trim() ?? '',
     gradient,
     ...defaultSectionData(gradient),
+    sectionOverrides: {
+      coverPhoto: profile.coverPhotoUrl ?? '',
+      profilePhoto: profile.photoUrl ?? '',
+      logo: profile.companyLogoUrl ?? '',
+    },
   });
 }
 

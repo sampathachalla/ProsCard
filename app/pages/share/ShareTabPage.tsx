@@ -23,6 +23,8 @@ export default function ShareTabPage() {
     card,
     cardLabel,
     centerLogoUrl,
+    centerLogoBackground,
+    centerLogoBorderColor,
     boundedIndex,
     setCardIndex,
     pickerOpen,
@@ -40,12 +42,16 @@ export default function ShareTabPage() {
     guideModal,
     setGuideModal,
     activeQrPreset,
-    selectQrPreset,
+    qrCustomization,
+    updateQrCustomization,
     setQrRef,
     handleActionPress,
     handleExportWalletPass,
     handlePrepareHomeScreenWidget,
     handleSaveQrToPhotos,
+    liveActivityActive,
+    handleStartLiveActivity,
+    handleStopLiveActivity,
   } = useSharePageController();
 
   const headerSection = (
@@ -132,6 +138,9 @@ export default function ShareTabPage() {
       error={shareError}
       preset={activeQrPreset}
       centerLogoUrl={centerLogoUrl}
+      centerLogoBackground={centerLogoBackground}
+      centerLogoBorderColor={centerLogoBorderColor}
+      customization={qrCustomization}
       onQrRef={setQrRef}
       onPressExpand={() => setQrModalOpen(true)}
     />
@@ -141,6 +150,7 @@ export default function ShareTabPage() {
     <ShareActionsList
       copiedLink={copiedLink}
       activeQrPresetLabel={activeQrPreset.label}
+      liveActivityActive={liveActivityActive}
       onActionPress={handleActionPress}
     />
   );
@@ -171,6 +181,10 @@ export default function ShareTabPage() {
         url={shareUrl}
         error={shareError}
         centerLogoUrl={centerLogoUrl}
+        centerLogoBackground={centerLogoBackground}
+        centerLogoBorderColor={centerLogoBorderColor}
+        customization={qrCustomization}
+        preset={activeQrPreset}
         onClose={() => setQrModalOpen(false)}
       />
 
@@ -179,7 +193,10 @@ export default function ShareTabPage() {
         shareUrl={shareUrl}
         activePreset={activeQrPreset}
         centerLogoUrl={centerLogoUrl}
-        onSelectPreset={selectQrPreset}
+        centerLogoBackground={centerLogoBackground}
+        centerLogoBorderColor={centerLogoBorderColor}
+        customization={qrCustomization}
+        onChange={updateQrCustomization}
         onClose={() => setCustomizeOpen(false)}
       />
 
@@ -191,6 +208,9 @@ export default function ShareTabPage() {
         onExportWalletPass={handleExportWalletPass}
         onPrepareHomeScreenWidget={handlePrepareHomeScreenWidget}
         onSaveQrImage={handleSaveQrToPhotos}
+        liveActivityActive={liveActivityActive}
+        onStartLiveActivity={handleStartLiveActivity}
+        onStopLiveActivity={handleStopLiveActivity}
       />
     </>
   );

@@ -4,7 +4,7 @@ import { ActivityIndicator, Pressable, View } from 'react-native';
 import { QRCodeView } from '@/common/ui/QRCodeView';
 import { Text } from '@/common/ui/Text';
 import type { QrSvgRef } from '../Services/qrExportService';
-import type { QrCustomizationPreset } from '../types/share.types';
+import type { QrCustomization, QrCustomizationPreset } from '../types/share.types';
 
 export interface ShareQrHeroCardProps {
   cardName: string;
@@ -14,6 +14,9 @@ export interface ShareQrHeroCardProps {
   error?: string;
   preset: QrCustomizationPreset;
   centerLogoUrl?: string;
+  centerLogoBackground?: string;
+  centerLogoBorderColor?: string;
+  customization: QrCustomization;
   onQrRef?: (ref: QrSvgRef | null) => void;
   onPressExpand?: () => void;
 }
@@ -25,6 +28,9 @@ export function ShareQrHeroCard({
   error,
   preset,
   centerLogoUrl,
+  centerLogoBackground,
+  centerLogoBorderColor,
+  customization,
   onQrRef,
   onPressExpand,
 }: ShareQrHeroCardProps) {
@@ -38,9 +44,10 @@ export function ShareQrHeroCard({
       onPress={onPressExpand}
       style={{
         backgroundColor: preset.backgroundColor,
-        borderColor: isLightSurface ? 'rgba(148,163,184,0.35)' : 'rgba(148,163,184,0.22)',
+        borderColor: customization.frameStyle === 'none' ? 'transparent' : isLightSurface ? 'rgba(148,163,184,0.35)' : 'rgba(148,163,184,0.22)',
+        borderRadius: customization.frameStyle === 'simple' ? 8 : customization.frameStyle === 'none' ? 0 : 18,
       }}
-      className="w-full items-center justify-center rounded-xl border px-6 pb-6 pt-7 active:opacity-95"
+      className="w-full items-center justify-center border px-6 pb-6 pt-7 active:opacity-95"
     >
       {shareUrl ? (
         <QRCodeView
@@ -52,6 +59,11 @@ export function ShareQrHeroCard({
           framed={false}
           showCenterLogo
           centerLogoUrl={centerLogoUrl}
+          centerLogoBackground={centerLogoBackground}
+          centerLogoBorderColor={centerLogoBorderColor}
+          patternStyle={customization.patternStyle}
+          cornerStyle={customization.cornerStyle}
+          logoSize={customization.logoSize}
           getRef={onQrRef}
         />
       ) : (
@@ -70,13 +82,16 @@ export function ShareQrHeroCard({
         </View>
       )}
 
-      <Text
+      {customization.captionVisible ? <View style={customization.frameStyle === 'badge' ? {
+        backgroundColor: `${preset.accentColor}22`, borderColor: preset.accentColor,
+      } : undefined} className={customization.frameStyle === 'badge' ? 'mt-5 rounded-full border px-4 py-2' : 'mt-5'}><Text
         variant="none"
         style={{ color: preset.foregroundColor }}
-        className="mt-5 text-center text-[16px] font-medium tracking-tight"
+        className="text-center text-[16px] font-medium tracking-tight"
       >
-        Scan to share card
+        {customization.caption}
       </Text>
+      </View> : null}
     </Pressable>
   );
 }

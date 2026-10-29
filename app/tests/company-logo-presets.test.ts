@@ -3,6 +3,7 @@ import {
   COMPANY_LOGO_PRESET_PREFIX,
   COMPANY_LOGO_PRESETS,
   filterCompanyLogoPresets,
+  partitionCompanyLogoPickerResults,
   fetchCommunityUploadedLogos,
   resolveCompanyLogoPreset,
 } from '@/pages/cards/Services/companyLogoPresets';
@@ -125,5 +126,26 @@ describe('Simple Icons company-logo library', () => {
   it('keeps the logo picker usable when community logos cannot load', async () => {
     apiRequest.mockRejectedValue(new Error('offline'));
     await expect(fetchCommunityUploadedLogos()).resolves.toEqual([]);
+  });
+
+  it('partitions Brandfetch and community logos so uploads are not capped by brand rows', () => {
+    const brand = Array.from({ length: 6 }, (_, index) => ({
+      id: `bf-${index}`,
+      name: `Brand ${index}`,
+      value: `https://cdn.brandfetch.io/${index}`,
+      source: 'brandfetch' as const,
+    }));
+    const mindPros = {
+      id: 'mindpros-upload',
+      name: 'MindPros',
+      value: '/api/v1/media/mindpros/content',
+      source: 'community' as const,
+      isOwn: true,
+    };
+    const { brandfetch, community } = partitionCompanyLogoPickerResults([...brand, mindPros]);
+    expect(brandfetch).toHaveLength(6);
+    expect(community).toEqual([
+      expect.objectContaining({ id: 'mindpros-upload', label: 'MindPros', source: 'community' }),
+    ]);
   });
 });

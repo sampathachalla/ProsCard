@@ -23,7 +23,7 @@ type FloatingToolsState = {
 export const useFloatingToolsStore = create<FloatingToolsState>()(
   persist(
     (set) => ({
-      enabled: true,
+      enabled: false,
       enabledTools: DEFAULT_FLOATING_TOOLS,
       hydrated: false,
       position: { x: 1, y: 0.55 },

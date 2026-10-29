@@ -17,6 +17,8 @@ type Props = {
   showCount?: boolean;
   onFocus?: () => void;
   onEndEditing?: () => void;
+  /** Use inside horizontal rows — drops bottom margin on this field. */
+  dense?: boolean;
 };
 
 /** Boxed input with its label inside the box, one per line as in the card form sketch. */
@@ -33,11 +35,14 @@ export function FormField({
   showCount = false,
   onFocus,
   onEndEditing,
+  dense = false,
 }: Props) {
   const { theme } = useThemeContext();
 
   return (
-    <View className="mb-3 rounded-2xl border border-slate-200 bg-card px-4 pb-2 pt-2.5 dark:border-slate-800 dark:bg-dark-card">
+    <View
+      className={`rounded-2xl border border-slate-200 bg-card px-4 pb-2 pt-2.5 dark:border-slate-800 dark:bg-dark-card ${dense ? 'mb-0' : 'mb-3'}`}
+    >
       <View className="min-h-[20px] flex-row items-center">
         <Text variant="tiny" className="flex-1 uppercase tracking-wider">
           {label}

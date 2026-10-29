@@ -47,7 +47,7 @@ export function ScannerTopPanel({ stage, hasScanData, copy }: ScannerTopPanelPro
             <View style={styles.tipIcon}>
               <CaptureTipIcon tip={tips.tip} size={26} />
             </View>
-            <CaptureTipCaption index={tips.index} onSelect={tips.select} />
+            <CaptureTipCaption index={tips.index} onSelect={tips.select} tips={tips.tips} />
           </>
         ) : stage === 'processing' ? (
           <View style={styles.processing}>

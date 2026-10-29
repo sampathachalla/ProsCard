@@ -202,6 +202,9 @@ describe('VC Pros API routes',()=>{
     const replacementId=replacement.body.mediaId as string;const replaced=await request(app).post(`/api/v1/media/${replacementId}/confirm`).set(auth);expect(replaced.status).toBe(200);expect(replaced.body.replacedMediaId).toBe(mediaId);expect(replaced.body.cleanupPending).toBe(false);expect(deletedObjects).toContain(created.body.objectName);
     expect((await request(app).get(`/api/v1/media/${mediaId}/download-url`).set(auth)).status).toBe(404);
     expect((await request(app).get('/api/v1/profiles/me').set(auth)).body.photoUrl).toBe(`/api/v1/media/${replacementId}/content`);
+    const library=await request(app).get('/api/v1/media/library').set(auth);expect(library.status).toBe(200);
+    expect(library.body.items.some((item:{mediaId:string})=>item.mediaId===replacementId)).toBe(true);
+    expect(library.body.items.find((item:{mediaId:string})=>item.mediaId===replacementId).inUse).toBe(true);
     expect((await request(app).delete(`/api/v1/media/${replacementId}`).set(auth)).status).toBe(204);
     expect((await request(app).get('/api/v1/profiles/me').set(auth)).body.photoUrl).toBe('');
   });

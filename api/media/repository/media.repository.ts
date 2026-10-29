@@ -68,6 +68,50 @@ export class MediaRepository {
     ).then((result) => result.rows[0]!.palette);
   }
 
+  listUserLibrary(
+    userId: string,
+    kind?: Extract<MediaKind, 'profilePhoto' | 'coverPhoto' | 'companyLogo'>,
+    limit = 120,
+  ) {
+    const kinds = kind ? [kind] : (['profilePhoto', 'coverPhoto', 'companyLogo'] as const);
+    return this.db.query<{
+      id: string;
+      kind: MediaKind;
+      original_name: string;
+      created_at: Date;
+      in_use: boolean;
+    }>(
+      `SELECT m.id, m.kind, m.original_name, m.created_at,
+              (
+                EXISTS (
+                  SELECT 1 FROM profiles p
+                  WHERE p.user_id = m.user_id
+                    AND (
+                      (p.data->>'photoUrl') = ('/api/v1/media/' || m.id::text || '/content')
+                      OR (p.data->>'coverPhotoUrl') = ('/api/v1/media/' || m.id::text || '/content')
+                      OR (p.data->>'companyLogoUrl') = ('/api/v1/media/' || m.id::text || '/content')
+                    )
+                )
+                OR EXISTS (
+                  SELECT 1 FROM cards c
+                  WHERE c.user_id = m.user_id
+                    AND (
+                      (c.data->'sectionOverrides'->>'profilePhoto') = ('/api/v1/media/' || m.id::text || '/content')
+                      OR (c.data->'sectionOverrides'->>'coverPhoto') = ('/api/v1/media/' || m.id::text || '/content')
+                      OR (c.data->'sectionOverrides'->>'logo') = ('/api/v1/media/' || m.id::text || '/content')
+                    )
+                )
+              ) AS in_use
+       FROM media m
+       WHERE m.user_id = $1
+         AND m.status = 'ready'
+         AND m.kind = ANY($2::text[])
+       ORDER BY m.created_at DESC
+       LIMIT $3`,
+      [userId, kinds, limit],
+    ).then((result) => result.rows);
+  }
+
   listCommunityCompanyLogos(userId: string, query?: string, limit = 48) {
     const cleanQuery = (query ?? '').trim();
     const likePattern = `%${cleanQuery}%`;

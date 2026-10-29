@@ -5,8 +5,10 @@ import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 
 import * as Haptics from 'expo-haptics';
 import { QRCodeView } from './QRCodeView';
 import { Text } from './Text';
+import type { QrCustomization, QrCustomizationPreset } from '@/pages/share/types/share.types';
+import { DEFAULT_QR_CUSTOMIZATION, QR_CUSTOMIZATION_PRESETS } from '@/pages/share/Config/shareActionsConfig';
 
-export function QRCodeModal({ cardName, centerLogoUrl, error, onClose, url, visible }: { cardName: string; centerLogoUrl?: string; error?: string; onClose: () => void; url: string; visible: boolean }) {
+export function QRCodeModal({ cardName, centerLogoUrl, centerLogoBackground, centerLogoBorderColor, customization = DEFAULT_QR_CUSTOMIZATION, preset = QR_CUSTOMIZATION_PRESETS[0], error, onClose, url, visible }: { cardName: string; centerLogoUrl?: string; centerLogoBackground?: string; centerLogoBorderColor?: string; customization?: QrCustomization; preset?: QrCustomizationPreset; error?: string; onClose: () => void; url: string; visible: boolean }) {
   const translateY = useSharedValue(0);
   const style = useAnimatedStyle(() => ({ transform: [{ translateY: translateY.get() }] }));
   const dismissWithHaptic = () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); onClose(); };
@@ -46,26 +48,31 @@ export function QRCodeModal({ cardName, centerLogoUrl, error, onClose, url, visi
               <BlurView intensity={45} tint="dark" className="overflow-hidden rounded-[32px] border border-white/20">
                 <View className="items-center p-6">
                   <Text className="mb-4 text-center text-xl font-bold text-white">{cardName}</Text>
-                  <View className="items-center rounded-2xl border border-slate-700/80 bg-[#111827] px-6 pb-5 pt-6">
+                  <View style={{ backgroundColor: preset.backgroundColor, borderColor: customization.frameStyle === 'none' ? 'transparent' : `${preset.accentColor}80`, borderRadius: customization.frameStyle === 'simple' ? 8 : customization.frameStyle === 'none' ? 0 : 20 }} className="items-center border px-6 pb-5 pt-6">
                     {url ? (
                       <QRCodeView
                         value={url}
                         size={224}
-                        backgroundColor="#111827"
-                        foregroundColor="#ffffff"
-                        accentColor="#38bdf8"
+                        backgroundColor={preset.backgroundColor}
+                        foregroundColor={preset.foregroundColor}
+                        accentColor={preset.accentColor}
                         framed={false}
                         showCenterLogo
                         centerLogoUrl={centerLogoUrl}
+                        centerLogoBackground={centerLogoBackground}
+                        centerLogoBorderColor={centerLogoBorderColor}
+                        patternStyle={customization.patternStyle}
+                        cornerStyle={customization.cornerStyle}
+                        logoSize={customization.logoSize}
                       />
                     ) : (
                       <View className="items-center justify-center" style={{ width: 224, height: 224 }}>
                         {error ? <Text className="text-center text-white">{error}</Text> : <ActivityIndicator color="#ffffff" />}
                       </View>
                     )}
-                    <Text className="mt-4 text-[16px] font-medium text-white">
-                      {url ? 'Scan to share card' : error ? 'Share link unavailable' : 'Preparing share link…'}
-                    </Text>
+                    {customization.captionVisible ? <View style={customization.frameStyle === 'badge' ? { borderColor: preset.accentColor, backgroundColor: `${preset.accentColor}22` } : undefined} className={customization.frameStyle === 'badge' ? 'mt-4 rounded-full border px-4 py-2' : 'mt-4'}><Text style={{ color: preset.foregroundColor }} className="text-[16px] font-medium">
+                      {url ? customization.caption : error ? 'Share link unavailable' : 'Preparing share link…'}
+                    </Text></View> : null}
                   </View>
                 </View>
               </BlurView>

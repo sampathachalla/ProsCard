@@ -6,7 +6,20 @@ import type { QrSvgRef } from './qrExportService';
 
 export type PrepareWidgetResult = 'ready' | 'requires-native-build' | 'unsupported';
 
-function readQrPng(qrSvg: QrSvgRef | null): Promise<string | null> {
+async function readQrPng(qrSvg: QrSvgRef | null): Promise<string | null> {
+  if (qrSvg?.capturePngUri) {
+    const uri = await qrSvg.capturePngUri();
+    if (uri) {
+      try {
+        const file = new File(uri);
+        const base64 = await file.base64();
+        return base64.trim() || null;
+      } catch {
+        return null;
+      }
+    }
+  }
+
   return new Promise((resolve) => {
     if (!qrSvg?.toDataURL) {
       resolve(null);
@@ -32,6 +45,23 @@ function decodeBase64(base64: string): Uint8Array {
   return bytes;
 }
 
+/**
+ * Writes the rendered QR PNG into the app-group directory shared with the widget
+ * extension (home/lock screen widgets and Live Activities) and returns its file URI.
+ */
+export async function writeWidgetQrImage(qrSvg: QrSvgRef | null, fileName: string): Promise<string> {
+  const base64 = await readQrPng(qrSvg);
+  if (!base64) throw new Error('The QR code is not ready yet. Wait a moment and try again.');
+
+  const bytes = decodeBase64(base64);
+  if (bytes.length === 0) throw new Error('The QR image could not be prepared.');
+
+  const { widgetsDirectory } = await import('expo-widgets');
+  const qrFile = new File(widgetsDirectory, fileName);
+  qrFile.write(bytes);
+  return qrFile.uri;
+}
+
 export async function prepareHomeScreenWidget({
   cardName,
   qrSvg,
@@ -44,21 +74,13 @@ export async function prepareHomeScreenWidget({
   if (Platform.OS !== 'ios' && Platform.OS !== 'android') return 'unsupported';
   if (Constants.appOwnership === 'expo') return 'requires-native-build';
 
-  const base64 = await readQrPng(qrSvg);
-  if (!base64) throw new Error('The QR code is not ready yet. Wait a moment and try again.');
-
-  const bytes = decodeBase64(base64);
-  if (bytes.length === 0) throw new Error('The QR image could not be prepared.');
-
-  const [{ widgetsDirectory }, { default: VCProsCardWidget }] = await Promise.all([
-    import('expo-widgets'),
+  const [qrImageUri, { default: VCProsCardWidget }] = await Promise.all([
+    writeWidgetQrImage(qrSvg, 'vcpros-card-qr.png'),
     import('@/widgets/VCProsCardWidget'),
   ]);
-  const qrFile = new File(widgetsDirectory, 'vcpros-card-qr.png');
-  qrFile.write(bytes);
   VCProsCardWidget.updateSnapshot({
     cardName: cardName || 'My VC Card',
-    qrImageUri: qrFile.uri,
+    qrImageUri,
     shareUrl,
   });
   return 'ready';

@@ -19,7 +19,7 @@ export const TAGLINE_FIELD: AddCardTextFieldConfig = {
   id: 'tagline',
   label: 'Tag',
   placeholder: 'e.g. Building thoughtful digital products',
-  maxLength: 60,
+  maxLength: 50,
   autoCapitalize: 'sentences',
 };
 

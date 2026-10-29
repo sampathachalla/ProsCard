@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Linking, Platform, Share } from 'react-native';
+import { Alert, AppState, Linking, Platform, Share } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -8,13 +8,20 @@ import { useCards } from '@/pages/cards/Hooks/useCards';
 import { useProfileSnapshot } from '@/pages/profile/Hooks/useProfileSnapshot';
 import { useAddToWallet } from '@/pages/walletCard/Hooks/useAddToWallet';
 import {
+  DEFAULT_QR_CUSTOMIZATION,
   QR_CUSTOMIZATION_PRESETS,
-  QR_PRESET_STORAGE_KEY,
+  QR_CUSTOMIZATION_STORAGE_KEY,
 } from '../Config/shareActionsConfig';
 import { saveOrShareQrCodePng, type QrSvgRef } from '../Services/qrExportService';
 import { prepareHomeScreenWidget } from '../Services/homeScreenWidgetService';
+import {
+  isCardLiveActivityRunning,
+  startCardLiveActivity,
+  stopCardLiveActivity,
+} from '../Services/liveActivityService';
 import type {
   QrCustomizationPreset,
+  QrCustomization,
   ShareActionId,
   ShareGuideModalKind,
 } from '../types/share.types';
@@ -38,7 +45,8 @@ export function useSharePageController() {
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const [guideModal, setGuideModal] = useState<ShareGuideModalKind>(null);
   const [copiedLink, setCopiedLink] = useState(false);
-  const [qrPresetId, setQrPresetId] = useState<string>(QR_CUSTOMIZATION_PRESETS[0].id);
+  const [qrCustomization, setQrCustomization] = useState<QrCustomization>(DEFAULT_QR_CUSTOMIZATION);
+  const [liveActivityActive, setLiveActivityActive] = useState(false);
 
   const qrSvgRef = useRef<QrSvgRef | null>(null);
   const router = useRouter();
@@ -53,38 +61,82 @@ export function useSharePageController() {
     const guide = params.guide;
     const frame = requestAnimationFrame(() => {
       if (index >= 0) setCardIndex(index);
-      if (guide === 'lockscreen' || guide === 'homescreen' || guide === 'wallet') setGuideModal(guide);
+      if (guide === 'lockscreen' || guide === 'homescreen' || guide === 'wallet' || guide === 'liveactivity') {
+        setGuideModal(guide);
+      }
       router.setParams({ cardId: undefined, guide: undefined });
     });
     return () => cancelAnimationFrame(frame);
   }, [cards, params.cardId, params.guide, router]);
 
+  // The system can end a Live Activity on its own (after 8 hours, or from the Lock Screen),
+  // so re-check whenever the app comes back to the foreground.
   useEffect(() => {
-    AsyncStorage.getItem(QR_PRESET_STORAGE_KEY)
-      .then((savedId) => {
-        if (savedId && QR_CUSTOMIZATION_PRESETS.some((p) => p.id === savedId)) {
-          setQrPresetId(savedId);
-        }
-      })
-      .catch(() => {});
+    const refresh = () => {
+      isCardLiveActivityRunning().then(setLiveActivityActive).catch(() => {});
+    };
+    refresh();
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') refresh();
+    });
+    return () => subscription.remove();
   }, []);
-
-  const selectQrPreset = useCallback((presetId: string) => {
-    Haptics.selectionAsync().catch(() => {});
-    setQrPresetId(presetId);
-    AsyncStorage.setItem(QR_PRESET_STORAGE_KEY, presetId).catch(() => {});
-  }, []);
-
-  const activeQrPreset: QrCustomizationPreset = useMemo(
-    () =>
-      QR_CUSTOMIZATION_PRESETS.find((p) => p.id === qrPresetId) ??
-      QR_CUSTOMIZATION_PRESETS[0],
-    [qrPresetId],
-  );
 
   const boundedIndex = cards.length > 0 ? Math.min(cardIndex, cards.length - 1) : 0;
   const card = cards[boundedIndex];
+
+  useEffect(() => {
+    if (!card?.id) {
+      setQrCustomization(DEFAULT_QR_CUSTOMIZATION);
+      return;
+    }
+    let cancelled = false;
+    setQrCustomization(DEFAULT_QR_CUSTOMIZATION);
+    AsyncStorage.getItem(QR_CUSTOMIZATION_STORAGE_KEY)
+      .then((raw) => {
+        const saved = raw ? JSON.parse(raw) as Record<string, Partial<QrCustomization>> : {};
+        if (!cancelled) setQrCustomization({ ...DEFAULT_QR_CUSTOMIZATION, ...(saved[card.id] ?? {}) });
+      })
+      .catch(() => { if (!cancelled) setQrCustomization(DEFAULT_QR_CUSTOMIZATION); });
+    return () => { cancelled = true; };
+  }, [card?.id]);
+
+  const updateQrCustomization = useCallback((patch: Partial<QrCustomization>) => {
+    Haptics.selectionAsync().catch(() => {});
+    setQrCustomization((current) => {
+      const next = { ...current, ...patch };
+      if (card?.id) {
+        AsyncStorage.getItem(QR_CUSTOMIZATION_STORAGE_KEY)
+          .then((raw) => {
+            const saved = raw ? JSON.parse(raw) as Record<string, QrCustomization> : {};
+            saved[card.id] = next;
+            return AsyncStorage.setItem(QR_CUSTOMIZATION_STORAGE_KEY, JSON.stringify(saved));
+          })
+          .catch(() => {});
+      }
+      return next;
+    });
+  }, [card?.id]);
+
+  const activeQrPreset: QrCustomizationPreset = useMemo(
+    () => card?.appliedTheme ? {
+      id: 'card-theme',
+      label: 'Card theme',
+      foregroundColor: card.appliedTheme.textColor,
+      // Logo-generated themes guarantee readable text on their surface color.
+      // Reuse that tested pair for the QR instead of guessing from the gradient.
+      backgroundColor: card.appliedTheme.surfaceColor,
+      accentColor: card.appliedTheme.accentColor,
+    } : QR_CUSTOMIZATION_PRESETS.find((p) => p.id === qrCustomization.presetId) ?? QR_CUSTOMIZATION_PRESETS[0],
+    [card?.appliedTheme, qrCustomization.presetId],
+  );
+
   const centerLogoUrl = card?.sectionOverrides.logo?.trim() || profile.companyLogoUrl?.trim() || '';
+  const centerLogoBackground = card?.sectionOverrides.logoBackdrop?.trim()
+    || card?.appliedTheme?.surfaceColor?.trim()
+    || undefined;
+  const centerLogoBorderColor = card?.appliedTheme?.accentColor?.trim()
+    || activeQrPreset.accentColor;
   const share = useShareUrl(card?.id ?? null);
   const wallet = useAddToWallet();
 
@@ -146,13 +198,14 @@ export function useSharePageController() {
           cardName,
           shareUrl: url,
           dialogTitle,
+          format: qrCustomization.exportFormat,
         });
       });
     },
-    [requireCardAndUrl],
+    [qrCustomization.exportFormat, requireCardAndUrl],
   );
 
-  const handlePrepareHomeScreenWidget = useCallback(async () => {
+  const handlePrepareHomeScreenWidget = useCallback(async (target: 'homescreen' | 'lockscreen' = 'homescreen') => {
     if (!card || !shareUrl) {
       Alert.alert('Widget unavailable', shareError ?? 'Wait for your card link, then try again.');
       return;
@@ -174,6 +227,13 @@ export function useSharePageController() {
         Alert.alert('Not supported', 'Home-screen widgets are available on iPhone and Android.');
         return;
       }
+      if (target === 'lockscreen') {
+        Alert.alert(
+          'Lock Screen widget is ready',
+          'Touch and hold your Lock Screen, tap Customize, choose Lock Screen, tap the widget area below the clock, then choose VC Pros QR Card.',
+        );
+        return;
+      }
       Alert.alert(
         'Widget is ready',
         Platform.OS === 'ios'
@@ -187,6 +247,56 @@ export function useSharePageController() {
       );
     }
   }, [card, profile.fullName, shareError, shareUrl]);
+
+  const handleStartLiveActivity = useCallback(async () => {
+    if (!card || !shareUrl) {
+      Alert.alert('Live Activity unavailable', shareError ?? 'Wait for your card link, then try again.');
+      return;
+    }
+    try {
+      const result = await startCardLiveActivity({
+        cardName: card.name || profile.fullName || 'My VC Card',
+        qrSvg: qrSvgRef.current,
+        shareUrl,
+      });
+      if (result === 'requires-native-build') {
+        Alert.alert(
+          'Native build required',
+          'Live Activities are not available in Expo Go. Install the next VC Pros TestFlight build to use this feature.',
+        );
+        return;
+      }
+      if (result === 'unsupported') {
+        Alert.alert('Not supported', 'Live Activities are available on iPhone only.');
+        return;
+      }
+      setLiveActivityActive(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      Alert.alert(
+        result === 'updated' ? 'Live Activity updated' : 'Live Activity started',
+        'Your QR is now on the Lock Screen and in the Dynamic Island. iOS ends it automatically after about 8 hours.',
+      );
+    } catch (error) {
+      Alert.alert(
+        'Could not start Live Activity',
+        error instanceof Error
+          ? `${error.message}\n\nCheck Settings → VC Pros → Live Activities is turned on.`
+          : 'Try again in a moment.',
+      );
+    }
+  }, [card, profile.fullName, shareError, shareUrl]);
+
+  const handleStopLiveActivity = useCallback(async () => {
+    try {
+      await stopCardLiveActivity();
+      setLiveActivityActive(false);
+    } catch (error) {
+      Alert.alert(
+        'Could not stop Live Activity',
+        error instanceof Error ? error.message : 'Try again in a moment.',
+      );
+    }
+  }, []);
 
   const handleActionPress = useCallback(
     (actionId: ShareActionId) => {
@@ -232,6 +342,15 @@ export function useSharePageController() {
           }
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
           setGuideModal('homescreen');
+          break;
+
+        case 'show_live_activity':
+          if (!card) {
+            Alert.alert('No card yet', 'Create a card on the Cards tab first.');
+            return;
+          }
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+          setGuideModal('liveactivity');
           break;
 
         case 'share_email':
@@ -301,6 +420,8 @@ export function useSharePageController() {
     card,
     cardLabel,
     centerLogoUrl,
+    centerLogoBackground,
+    centerLogoBorderColor,
     boundedIndex,
     setCardIndex,
     pickerOpen,
@@ -318,11 +439,15 @@ export function useSharePageController() {
     guideModal,
     setGuideModal,
     activeQrPreset,
-    selectQrPreset,
+    qrCustomization,
+    updateQrCustomization,
     setQrRef,
     handleActionPress,
     handleExportWalletPass,
     handlePrepareHomeScreenWidget,
     handleSaveQrToPhotos,
+    liveActivityActive,
+    handleStartLiveActivity,
+    handleStopLiveActivity,
   };
 }

@@ -25,6 +25,50 @@ export type CommunityCompanyLogoItem = {
   createdAt?: string;
 };
 
+export type CompanyLogoPickerItem = {
+  id: string;
+  label: string;
+  domain?: string;
+  value: string;
+  source: 'brandfetch' | 'community';
+  isOwn?: boolean;
+};
+
+/** Brandfetch row in the logo picker (API can return more; UI caps display). */
+export const BRAND_LOGO_PICKER_LIMIT = 6;
+/** Community uploads always get their own row so they are not hidden behind Brandfetch. */
+export const COMMUNITY_LOGO_PICKER_LIMIT = 8;
+
+export function partitionCompanyLogoPickerResults(
+  items: CommunityCompanyLogoItem[],
+): { brandfetch: CompanyLogoPickerItem[]; community: CompanyLogoPickerItem[] } {
+  const seen = new Set<string>();
+  const brandfetch: CompanyLogoPickerItem[] = [];
+  const community: CompanyLogoPickerItem[] = [];
+
+  for (const logo of items) {
+    const value = logo.value.trim();
+    if (!value || seen.has(value)) continue;
+    seen.add(value);
+    const source = logo.source === 'brandfetch' ? 'brandfetch' : 'community';
+    const entry: CompanyLogoPickerItem = {
+      id: logo.id,
+      label: logo.name,
+      domain: logo.domain,
+      value,
+      source,
+      isOwn: logo.isOwn,
+    };
+    if (source === 'brandfetch') {
+      if (brandfetch.length < BRAND_LOGO_PICKER_LIMIT) brandfetch.push(entry);
+    } else if (community.length < COMMUNITY_LOGO_PICKER_LIMIT) {
+      community.push(entry);
+    }
+  }
+
+  return { brandfetch, community };
+}
+
 function isSimpleIcon(value: unknown): value is SimpleIcon {
   if (!value || typeof value !== 'object') return false;
   const icon = value as Partial<SimpleIcon>;

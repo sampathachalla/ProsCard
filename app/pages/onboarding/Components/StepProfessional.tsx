@@ -70,7 +70,7 @@ export function StepProfessional({ draft, updateDraft, errors }: StepProfessiona
         <OptionalFieldsDisclosure
           labelCollapsed="Add department, website, address, bio"
           labelExpanded="Hide additional contact details"
-          hint="You can complete these later in Profile"
+          hint="You can complete these later in Account details"
         >
           <OnboardingFormField
             label="Department"

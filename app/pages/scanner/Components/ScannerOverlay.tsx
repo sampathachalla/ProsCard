@@ -18,6 +18,7 @@ type ScannerOverlayProps = {
   imageAspectRatio?: number;
   /** Distance of the hint from the bottom of the overlay; it sits under the frame when omitted. */
   hintBottom?: number;
+  showHint?: boolean;
 };
 
 /** Business-card proportions, used for the guide when no photo is shown. */
@@ -39,6 +40,7 @@ export function ScannerOverlay({
   showFrame = true,
   imageAspectRatio,
   hintBottom,
+  showHint = true,
 }: ScannerOverlayProps) {
   const [scanProgress] = useState(() => new Animated.Value(0));
   const [container, setContainer] = useState<Size | null>(null);
@@ -107,11 +109,13 @@ export function ScannerOverlay({
           {(isActive || isProcessing) && <Animated.View style={[styles.scanLine, scanLineStyle]} />}
         </View>
       )}
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.hint, hintBottom != null && { position: 'absolute', bottom: hintBottom }]}>
-        {isProcessing
-          ? processingHint ?? 'Reading card details…'
-          : hintText ?? (showFrame ? 'Fit the whole card inside the guides' : 'Point the camera at a business card')}
-      </Text>
+      {showHint ? (
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.hint, hintBottom != null && { position: 'absolute', bottom: hintBottom }]}>
+          {isProcessing
+            ? processingHint ?? 'Reading card details…'
+            : hintText ?? (showFrame ? 'Fit the whole card inside the guides' : 'Point the camera at a business card')}
+        </Text>
+      ) : null}
     </View>
   );
 }

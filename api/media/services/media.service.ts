@@ -256,6 +256,20 @@ export class MediaService {
     return this.storage.createDownloadUrl(row.object_name);
   }
 
+  async listUserLibrary(userId: string, kind?: ProfileMediaKind) {
+    const rows = await this.repo.listUserLibrary(userId, kind);
+    return {
+      items: rows.map((row) => ({
+        mediaId: row.id,
+        kind: row.kind as ProfileMediaKind,
+        contentUrl: `/api/v1/media/${row.id}/content`,
+        originalName: row.original_name,
+        createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at),
+        inUse: Boolean(row.in_use),
+      })),
+    };
+  }
+
   async listCompanyLogos(userId: string, query?: string) {
     const cleanQuery = (query ?? '').trim();
 

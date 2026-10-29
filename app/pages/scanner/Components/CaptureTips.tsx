@@ -1,7 +1,7 @@
 // pages/scanner/Components/CaptureTips.tsx
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Contrast, QrCode, Scan, Smartphone, Sun, type LucideIcon } from 'lucide-react-native';
+import { Contrast, IdCard, QrCode, Scan, Smartphone, Sun, type LucideIcon } from 'lucide-react-native';
 import Animated, { FadeIn, FadeInDown, FadeOut, FadeOutUp } from 'react-native-reanimated';
 import { Colors } from '@/constants/Colors';
 
@@ -16,17 +16,29 @@ export const CAPTURE_TIPS: CaptureTip[] = [
   { id: 'qr', icon: QrCode, text: 'Got a VC Pros QR? Just point the camera at it' },
 ];
 
+export const BADGE_CAPTURE_TIPS: CaptureTip[] = [
+  { id: 'light', icon: Sun, text: 'Bright, even light helps read the badge text' },
+  { id: 'fill', icon: Scan, text: 'Fill the frame with the badge — name and company visible' },
+  { id: 'steady', icon: Smartphone, text: 'Hold steady for a second, then tap the shutter' },
+  { id: 'event', icon: IdCard, text: 'Enter the event name above before you scan' },
+];
+
 /** Steps through the tips on a timer while `enabled`; `select` jumps to one and restarts the timer. */
-export function useCaptureTipCycle(enabled: boolean, intervalMs = 2800) {
+export function useCaptureTipCycle(enabled: boolean, tips: CaptureTip[] = CAPTURE_TIPS, intervalMs = 3200) {
   const [index, setIndex] = useState(0);
+  const tipCount = tips.length;
 
   useEffect(() => {
     if (!enabled) return;
-    const timer = setInterval(() => setIndex((current) => (current + 1) % CAPTURE_TIPS.length), intervalMs);
+    const timer = setInterval(() => setIndex((current) => (current + 1) % tipCount), intervalMs);
     return () => clearInterval(timer);
-  }, [enabled, index, intervalMs]);
+  }, [enabled, intervalMs, tipCount]);
 
-  return { index, tip: CAPTURE_TIPS[index]!, select: setIndex };
+  useEffect(() => {
+    if (index >= tipCount) setIndex(0);
+  }, [index, tipCount]);
+
+  return { index, tip: tips[index]!, select: setIndex, tips };
 }
 
 /** The tip's icon, cross-fading whenever the tip changes. */
@@ -40,8 +52,16 @@ export function CaptureTipIcon({ tip, size = 34, color = Colors.palette.brandCya
 }
 
 /** One-line tip text with step dots; tapping a dot shows that tip. */
-export function CaptureTipCaption({ index, onSelect }: { index: number; onSelect?: (index: number) => void }) {
-  const tip = CAPTURE_TIPS[index]!;
+export function CaptureTipCaption({
+  index,
+  onSelect,
+  tips = CAPTURE_TIPS,
+}: {
+  index: number;
+  onSelect?: (index: number) => void;
+  tips?: CaptureTip[];
+}) {
+  const tip = tips[index] ?? tips[0]!;
   return (
     <View style={styles.caption}>
       <View style={styles.textSlot}>
@@ -57,18 +77,18 @@ export function CaptureTipCaption({ index, onSelect }: { index: number; onSelect
         </Animated.Text>
       </View>
       <View style={styles.dots}>
-        {CAPTURE_TIPS.map((item, dotIndex) => (
+        {tips.map((item, dotIndex) => (
           <Pressable
             key={item.id}
             accessibilityRole="button"
-            accessibilityLabel={`Tip ${dotIndex + 1} of ${CAPTURE_TIPS.length}`}
+            accessibilityLabel={`Tip ${dotIndex + 1} of ${tips.length}`}
             hitSlop={8}
             onPress={() => onSelect?.(dotIndex)}
             style={[styles.dot, dotIndex === index && styles.dotActive]}
           />
         ))}
       </View>
-      <Text style={styles.step}>{`TIP ${index + 1} OF ${CAPTURE_TIPS.length}`}</Text>
+      <Text style={styles.step}>{`TIP ${index + 1} OF ${tips.length}`}</Text>
     </View>
   );
 }

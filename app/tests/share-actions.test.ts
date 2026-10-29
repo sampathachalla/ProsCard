@@ -7,7 +7,7 @@ const { saveToLibraryAsync, requestPermissionsAsync, shareAsync } = vi.hoisted((
   shareAsync: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock('expo-media-library', () => ({
+vi.mock('expo-media-library/legacy', () => ({
   requestPermissionsAsync,
   saveToLibraryAsync,
 }));
@@ -41,13 +41,14 @@ import {
 } from '@/pages/share/Utils/shareFormatters';
 
 describe('share-page shipping contract', () => {
-  it('exposes all 13 unique actions in the approved order', () => {
+  it('exposes all 14 unique actions in the approved order', () => {
     expect(SHARE_ACTION_IDS).toEqual([
       'share_card',
       'copy_link',
       'add_to_wallet',
       'add_qr_lockscreen',
       'add_qr_homescreen',
+      'show_live_activity',
       'share_email',
       'share_namedrop',
       'share_linkedin',
@@ -57,7 +58,7 @@ describe('share-page shipping contract', () => {
       'save_qr_photos',
       'customize_qr',
     ]);
-    expect(new Set(SHARE_ACTION_IDS).size).toBe(13);
+    expect(new Set(SHARE_ACTION_IDS).size).toBe(14);
   });
 
   it('builds valid destinations for every dedicated share channel', () => {
@@ -75,7 +76,10 @@ describe('share-page shipping contract', () => {
     const png = globalThis.btoa('png-bytes');
 
     await saveOrShareQrCodePng({
-      qrSvg: { toDataURL: (callback) => callback(png) },
+      qrSvg: {
+        capturePngUri: async () => 'file:///cache/sampath-qr.png',
+        toDataURL: (callback) => callback(`data:image/png;base64,${png}`),
+      },
       cardName: 'Sampath',
       shareUrl: 'https://vcpros.example/share/card-1',
     });

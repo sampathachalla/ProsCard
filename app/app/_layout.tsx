@@ -61,6 +61,13 @@ function ThemedLayoutWrapper() {
               presentation: 'card',
             }}
           />
+          <Stack.Screen
+            name="media-library"
+            options={{
+              animation: 'slide_from_right',
+              presentation: 'card',
+            }}
+          />
           <Stack.Screen name="contacts/new" />
           <Stack.Screen name="contacts/new-badge" />
           <Stack.Screen name="badge-scanner" />

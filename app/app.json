@@ -9,6 +9,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mindpros.proscard",
+      "appleTeamId": "64XX38YG83",
       "config": {
         "usesNonExemptEncryption": false
       }
@@ -80,11 +81,13 @@
             {
               "name": "VCProsCardWidget",
               "displayName": "VC Pros QR Card",
-              "description": "Keep your VC Pros card QR code ready on your home screen.",
+              "description": "Keep your VC Pros card QR code ready on your Home Screen and Lock Screen.",
               "ios": {
                 "supportedFamilies": [
                   "systemSmall",
-                  "systemMedium"
+                  "systemMedium",
+                  "accessoryCircular",
+                  "accessoryRectangular"
                 ],
                 "contentMarginsDisabled": true
               },

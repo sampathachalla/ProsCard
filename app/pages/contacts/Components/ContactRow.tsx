@@ -1,7 +1,8 @@
 // pages/contacts/Components/ContactRow.tsx
 import { View, Text, TouchableOpacity, Alert, Linking } from 'react-native';
-import { Check, Phone } from 'lucide-react-native';
+import { Check, CreditCard, IdCard, Phone } from 'lucide-react-native';
 import { Colors } from '@/constants/Colors';
+import { useThemeContext } from '@/context/ThemeContext';
 import { MediaImage } from '@/common/ui/MediaImage';
 import type { Contact } from '../types/contact.types';
 import { isBadgeContact } from '../Utils/contactFilters';
@@ -23,8 +24,11 @@ export function ContactRow({
   onPress,
   onDelete,
 }: ContactRowProps) {
+  const { theme } = useThemeContext();
+  const isDark = theme === 'dark';
+  const isBadge = isBadgeContact(contact);
   const subtitleParts = [contact.title, contact.company].filter(Boolean);
-  if (isBadgeContact(contact) && contact.eventName?.trim()) {
+  if (isBadge && contact.eventName?.trim()) {
     subtitleParts.push(contact.eventName.trim());
   }
   const subtitle = subtitleParts.join(' · ');
@@ -75,7 +79,7 @@ export function ContactRow({
       ) : null}
       <TouchableOpacity
         accessibilityRole="button"
-        accessibilityLabel={subtitle ? `${contact.name}, ${subtitle}` : contact.name}
+        accessibilityLabel={subtitle ? `${contact.name}, ${isBadge ? 'Event badge' : 'Business card'}, ${subtitle}` : `${contact.name}, ${isBadge ? 'Event badge' : 'Business card'}`}
         className="flex-1 flex-row items-center"
         accessibilityHint={
           selectionMode
@@ -87,27 +91,74 @@ export function ContactRow({
         onPress={open}
         onLongPress={selectionMode ? undefined : confirmDelete}
       >
-        {contact.cardImageUrl ? (
-          <MediaImage
-            sourceUrl={contact.cardImageUrl}
-            accessibilityLabel={`${contact.name}'s business card`}
-            contentFit="cover"
-            style={{ width: 64, height: 40, borderRadius: 8, marginRight: 16, backgroundColor: contact.color }}
-          />
-        ) : (
+        <View className="relative mr-3.5">
+          {contact.cardImageUrl ? (
+            <MediaImage
+              sourceUrl={contact.cardImageUrl}
+              accessibilityLabel={`${contact.name}'s ${isBadge ? 'event badge' : 'business card'}`}
+              contentFit="cover"
+              style={{ width: 64, height: 40, borderRadius: 8, backgroundColor: contact.color }}
+            />
+          ) : (
+            <View
+              className="w-12 h-12 rounded-full items-center justify-center"
+              style={{ backgroundColor: contact.color }}
+            >
+              <Text className="text-white font-bold">{contact.initials}</Text>
+            </View>
+          )}
           <View
-            className="w-12 h-12 rounded-full items-center justify-center mr-4"
-            style={{ backgroundColor: contact.color }}
+            className={`absolute -bottom-1 -right-1 h-5 w-5 items-center justify-center rounded-full border-2 border-card shadow-sm dark:border-dark-card ${
+              isBadge
+                ? 'bg-teal-600 dark:bg-teal-500'
+                : 'bg-primary dark:bg-dark-primary'
+            }`}
           >
-            <Text className="text-white font-bold">{contact.initials}</Text>
+            {isBadge ? (
+              <IdCard color="#ffffff" size={10} strokeWidth={2.4} />
+            ) : (
+              <CreditCard color="#ffffff" size={10} strokeWidth={2.4} />
+            )}
           </View>
-        )}
+        </View>
+
         <View className="flex-1">
-          <Text className="text-textPrimary dark:text-dark-textPrimary font-semibold">
-            {contact.name}
-          </Text>
+          <View className="flex-row items-center gap-1.5">
+            <Text
+              className="text-textPrimary dark:text-dark-textPrimary font-semibold flex-shrink"
+              numberOfLines={1}
+            >
+              {contact.name}
+            </Text>
+            <View
+              className={`flex-row items-center rounded-md px-1.5 py-0.5 ${
+                isBadge
+                  ? 'bg-teal-500/15 dark:bg-teal-400/20'
+                  : 'bg-primary/10 dark:bg-primary/20'
+              }`}
+            >
+              {isBadge ? (
+                <>
+                  <IdCard color={isDark ? '#2dd4bf' : '#0d9488'} size={10} strokeWidth={2.4} />
+                  <Text className="ml-1 text-[10px] font-bold text-teal-700 dark:text-teal-300">
+                    Badge
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <CreditCard color={isDark ? '#60a5fa' : '#2563eb'} size={10} strokeWidth={2.4} />
+                  <Text className="ml-1 text-[10px] font-bold text-primary dark:text-dark-primary">
+                    Card
+                  </Text>
+                </>
+              )}
+            </View>
+          </View>
           {subtitle ? (
-            <Text className="text-textMuted dark:text-dark-textMuted text-xs mt-0.5">
+            <Text
+              className="text-textMuted dark:text-dark-textMuted text-xs mt-0.5"
+              numberOfLines={2}
+            >
               {subtitle}
             </Text>
           ) : null}

@@ -3,6 +3,7 @@ import { Modal, Platform, Pressable, ScrollView, Share, View } from 'react-nativ
 import {
   LayoutGrid,
   Lock,
+  PanelTop,
   Smartphone,
   Wallet,
   X,
@@ -20,8 +21,11 @@ export interface ShareFeatureGuideModalProps {
   shareUrl: string;
   onClose: () => void;
   onExportWalletPass: () => void;
-  onPrepareHomeScreenWidget: () => void | Promise<void>;
+  onPrepareHomeScreenWidget: (target?: 'homescreen' | 'lockscreen') => void | Promise<void>;
   onSaveQrImage: (dialogTitle?: string) => void;
+  liveActivityActive?: boolean;
+  onStartLiveActivity: () => void | Promise<void>;
+  onStopLiveActivity: () => void | Promise<void>;
 }
 
 interface GuideCopy {
@@ -30,6 +34,7 @@ interface GuideCopy {
   icon: LucideIcon;
   steps: string[];
   primaryLabel: string;
+  secondaryLabel?: string;
 }
 
 const GUIDE_CONTENT: Record<Exclude<ShareGuideModalKind, null>, GuideCopy> = {
@@ -44,7 +49,20 @@ const GUIDE_CONTENT: Record<Exclude<ShareGuideModalKind, null>, GuideCopy> = {
     ],
     primaryLabel: 'Add to Wallet',
   },
-  lockscreen: {
+  lockscreen: Platform.OS === 'ios'
+    ? {
+        title: 'Add QR to lockscreen',
+        subtitle: 'Put your VC Pros QR widget right below the clock on your Lock Screen.',
+        icon: Lock,
+        steps: [
+          'Tap "Prepare Lock Screen Widget" below to sync your QR to the widget.',
+          'Touch and hold your Lock Screen, tap Customize, then choose Lock Screen.',
+          'Tap the widget area below the clock and choose VC Pros QR Card.',
+        ],
+        primaryLabel: 'Prepare Lock Screen Widget',
+        secondaryLabel: 'Save QR to Photos for wallpaper',
+      }
+    : {
     title: 'Add QR to lockscreen',
     subtitle: 'Let anyone scan your VC Pros card right from your lock screen.',
     icon: Lock,
@@ -54,6 +72,17 @@ const GUIDE_CONTENT: Record<Exclude<ShareGuideModalKind, null>, GuideCopy> = {
       'Select your saved QR image or add a Lock Screen photo widget.',
     ],
     primaryLabel: 'Save QR for Lockscreen',
+  },
+  liveactivity: {
+    title: 'Show in Dynamic Island',
+    subtitle: 'Pin a full-size, scannable QR to your Lock Screen and Dynamic Island as a Live Activity.',
+    icon: PanelTop,
+    steps: [
+      'Tap "Start Live Activity" below to pin this card’s QR.',
+      'Lock your phone: the QR banner appears on the Lock Screen, ready to scan.',
+      'Long-press the Dynamic Island to expand the QR. iOS ends it after about 8 hours.',
+    ],
+    primaryLabel: 'Start Live Activity',
   },
   homescreen: {
     title: 'Add VC Pros to your Home Screen',
@@ -87,6 +116,9 @@ export function ShareFeatureGuideModal({
   onExportWalletPass,
   onPrepareHomeScreenWidget,
   onSaveQrImage,
+  liveActivityActive = false,
+  onStartLiveActivity,
+  onStopLiveActivity,
 }: ShareFeatureGuideModalProps) {
   const { theme } = useThemeContext();
   const isDark = theme === 'dark';
@@ -95,6 +127,12 @@ export function ShareFeatureGuideModal({
   if (!kind) return null;
   const content = GUIDE_CONTENT[kind];
   const Icon = content.icon;
+  const primaryLabel = kind === 'liveactivity' && liveActivityActive
+    ? 'Update Live Activity'
+    : content.primaryLabel;
+  const secondaryLabel = kind === 'liveactivity' && liveActivityActive
+    ? 'Stop Live Activity'
+    : content.secondaryLabel;
 
   const handlePrimaryAction = () => {
     onClose();
@@ -103,7 +141,15 @@ export function ShareFeatureGuideModal({
       return;
     }
     if (kind === 'lockscreen') {
+      if (Platform.OS === 'ios') {
+        void onPrepareHomeScreenWidget('lockscreen');
+        return;
+      }
       onSaveQrImage('Save QR for Lockscreen');
+      return;
+    }
+    if (kind === 'liveactivity') {
+      void onStartLiveActivity();
       return;
     }
     if (kind === 'homescreen') {
@@ -116,6 +162,17 @@ export function ShareFeatureGuideModal({
         url: Platform.OS === 'ios' ? shareUrl : undefined,
         title: `${cardName || 'VC Pros'} | NameDrop`,
       });
+    }
+  };
+
+  const handleSecondaryAction = () => {
+    onClose();
+    if (kind === 'lockscreen') {
+      onSaveQrImage('Save QR for Lockscreen');
+      return;
+    }
+    if (kind === 'liveactivity') {
+      void onStopLiveActivity();
     }
   };
 
@@ -280,14 +337,27 @@ export function ShareFeatureGuideModal({
           {/* Primary Action Button */}
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={content.primaryLabel}
+            accessibilityLabel={primaryLabel}
             onPress={handlePrimaryAction}
             className="mt-5 min-h-[50px] items-center justify-center rounded-xl bg-primary px-4 py-3 active:opacity-90 dark:bg-[#2563eb]"
           >
             <Text variant="none" className="text-[15px] font-semibold text-white">
-              {content.primaryLabel}
+              {primaryLabel}
             </Text>
           </Pressable>
+
+          {secondaryLabel ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={secondaryLabel}
+              onPress={handleSecondaryAction}
+              className="mt-2.5 min-h-[46px] items-center justify-center rounded-xl border border-slate-200 px-4 py-3 active:opacity-80 dark:border-slate-700"
+            >
+              <Text variant="none" className="text-[15px] font-semibold text-textPrimary dark:text-dark-textPrimary">
+                {secondaryLabel}
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
       </View>
     </Modal>

@@ -3,6 +3,7 @@ import { ActivityIndicator, Alert, Pressable, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Building2, ImagePlus, UserRound } from 'lucide-react-native';
+import { CardMediaPickerModal } from '@/common/ui/CardMediaPickerModal';
 import { CompanyLogoPickerModal } from '@/common/ui/CompanyLogoPickerModal';
 import { MediaImage } from '@/common/ui/MediaImage';
 import { Text } from '@/common/ui/Text';
@@ -32,6 +33,7 @@ type Props = {
 export function CardMediaHeader({ coverPhoto, profilePhoto, logo, logoBackdrop, gradient, onChange, onAutoThemeFromLogo, onPaletteExtracted }: Props) {
   const [busyField, setBusyField] = useState<AddCardImageField | null>(null);
   const [logoModalVisible, setLogoModalVisible] = useState(false);
+  const [mediaPickerField, setMediaPickerField] = useState<'coverPhoto' | 'profilePhoto' | null>(null);
   const [pendingAsset, setPendingAsset] = useState<PickedImage | null>(null);
   const [pendingField, setPendingField] = useState<AddCardImageField | null>(null);
 
@@ -87,30 +89,16 @@ export function CardMediaHeader({ coverPhoto, profilePhoto, logo, logoBackdrop, 
     }
   };
 
-  const chooseSource = (field: AddCardImageField) => {
-    Alert.alert(`Add ${IMAGE_LABELS[field]}`, 'Choose a photo source.', [
-      { text: 'Take Photo', onPress: () => { void pick(field, 'camera'); } },
-      { text: 'Photo Library', onPress: () => { void pick(field, 'library'); } },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+  const openPicker = (field: 'coverPhoto' | 'profilePhoto') => {
+    if (busyField) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    setMediaPickerField(field);
   };
 
-  const edit = (field: AddCardImageField, current: string) => {
+  const openLogoPicker = () => {
     if (busyField) return;
-    if (field === 'logo') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-      setLogoModalVisible(true);
-      return;
-    }
-    if (!current.trim()) {
-      chooseSource(field);
-      return;
-    }
-    Alert.alert(IMAGE_LABELS[field], undefined, [
-      { text: 'Replace', onPress: () => chooseSource(field) },
-      { text: 'Remove', style: 'destructive', onPress: () => onChange(field, '') },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    setLogoModalVisible(true);
   };
 
   return (
@@ -118,7 +106,7 @@ export function CardMediaHeader({ coverPhoto, profilePhoto, logo, logoBackdrop, 
       <Pressable
         accessibilityLabel={coverPhoto ? 'Change cover photo' : 'Add cover photo'}
         accessibilityRole="button"
-        onPress={() => edit('coverPhoto', coverPhoto)}
+        onPress={() => openPicker('coverPhoto')}
         className="h-36 w-full active:opacity-90"
       >
         {coverPhoto ? (
@@ -145,7 +133,7 @@ export function CardMediaHeader({ coverPhoto, profilePhoto, logo, logoBackdrop, 
           value={profilePhoto}
           busy={busyField === 'profilePhoto'}
           round
-          onPress={() => edit('profilePhoto', profilePhoto)}
+          onPress={() => openPicker('profilePhoto')}
         />
         <MediaSlot
           field="logo"
@@ -153,9 +141,36 @@ export function CardMediaHeader({ coverPhoto, profilePhoto, logo, logoBackdrop, 
           value={logo}
           backdropColor={logoBackdrop}
           busy={busyField === 'logo'}
-          onPress={() => edit('logo', logo)}
+          onPress={openLogoPicker}
         />
       </View>
+
+      <CardMediaPickerModal
+        visible={mediaPickerField !== null}
+        field={mediaPickerField ?? 'coverPhoto'}
+        currentValue={mediaPickerField === 'coverPhoto' ? coverPhoto : profilePhoto}
+        onClose={() => setMediaPickerField(null)}
+        onSelectMedia={(url) => {
+          if (mediaPickerField) {
+            onChange(mediaPickerField, url);
+          }
+        }}
+        onTakePhoto={() => {
+          if (mediaPickerField) {
+            void pick(mediaPickerField, 'camera');
+          }
+        }}
+        onPickFromDeviceLibrary={() => {
+          if (mediaPickerField) {
+            void pick(mediaPickerField, 'library');
+          }
+        }}
+        onRemove={() => {
+          if (mediaPickerField) {
+            onChange(mediaPickerField, '');
+          }
+        }}
+      />
 
       <CompanyLogoPickerModal
         visible={logoModalVisible}
@@ -179,7 +194,9 @@ export function CardMediaHeader({ coverPhoto, profilePhoto, logo, logoBackdrop, 
             }
           }
         }}
-        onUploadFromDevice={() => chooseSource('logo')}
+        onUploadFromDevice={() => {
+          void pick('logo', 'library');
+        }}
         onRemoveLogo={logo.trim() ? () => onChange('logo', '') : undefined}
       />
       <PhotoAdjustmentModal

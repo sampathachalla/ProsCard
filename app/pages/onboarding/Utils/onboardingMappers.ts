@@ -101,7 +101,12 @@ export function mapDraftToBusinessCard(
       ...DEFAULT_CARD_SECTION_LAYOUTS,
       ...(existingCard?.sectionLayouts ?? {}),
     },
-    sectionOverrides: existingCard?.sectionOverrides ?? {},
+    sectionOverrides: {
+      coverPhoto: draft.coverPhotoUrl ?? '',
+      profilePhoto: draft.photoUrl ?? '',
+      logo: draft.companyLogoUrl ?? '',
+      ...(existingCard?.sectionOverrides ?? {}),
+    },
     connectionFields: existingCard?.connectionFields ?? [],
     connectionFieldsCustomized: existingCard?.connectionFieldsCustomized ?? false,
     cardTheme,

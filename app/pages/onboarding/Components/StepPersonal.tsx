@@ -39,7 +39,7 @@ export function StepPersonal({ draft, updateDraft, errors }: StepPersonalProps) 
         <StepInfoBanner
           icon={BadgeCheck}
           title="Identity"
-          description="Only three fields are required. Additional name details can be added now or later from your profile."
+          description="Only three fields are required. Optional name and tagline details can be added now or later in Account details."
         />
 
         <OnboardingFormField
