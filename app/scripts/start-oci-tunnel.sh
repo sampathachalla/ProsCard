@@ -56,9 +56,16 @@ if [[ "${TUNNEL_API}" == 1 ]]; then
   REMOTE_PORTS="${REMOTE_PORTS} ${API_PORT}/tcp"
 fi
 
+REUSE_METRO=0
 if curl -fsS -m 2 "http://127.0.0.1:${METRO_PORT}/status" >/dev/null 2>&1; then
-  print -u2 "Something is already serving port ${METRO_PORT} (another Metro or start-cellular-tunnels.sh). Stop it first."
-  exit 1
+  METRO_HEADERS="$(curl -sSI -m 2 "http://127.0.0.1:${METRO_PORT}/status" 2>/dev/null || true)"
+  if print -r -- "${METRO_HEADERS}" | grep -Fqi "X-React-Native-Project-Root: ${APP_DIRECTORY}"; then
+    REUSE_METRO=1
+    print "Reusing the healthy VC Pros Metro process on port ${METRO_PORT}."
+  else
+    print -u2 "Port ${METRO_PORT} belongs to a different project. Stop it before starting the VC Pros tunnel."
+    exit 1
+  fi
 fi
 
 if ! ssh "${SSH_OPTIONS[@]}" "${OCI_USER}@${OCI_HOST}" true 2>/dev/null; then
@@ -140,6 +147,13 @@ print ""
 npx -y qrcode --small "${EXPO_URL}" 2>/dev/null || true
 
 cd "${APP_DIRECTORY}"
+# A launch-agent restart can leave its healthy Metro child alive briefly. Keep
+# the repaired reverse tunnel attached to that process instead of allowing Expo
+# to silently choose 8082, which would make OCI continue proxying the wrong port.
+if [[ "${REUSE_METRO}" == 1 ]]; then
+  wait "${TUNNEL_LOOP_PID}"
+  exit $?
+fi
 # Runs in the foreground so Expo's keys (r = reload, j = debugger) keep working. Ctrl+C stops everything.
 EXPO_PUBLIC_TUNNEL_API_URL="${API_URL}" \
 EXPO_PACKAGER_PROXY_URL="${METRO_URL}" \

@@ -146,7 +146,13 @@ function getContainedArcTargets({
   });
 }
 
-export function FloatingToolsButton({ actions }: FloatingToolsButtonProps) {
+/** The floating wrench launcher was retired; card actions now live in their screen controls. */
+export function FloatingToolsButton(_props: FloatingToolsButtonProps) {
+  return null;
+}
+
+/** Retained internally while the profile quick-tool preferences are migrated away. */
+export function FloatingToolsOverlay({ actions }: FloatingToolsButtonProps) {
   const { theme } = useThemeContext();
   const { enabled, enabledTools, hydrated, position, setPosition } = useFloatingTools();
   const [bounds, setBounds] = useState({ height: 0, width: 0 });
