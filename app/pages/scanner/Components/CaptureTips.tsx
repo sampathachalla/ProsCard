@@ -1,7 +1,7 @@
 // pages/scanner/Components/CaptureTips.tsx
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Contrast, IdCard, QrCode, Scan, Smartphone, Sun, type LucideIcon } from 'lucide-react-native';
+import { Contrast, IdCard, Scan, Smartphone, Sun, type LucideIcon } from 'lucide-react-native';
 import Animated, { FadeIn, FadeInDown, FadeOut, FadeOutUp } from 'react-native-reanimated';
 import { Colors } from '@/constants/Colors';
 
@@ -13,7 +13,6 @@ export const CAPTURE_TIPS: CaptureTip[] = [
   { id: 'surface', icon: Contrast, text: 'Place the card on a plain, contrasting surface' },
   { id: 'angle', icon: Smartphone, text: 'Hold your phone flat, directly above the card' },
   { id: 'corners', icon: Scan, text: 'Keep all four corners in view, then tap the shutter' },
-  { id: 'qr', icon: QrCode, text: 'Got a VC Pros QR? Just point the camera at it' },
 ];
 
 export const BADGE_CAPTURE_TIPS: CaptureTip[] = [

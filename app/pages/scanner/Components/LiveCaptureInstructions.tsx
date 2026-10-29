@@ -1,23 +1,7 @@
-import { StyleSheet, View } from 'react-native';
-import Animated, {
-  Easing,
-  FadeIn,
-  FadeOut,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
-import { useEffect } from 'react';
-import { Colors } from '@/constants/Colors';
-import {
-  BADGE_CAPTURE_TIPS,
-  CAPTURE_TIPS,
-  CaptureTipCaption,
-  CaptureTipIcon,
-  useCaptureTipCycle,
-} from './CaptureTips';
+import { StyleSheet, Text, View } from 'react-native';
+import { IdCard, ScanLine } from 'lucide-react-native';
+
+import { MAX_FONT_SCALE } from '@/common/ui/Text';
 
 type LiveCaptureInstructionsProps = {
   enabled: boolean;
@@ -25,79 +9,56 @@ type LiveCaptureInstructionsProps = {
   bottom: number;
 };
 
-/** Cycling tips and icon animation over the live camera preview. */
+/** Compact guidance that leaves the camera center clear for native live edge detection. */
 export function LiveCaptureInstructions({ enabled, variant, bottom }: LiveCaptureInstructionsProps) {
-  const tipsList = variant === 'badge' ? BADGE_CAPTURE_TIPS : CAPTURE_TIPS;
-  const tips = useCaptureTipCycle(enabled, tipsList);
-  const pulse = useSharedValue(1);
-
-  useEffect(() => {
-    if (!enabled) {
-      pulse.value = 1;
-      return;
-    }
-    pulse.value = withRepeat(
-      withSequence(
-        withTiming(1.06, { duration: 900, easing: Easing.inOut(Easing.quad) }),
-        withTiming(1, { duration: 900, easing: Easing.inOut(Easing.quad) }),
-      ),
-      -1,
-      false,
-    );
-  }, [enabled, pulse]);
-
-  const iconRingStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: pulse.value }],
-  }));
-
   if (!enabled) return null;
 
+  const badge = variant === 'badge';
+  const Icon = badge ? IdCard : ScanLine;
+
   return (
-    <Animated.View
-      entering={FadeIn.duration(220)}
-      exiting={FadeOut.duration(160)}
-      pointerEvents="box-none"
+    <View
+      pointerEvents="none"
       style={[styles.wrap, { bottom }]}
       accessibilityLiveRegion="polite"
     >
-      <View style={styles.panel}>
-        <Animated.View style={[styles.iconRing, iconRingStyle]}>
-          <CaptureTipIcon tip={tips.tip} size={28} />
-        </Animated.View>
-        <CaptureTipCaption index={tips.index} onSelect={tips.select} tips={tipsList} />
+      <View style={styles.pill}>
+        <Icon color="#7DD3FC" size={18} strokeWidth={2} />
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.text} numberOfLines={2}>
+          {badge
+            ? 'Keep the full event badge visible with the name and company clear'
+            : 'Keep the full business card visible — edges are detected automatically'}
+        </Text>
       </View>
-    </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: {
     position: 'absolute',
-    left: 20,
-    right: 20,
+    left: 28,
+    right: 28,
     zIndex: 12,
+    alignItems: 'center',
   },
-  panel: {
+  pill: {
+    maxWidth: 390,
+    flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: 22,
-    backgroundColor: 'rgba(15, 23, 42, 0.78)',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 18,
+    backgroundColor: 'rgba(15, 23, 42, 0.82)',
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.22)',
+    borderColor: 'rgba(148, 163, 184, 0.28)',
   },
-  iconRing: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    overflow: 'hidden',
-    backgroundColor: 'rgba(56, 189, 248, 0.14)',
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.35)',
-    shadowColor: Colors.palette.brandCyan,
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 0 },
+  text: {
+    flexShrink: 1,
+    color: '#F8FAFC',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '600',
   },
 });

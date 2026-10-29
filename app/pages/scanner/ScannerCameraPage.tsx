@@ -308,7 +308,7 @@ export default function ScannerScreen() {
   }
 
   const controlsBottom = Math.max(insets.bottom, 12) + 18;
-  const instructionsBottom = controlsBottom + 108;
+  const instructionsBottom = controlsBottom + 94;
   const showLiveInstructions =
     stage === 'camera' && !capturing && !shooting && (!liveCardDetection || cardState === 'none');
 
@@ -335,11 +335,6 @@ export default function ScannerScreen() {
               </Text>
             </View>
           ) : null}
-          <ScannerOverlay
-            showFrame={showLiveInstructions}
-            showHint={false}
-            isActive={showLiveInstructions}
-          />
         </>
       ) : stage === 'camera' ? (
         <>
@@ -350,11 +345,6 @@ export default function ScannerScreen() {
             active={!capturing}
             barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
             onBarcodeScanned={isActive && !badgeMode ? ({ data }) => processDetectedCode(data) : undefined}
-          />
-          <ScannerOverlay
-            showFrame
-            showHint={false}
-            isActive={showLiveInstructions}
           />
         </>
       ) : photo ? (
