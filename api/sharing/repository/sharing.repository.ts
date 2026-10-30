@@ -46,18 +46,20 @@ export class SharingRepository {
     ).then((r) => r.rows[0] ?? null);
   }
 
+  /** The owner's own media, or a community company logo another user uploaded and the card picked. */
   readyMedia(u: string, id: string) {
     return this.db.query<MediaObject>(
-      `SELECT object_name FROM media WHERE id=$1 AND user_id=$2 AND status='ready'`,
+      `SELECT object_name FROM media WHERE id=$1 AND status='ready' AND (user_id=$2 OR kind='companyLogo')`,
       [id, u],
     ).then((r) => r.rows[0] ?? null);
   }
 
-  /** Batch lookup for share-page image signing (cover + photo + logo in one query). */
+  /** Batch lookup for share-page image signing (cover + photo + logo in one query); includes community logos. */
   readyMediaMany(u: string, ids: string[]) {
     if (!ids.length) return Promise.resolve([] as MediaObjectRow[]);
     return this.db.query<MediaObjectRow>(
-      `SELECT id::text AS id, object_name FROM media WHERE user_id=$1 AND status='ready' AND id = ANY($2::uuid[])`,
+      `SELECT id::text AS id, object_name FROM media
+       WHERE status='ready' AND id = ANY($2::uuid[]) AND (user_id=$1 OR kind='companyLogo')`,
       [u, ids],
     ).then((r) => r.rows);
   }

@@ -19,6 +19,7 @@ function pickErrors(all: ValidationErrors, keys: string[]): ValidationErrors {
 function isOptionalGroup(groupId: OnboardingFlowGroupId): boolean {
   return (
     groupId === 'name_formal' ||
+    groupId === 'focus' ||
     groupId === 'tagline' ||
     groupId === 'contact_phone' ||
     groupId === 'work_logo_website' ||
@@ -60,8 +61,14 @@ export function validateFlowGroup(
         { ...validatePersonalStep(draft), ...validateProfessionalStep(draft) },
         ['title', 'organization', 'accreditations']
       );
+    case 'focus':
+      // Free text capped by the input; nothing to validate.
+      return {};
     case 'tagline':
-      return pickErrors(validatePersonalStep(draft), ['tagline']);
+      return pickErrors(
+        { ...validatePersonalStep(draft), ...validateProfessionalStep(draft) },
+        ['tagline', 'shortBio']
+      );
     case 'contact_email':
       return pickErrors(validateProfessionalStep(draft), [
         'email',

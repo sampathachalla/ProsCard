@@ -37,8 +37,8 @@ describe('onboarding 8-step flow & completion percentage', () => {
       'name_legal',
       'role_company',
       'contact_email',
+      'focus',
       'tagline',
-      'short_bio',
       'presence',
       'social_links',
     ]);
@@ -59,7 +59,8 @@ describe('onboarding 8-step flow & completion percentage', () => {
     expect(flowIndexForField('email')).toBe(3);
     expect(flowIndexForField('phone')).toBe(3);
     expect(flowIndexForField('businessAddress')).toBe(3);
-    expect(flowIndexForField('tagline')).toBe(4);
+    expect(flowIndexForField('focus')).toBe(4);
+    expect(flowIndexForField('tagline')).toBe(5);
     expect(flowIndexForField('shortBio')).toBe(5);
     expect(flowIndexForField('photoUrl')).toBe(6);
     expect(flowIndexForField('companyLogoUrl')).toBe(6);
@@ -113,5 +114,25 @@ describe('onboarding 8-step flow & completion percentage', () => {
 
     const advRes = runAdversarialTests();
     expect(advRes.results.filter((r) => !r.passed)).toEqual([]);
+  });
+});
+
+describe('card saved at the end of onboarding', () => {
+  it('starts as a Personal card with the Personal layouts', async () => {
+    const { mapDraftToBusinessCard } = await import('@/pages/onboarding/Utils/onboardingMappers');
+    const { CARD_TAG_DESIGN_PRESETS } = await import('@/pages/addCard/Config/cardTagDesignPresets');
+    const card = mapDraftToBusinessCard({ ...INITIAL_ONBOARDING_DRAFT, firstName: 'Sam', lastName: 'Patel' });
+    expect(card.sectionOverrides.cardTag).toBe('Personal');
+    expect(card.sectionLayouts).toEqual(CARD_TAG_DESIGN_PRESETS.Personal.layouts);
+  });
+
+  it('keeps the tag and layouts of a card that already has them', async () => {
+    const { mapDraftToBusinessCard } = await import('@/pages/onboarding/Utils/onboardingMappers');
+    const card = mapDraftToBusinessCard(INITIAL_ONBOARDING_DRAFT, {
+      sectionOverrides: { cardTag: 'Networking' },
+      sectionLayouts: { identity: 'layout-5-new', professional: 'layout-3', connections: 'compact' },
+    });
+    expect(card.sectionOverrides.cardTag).toBe('Networking');
+    expect(card.sectionLayouts.identity).toBe('layout-5-new');
   });
 });

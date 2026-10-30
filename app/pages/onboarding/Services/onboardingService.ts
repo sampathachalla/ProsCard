@@ -6,6 +6,7 @@ import { apiRequest } from '@/services/api/client';
 import type { OnboardingState } from '@/services/api/types';
 import { AUTH_TEST_MODE } from '@/pages/auth/Config/authMode';
 import { isPendingMediaUrl } from '@/pages/profile/Services/pendingMedia';
+import { normalizeGeneratedCopy, type GeneratedProfileCopy } from '../Utils/profileCopyFacts';
 import { getSession } from '@/services/api/session';
 import { queryClient, queryKeys } from '@/services/api/queryClient';
 
@@ -70,15 +71,17 @@ export async function saveOnboardingDraft(draft: OnboardingDraft): Promise<Onboa
   return apiRequest('/onboarding/draft', { method: 'PUT', body: serializable });
 }
 
-export interface GeneratedProfileCopy {
-  tagline: string;
-  shortBio: string;
-}
+export type { GeneratedProfileCopy } from '../Utils/profileCopyFacts';
 
 export const TEST_PROFILE_COPY: GeneratedProfileCopy = {
-  tagline: 'Building tools for the future',
-  shortBio: 'I build thoughtful digital products that make professional connections simpler and more useful.',
+  taglines: [
+    'Making professional introductions simpler',
+    'Product designer at VC Pros',
+    'Turning first meetings into lasting connections',
+  ],
+  shortBio: 'I design the tools at VC Pros that make swapping contact details quick and useful.',
 };
+
 
 export async function generateProfileCopy(
   draft: Pick<
@@ -91,16 +94,17 @@ export async function generateProfileCopy(
     | 'department'
     | 'accreditations'
     | 'businessAddress'
+    | 'focus'
   >,
 ): Promise<GeneratedProfileCopy | null> {
   // Test mode deliberately has no real authenticated backend session. Return a
   // representative local result so the auto-fill UI can still be exercised.
   if (AUTH_TEST_MODE) return TEST_PROFILE_COPY;
-  return apiRequest<GeneratedProfileCopy>('/onboarding/generate-profile-copy', {
-    method: 'POST',
-    body: draft,
-    timeoutMs: 35_000,
-  });
+  const raw = await apiRequest<{ tagline?: unknown; taglines?: unknown; shortBio?: unknown }>(
+    '/onboarding/generate-profile-copy',
+    { method: 'POST', body: draft, timeoutMs: 35_000 },
+  );
+  return normalizeGeneratedCopy(raw);
 }
 
 export async function setHasCompletedOnboarding(draft: object = {}): Promise<void> {

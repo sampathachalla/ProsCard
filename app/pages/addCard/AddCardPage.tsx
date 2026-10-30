@@ -3,7 +3,6 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   View,
   useWindowDimensions,
@@ -11,14 +10,13 @@ import {
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Plus } from 'lucide-react-native';
 
-import { Text } from '@/common/ui/Text';
 import { CardPreviewModal } from '@/pages/previewCard/Components/CardPreviewModal';
 import { useProfileSnapshot } from '@/pages/profile/Hooks/useProfileSnapshot';
 import type { DynamicCardField } from '@/pages/cards/types/card.types';
 import { AddCardHeader } from './Components/AddCardHeader';
 import { AddContactSheet } from './Components/AddContactSheet';
+import { QuickAddContacts } from './Components/QuickAddContacts';
 import { BioField } from './Components/BioField';
 import { CardMediaHeader } from './Components/CardMediaHeader';
 import { CardTagDropdown } from './Components/CardTagDropdown';
@@ -78,6 +76,8 @@ export default function AddCardPage() {
     creationSession: isCreateFlow ? creationSession : undefined,
   });
   const [panel, setPanel] = useState<AddCardPanel>(null);
+  /** The contact row just added, so its input takes focus right away. */
+  const [addedContactId, setAddedContactId] = useState<string | null>(null);
   const [previewVisible, setPreviewVisible] = useState(false);
   const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fieldValueOnFocus = useRef<Partial<Record<AccountScopedCardField, string>>>({});
@@ -151,7 +151,7 @@ export default function AddCardPage() {
   };
 
   const addContact = (option: ContactOption) => {
-    editor.addContact(option);
+    setAddedContactId(editor.addContact(option));
     setPanel(null);
   };
 
@@ -259,10 +259,7 @@ export default function AddCardPage() {
               onCustomizeTheme={() => setPanel('theme')}
             />
 
-            <View className="mb-2 mt-4">
-              <Text variant="subtitle">Card details</Text>
-              <Text variant="muted">Customize what appears on this card.</Text>
-            </View>
+            <View className="h-3" />
 
             <FormField
               label="Card name"
@@ -310,11 +307,6 @@ export default function AddCardPage() {
               onEndEditing={() => chooseFieldScope('bio', 'Bio', editor.draft.sectionOverrides.bio ?? '')}
             />
 
-            <View className="mb-2 mt-4">
-              <Text variant="subtitle">Contact methods</Text>
-              <Text variant="muted">Add at least the required number of ways to connect.</Text>
-            </View>
-
             {primaryContacts.map((field) => {
               const config = contactConfig(field);
               return (
@@ -337,19 +329,17 @@ export default function AddCardPage() {
                   placeholder={config.placeholder}
                   onChangeText={(value) => editor.setContactValue(field.id, value)}
                   onRemove={() => editor.removeContact(field.id)}
+                  autoFocus={field.id === addedContactId}
                 />
               );
               })}
 
-            <Pressable
-              accessibilityLabel="Add contact method"
-              accessibilityRole="button"
-              onPress={() => setPanel('contacts')}
-              className="min-h-[52px] flex-row items-center justify-center rounded-2xl border border-dashed border-blue-300 bg-blue-50/60 px-4 active:opacity-75 dark:border-sky-800 dark:bg-sky-950/20"
-            >
-              <Plus color="#2563eb" size={19} strokeWidth={2.5} />
-              <Text className="ml-2 font-bold text-[#2563eb] dark:text-[#38bdf8]">Add contact</Text>
-            </Pressable>
+            <QuickAddContacts
+              existing={editor.draft.connectionFields}
+              pendingFieldId={addedContactId}
+              onConfirm={() => setAddedContactId(null)}
+              onMore={() => setPanel('contacts')}
+            />
 
           </View>
         </ScrollView>

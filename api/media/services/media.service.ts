@@ -5,6 +5,7 @@ import type { MediaKind, MediaRepository, MediaRow, MediaScope } from '../reposi
 import type { ObjectStorageGateway } from './oci-storage.service.js';
 import { extractPaletteFromBuffer, type ExtractedLogoPalette } from './palette-extractor.service.js';
 import { brandfetchService } from './brandfetch.service.js';
+import { fetchPublicImage } from '../utils/public-image-fetch.js';
 
 type ProfileMediaKind = Exclude<MediaKind, 'contactCard'>;
 const profileField: Record<ProfileMediaKind, string> = {
@@ -29,10 +30,16 @@ type UploadInput = {
 };
 
 const MAX_MEDIA_SIZE_BYTES = 20 * 1024 * 1024;
+const STORED_MEDIA_FETCH_TIMEOUT_MS = 15_000;
 const LOGO_FETCH_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15';
 
 export class MediaService {
   constructor(private readonly repo: MediaRepository, private readonly storage: ObjectStorageGateway) {}
+
+  /** A company logo other cards or profiles still show keeps its file; anything else may be deleted. */
+  private async isSharedLogo(row: MediaRow, exclude: { cardId?: string; userId?: string } = {}) {
+    return row.kind === 'companyLogo' && this.repo.logoInUse(row.id, exclude);
+  }
 
   private async paletteForBuffer(buffer: Buffer, sourceKey?: string): Promise<ExtractedLogoPalette> {
     const contentHash = createHash('sha256').update(buffer).digest('hex');
@@ -131,7 +138,7 @@ export class MediaService {
     }
     let replacedMediaId: string | undefined;
     let cleanupPending = false;
-    if (previous && previous.id !== id) {
+    if (previous && previous.id !== id && !await this.isSharedLogo(previous)) {
       replacedMediaId = previous.id;
       try {
         await this.storage.deleteObject(previous.object_name);
@@ -145,7 +152,7 @@ export class MediaService {
     if (ready.kind === 'companyLogo') {
       try {
         const signed = await this.storage.createDownloadUrl(ready.object_name);
-        const res = await fetch(signed.url);
+        const res = await fetch(signed.url, { signal: AbortSignal.timeout(STORED_MEDIA_FETCH_TIMEOUT_MS) });
         if (res.ok) {
           const buffer = Buffer.from(await res.arrayBuffer());
           palette = await this.paletteForBuffer(buffer);
@@ -211,6 +218,10 @@ export class MediaService {
   async cleanupCard(userId: string, cardId: string) {
     const rows = await this.repo.cardMedia(userId, cardId);
     for (const row of rows) {
+      if (await this.isSharedLogo(row, { cardId })) {
+        await this.repo.clearCardId(userId, row.id);
+        continue;
+      }
       try {
         await this.storage.deleteObject(row.object_name);
         await this.repo.delete(userId, row.id);
@@ -234,10 +245,18 @@ export class MediaService {
     }
   }
 
-  /** Deletes every stored object for an account; failures stay queued for the cleanup job. */
+  /**
+   * Deletes every stored object for an account; failures stay queued for the cleanup job.
+   * Returns the ids of company logos other accounts still show, whose rows and files are kept.
+   */
   async purgeUser(userId: string) {
     const rows = await this.repo.allForUser(userId);
+    const retained: string[] = [];
     for (const row of rows) {
+      if (await this.isSharedLogo(row, { userId })) {
+        retained.push(row.id);
+        continue;
+      }
       try {
         await this.storage.deleteObject(row.object_name);
         await this.repo.delete(userId, row.id);
@@ -245,6 +264,7 @@ export class MediaService {
         await this.repo.cleanupFailed(userId, row.id);
       }
     }
+    return retained;
   }
 
   async download(userId: string, id: string) {
@@ -332,8 +352,10 @@ export class MediaService {
   async delete(userId: string, id: string) {
     const row = await this.requireRow(userId, id);
     try {
-      await this.storage.deleteObject(row.object_name);
       await this.repo.detach(row, fieldFor(row));
+      // Other users picked this logo from the community list; deleting the file would break their cards.
+      if (await this.isSharedLogo(row)) return;
+      await this.storage.deleteObject(row.object_name);
       await this.repo.delete(userId, id);
     } catch (error) {
       if (error instanceof HttpError) throw error;
@@ -374,7 +396,7 @@ export class MediaService {
       const row = await this.repo.findForDownload(userId, targetMediaId);
       if (!row) throw new HttpError(404, 'Media not found.');
       const signed = await this.storage.createDownloadUrl(row.object_name);
-      const res = await fetch(signed.url);
+      const res = await fetch(signed.url, { signal: AbortSignal.timeout(STORED_MEDIA_FETCH_TIMEOUT_MS) });
       if (!res.ok) throw new HttpError(502, 'Could not retrieve media file.');
       buffer = Buffer.from(await res.arrayBuffer());
     } else if (input.imageUrl) {
@@ -386,13 +408,13 @@ export class MediaService {
         const cached = await this.repo.findLogoThemeBySourceKey(sourceKey);
         if (cached) return cached;
         // Brandfetch's CDN serves its HTML website to non-browser agents; ask explicitly for an image.
-        const res = await fetch(input.imageUrl, {
+        // The URL comes from the client, so it must not reach internal addresses or stream unbounded data.
+        buffer = await fetchPublicImage(input.imageUrl, {
           headers: { 'User-Agent': LOGO_FETCH_USER_AGENT, Accept: 'image/webp,image/png,image/svg+xml,image/*' },
-          signal: AbortSignal.timeout(8000),
+        }).catch((error: unknown) => {
+          log('warn', 'palette_url_fetch_rejected', { message: error instanceof Error ? error.message : String(error) });
+          return null;
         });
-        if (res.ok && res.headers.get('content-type')?.startsWith('image/')) {
-          buffer = Buffer.from(await res.arrayBuffer());
-        }
       }
     }
     if (!buffer) {

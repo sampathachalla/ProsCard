@@ -86,3 +86,20 @@ describe('Welcome Page Styled Card Layouts', () => {
     expect(slots.isDark).toBe(true);
   });
 });
+
+describe('contact list layout', () => {
+  it('defaults new cards to the Direct Contact List every card tag uses', async () => {
+    const { DEFAULT_CARD_SECTION_LAYOUTS } = await import('@/pages/cards/types/card.types');
+    expect(DEFAULT_CARD_SECTION_LAYOUTS.connections).toBe('compact');
+  });
+
+  it('moves cards off the retired Action Tiles default, keeping other saved layouts', async () => {
+    const { upgradeConnectionsLayoutId } = await import('@/pages/cards/types/card.types');
+    expect(upgradeConnectionsLayoutId('classic')).toBe('compact');
+    expect(upgradeConnectionsLayoutId(undefined)).toBe('compact');
+    expect(upgradeConnectionsLayoutId('not-a-layout')).toBe('compact');
+    expect(upgradeConnectionsLayoutId('compact')).toBe('compact');
+    expect(upgradeConnectionsLayoutId('classic-new')).toBe('classic-new');
+    expect(upgradeConnectionsLayoutId('editorial')).toBe('editorial');
+  });
+});

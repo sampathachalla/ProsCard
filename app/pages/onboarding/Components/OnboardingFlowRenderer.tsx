@@ -1,5 +1,5 @@
 import type { OnboardingFlowItem } from '../types/onboardingFlow.types';
-import type { OnboardingDraft } from '../types/onboardingStepper.types';
+import type { OnboardingDraft, ProfileCopyAssist } from '../types/onboardingStepper.types';
 import { StepWelcome } from './StepWelcome';
 import { StepCardCustomization } from './StepCardCustomization';
 import { StepOnboardingComplete } from './StepOnboardingComplete';
@@ -11,6 +11,7 @@ export interface OnboardingFlowRendererProps {
   errors: Record<string, string>;
   isSaving: boolean;
   isGeneratingCopy?: boolean;
+  copyAssist?: ProfileCopyAssist;
   completionPercent?: number;
   updateDraft: (fields: Partial<OnboardingDraft>) => void;
   onWelcomeNext: () => void;
@@ -24,6 +25,7 @@ export function OnboardingFlowRenderer({
   errors,
   isSaving,
   isGeneratingCopy = false,
+  copyAssist,
   completionPercent = 0,
   updateDraft,
   onWelcomeNext,
@@ -39,6 +41,7 @@ export function OnboardingFlowRenderer({
       return (
         <OnboardingAnswerSlide
           title={currentItem.title}
+          hideTitle={currentItem.hideTitle}
           subtitle={currentItem.subtitle}
           subtitleLines={currentItem.subtitleLines}
           highlightWords={currentItem.highlightWords}
@@ -48,6 +51,7 @@ export function OnboardingFlowRenderer({
           updateDraft={updateDraft}
           errors={errors}
           isGeneratingCopy={isGeneratingCopy}
+          copyAssist={copyAssist}
         />
       );
     case 'card_style':

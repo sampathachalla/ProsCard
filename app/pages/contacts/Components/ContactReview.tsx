@@ -18,12 +18,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   AlertCircle,
   Briefcase,
+  CalendarDays,
   Building2,
   Camera,
   Check,
   Crop,
   CreditCard,
   Globe,
+  IdCard,
   ImagePlus,
   Mail,
   MapPin,
@@ -119,8 +121,12 @@ type ContactReviewProps = {
    * shows photo Retake/Upload, editable fields and the Save/Delete buttons.
    */
   editing?: boolean;
+  /** Event the contact was met at (badge scans); shown in the details and editable while editing. */
+  eventName?: string;
+  /** Captured from an event badge: the photo section is labelled as a badge. */
+  isBadge?: boolean;
   /** `newCard` is set only when the user added or replaced the card photo. */
-  onSave: (values: ContactFormValues, newCard: ProcessedCard | null) => Promise<void>;
+  onSave: (values: ContactFormValues, newCard: ProcessedCard | null, extras: { eventName: string }) => Promise<void>;
   existingContacts?: Contact[];
   onDiscardDuplicate?: () => void;
   onReplaceDuplicate?: (contactId: string, values: ContactFormValues, newCard: ProcessedCard | null) => Promise<void>;
@@ -169,6 +175,8 @@ export function ContactReview({
   initialAutoFilled = [],
   initialNotice = null,
   editing = true,
+  eventName: initialEventName = '',
+  isBadge = false,
   existingContacts = [],
   onSave,
   onDiscardDuplicate,
@@ -178,6 +186,8 @@ export function ContactReview({
   const insets = useSafeAreaInsets();
   const [card, setCard] = useState<ProcessedCard | null>(initialCard);
   const [form, setForm] = useState(initialValues);
+  const [eventName, setEventName] = useState(initialEventName);
+  const showEvent = isBadge || Boolean(initialEventName.trim());
   const [autoFilled, setAutoFilled] = useState<ContactFieldKey[]>(initialAutoFilled);
   const [notice, setNotice] = useState<ReviewNotice | null>(initialNotice);
   const [errors, setErrors] = useState<Partial<Record<ContactFieldKey, string>>>({});
@@ -305,7 +315,7 @@ export function ContactReview({
       const values = Object.fromEntries(
         Object.entries(form).map(([key, value]) => [key, value.trim()])
       ) as ContactFormValues;
-      await onSave(values, card);
+      await onSave(values, card, { eventName: eventName.trim() });
     } catch (reason) {
       Alert.alert('Save failed', reason instanceof Error ? reason.message : 'Could not save this contact. Please try again.');
     } finally {
@@ -447,6 +457,22 @@ export function ContactReview({
                   className="min-h-[54px] w-full rounded-lg border border-transparent bg-slate-100 px-4 py-3 text-[16px] font-normal text-textPrimary dark:bg-dark-card dark:text-dark-textPrimary"
                 />
               </View>
+
+              {showEvent ? (
+                <View className="mt-2 mb-2 w-full">
+                  <Text className="mb-2 text-[14px] font-normal text-slate-500 dark:text-slate-400">
+                    Event
+                  </Text>
+                  <TextInput
+                    value={eventName}
+                    onChangeText={setEventName}
+                    placeholder="Event name"
+                    placeholderTextColor="#64748b"
+                    autoCapitalize="words"
+                    className="min-h-[54px] w-full rounded-lg border border-transparent bg-slate-100 px-4 py-3 text-[16px] font-normal text-textPrimary dark:bg-dark-card dark:text-dark-textPrimary"
+                  />
+                </View>
+              ) : null}
             </View>
           ) : (
             <View className="items-center mt-3 px-4 w-full">
@@ -634,9 +660,23 @@ export function ContactReview({
             </View>
           )}
 
-          {/* GROUP 2: Work & Organization (Title & Company in View Mode) */}
-          {!editing && (form.title.trim() || form.company.trim()) && (
+          {/* GROUP 2: Work & Organization (Event, Title & Company in View Mode) */}
+          {!editing && (eventName.trim() || form.title.trim() || form.company.trim()) && (
             <View className="rounded-2xl bg-card dark:bg-[#1c1c1e] border border-black/5 dark:border-white/10 overflow-hidden shadow-sm mb-3">
+              {eventName.trim() ? (
+                <View className="px-4 py-3 flex-row items-center justify-between">
+                  <View className="flex-1 pr-2">
+                    <Text className="text-xs font-medium text-textMuted dark:text-dark-textMuted">event</Text>
+                    <Text className="text-base text-textPrimary dark:text-dark-textPrimary mt-0.5 font-normal">
+                      {eventName.trim()}
+                    </Text>
+                  </View>
+                  <CalendarDays color={Colors.light.tint} size={16} strokeWidth={2} />
+                </View>
+              ) : null}
+              {eventName.trim() && (form.title.trim() || form.company.trim()) ? (
+                <View className="h-[1px] bg-slate-100 dark:bg-slate-800/80 ml-4" />
+              ) : null}
               {form.title.trim() && (
                 <View className="px-4 py-3 flex-row items-center justify-between">
                   <View className="flex-1 pr-2">
@@ -737,9 +777,13 @@ export function ContactReview({
             <View className="rounded-2xl bg-card dark:bg-[#1c1c1e] border border-black/5 dark:border-white/10 overflow-hidden shadow-sm mb-4">
               <View className="px-4 py-3 flex-row items-center justify-between border-b border-black/5 dark:border-white/10">
                 <View className="flex-row items-center">
-                  <CreditCard color="#94a3b8" size={15} strokeWidth={2} />
+                  {isBadge ? (
+                    <IdCard color="#94a3b8" size={15} strokeWidth={2} />
+                  ) : (
+                    <CreditCard color="#94a3b8" size={15} strokeWidth={2} />
+                  )}
                   <Text className="text-xs font-semibold text-textMuted dark:text-dark-textMuted ml-1.5 uppercase tracking-wide">
-                    Business Card
+                    {isBadge ? 'Event Badge' : 'Business Card'}
                   </Text>
                 </View>
                 {card && (card.edgeDetected || card.autoCropped) ? (

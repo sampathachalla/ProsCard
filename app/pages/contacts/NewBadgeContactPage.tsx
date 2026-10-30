@@ -3,9 +3,9 @@ import { View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { PageHeader } from '@/common/ui/PageHeader';
-import { BadgeContactReview, emptyBadgeForm } from '@/pages/contacts/Components/BadgeContactReview';
+import { BadgeContactReview, emptyBadgeForm, type BadgeSaveOptions } from '@/pages/contacts/Components/BadgeContactReview';
 import { createContactWithCard, initialsFor } from '@/pages/contacts/Services/contactsService';
-import { rememberEventName } from '@/pages/contacts/Services/eventNamesService';
+import { rememberEventName, setCurrentEvent } from '@/pages/contacts/Services/eventNamesService';
 import { clearScanResult, getScanResult } from '@/pages/scanner/Services/scanHandoff';
 import type { BadgeReading } from '@/pages/scanner/types/badge.types';
 
@@ -34,9 +34,11 @@ export default function NewBadgeContactScreen() {
   const save = async (
     values: { name: string; title: string; company: string; notes: string },
     card: Parameters<typeof createContactWithCard>[1],
+    { eventName, scanNext }: BadgeSaveOptions,
   ) => {
-    const eventName = initial.eventName.trim();
     await rememberEventName(eventName);
+    // Scanning into the session's event keeps it selected for the next 8 hours.
+    await setCurrentEvent(sessionEvent || eventName);
     await createContactWithCard(
       {
         name: values.name,
@@ -56,17 +58,15 @@ export default function NewBadgeContactScreen() {
       card,
     );
     clearScanResult(scanId);
+    if (scanNext) {
+      // Back to the camera on the session's event, even if this one contact was filed under another.
+      router.replace({ pathname: '/scanner', params: { mode: 'badge', eventName: sessionEvent || eventName } });
+      return;
+    }
     router.dismissTo('/(tabs)/contactsPage');
   };
 
-  if (!sessionEvent && !initial.eventName) {
-    return (
-      <View className="flex-1 bg-background dark:bg-dark-background">
-        <PageHeader title="Badge contact" subtitle="Missing event name" />
-      </View>
-    );
-  }
-
+  // With no event from the scan or the badge itself, the review asks for one before saving.
   const eventName = sessionEvent || initial.eventName;
 
   return (

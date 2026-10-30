@@ -37,6 +37,17 @@ function withResolvedMediaLinks<T>(data: T, urlById: Map<string, string>, slug: 
   }
 }
 
+/** Escapes a vCard property value (RFC 6350 §3.4) so commas, semicolons and line breaks stay inside it. */
+export function escapeVcardValue(value: string) {
+  return value
+    .replace(/\\/g, '\\\\')
+    .replace(/\r\n|\r|\n/g, '\\n')
+    .replace(/([,;])/g, '\\$1');
+}
+
+/** Social network keys become a property parameter; keep only characters a parameter value allows. */
+const vcardParam = (value: string) => value.replace(/[^A-Za-z0-9_-]+/g, '');
+
 function isUniqueViolation(error: unknown) {
   return (error as { code?: string } | null)?.code === '23505';
 }
@@ -155,26 +166,27 @@ export class SharingService {
     const name = String(card.name || profile.fullName || 'Contact');
     const filename = `${name.replace(/[^a-zA-Z0-9_-]+/g, '_')}.vcf`;
 
+    const esc = escapeVcardValue;
     const parts: string[] = ['BEGIN:VCARD', 'VERSION:3.0'];
-    parts.push(`FN:${name}`);
+    parts.push(`FN:${esc(name)}`);
     const nameParts = name.trim().split(/\s+/);
     if (nameParts.length > 1) {
-      parts.push(`N:${nameParts.slice(1).join(' ')};${nameParts[0]};;;`);
+      parts.push(`N:${esc(nameParts.slice(1).join(' '))};${esc(nameParts[0]!)};;;`);
     } else {
-      parts.push(`N:${name};;;;`);
+      parts.push(`N:${esc(name)};;;;`);
     }
     const org = String(card.company || profile.organization || '');
-    if (org) parts.push(`ORG:${org}`);
+    if (org) parts.push(`ORG:${esc(org)}`);
     const title = String(card.title || profile.title || '');
-    if (title) parts.push(`TITLE:${title}`);
+    if (title) parts.push(`TITLE:${esc(title)}`);
     const email = String(card.email || profile.email || '');
-    if (email) parts.push(`EMAIL;TYPE=INTERNET,WORK:${email}`);
+    if (email) parts.push(`EMAIL;TYPE=INTERNET,WORK:${esc(email)}`);
     const phone = String(card.phone || profile.phone || '');
-    if (phone) parts.push(`TEL;TYPE=CELL,VOICE:${phone}`);
+    if (phone) parts.push(`TEL;TYPE=CELL,VOICE:${esc(phone)}`);
     const website = String(profile.website || '');
-    if (website) parts.push(`URL:${website}`);
+    if (website) parts.push(`URL:${esc(website)}`);
     const address = String(profile.businessAddress || '');
-    if (address) parts.push(`ADR;TYPE=WORK:;;${address};;;;`);
+    if (address) parts.push(`ADR;TYPE=WORK:;;${esc(address)};;;;`);
 
     const noteLines: string[] = [];
     if (profile.tagline) noteLines.push(String(profile.tagline));
@@ -183,7 +195,8 @@ export class SharingService {
     if (profile.social && typeof profile.social === 'object') {
       for (const [k, v] of Object.entries(profile.social as Record<string, unknown>)) {
         if (typeof v === 'string' && v.trim()) {
-          parts.push(`X-SOCIALPROFILE;type=${k}:${v.trim()}`);
+          const network = vcardParam(k);
+          if (network) parts.push(`X-SOCIALPROFILE;type=${network}:${esc(v.trim())}`);
           noteLines.push(`${k}: ${v.trim()}`);
         }
       }
@@ -199,7 +212,7 @@ export class SharingService {
     }
 
     if (noteLines.length > 0) {
-      parts.push(`NOTE:${noteLines.join('\\n')}`);
+      parts.push(`NOTE:${noteLines.map(esc).join('\\n')}`);
     }
 
     parts.push('END:VCARD');

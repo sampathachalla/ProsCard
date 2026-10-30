@@ -20,6 +20,7 @@ export function OnboardingScreen() {
     errors,
     isSaving,
     isGeneratingCopy,
+    copyAssist,
     canGoBack,
     canSkip,
     flowIndex,
@@ -66,6 +67,7 @@ export function OnboardingScreen() {
             errors={errors}
             isSaving={isSaving}
             isGeneratingCopy={isGeneratingCopy}
+            copyAssist={copyAssist}
             completionPercent={completionPercent}
             updateDraft={updateDraft}
             onWelcomeNext={nextStep}

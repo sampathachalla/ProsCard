@@ -59,6 +59,7 @@ function ThemedLayoutWrapper() {
             options={{
               animation: 'slide_from_right',
               presentation: 'card',
+              headerShown: false,
             }}
           />
           <Stack.Screen
@@ -70,7 +71,6 @@ function ThemedLayoutWrapper() {
           />
           <Stack.Screen name="contacts/new" />
           <Stack.Screen name="contacts/new-badge" />
-          <Stack.Screen name="badge-scanner" />
           <Stack.Screen name="contacts/[contactId]" />
           <Stack.Screen name="share/[slug]" />
           <Stack.Screen

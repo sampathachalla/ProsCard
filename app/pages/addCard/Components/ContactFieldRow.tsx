@@ -17,11 +17,13 @@ type Props = {
   onChangeText: (value: string) => void;
   /** Omit for rows that are always on the form. */
   onRemove?: () => void;
+  autoFocus?: boolean;
 };
 
-export function ContactFieldRow({ field, label, placeholder, onChangeText, onRemove }: Props) {
+export function ContactFieldRow({ field, label, placeholder, onChangeText, onRemove, autoFocus }: Props) {
   return (
     <FormField
+      autoFocus={autoFocus}
       label={label ?? field.title}
       value={field.value}
       placeholder={placeholder}

@@ -14,6 +14,7 @@ import { hydrateCards, savePrimaryCard } from '@/services/cardsService';
 
 import type {
   OnboardingDraft,
+  ProfileCopyAssist,
   StepMetadata,
   UseOnboardingStepperReturn,
 } from '../types/onboardingStepper.types';
@@ -33,6 +34,7 @@ import {
 } from '../types/onboardingFlow.types';
 import { validateAllSteps } from '../Utils/validateOnboarding';
 import { validateFlowGroup } from '../Utils/validateOnboardingFlowGroup';
+import { copyFactsFrom, hasEnoughCopyFacts } from '../Utils/profileCopyFacts';
 import {
   mapDraftToProfile,
   mapDraftToBusinessCard,
@@ -76,6 +78,12 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isGeneratingCopy, setIsGeneratingCopy] = useState(false);
+  const [taglineOptions, setTaglineOptions] = useState<string[]>([]);
+  const [copyError, setCopyError] = useState<string | null>(null);
+  /** The tagline / bio the writer last filled in, to tell them apart from the user's own text. */
+  const aiTaglineRef = useRef<string | null>(null);
+  const aiBioRef = useRef<string | null>(null);
+  const copyRequestRef = useRef(0);
   const finalizeInFlightRef = useRef(false);
   const touchedFieldsRef = useRef<Set<keyof OnboardingDraft>>(new Set());
   const cardsHydrationRef = useRef<Promise<unknown>>(Promise.resolve());
@@ -189,59 +197,75 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
     return () => clearTimeout(timeout);
   }, [draft, flushDraftSync, isSaving]);
 
+  /**
+   * Writes tagline options and a bio from the facts entered so far. Text the user typed or picked is
+   * never replaced; text the writer filled in earlier is, so Regenerate refreshes its own suggestion.
+   */
+  const runCopyGeneration = useCallback(async (trigger: 'auto' | 'manual') => {
+    const facts = copyFactsFrom(draftRef.current);
+    if (!hasEnoughCopyFacts(facts)) return;
+    const requestId = ++copyRequestRef.current;
+    setIsGeneratingCopy(true);
+    setCopyError(null);
+    try {
+      const copy = await generateProfileCopy(facts);
+      if (requestId !== copyRequestRef.current || !copy) return;
+      setTaglineOptions(copy.taglines);
+      setDraft((previous) => {
+        const next = { ...previous };
+        const canFill = (key: 'tagline' | 'shortBio', aiValue: string | null) =>
+          (!previous[key].trim() && (trigger === 'manual' || !touchedFieldsRef.current.has(key))) ||
+          (aiValue !== null && previous[key] === aiValue);
+        if (copy.taglines[0] && canFill('tagline', aiTaglineRef.current)) {
+          next.tagline = copy.taglines[0];
+          aiTaglineRef.current = next.tagline;
+        }
+        if (copy.shortBio && canFill('shortBio', aiBioRef.current)) {
+          next.shortBio = copy.shortBio;
+          aiBioRef.current = next.shortBio;
+        }
+        draftRef.current = next;
+        return next;
+      });
+    } catch (error) {
+      if (requestId !== copyRequestRef.current) return;
+      // AI assistance is optional; never block onboarding if the provider or network is unavailable.
+      console.warn('Could not generate onboarding profile copy:', error);
+      if (trigger === 'manual') {
+        setCopyError(error instanceof Error ? error.message : 'Could not write suggestions. You can type your own.');
+      }
+    } finally {
+      if (requestId === copyRequestRef.current) setIsGeneratingCopy(false);
+    }
+  }, []);
+
+  // Entering the tagline or bio step writes suggestions once per set of facts, when there is enough to
+  // say something specific. With too little, the step asks what they focus on instead.
   useEffect(() => {
     if (currentItem.kind !== 'group') return;
     if (currentItem.groupId !== 'tagline' && currentItem.groupId !== 'short_bio') return;
 
     const snapshot = draftRef.current;
     if (snapshot.tagline.trim() && snapshot.shortBio.trim()) return;
-    const facts = {
-      firstName: snapshot.firstName.trim(),
-      lastName: snapshot.lastName.trim(),
-      preferredName: snapshot.preferredName.trim(),
-      title: snapshot.title.trim(),
-      organization: snapshot.organization.trim(),
-      department: snapshot.department.trim(),
-      accreditations: snapshot.accreditations.trim(),
-      businessAddress: snapshot.businessAddress.trim(),
-    };
-    if (!facts.firstName && !facts.lastName && !facts.title && !facts.organization) return;
+    const facts = copyFactsFrom(snapshot);
+    if (!hasEnoughCopyFacts(facts)) return;
 
-    const attemptKey = `${currentItem.groupId}:${JSON.stringify(facts)}`;
+    const attemptKey = JSON.stringify(facts);
     if (attemptedCopyGenerationRef.current.has(attemptKey)) return;
     attemptedCopyGenerationRef.current.add(attemptKey);
+    void runCopyGeneration('auto');
+  }, [currentItem, runCopyGeneration]);
 
-    let cancelled = false;
-    setIsGeneratingCopy(true);
-    void generateProfileCopy(facts)
-      .then((copy) => {
-        if (cancelled || !copy) return;
-        setDraft((previous) => {
-          const next = { ...previous };
-          // A response arriving late must never replace text typed by the user.
-          if (!touchedFieldsRef.current.has('tagline') && !previous.tagline.trim()) {
-            next.tagline = copy.tagline;
-          }
-          if (!touchedFieldsRef.current.has('shortBio') && !previous.shortBio.trim()) {
-            next.shortBio = copy.shortBio;
-          }
-          draftRef.current = next;
-          return next;
-        });
-      })
-      .catch((error) => {
-        // AI assistance is optional; never block onboarding if the provider or
-        // network is unavailable.
-        console.warn('Could not generate onboarding profile copy:', error);
-      })
-      .finally(() => {
-        if (!cancelled) setIsGeneratingCopy(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [currentItem]);
+  const copyAssist = useMemo<ProfileCopyAssist>(() => ({
+    generating: isGeneratingCopy,
+    taglineOptions,
+    error: copyError,
+    canGenerate: hasEnoughCopyFacts(copyFactsFrom(draft)),
+    regenerate: () => {
+      attemptedCopyGenerationRef.current.add(JSON.stringify(copyFactsFrom(draftRef.current)));
+      void runCopyGeneration('manual');
+    },
+  }), [copyError, draft, isGeneratingCopy, runCopyGeneration, taglineOptions]);
 
   const updateDraft = useCallback((fields: Partial<OnboardingDraft>) => {
     Object.keys(fields).forEach((key) => touchedFieldsRef.current.add(key as keyof OnboardingDraft));
@@ -484,6 +508,7 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
     errors,
     isSaving,
     isGeneratingCopy,
+    copyAssist,
     canGoBack,
     isLastStep,
     activeStepMeta,

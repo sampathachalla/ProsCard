@@ -26,6 +26,7 @@ import type { OnboardingDraft } from '../types/onboardingStepper.types';
 import type { FieldSpec } from '../types/onboardingFlow.types';
 import { OnboardingFormField } from './OnboardingFormField';
 import { SocialLinksFieldsBlock } from './SocialLinksFieldsBlock';
+import { OnboardingFocusField } from './OnboardingFocusField';
 
 function rebuildFullName(parts: OnboardingDraft): string {
   return [parts.prefix, parts.firstName, parts.middleName, parts.lastName, parts.suffix]
@@ -327,6 +328,10 @@ export function renderOnboardingField(
     }
     updateDraft({ [spec.key]: text } as Partial<OnboardingDraft>);
   };
+
+  if (spec.key === 'focus') {
+    return <OnboardingFocusField key={spec.key} spec={spec} draft={draft} updateDraft={updateDraft} />;
+  }
 
   if (spec.key === 'tagline') {
     return (

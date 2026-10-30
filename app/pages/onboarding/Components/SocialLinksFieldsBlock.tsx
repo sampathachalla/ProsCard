@@ -109,11 +109,13 @@ export function SocialLinksFieldsBlock({
   draft,
   updateDraft,
   errors,
+  embedded = false,
   minimumContactMethods = 0,
 }: {
   draft: SocialLinksDraft;
   updateDraft: (fields: Partial<SocialLinksDraft>) => void;
   errors: Record<string, string>;
+  /** Inside a section that already has its own heading: drop this block's title row. */
   embedded?: boolean;
   minimumContactMethods?: number;
 }) {
@@ -193,7 +195,7 @@ export function SocialLinksFieldsBlock({
 
   return (
     <View className="w-full">
-      <View className="mb-2 flex-row items-center justify-between gap-3">
+      {embedded ? null : <View className="mb-2 flex-row items-center justify-between gap-3">
         <View className="min-w-0 flex-1">
           <Text
             variant="none"
@@ -228,7 +230,7 @@ export function SocialLinksFieldsBlock({
             {linkCount}/{minimumContactMethods} added
           </Text>
         </View> : null}
-      </View>
+      </View>}
 
       {errors.socialLinks && !hasMinimumLinks ? (
         <Text variant="none" className="mb-2.5 text-xs font-medium text-error dark:text-dark-error">

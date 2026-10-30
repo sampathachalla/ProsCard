@@ -81,6 +81,7 @@ CREATE TABLE IF NOT EXISTS media (
 CREATE INDEX IF NOT EXISTS media_user_id_idx ON media(user_id);
 CREATE INDEX IF NOT EXISTS media_card_id_idx ON media(card_id);
 CREATE INDEX IF NOT EXISTS media_contact_id_idx ON media(contact_id);
+CREATE INDEX IF NOT EXISTS media_attachment_target_idx ON media(user_id, attachment_scope, card_id, kind);
 -- Devices that added a card's Apple Wallet pass (Apple's pass web service registrations).
 -- serial_number is the card id; a row exists while the pass is in that device's Wallet.
 CREATE TABLE IF NOT EXISTS wallet_registrations (
@@ -92,3 +93,15 @@ CREATE TABLE IF NOT EXISTS wallet_registrations (
   PRIMARY KEY (device_library_id, pass_type_id, serial_number)
 );
 CREATE INDEX IF NOT EXISTS wallet_registrations_serial_idx ON wallet_registrations(pass_type_id, serial_number);
+
+CREATE TABLE IF NOT EXISTS logo_theme_cache (
+  content_hash TEXT PRIMARY KEY,
+  source_keys TEXT[] NOT NULL DEFAULT '{}',
+  palette JSONB NOT NULL,
+  hit_count BIGINT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  last_used_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (content_hash ~ '^[0-9a-f]{64}$')
+);
+CREATE INDEX IF NOT EXISTS logo_theme_cache_source_keys_idx ON logo_theme_cache USING GIN(source_keys);

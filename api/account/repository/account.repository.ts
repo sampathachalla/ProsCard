@@ -8,9 +8,10 @@ export class AccountRepository {
 
   /**
    * Removes all application rows for the user in one atomic statement.
-   * Wallet registrations are cleared before cards; leftover media rows (after purgeUser) are removed last among dependents.
+   * Wallet registrations are cleared before cards. Media rows are removed except those whose file deletion
+   * failed (the cleanup job still needs them to retry) and `keepMediaIds`, logos other accounts still show.
    */
-  purgeData(userId: string) {
+  purgeData(userId: string, keepMediaIds: string[] = []) {
     return this.db.query(
       `WITH w AS (
          DELETE FROM wallet_registrations wr
@@ -21,9 +22,12 @@ export class AccountRepository {
        ct AS (DELETE FROM contacts WHERE user_id = $1),
        cd AS (DELETE FROM cards WHERE user_id = $1),
        o AS (DELETE FROM onboarding WHERE user_id = $1),
-       m AS (DELETE FROM media WHERE user_id = $1)
+       m AS (
+         DELETE FROM media
+         WHERE user_id = $1 AND status <> 'cleanup_failed' AND NOT (id = ANY($2::uuid[]))
+       )
        DELETE FROM profiles WHERE user_id = $1`,
-      [userId],
+      [userId, keepMediaIds],
     );
   }
 

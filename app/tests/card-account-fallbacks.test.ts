@@ -116,3 +116,49 @@ describe('account and card field precedence', () => {
     expect(draft.sectionOverrides.logo).toBe('https://example.com/card-logo.png');
   });
 });
+
+describe('card contact methods default to the account', () => {
+  const withWebsite: Profile = { ...profile, website: 'https://mindpros.com', businessAddress: 'New York' };
+  const row = (draft: BusinessCard, id: string) => draft.connectionFields.find((field) => field.id === id);
+
+  it('fills a card that has no contact rows yet (the onboarding card) from the account', () => {
+    const draft = buildAddCardDraftFromCard(card(), withWebsite);
+    expect(row(draft, 'email')?.value).toBe('account@example.com');
+    expect(row(draft, 'website')?.value).toBe('https://mindpros.com');
+    expect(row(draft, 'phone')?.value).toBe('5551234567');
+    expect(row(draft, 'address')?.value).toBe('New York');
+    expect(draft.connectionFieldsCustomized).toBe(true);
+  });
+
+  it('keeps values changed on the card', () => {
+    const draft = buildAddCardDraftFromCard(card({
+      connectionFieldsCustomized: true,
+      connectionFields: [
+        { id: 'email', title: 'Email', type: 'email', value: 'card@example.com' },
+        { id: 'website', title: 'Website', type: 'url', value: 'https://card.example.com' },
+      ],
+    }), withWebsite);
+    expect(row(draft, 'email')?.value).toBe('card@example.com');
+    expect(row(draft, 'website')?.value).toBe('https://card.example.com');
+  });
+
+  it('adds missing Location, Email and Phone rows to a customized card, but not removed extras', () => {
+    const draft = buildAddCardDraftFromCard(card({
+      connectionFieldsCustomized: true,
+      connectionFields: [{ id: 'linkedin', title: 'LinkedIn', type: 'url', value: 'https://linkedin.com/in/me' }],
+    }), withWebsite);
+    expect(row(draft, 'email')?.value).toBe('account@example.com');
+    expect(row(draft, 'phone')).toBeDefined();
+    expect(row(draft, 'address')).toBeDefined();
+    expect(row(draft, 'website')).toBeUndefined();
+    expect(row(draft, 'linkedin')?.value).toBe('https://linkedin.com/in/me');
+  });
+
+  it('leaves a contact the user cleared on the card empty', () => {
+    const draft = buildAddCardDraftFromCard(card({
+      connectionFieldsCustomized: true,
+      connectionFields: [{ id: 'email', title: 'Email', type: 'email', value: '' }],
+    }), withWebsite);
+    expect(row(draft, 'email')?.value).toBe('');
+  });
+});

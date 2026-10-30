@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -36,6 +36,28 @@ type Props = {
 
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 4;
+/** Longest edge of the working copy: above the 1600px saved output, small enough for Skia to decode. */
+const MAX_WORKING_EDGE = 2048;
+const IDENTITY_TRANSFORM: Transform = { x: 0, y: 0, zoom: 1 };
+
+/** The picked photo as an upright JPEG the preview and crop both use. */
+type WorkingPhoto = { sourceUri: string; uri: string; width: number; height: number };
+
+/**
+ * Skia's preview cannot decode every picked photo (HEIC from the iPhone camera, very large images) and
+ * shows nothing when it fails. Re-encoding to a bounded JPEG first, with the orientation applied, makes
+ * the preview reliable and keeps the crop maths on the same pixels that get saved.
+ */
+async function prepareWorkingPhoto(asset: PickedImage): Promise<WorkingPhoto> {
+  const context = ImageManipulator.manipulate(asset.uri);
+  const longest = Math.max(asset.width || 0, asset.height || 0);
+  if (longest > MAX_WORKING_EDGE) {
+    context.resize(asset.width >= asset.height ? { width: MAX_WORKING_EDGE } : { height: MAX_WORKING_EDGE });
+  }
+  const rendered = await context.renderAsync();
+  const saved = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: 0.95 });
+  return { sourceUri: asset.uri, uri: saved.uri, width: saved.width, height: saved.height };
+}
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -82,15 +104,49 @@ export function PhotoAdjustmentModal({ asset, aspect, title, onCancel, onSave }:
   const [saving, setSaving] = useState(false);
   const transformRef = useRef(transform);
   const gestureStart = useRef(transform);
+  const [working, setWorking] = useState<WorkingPhoto | null>(null);
+  /** Source URIs that could not be prepared or previewed, so the screen can say so instead of staying blank. */
+  const [prepareFailedFor, setPrepareFailedFor] = useState<string | null>(null);
+  const [previewFailedFor, setPreviewFailedFor] = useState<string | null>(null);
 
-  const sourceWidth = Math.max(1, asset?.width ?? frameWidth);
-  const sourceHeight = Math.max(1, asset?.height ?? frameHeight);
+  // Each newly picked photo gets its own working copy and starts unrotated, unzoomed and uncorrected.
+  useEffect(() => {
+    if (!asset) return;
+    let cancelled = false;
+    prepareWorkingPhoto(asset)
+      .then((photo) => {
+        if (cancelled) return;
+        setWorking(photo);
+        setRotation(0);
+        transformRef.current = IDENTITY_TRANSFORM;
+        setTransform(IDENTITY_TRANSFORM);
+        setBrightness(0);
+        setContrast(0);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        console.warn('Could not prepare the photo for adjustment:', error);
+        setPrepareFailedFor(asset.uri);
+      });
+    return () => { cancelled = true; };
+  }, [asset]);
+
+  const ready = working && working.sourceUri === asset?.uri ? working : null;
+  // If re-encoding failed, still try the original: many photos decode fine as they are.
+  const previewUri = ready?.uri ?? (asset && prepareFailedFor === asset.uri ? asset.uri : null);
+  const previewFailed = Boolean(previewUri && previewFailedFor === previewUri);
+
+  const sourceWidth = Math.max(1, ready?.width ?? asset?.width ?? frameWidth);
+  const sourceHeight = Math.max(1, ready?.height ?? asset?.height ?? frameHeight);
   const rotatedWidth = rotation % 180 === 0 ? sourceWidth : sourceHeight;
   const rotatedHeight = rotation % 180 === 0 ? sourceHeight : sourceWidth;
   const baseScale = Math.max(frameWidth / rotatedWidth, frameHeight / rotatedHeight);
   const displayWidth = sourceWidth * baseScale;
   const displayHeight = sourceHeight * baseScale;
-  const previewImage = useImage(asset?.uri ?? null);
+  const previewImage = useImage(previewUri, () => {
+    if (previewUri) setPreviewFailedFor(previewUri);
+  });
+  const canSave = Boolean(asset && previewImage && !previewFailed);
   const colorMatrix = useMemo(() => adjustmentMatrix(brightness, contrast), [brightness, contrast]);
 
   const constrain = useCallback((next: Transform): Transform => {
@@ -153,7 +209,7 @@ export function PhotoAdjustmentModal({ asset, aspect, title, onCancel, onSave }:
   };
 
   const save = async () => {
-    if (!asset || saving) return;
+    if (!asset || !canSave || saving) return;
     setSaving(true);
     try {
       const scale = baseScale * transform.zoom;
@@ -163,7 +219,7 @@ export function PhotoAdjustmentModal({ asset, aspect, title, onCancel, onSave }:
       const centerY = rotatedHeight / 2 - transform.y / scale;
       const originX = clamp(centerX - cropWidth / 2, 0, rotatedWidth - cropWidth);
       const originY = clamp(centerY - cropHeight / 2, 0, rotatedHeight - cropHeight);
-      const context = ImageManipulator.manipulate(asset.uri);
+      const context = ImageManipulator.manipulate(previewUri ?? asset.uri);
       if (rotation) context.rotate(rotation);
       context.crop({ originX, originY, width: cropWidth, height: cropHeight });
       const maxEdge = aspect[0] / aspect[1] > 1.2 ? 1600 : 1000;
@@ -199,7 +255,7 @@ export function PhotoAdjustmentModal({ asset, aspect, title, onCancel, onSave }:
             <Text className="text-base font-bold text-white">{title}</Text>
             <Text className="text-xs text-white/65">Drag to position · pinch to zoom</Text>
           </View>
-          <Pressable accessibilityLabel="Save adjusted photo" disabled={saving} onPress={() => { void save(); }} className="min-h-11 min-w-16 items-center justify-center rounded-full bg-sky-600 px-4">
+          <Pressable accessibilityLabel="Save adjusted photo" accessibilityState={{ disabled: !canSave || saving }} disabled={!canSave || saving} onPress={() => { void save(); }} className={`min-h-11 min-w-16 items-center justify-center rounded-full bg-sky-600 px-4 ${canSave ? '' : 'opacity-50'}`}>
             {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text className="font-bold text-white">Save</Text>}
           </Pressable>
         </View>
@@ -207,7 +263,17 @@ export function PhotoAdjustmentModal({ asset, aspect, title, onCancel, onSave }:
         <View className="flex-1 items-center justify-center px-4">
           <GestureDetector gesture={cropGesture}>
           <View className="overflow-hidden bg-slate-950" style={{ width: frameWidth, height: frameHeight }}>
-            {previewImage ? (
+            {previewFailed ? (
+              <View className="absolute inset-0 items-center justify-center px-8">
+                <Text className="text-center text-sm font-semibold text-white">Couldn’t open this photo</Text>
+                <Text className="mt-1 text-center text-xs text-white/65">Close and choose another photo, or take a screenshot of it and use that.</Text>
+              </View>
+            ) : !previewImage ? (
+              <View className="absolute inset-0 items-center justify-center">
+                <ActivityIndicator color="#fff" />
+              </View>
+            ) : null}
+            {previewImage && !previewFailed ? (
               <Canvas
                 style={{
                   position: 'absolute',

@@ -374,8 +374,18 @@ export const CARD_TAG_OPTIONS = [
 export const DEFAULT_CARD_SECTION_LAYOUTS: CardSectionLayouts = {
   identity: 'layout-1',
   professional: 'layout-1',
-  connections: 'classic',
+  // The contact list every card tag uses ("Direct Contact List"); the layout picker only offers this one.
+  connections: 'compact',
 };
+
+/**
+ * Saved contact layout to show. 'classic' ("Action Tiles") was the old default and is no longer offered,
+ * so cards that still carry it (e.g. the card saved at the end of onboarding) get the current list.
+ */
+export function upgradeConnectionsLayoutId(id: CardLayoutId | string | undefined): ConnectionLayoutId {
+  const resolved = resolveConnectionsLayoutId(id);
+  return resolved === 'classic' ? DEFAULT_CARD_SECTION_LAYOUTS.connections as ConnectionLayoutId : resolved;
+}
 
 export function createDefaultCardSectionThemes(theme: CardVisualTheme = DEFAULT_CARD_THEME): CardSectionThemes {
   return {

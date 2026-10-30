@@ -1,5 +1,7 @@
 import type { Queryable } from '../../src/types.js';
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 type CardWithProfile = { card_data: Record<string, unknown>; profile_data: Record<string, unknown> | null };
 
 export class WalletRepository {
@@ -15,8 +17,10 @@ export class WalletRepository {
     ).then((result) => result.rows[0] ?? null);
   }
 
+  /** The serial comes from Wallet's URL; compare as a uuid so the primary key index is used. */
   cardOwner(cardId: string) {
-    return this.db.query<{ user_id: string }>('SELECT user_id FROM cards WHERE id::text=$1', [cardId])
+    if (!UUID.test(cardId)) return Promise.resolve(null);
+    return this.db.query<{ user_id: string }>('SELECT user_id FROM cards WHERE id=$1::uuid', [cardId])
       .then((result) => result.rows[0]?.user_id ?? null);
   }
 
@@ -50,9 +54,10 @@ export class WalletRepository {
     ).then((result) => ({ devices: Number(result.rows[0]?.devices ?? 0), addedAt: result.rows[0]?.added_at ?? null }));
   }
 
+  /** The owner's own media, or a community company logo another user uploaded and the card picked. */
   readyMediaObject(userId: string, mediaId: string) {
     return this.db.query<{ object_name: string }>(
-      "SELECT object_name FROM media WHERE id=$1 AND user_id=$2 AND status='ready'",
+      "SELECT object_name FROM media WHERE id=$1 AND status='ready' AND (user_id=$2 OR kind='companyLogo')",
       [mediaId, userId],
     ).then((result) => result.rows[0]?.object_name ?? null);
   }

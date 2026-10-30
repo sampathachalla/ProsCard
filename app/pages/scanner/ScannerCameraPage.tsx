@@ -22,9 +22,9 @@ import {
   type CardScanState,
 } from '@/modules/card-rectangle-detector';
 import { PermissionGate } from './Components/PermissionGate';
+import { BadgeEventSheet } from './Components/BadgeEventSheet';
 import { ScannerModeBar, type ScannerKind } from './Components/ScannerModeBar';
 import { ScannerOverlay } from './Components/ScannerOverlay';
-import { LiveCaptureInstructions } from './Components/LiveCaptureInstructions';
 import { useScanner } from './Hooks/useScanner';
 import { PageHeader } from '@/common/ui/PageHeader';
 import { useCardCapture } from './Hooks/useCardCapture';
@@ -34,22 +34,13 @@ import { saveScanResult, type ScanResult } from './Services/scanHandoff';
 import type { CapturedCard } from './types/scanner.types';
 import { lookupScannedCard } from './Services/scannerService';
 import type { SharedCard } from '@/pages/share/Services/sharingService';
+import { loadCurrentEvent, setCurrentEvent, type CurrentEvent } from '@/pages/contacts/Services/eventNamesService';
 
 type ScanStage = 'camera' | 'processing' | 'result';
 
 /** iOS development builds find the card live in the camera with Apple Vision. */
 const liveCardDetection = isCardRectangleDetectorAvailable();
 
-const CARD_HINTS: Record<CardScanState, string> = {
-  none: 'Point the camera at a business card',
-  detected: 'Hold steady…',
-  steady: 'Capturing…',
-};
-const BADGE_HINTS: Record<CardScanState, string> = {
-  none: 'Point the camera at the event badge',
-  detected: 'Hold steady…',
-  steady: 'Capturing…',
-};
 /** Why a captured photo could not go straight to review. */
 type PhotoIssue = { kind: 'notACard' | 'failed'; title: string; message: string };
 
@@ -63,12 +54,13 @@ export default function ScannerScreen() {
     mode?: string;
     eventName?: string;
   }>();
+  // "Save & scan next" passes the event back; otherwise badge mode looks up the last one used.
+  const routeEventName = typeof eventName === 'string' ? eventName.trim() : '';
   const [scanKind, setScanKind] = useState<ScannerKind>(() => (mode === 'badge' ? 'badge' : 'card'));
-  const [activeEventName, setActiveEventName] = useState(() =>
-    typeof eventName === 'string' ? eventName.trim() : '',
-  );
   const badgeMode = scanKind === 'badge';
-  const sessionEventName = activeEventName.trim();
+  const [sessionEventName, setSessionEventName] = useState(routeEventName);
+  const [eventResolved, setEventResolved] = useState(Boolean(routeEventName));
+  const [eventSheetOpen, setEventSheetOpen] = useState(false);
   const initialUploadedCard: CapturedCard | null =
     source === 'upload' && imageUri
       ? {
@@ -105,6 +97,34 @@ export default function ScannerScreen() {
     []
   );
 
+  /** Badge mode uses the event from the last 8 hours; without one it asks which event this is. */
+  const applyLookedUpEvent = (current: CurrentEvent | null) => {
+    if (current) setSessionEventName(current.name);
+    else setEventSheetOpen(true);
+    setEventResolved(true);
+  };
+  const resolveEvent = () => loadCurrentEvent().then(applyLookedUpEvent);
+
+  // Opened straight into badge mode (Scan badge on Contacts).
+  useEffect(() => {
+    if (!badgeMode || routeEventName) return;
+    let cancelled = false;
+    void loadCurrentEvent().then((current) => {
+      if (!cancelled) applyLookedUpEvent(current);
+    });
+    return () => { cancelled = true; };
+    // Runs once on open; switching modes later goes through changeScanKind.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const changeScanKind = (kind: ScannerKind) => {
+    setScanKind(kind);
+    if (kind === 'badge' && !sessionEventName) {
+      setEventResolved(false);
+      void resolveEvent();
+    }
+  };
+
   const close = () => {
     if (router.canGoBack()) router.back();
     else router.replace('/(tabs)/homepage');
@@ -130,8 +150,8 @@ export default function ScannerScreen() {
   /** Shows the scanning animation over the photo until the backend has read it, then opens the review. */
   const processPhoto = async (card: CapturedCard) => {
     if (badgeMode && !sessionEventName) {
-      Alert.alert('Event name required', 'Enter the event name above before scanning badges.');
       setStage('camera');
+      setEventSheetOpen(true);
       return;
     }
     if (card.uri !== photo?.uri) setPhotoAspectRatio(undefined);
@@ -201,7 +221,7 @@ export default function ScannerScreen() {
   const captureCard = async () => {
     if (stage !== 'camera' || capturing || shooting) return;
     if (badgeMode && !sessionEventName) {
-      Alert.alert('Event name required', 'Enter the event name above before scanning badges.');
+      setEventSheetOpen(true);
       return;
     }
     if (liveCardDetection) {
@@ -278,6 +298,19 @@ export default function ScannerScreen() {
     resumeScanning();
   };
 
+  const applyEvent = (name: string) => {
+    setSessionEventName(name);
+    setEventResolved(true);
+    setEventSheetOpen(false);
+    void setCurrentEvent(name);
+  };
+
+  const closeEventSheet = () => {
+    setEventSheetOpen(false);
+    // Badges cannot be saved without an event; fall back to card scanning instead of a blocked camera.
+    if (!sessionEventName) setScanKind('card');
+  };
+
   const confirmResult = async () => {
     if (!scannedCard || saving) return;
     setSaving(true);
@@ -308,9 +341,6 @@ export default function ScannerScreen() {
   }
 
   const controlsBottom = Math.max(insets.bottom, 12) + 18;
-  const instructionsBottom = controlsBottom + 94;
-  const showLiveInstructions =
-    stage === 'camera' && !capturing && !shooting && (!liveCardDetection || cardState === 'none');
 
   return (
     <View style={styles.screen}>
@@ -328,13 +358,6 @@ export default function ScannerScreen() {
             }}
             onCameraError={({ nativeEvent }) => Alert.alert('Camera unavailable', nativeEvent.message)}
           />
-          {liveCardDetection && cardState !== 'none' ? (
-            <View pointerEvents="none" style={[styles.hintPill, { bottom: instructionsBottom }]}>
-              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.hintText}>
-                {shooting ? 'Capturing…' : (badgeMode ? BADGE_HINTS : CARD_HINTS)[cardState]}
-              </Text>
-            </View>
-          ) : null}
         </>
       ) : stage === 'camera' ? (
         <>
@@ -454,20 +477,13 @@ export default function ScannerScreen() {
       {stage === 'camera' && (
         <ScannerModeBar
           scanKind={scanKind}
-          eventName={activeEventName}
           topInset={insets.top}
-          onScanKindChange={setScanKind}
-          onEventNameChange={setActiveEventName}
+          onScanKindChange={changeScanKind}
+          eventName={sessionEventName}
+          eventResolved={eventResolved}
+          onEventPress={() => setEventSheetOpen(true)}
         />
       )}
-
-      {stage === 'camera' ? (
-        <LiveCaptureInstructions
-          enabled={showLiveInstructions}
-          variant={badgeMode ? 'badge' : 'card'}
-          bottom={instructionsBottom}
-        />
-      ) : null}
 
       {stage === 'camera' && (
         <View style={[styles.controls, { bottom: controlsBottom }]}>
@@ -492,6 +508,13 @@ export default function ScannerScreen() {
           </TouchableOpacity>
         </View>
       )}
+
+      <BadgeEventSheet
+        visible={badgeMode && eventSheetOpen}
+        currentEvent={sessionEventName}
+        onClose={closeEventSheet}
+        onChoose={applyEvent}
+      />
     </View>
   );
 }
@@ -500,19 +523,6 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: '#000000',
-  },
-  hintPill: {
-    position: 'absolute',
-    alignSelf: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 16,
-    backgroundColor: 'rgba(28,28,30,0.72)',
-  },
-  hintText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '600',
   },
   detectedPlaceholder: {
     ...StyleSheet.absoluteFill,

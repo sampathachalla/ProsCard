@@ -5,6 +5,7 @@ export type OnboardingFlowGroupId =
   | 'name_formal'
   | 'role_company'
   | 'credentials'
+  | 'focus'
   | 'tagline'
   | 'contact_email'
   | 'contact_phone'
@@ -19,6 +20,7 @@ export type OnboardingStepIconKey =
   | 'user'
   | 'briefcase'
   | 'mail'
+  | 'target'
   | 'quote'
   | 'file-text'
   | 'camera'
@@ -55,6 +57,8 @@ export type OnboardingFlowItem =
       kind: 'group';
       groupId: OnboardingFlowGroupId;
       title: string;
+      /** Keep `title` for metadata but do not show it above the fields. */
+      hideTitle?: boolean;
       subtitle?: string;
       /** Short label for the segmented header step indicator. */
       stepLabel?: string;
@@ -169,12 +173,32 @@ export const ONBOARDING_FLOW: OnboardingFlowItem[] = [
       },
     ],
   },
-  // Step 4: Tag
+  // Step 4: Focus — the user's own words; the headline step writes from them.
+  {
+    kind: 'group',
+    groupId: 'focus',
+    title: 'What do you focus on?',
+    subtitle: 'A few words about your work. We’ll use them to write your headline and bio.',
+    stepLabel: 'Focus',
+    stepIcon: 'target',
+    skippable: true,
+    fields: [
+      {
+        key: 'focus',
+        label: 'Your focus',
+        placeholder: 'e.g. data pipelines for hospitals',
+        autoCapitalize: 'sentences',
+        maxLength: 160,
+      },
+    ],
+  },
+  // Step 5: Headline — tagline and bio, written from the focus and editable.
   {
     kind: 'group',
     groupId: 'tagline',
     title: 'Your headline',
-    stepLabel: 'Tag',
+    hideTitle: true,
+    stepLabel: 'Headline',
     stepIcon: 'quote',
     skippable: true,
     fields: [
@@ -185,21 +209,10 @@ export const ONBOARDING_FLOW: OnboardingFlowItem[] = [
         autoCapitalize: 'sentences',
         maxLength: 120,
       },
-    ],
-  },
-  // Step 5: Bio
-  {
-    kind: 'group',
-    groupId: 'short_bio',
-    title: 'About you',
-    stepLabel: 'Bio',
-    stepIcon: 'file-text',
-    skippable: true,
-    fields: [
       {
         key: 'shortBio',
         label: 'Short bio',
-        placeholder: 'I am here to build tools for the future',
+        placeholder: 'A line or two about your work',
         autoCapitalize: 'sentences',
         maxLength: 240,
       },

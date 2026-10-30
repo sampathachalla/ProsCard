@@ -39,7 +39,7 @@ export class MediaRepository {
     return this.db.query<{ palette: ExtractedLogoPalette }>(
       `UPDATE logo_theme_cache
        SET hit_count=hit_count+1,last_used_at=now()
-       WHERE content_hash=(SELECT content_hash FROM logo_theme_cache WHERE $1=ANY(source_keys) LIMIT 1)
+       WHERE content_hash=(SELECT content_hash FROM logo_theme_cache WHERE source_keys @> ARRAY[$1::text] LIMIT 1)
        RETURNING palette`,
       [sourceKey],
     ).then((result) => result.rows[0]?.palette ?? null);
@@ -114,7 +114,10 @@ export class MediaRepository {
 
   listCommunityCompanyLogos(userId: string, query?: string, limit = 48) {
     const cleanQuery = (query ?? '').trim();
-    const likePattern = `%${cleanQuery}%`;
+    // Escape LIKE wildcards so a search for "100%" or "a_b" matches those characters literally.
+    const likePattern = `%${cleanQuery.replace(/[\\%_]/g, '\\$&')}%`;
+    // Punctuation-insensitive match ("Acme, Inc." finds "acmeinc"); only letters and digits remain.
+    const compactPattern = `%${cleanQuery.toLowerCase().replace(/[^a-z0-9]/g, '')}%`;
     return this.db.query<{
       id: string;
       user_id: string;
@@ -137,15 +140,36 @@ export class MediaRepository {
               OR COALESCE(p.data->>'organization', '') ILIKE $2
               OR COALESCE(m.original_name, '') ILIKE $2
               OR REGEXP_REPLACE(LOWER(COALESCE(c.data->>'company', '')), '[^a-z0-9]', '', 'g')
-                 LIKE REGEXP_REPLACE(LOWER($2), '[^a-z0-9%]', '', 'g')
+                 LIKE $5
               OR REGEXP_REPLACE(LOWER(COALESCE(p.data->>'organization', '')), '[^a-z0-9]', '', 'g')
-                 LIKE REGEXP_REPLACE(LOWER($2), '[^a-z0-9%]', '', 'g')
+                 LIKE $5
               OR REGEXP_REPLACE(LOWER(COALESCE(m.original_name, '')), '[^a-z0-9]', '', 'g')
-                 LIKE REGEXP_REPLACE(LOWER($2), '[^a-z0-9%]', '', 'g'))
+                 LIKE $5)
        ORDER BY (m.user_id = $3) DESC, m.created_at DESC
        LIMIT $4`,
-      [cleanQuery, likePattern, userId, limit],
+      [cleanQuery, likePattern, userId, limit, compactPattern],
     ).then((result) => result.rows);
+  }
+
+  /**
+   * Whether a company logo is still shown by some card or profile, so deleting its file would break it.
+   * Community logos are picked by other users, so this looks across accounts; `exclude` skips the card
+   * or account that is being removed.
+   */
+  logoInUse(mediaId: string, exclude: { cardId?: string; userId?: string } = {}) {
+    return this.db.query<{ in_use: boolean }>(
+      `SELECT EXISTS (
+         SELECT 1 FROM cards
+         WHERE data->'sectionOverrides'->>'logo' = $1
+           AND ($2::uuid IS NULL OR id <> $2::uuid)
+           AND ($3::uuid IS NULL OR user_id <> $3::uuid)
+       ) OR EXISTS (
+         SELECT 1 FROM profiles
+         WHERE data->>'companyLogoUrl' = $1
+           AND ($3::uuid IS NULL OR user_id <> $3::uuid)
+       ) AS in_use`,
+      [`/api/v1/media/${mediaId}/content`, exclude.cardId ?? null, exclude.userId ?? null],
+    ).then((result) => Boolean(result.rows[0]?.in_use));
   }
 
   cardOwned(userId: string, cardId: string) {

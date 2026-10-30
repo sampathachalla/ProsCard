@@ -23,6 +23,11 @@ export interface OnboardingDraft {
   /** Derived from structured name parts; not a primary input. */
   fullName: string;
   tagline: string;
+  /**
+   * In the user's own words, what they work on. Only feeds the tagline and bio writer; it is kept on the
+   * onboarding draft and never saved to the profile or card.
+   */
+  focus: string;
   title: string;
 
   // Professional / contact
@@ -58,6 +63,18 @@ export interface OnboardingDraft {
 
 export type FieldTier = 'must' | 'nice' | 'later';
 
+/** State of the tagline and bio writer, for the tagline step's suggestions. */
+export interface ProfileCopyAssist {
+  generating: boolean;
+  /** Tagline options from the last suggestion, best first; empty until one has been written. */
+  taglineOptions: string[];
+  /** Why a suggestion the user asked for failed; automatic attempts fail quietly. */
+  error: string | null;
+  /** Whether there is enough (a focus, or a title and company) to write something specific. */
+  canGenerate: boolean;
+  regenerate: () => void;
+}
+
 export interface StepMetadata {
   index: number;
   title: string;
@@ -86,6 +103,7 @@ export interface UseOnboardingStepperReturn {
   errors: Record<string, string>;
   isSaving: boolean;
   isGeneratingCopy: boolean;
+  copyAssist: ProfileCopyAssist;
   canGoBack: boolean;
   isLastStep: boolean;
   activeStepMeta?: StepMetadata;
@@ -171,6 +189,7 @@ export const INITIAL_ONBOARDING_DRAFT: OnboardingDraft = {
   accreditations: '',
   fullName: '',
   tagline: '',
+  focus: '',
   title: '',
   department: '',
   organization: '',

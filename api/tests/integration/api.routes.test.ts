@@ -38,7 +38,7 @@ const storage:ObjectStorageGateway={
 const config=loadConfig();
 const pool=createPool(config);
 const cardReader={read:async()=>({isBusinessCard:true,cardBounds:{x:0.1,y:0.1,width:0.8,height:0.5},rotation:0 as const,contact:{name:'Grace Hopper',title:'Rear Admiral',company:'US Navy',phone:'',email:'grace@navy.mil',website:'',address:'',notes:''}})};
-const profileCopywriter={generate:async()=>({tagline:'Engineer shaping useful products',shortBio:'I build useful products with a focus on thoughtful engineering.'})};
+const profileCopywriter={generate:async()=>({tagline:'Engineer shaping useful products',taglines:['Engineer shaping useful products','Engineer at Analytical Engines'],shortBio:'I build useful products with a focus on thoughtful engineering.'})};
 const app=createApp({db:pool,supabase,storage,cardReader,profileCopywriter});
 const auth={Authorization:'Bearer test-token'};
 let cardId='';let shareId='';let shareSlug='';let contactId='';let mediaId='';

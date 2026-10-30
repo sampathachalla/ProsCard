@@ -23,7 +23,7 @@ export function AddContactSheet({ existing, visible, onClose, onAdd }: Props) {
   const options = CONTACT_OPTIONS.filter((option) => !used.has(normalize(option.title)));
 
   return (
-    <AddCardSheet title="Add contact" visible={visible} onClose={onClose}>
+    <AddCardSheet title="Add contact method" visible={visible} onClose={onClose}>
       {options.length === 0 ? (
         <Text variant="muted" className="text-center">
           Every contact method is already on this card.

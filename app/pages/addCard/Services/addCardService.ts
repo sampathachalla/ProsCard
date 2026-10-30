@@ -2,14 +2,14 @@
 import { AUTH_TEST_MODE } from '@/pages/auth/Config/authMode';
 import { buildDefaultCard, getCardById } from '@/pages/cards/Services/cardsService';
 import { createCardDetailTemplate } from '@/pages/cards/Templates/cardDetailTemplate';
-import type { BusinessCard, CardSectionFieldId, DynamicCardField } from '@/pages/cards/types/card.types';
+import type { BusinessCard, CardSectionFieldId } from '@/pages/cards/types/card.types';
 import { saveCard } from '@/pages/editView/Services/editViewService';
 import { clearPendingMedia, commitPendingMedia } from '@/pages/profile/Services/pendingMedia';
 import type { Profile } from '@/pages/profile/types/profile.types';
 import type { MediaScope } from '@/services/api/types';
-import { IMAGE_MEDIA_KINDS, PRIMARY_CONTACT_IDS } from '../Config/addCardFields';
+import { IMAGE_MEDIA_KINDS } from '../Config/addCardFields';
 import type { AddCardImageField } from '../types/addCard.types';
-import { buildAddCardDraftFromCard } from '../Utils/addCardDraft';
+import { buildAddCardDraftFromCard, defaultConnectionFields } from '../Utils/addCardDraft';
 import { splitName } from '../Utils/addCardName';
 
 export { buildAddCardDraftFromCard } from '../Utils/addCardDraft';
@@ -31,14 +31,7 @@ export function buildAddCardDraft(profile: Profile): BusinessCard {
   const sectionOverrides: BusinessCard['sectionOverrides'] = { preferredName: card.name, ...splitName(card.name) };
   for (const field of PREFILLED_OVERRIDES) sectionOverrides[field] = values.get(field) ?? '';
 
-  const connectionFields: DynamicCardField[] = (sections.find((section) => section.id === 'connections')?.fields ?? [])
-    .filter((field) => PRIMARY_CONTACT_IDS.has(field.id) || field.value.trim())
-    .map((field) => ({
-      id: field.id,
-      title: field.title,
-      type: field.type === 'image' || field.type === 'multiline' ? 'text' : field.type,
-      value: field.value,
-    }));
+  const connectionFields = defaultConnectionFields(sections);
 
   return { ...card, sectionOverrides, connectionFields, connectionFieldsCustomized: true };
 }

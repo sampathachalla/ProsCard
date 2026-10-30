@@ -4,7 +4,7 @@ import { Colors } from '@/constants/Colors';
 import { buildCustomSectionTheme } from '@/utils/cardThemeColor';
 import { parseStoredJson } from '@/utils/safeJson';
 import { getCardTagDesignPreset, resolveCardTag, withResolvedCardTheme } from '@/pages/addCard/Config/cardTagDesignPresets';
-import { CARD_THEME_PRESETS, createDefaultCardSectionThemes, DEFAULT_CARD_SECTION_LAYOUTS, DEFAULT_CARD_THEME, resolveConnectionsLayoutId, resolveIdentityLayoutId, resolveProfessionalLayoutId, type BusinessCard, type CardThemeId, type CardVisualTheme } from '../types/card.types';
+import { CARD_THEME_PRESETS, createDefaultCardSectionThemes, DEFAULT_CARD_SECTION_LAYOUTS, DEFAULT_CARD_THEME, resolveIdentityLayoutId, resolveProfessionalLayoutId, upgradeConnectionsLayoutId, type BusinessCard, type CardThemeId, type CardVisualTheme } from '../types/card.types';
 import { apiRequest } from '@/services/api/client';
 import { AUTH_TEST_MODE } from '@/pages/auth/Config/authMode';
 import { commitPendingMedia, isPendingMediaUrl } from '@/pages/profile/Services/pendingMedia';
@@ -13,6 +13,7 @@ import { useEditorPreferenceStore } from '@/pages/profile/Stores/editorPreferenc
 import { getSession } from '@/services/api/session';
 import { queryClient, queryKeys } from '@/services/api/queryClient';
 import type { Profile } from '@/pages/profile/types/profile.types';
+import { hasAutomaticNameForTag, isCustomCardName, nextAutomaticCardName } from '../Utils/cardDisplayName';
 
 const PRIMARY_CARD_KEY = 'primaryCard';
 const USER_CARDS_KEY = 'userCards';
@@ -26,8 +27,7 @@ async function scopedCardKey(key: string) {
 
 async function ensureCardDisplayName(card: BusinessCard): Promise<BusinessCard> {
   const storedLabel = card.displayName?.trim() || card.sectionOverrides.displayName?.trim();
-  const customized = card.displayNameCustomized || card.sectionOverrides.displayNameCustomized === 'true';
-  if (customized && storedLabel) {
+  if (storedLabel && isCustomCardName(card)) {
     return {
       ...card,
       displayName: storedLabel,
@@ -35,32 +35,27 @@ async function ensureCardDisplayName(card: BusinessCard): Promise<BusinessCard> 
       sectionOverrides: { ...card.sectionOverrides, displayName: storedLabel, displayNameCustomized: 'true' },
     };
   }
-  if (storedLabel) return card;
-
-  const tag = resolveCardTag(card);
   const counterKey = await scopedCardKey(CARD_LABEL_COUNTERS_KEY);
   const stored = parseStoredJson<Record<string, number>>(await AsyncStorage.getItem(counterKey)) ?? {};
-  const usedNumbers = CARDS
-    .filter((item) => item.id !== card.id && resolveCardTag(item) === tag)
-    .map((item) => {
-      const label = item.displayName?.trim() || item.sectionOverrides.displayName?.trim();
-      if (!label || label === tag) return 1;
-      const match = label.match(new RegExp(`^${tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s+(\\d+)$`, 'i'));
-      return match ? Number(match[1]) : 0;
-    });
-  const highest = Math.max(stored[tag] ?? 0, ...usedNumbers, 0);
-  const sequence = highest + 1;
-  stored[tag] = sequence;
+  // An automatic name follows the card's tag; one left over from another tag is replaced. A name the
+  // editor already filled in is kept, and its number recorded so a later card does not reuse it.
+  if (hasAutomaticNameForTag(card)) {
+    const tag = resolveCardTag(card);
+    const sequence = Number(storedLabel?.match(/\s(\d+)$/)?.[1] ?? 1);
+    if (sequence > (stored[tag] ?? 0)) {
+      stored[tag] = sequence;
+      await AsyncStorage.setItem(counterKey, JSON.stringify(stored));
+    }
+    return card;
+  }
+  const next = nextAutomaticCardName(card, CARDS, stored[resolveCardTag(card)] ?? 0);
+  stored[next.tag] = next.sequence;
   await AsyncStorage.setItem(counterKey, JSON.stringify(stored));
   return {
     ...card,
-    displayName: sequence === 1 ? tag : `${tag} ${sequence}`,
+    displayName: next.name,
     displayNameCustomized: false,
-    sectionOverrides: {
-      ...card.sectionOverrides,
-      displayName: sequence === 1 ? tag : `${tag} ${sequence}`,
-      displayNameCustomized: 'false',
-    },
+    sectionOverrides: { ...card.sectionOverrides, displayName: next.name, displayNameCustomized: 'false' },
   };
 }
 
@@ -133,7 +128,7 @@ export function normalizeCard(card: BusinessCard | (Omit<BusinessCard, 'sectionL
       identity: resolveIdentityLayoutId(card.sectionLayouts?.identity),
       // Older cards saved the professional style name ('bold'); convert it to its layout id.
       professional: resolveProfessionalLayoutId(card.sectionLayouts?.professional),
-      connections: resolveConnectionsLayoutId(card.sectionLayouts?.connections),
+      connections: upgradeConnectionsLayoutId(card.sectionLayouts?.connections),
     },
     sectionOverrides: { ...(card.sectionOverrides ?? {}) },
     connectionFields: Array.isArray(card.connectionFields) ? card.connectionFields : [],
@@ -436,7 +431,7 @@ export async function savePrimaryCard(profileData: Partial<BusinessCard>): Promi
     ...defaultSectionData(),
   };
 
-  const updatedCard: BusinessCard = {
+  const mergedCard: BusinessCard = {
     ...currentPrimary,
     ...profileData,
     id: currentPrimary.id || '1',
@@ -448,6 +443,8 @@ export async function savePrimaryCard(profileData: Partial<BusinessCard>): Promi
     phone: profileData.phone !== undefined ? profileData.phone : currentPrimary.phone,
     email: profileData.email !== undefined ? profileData.email : currentPrimary.email,
   };
+  // Name it from its tag like any other card ("Personal", or "Personal 2" when one already exists).
+  const updatedCard = await ensureCardDisplayName(mergedCard);
 
   if (!AUTH_TEST_MODE) {
     const existing = CARDS[0];

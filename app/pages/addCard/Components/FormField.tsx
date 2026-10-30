@@ -19,6 +19,8 @@ type Props = {
   onEndEditing?: () => void;
   /** Use inside horizontal rows — drops bottom margin on this field. */
   dense?: boolean;
+  /** Focus the input when it appears (a contact row the user just added). */
+  autoFocus?: boolean;
 };
 
 /** Boxed input with its label inside the box, one per line as in the card form sketch. */
@@ -36,6 +38,7 @@ export function FormField({
   onFocus,
   onEndEditing,
   dense = false,
+  autoFocus = false,
 }: Props) {
   const { theme } = useThemeContext();
 
@@ -56,6 +59,7 @@ export function FormField({
       </View>
       <TextInput
         accessibilityLabel={label}
+        autoFocus={autoFocus}
         autoCapitalize={autoCapitalize ?? (keyboardType === 'email-address' ? 'none' : 'sentences')}
         autoCorrect={!keyboardType || keyboardType === 'default'}
         keyboardType={keyboardType}

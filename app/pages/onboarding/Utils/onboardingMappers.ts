@@ -10,7 +10,12 @@ import {
 } from '@/pages/cards/types/card.types';
 import type { OnboardingDraft } from '../types/onboardingStepper.types';
 import { INITIAL_ONBOARDING_DRAFT } from '../types/onboardingStepper.types';
+import { CARD_TAG_DESIGN_PRESETS, type CardTag } from '@/pages/addCard/Config/cardTagDesignPresets';
+
 import { normalizeUrl } from './validateOnboarding';
+
+/** Tag the card saved at the end of onboarding starts with. */
+export const ONBOARDING_CARD_TAG: CardTag = 'Personal';
 
 export function buildFullName(
   draft: Pick<
@@ -97,14 +102,16 @@ export function mapDraftToBusinessCard(
       draft.cardGradient && draft.cardGradient.length === 2
         ? draft.cardGradient
         : existingCard?.gradient || [Colors.light.tint, Colors.palette.brandCyan],
-    sectionLayouts: {
-      ...DEFAULT_CARD_SECTION_LAYOUTS,
-      ...(existingCard?.sectionLayouts ?? {}),
-    },
+    // The card made at the end of onboarding starts as a Personal card, with that tag's layouts; a card
+    // that already has its own layouts or tag keeps them.
+    sectionLayouts: existingCard?.sectionLayouts
+      ? { ...DEFAULT_CARD_SECTION_LAYOUTS, ...existingCard.sectionLayouts }
+      : { ...CARD_TAG_DESIGN_PRESETS[ONBOARDING_CARD_TAG].layouts },
     sectionOverrides: {
       coverPhoto: draft.coverPhotoUrl ?? '',
       profilePhoto: draft.photoUrl ?? '',
       logo: draft.companyLogoUrl ?? '',
+      cardTag: ONBOARDING_CARD_TAG,
       ...(existingCard?.sectionOverrides ?? {}),
     },
     connectionFields: existingCard?.connectionFields ?? [],
@@ -135,6 +142,8 @@ export function mapProfileToDraft(
     accreditations: profile?.accreditations ?? INITIAL_ONBOARDING_DRAFT.accreditations,
     fullName: profile?.fullName ?? card?.name ?? INITIAL_ONBOARDING_DRAFT.fullName,
     tagline: profile?.tagline ?? INITIAL_ONBOARDING_DRAFT.tagline,
+    // Writer-only input; never stored on the profile, so it only comes back from the saved draft.
+    focus: INITIAL_ONBOARDING_DRAFT.focus,
     title: profile?.title ?? card?.title ?? INITIAL_ONBOARDING_DRAFT.title,
     department: profile?.department ?? INITIAL_ONBOARDING_DRAFT.department,
     organization: profile?.organization ?? card?.company ?? INITIAL_ONBOARDING_DRAFT.organization,

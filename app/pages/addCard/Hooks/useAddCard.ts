@@ -32,6 +32,8 @@ import {
 import { getCachedLogoPalette } from '@/pages/profile/Services/mediaService';
 import { saveProfile } from '@/pages/profile/Services/profileService';
 import { applyCardFieldToProfile, type AccountScopedCardField } from '../Utils/accountFieldScope';
+import { getCards } from '@/pages/cards/Services/cardsService';
+import { withAutomaticCardName } from '@/pages/cards/Utils/cardDisplayName';
 
 /** Applies one theme to every card section so the whole card matches. */
 function withThemeEverywhere(card: BusinessCard, theme: CardVisualTheme): BusinessCard {
@@ -54,8 +56,9 @@ export function useAddCard(options: UseAddCardOptions = {}) {
   const { enabled: logoThemesEnabled } = useLogoThemePreference();
   const { enabled: tagDesignEnabled } = useCardTagDesignPreference();
   const isEditMode = Boolean(options.cardId);
+  // The name field shows the automatic name ("Personal", "Personal 2") right away, not only after saving.
   const [draft, setDraft] = useState<BusinessCard>(() =>
-    buildAddCardDraftForEditor(profile, options.cardId),
+    withAutomaticCardName(buildAddCardDraftForEditor(profile, options.cardId), getCards()),
   );
   const initialSnapshot = useRef(JSON.stringify(draft));
   const [isSaving, setIsSaving] = useState(false);
@@ -73,23 +76,14 @@ export function useAddCard(options: UseAddCardOptions = {}) {
     }
     setDraft((prev) => {
       const hydrated = buildAddCardDraftFromCard(prev, profile);
-      if (!tagDesignEnabled) {
-        return {
-          ...hydrated,
-          ...(!(hydrated.displayNameCustomized || hydrated.sectionOverrides.displayNameCustomized === 'true') ? { displayName: undefined } : {}),
-          sectionOverrides: {
-            ...hydrated.sectionOverrides,
-            ...(!(hydrated.displayNameCustomized || hydrated.sectionOverrides.displayNameCustomized === 'true') ? { displayName: '' } : {}),
-            cardTag: tag,
-          },
-        };
-      }
-      const logoUrl = hydrated.sectionOverrides?.logo;
-      const cachedPalette = logoUrl ? getCachedLogoPalette(logoUrl) : undefined;
-      const tagged = applyCardTagDesign(hydrated, tag, { logoThemesEnabled, logoPalette: cachedPalette });
-      return tagged.displayNameCustomized || tagged.sectionOverrides.displayNameCustomized === 'true'
-        ? tagged
-        : { ...tagged, displayName: undefined, sectionOverrides: { ...tagged.sectionOverrides, displayName: '' } };
+      const tagged = tagDesignEnabled
+        ? applyCardTagDesign(hydrated, tag, {
+          logoThemesEnabled,
+          logoPalette: hydrated.sectionOverrides?.logo ? getCachedLogoPalette(hydrated.sectionOverrides.logo) : undefined,
+        })
+        : { ...hydrated, sectionOverrides: { ...hydrated.sectionOverrides, cardTag: tag } };
+      // A name the user typed stays; an automatic one is redone for the new tag ("Networking 2").
+      return withAutomaticCardName(tagged, getCards());
     });
   }, [logoThemesEnabled, profile, setOverride, tagDesignEnabled]);
 

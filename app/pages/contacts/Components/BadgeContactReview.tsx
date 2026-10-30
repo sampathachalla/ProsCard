@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Briefcase, Building2, User } from 'lucide-react-native';
+import { Briefcase, Building2, MapPin, User } from 'lucide-react-native';
 import { Button } from '@/common/ui/Button';
 import { Text } from '@/common/ui/Text';
 import { Colors } from '@/constants/Colors';
@@ -19,11 +19,18 @@ import type { BadgeContactFields } from '@/pages/scanner/types/badge.types';
 
 export type BadgeFormValues = BadgeContactFields & { notes: string };
 
+export type BadgeSaveOptions = {
+  /** Event for this contact; editing it here does not change the event later scans use. */
+  eventName: string;
+  /** Go back to the camera for the next badge instead of the contact list. */
+  scanNext: boolean;
+};
+
 type Props = {
   eventName: string;
   initialValues: BadgeFormValues;
   initialCard: ProcessedCard | null;
-  onSave: (values: BadgeFormValues, card: ProcessedCard | null) => Promise<void>;
+  onSave: (values: BadgeFormValues, card: ProcessedCard | null, options: BadgeSaveOptions) => Promise<void>;
   onCancel: () => void;
 };
 
@@ -38,15 +45,16 @@ export function emptyBadgeForm(fields?: Partial<BadgeContactFields>): BadgeFormV
   };
 }
 
-export function BadgeContactReview({ eventName, initialValues, initialCard, onSave, onCancel }: Props) {
+export function BadgeContactReview({ eventName: initialEventName, initialValues, initialCard, onSave, onCancel }: Props) {
   const insets = useSafeAreaInsets();
   const [values, setValues] = useState(initialValues);
+  const [eventName, setEventName] = useState(initialEventName);
   const [card] = useState(initialCard);
   const [saving, setSaving] = useState(false);
 
   const canSave = useMemo(() => values.name.trim().length > 0 && eventName.trim().length > 0, [eventName, values.name]);
 
-  const save = async () => {
+  const save = async (scanNext: boolean) => {
     if (!canSave || saving) return;
     setSaving(true);
     try {
@@ -58,6 +66,7 @@ export function BadgeContactReview({ eventName, initialValues, initialCard, onSa
           notes: values.notes.trim(),
         },
         card,
+        { eventName: eventName.trim(), scanNext },
       );
     } catch (reason) {
       Alert.alert('Save failed', reason instanceof Error ? reason.message : 'Try again.');
@@ -95,9 +104,18 @@ export function BadgeContactReview({ eventName, initialValues, initialCard, onSa
           <Text variant="none" className="text-xs font-semibold uppercase text-primary dark:text-dark-primary">
             Event
           </Text>
-          <Text variant="none" className="mt-1 text-lg font-bold text-textPrimary dark:text-dark-textPrimary">
-            {eventName}
-          </Text>
+          <View className="mt-1 flex-row items-center">
+            <MapPin color={Colors.light.tint} size={18} />
+            <TextInput
+              accessibilityLabel="Event for this contact"
+              value={eventName}
+              onChangeText={setEventName}
+              placeholder="Event name (required)"
+              placeholderTextColor="#94a3b8"
+              autoCapitalize="words"
+              className="ml-2 flex-1 py-1 text-lg font-bold text-textPrimary dark:text-dark-textPrimary"
+            />
+          </View>
         </View>
         {card ? (
           <Image
@@ -111,8 +129,9 @@ export function BadgeContactReview({ eventName, initialValues, initialCard, onSa
         {field('company', 'Company', 'Organization (optional)', Building2)}
         {field('notes', 'Notes', 'Booth, follow-up, etc.', User)}
         <View className="mt-2 gap-3">
-          <Button label={saving ? 'Saving…' : 'Save to contacts'} onPress={save} disabled={!canSave || saving} />
-          <Button label="Cancel" variant="secondary" onPress={onCancel} disabled={saving} />
+          <Button label={saving ? 'Saving…' : 'Save & scan next'} onPress={() => { void save(true); }} disabled={!canSave || saving} />
+          <Button label="Save to contacts" variant="secondary" onPress={() => { void save(false); }} disabled={!canSave || saving} />
+          <Button label="Cancel" variant="ghost" onPress={onCancel} disabled={saving} />
         </View>
         {saving ? <ActivityIndicator color={Colors.light.tint} style={{ marginTop: 12 }} /> : null}
       </ScrollView>

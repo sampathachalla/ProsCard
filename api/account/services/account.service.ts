@@ -12,8 +12,8 @@ export class AccountService {
    */
   async delete(userId: string) {
     try {
-      await this.media.purgeUser(userId);
-      await this.repository.purgeData(userId);
+      const retainedMediaIds = await this.media.purgeUser(userId);
+      await this.repository.purgeData(userId, retainedMediaIds);
       await this.repository.deleteAuthUser(userId);
     } catch (error) {
       if (error instanceof HttpError) throw error;

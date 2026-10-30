@@ -7,6 +7,7 @@ import { ContactReview, type ContactFormValues } from '@/pages/contacts/Componen
 import { useContact } from '@/pages/contacts/Hooks/useContact';
 import { deleteContact, initialsFor, updateContactWithCard } from '@/pages/contacts/Services/contactsService';
 import type { Contact } from '@/pages/contacts/types/contact.types';
+import { isBadgeContact } from '@/pages/contacts/Utils/contactFilters';
 import type { ProcessedCard } from '@/pages/scanner/types/scanner.types';
 import { queryClient, queryKeys } from '@/services/api/queryClient';
 
@@ -40,12 +41,19 @@ export default function ContactDetailScreen() {
 
   const close = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)/contactsPage'));
 
-  const save = async (values: ContactFormValues, card: ProcessedCard | null) => {
+  const save = async (values: ContactFormValues, card: ProcessedCard | null, { eventName }: { eventName: string }) => {
     if (!contact) return;
     // Returns once the edits are saved; a new card photo finishes uploading in the background.
     await updateContactWithCard(
       contact.id,
-      { ...values, initials: initialsFor(values.name), color: contact.color, sourceCardId: contact.sourceCardId ?? null },
+      {
+        ...values,
+        initials: initialsFor(values.name),
+        color: contact.color,
+        sourceCardId: contact.sourceCardId ?? null,
+        captureKind: contact.captureKind,
+        eventName,
+      },
       card,
     );
     stopEditing();
@@ -87,6 +95,8 @@ export default function ContactDetailScreen() {
           mode="edit"
           editing={editing}
           initialValues={formValues(contact)}
+          eventName={contact.eventName ?? ''}
+          isBadge={isBadgeContact(contact)}
           storedImageUrl={contact.cardImageUrl || undefined}
           onSave={save}
           onDelete={remove}

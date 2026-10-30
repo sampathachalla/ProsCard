@@ -336,7 +336,7 @@ export default function ContactsScreen() {
       <AddContactBottomSheet
         ref={addSheetRef}
         onScan={() => router.push('/scanner')}
-        onScanBadge={() => router.push('/badge-scanner')}
+        onScanBadge={() => router.push({ pathname: '/scanner', params: { mode: 'badge' } })}
         onUpload={() => { void uploadCard(); }}
         onManual={() => router.push('/contacts/new')}
       />

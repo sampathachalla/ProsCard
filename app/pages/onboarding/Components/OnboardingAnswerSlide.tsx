@@ -2,14 +2,16 @@ import React, { useCallback, useMemo, useRef } from 'react';
 import { ActivityIndicator, View, ScrollView } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { Text } from '@/common/ui/Text';
-import type { OnboardingDraft } from '../types/onboardingStepper.types';
+import type { OnboardingDraft, ProfileCopyAssist } from '../types/onboardingStepper.types';
 import type { FieldSpec } from '../types/onboardingFlow.types';
 import { renderOnboardingField } from './onboardingFieldRegistry';
 import { OnboardingRotatingWord } from './OnboardingRotatingWord';
 import { OnboardingScrollContext } from './onboardingScrollContext';
+import { TaglineAssist } from './TaglineAssist';
 
 export interface OnboardingAnswerSlideProps {
   title: string;
+  hideTitle?: boolean;
   subtitle?: string;
   subtitleLines?: [string, string];
   highlightWords?: string[];
@@ -19,10 +21,13 @@ export interface OnboardingAnswerSlideProps {
   updateDraft: (fields: Partial<OnboardingDraft>) => void;
   errors: Record<string, string>;
   isGeneratingCopy?: boolean;
+  /** Tagline and bio writer; the tagline step shows its suggestions above the field. */
+  copyAssist?: ProfileCopyAssist;
 }
 
 export function OnboardingAnswerSlide({
   title,
+  hideTitle = false,
   subtitle,
   subtitleLines,
   highlightWords,
@@ -32,7 +37,9 @@ export function OnboardingAnswerSlide({
   updateDraft,
   errors,
   isGeneratingCopy = false,
+  copyAssist,
 }: OnboardingAnswerSlideProps) {
+  const showTaglineAssist = Boolean(copyAssist && fields.some((spec) => spec.key === 'tagline'));
   const hasHighlightWords = Boolean(highlightWords && highlightWords.length > 0);
   const subcopy = funTag || subtitle;
   const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
@@ -81,12 +88,14 @@ export function OnboardingAnswerSlide({
         >
           <View className="w-full max-w-[440px] self-center">
             <Animated.View entering={FadeIn.duration(240)} className="items-start">
-              <Text
-                variant="none"
-                className="text-left text-[28px] font-bold leading-tight tracking-tight text-textPrimary dark:text-dark-textPrimary"
-              >
-                {title}
-              </Text>
+              {hideTitle ? null : (
+                <Text
+                  variant="none"
+                  className="text-left text-[28px] font-bold leading-tight tracking-tight text-textPrimary dark:text-dark-textPrimary"
+                >
+                  {title}
+                </Text>
+              )}
 
               {subcopy ? (
                 <Text
@@ -119,15 +128,18 @@ export function OnboardingAnswerSlide({
               ) : null}
             </Animated.View>
 
-            <View className="mt-6 w-full">
-              {isGeneratingCopy ? (
+            <View className={`${hideTitle && !subcopy ? 'mt-1' : 'mt-6'} w-full`}>
+              {showTaglineAssist && copyAssist ? (
+                <TaglineAssist assist={copyAssist} />
+              ) : null}
+              {isGeneratingCopy && !showTaglineAssist ? (
                 <View className="mb-3 flex-row items-center gap-2">
                   <ActivityIndicator size="small" color="#38bdf8" />
                   <Text
                     variant="none"
                     className="text-[13px] text-slate-500 dark:text-slate-400"
                   >
-                    Writing a suggestion from your profile…
+                    Writing suggestions from your profile…
                   </Text>
                 </View>
               ) : null}
