@@ -16,6 +16,8 @@ export type WalletCard = {
   /** Media ids behind the stored `/api/v1/media/:id/content` links, if any. */
   photoMediaId: string | null;
   logoMediaId: string | null;
+  /** A logo picked from an outside catalogue (e.g. Brandfetch) is stored as its https link. */
+  logoUrl: string | null;
   coverMediaId: string | null;
   coverPresetId: string | null;
   colors: {
@@ -92,13 +94,18 @@ function readableThemeColor(value: unknown, background: [number, number, number]
   return ratio >= minimum ? candidate : hexToRgb(fallback)!;
 }
 
-/** Use the same stored surface/text/accent choices as the in-app wallet card. */
+/**
+ * Use the same stored surface/text/accent choices as the in-app wallet card. Like the app's
+ * savedSectionTheme, the theme the card shows (`appliedTheme`: logo colours when logo themes are on)
+ * wins over the per-section themes, so the pass matches the card.
+ */
 function passColors(card: Json) {
   const themes = (card.sectionThemes ?? {}) as Record<string, StoredTheme | undefined>;
   const fallback = (card.cardTheme ?? {}) as StoredTheme;
-  const identity = themes.identity ?? fallback;
-  const professional = themes.professional ?? fallback;
-  const connections = themes.connections ?? professional;
+  const applied = card.appliedTheme && typeof card.appliedTheme === 'object' ? card.appliedTheme as StoredTheme : null;
+  const identity = applied ?? themes.identity ?? fallback;
+  const professional = applied ?? themes.professional ?? fallback;
+  const connections = applied ?? themes.connections ?? professional;
   const professionalGradient = themeGradient(professional, ['#2563eb', '#00a8e8']);
   const background = themeColor(professionalGradient[0] ?? professional.backgroundColor, '#2563eb');
   const luminance = (0.2126 * background[0] + 0.7152 * background[1] + 0.0722 * background[2]) / 255;
@@ -142,6 +149,7 @@ export function toWalletCard(cardId: string, card: Json, profile: Json | null): 
     address: str(p.businessAddress),
     photoMediaId: mediaId(photo),
     logoMediaId: mediaId(logo),
+    logoUrl: !mediaId(logo) && /^https:\/\//i.test(logo) ? logo : null,
     coverMediaId: mediaId(cover),
     coverPresetId: coverPresetMatch?.[1] ?? null,
     colors: {

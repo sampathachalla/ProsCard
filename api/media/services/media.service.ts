@@ -5,7 +5,7 @@ import type { MediaKind, MediaRepository, MediaRow, MediaScope } from '../reposi
 import type { ObjectStorageGateway } from './oci-storage.service.js';
 import { extractPaletteFromBuffer, type ExtractedLogoPalette } from './palette-extractor.service.js';
 import { brandfetchService } from './brandfetch.service.js';
-import { fetchPublicImage } from '../utils/public-image-fetch.js';
+import { BROWSER_IMAGE_HEADERS, fetchPublicImage } from '../utils/public-image-fetch.js';
 
 type ProfileMediaKind = Exclude<MediaKind, 'contactCard'>;
 const profileField: Record<ProfileMediaKind, string> = {
@@ -31,7 +31,6 @@ type UploadInput = {
 
 const MAX_MEDIA_SIZE_BYTES = 20 * 1024 * 1024;
 const STORED_MEDIA_FETCH_TIMEOUT_MS = 15_000;
-const LOGO_FETCH_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15';
 
 export class MediaService {
   constructor(private readonly repo: MediaRepository, private readonly storage: ObjectStorageGateway) {}
@@ -409,9 +408,7 @@ export class MediaService {
         if (cached) return cached;
         // Brandfetch's CDN serves its HTML website to non-browser agents; ask explicitly for an image.
         // The URL comes from the client, so it must not reach internal addresses or stream unbounded data.
-        buffer = await fetchPublicImage(input.imageUrl, {
-          headers: { 'User-Agent': LOGO_FETCH_USER_AGENT, Accept: 'image/webp,image/png,image/svg+xml,image/*' },
-        }).catch((error: unknown) => {
+        buffer = await fetchPublicImage(input.imageUrl, { headers: BROWSER_IMAGE_HEADERS }).catch((error: unknown) => {
           log('warn', 'palette_url_fetch_rejected', { message: error instanceof Error ? error.message : String(error) });
           return null;
         });

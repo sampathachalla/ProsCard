@@ -63,6 +63,37 @@ describe('wallet passes', () => {
     expect(toWalletCard('c', { name: 'Only Card' }, null).name).toBe('Only Card');
   });
 
+  it('takes its colours from the theme the card shows (logo colours) over the section themes', () => {
+    const logoThemed = {
+      ...card,
+      appliedTheme: {
+        gradient: ['#7c2d12', '#c2410c'],
+        backgroundColor: '#fff7ed',
+        textColor: '#ffffff',
+        mutedTextColor: '#fed7aa',
+        accentColor: '#fdba74',
+      },
+    };
+    const wallet = toWalletCard('card-1', logoThemed, profile);
+    expect(wallet.colors.background).toBe('rgb(124, 45, 18)');
+    expect(wallet.colors.foreground).toBe('rgb(255, 255, 255)');
+    expect(wallet.colors.headerGradient).toEqual(['#7c2d12', '#c2410c']);
+    // Without a shown theme it still falls back to the section themes.
+    expect(toWalletCard('card-1', { ...card, appliedTheme: null }, profile).colors.background).toBe('rgb(37, 99, 235)');
+  });
+
+  it('keeps a logo picked from Brandfetch as its link so the pass can load it', () => {
+    const brandfetch = 'https://cdn.brandfetch.io/netflix.com/w/400/h/400?c=abc';
+    const withBrandLogo = { ...card, sectionOverrides: { ...card.sectionOverrides, logo: brandfetch } };
+    expect(toWalletCard('card-1', withBrandLogo, profile)).toMatchObject({ logoMediaId: null, logoUrl: brandfetch });
+
+    const uploaded = { ...card, sectionOverrides: { ...card.sectionOverrides, logo: `/api/v1/media/${MEDIA}/content` } };
+    expect(toWalletCard('card-1', uploaded, profile)).toMatchObject({ logoMediaId: MEDIA, logoUrl: null });
+
+    const insecure = { ...card, sectionOverrides: { ...card.sectionOverrides, logo: 'http://example.com/logo.png' } };
+    expect(toWalletCard('card-1', insecure, profile).logoUrl).toBeNull();
+  });
+
   it('builds a signed Apple pass with the card details, photo and share QR', async () => {
     const { certPath, keyPath } = selfSigned();
     const generator = new AppleWalletPassGenerator({

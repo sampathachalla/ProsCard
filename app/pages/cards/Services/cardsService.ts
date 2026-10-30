@@ -443,8 +443,9 @@ export async function savePrimaryCard(profileData: Partial<BusinessCard>): Promi
     phone: profileData.phone !== undefined ? profileData.phone : currentPrimary.phone,
     email: profileData.email !== undefined ? profileData.email : currentPrimary.email,
   };
-  // Name it from its tag like any other card ("Personal", or "Personal 2" when one already exists).
-  const updatedCard = await ensureCardDisplayName(mergedCard);
+  // Name it from its tag like any other card ("Personal", or "Personal 2" when one already exists), and
+  // save the theme it shows (logo colours when logo themes are on) so the wallet pass and share link match.
+  const updatedCard = await withSavedDisplayTheme(await ensureCardDisplayName(mergedCard));
 
   if (!AUTH_TEST_MODE) {
     const existing = CARDS[0];

@@ -2,6 +2,16 @@ import { lookup } from 'node:dns/promises';
 import { BlockList, isIP } from 'node:net';
 
 const MAX_REDIRECTS = 3;
+
+/**
+ * Logo CDNs such as Brandfetch serve their HTML website to non-browser agents; these headers ask for the
+ * image itself.
+ */
+export const BROWSER_IMAGE_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15',
+  Accept: 'image/webp,image/png,image/svg+xml,image/*',
+};
+
 const DEFAULT_MAX_BYTES = 5 * 1024 * 1024;
 const DEFAULT_TIMEOUT_MS = 8000;
 

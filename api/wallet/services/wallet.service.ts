@@ -2,6 +2,7 @@ import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import sharp from 'sharp';
 import { HttpError } from '../../src/errors.js';
 import { log } from '../../src/logger.js';
 import type { ObjectStorageGateway } from '../../media/services/oci-storage.service.js';
@@ -10,6 +11,7 @@ import type { WalletRepository } from '../repository/wallet.repository.js';
 import { toWalletCard, type WalletCard } from '../utils/wallet-card.js';
 import type { AppleWalletPassGenerator, PassImages } from './apple-pass.service.js';
 import type { GoogleWalletLinkGenerator } from './google-wallet.service.js';
+import { BROWSER_IMAGE_HEADERS, fetchPublicImage } from '../../media/utils/public-image-fetch.js';
 
 /** Apple pass links are opened in Safari, which cannot send the app's login token, so they carry a signed token. */
 const APPLE_LINK_TTL_SECONDS = 300;
@@ -97,7 +99,9 @@ export class WalletService {
     const { card, slug, userId: owner } = await this.load(userId, cardId, { createShare });
     const images: PassImages = {
       photo: card.photoMediaId ? await this.image(owner, card.photoMediaId) : null,
-      logo: card.logoMediaId ? await this.image(owner, card.logoMediaId) : null,
+      logo: card.logoMediaId
+        ? await this.image(owner, card.logoMediaId)
+        : card.logoUrl ? await this.remoteImage(card.logoUrl) : null,
       cover: await this.loadCover(owner, card),
     };
     // Apple only calls an HTTPS web service, so local http runs simply skip the "added" confirmation.
@@ -230,6 +234,23 @@ export class WalletService {
       return buffer.length <= MAX_IMAGE_BYTES ? buffer : null;
     } catch (error) {
       log('warn', 'wallet_image_failed', { mediaId, message: error instanceof Error ? error.message : String(error) });
+      return null;
+    }
+  }
+
+  /**
+   * Downloads a logo the card links to on another site (a Brandfetch logo). Only public https addresses,
+   * with a size cap and timeout; a failure leaves the default logo on the pass.
+   */
+  private async remoteImage(url: string): Promise<Buffer | null> {
+    try {
+      const buffer = await fetchPublicImage(url, { headers: BROWSER_IMAGE_HEADERS, maxBytes: MAX_IMAGE_BYTES, timeoutMs: 15000 });
+      if (!buffer) return null;
+      // An image the pass builder cannot decode would fail the whole pass; drop it here instead.
+      await sharp(buffer).metadata();
+      return buffer;
+    } catch (error) {
+      log('warn', 'wallet_remote_logo_failed', { message: error instanceof Error ? error.message : String(error) });
       return null;
     }
   }
