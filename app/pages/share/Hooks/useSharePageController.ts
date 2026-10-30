@@ -239,6 +239,7 @@ export function useSharePageController() {
     }
     try {
       const result = await prepareHomeScreenWidget({
+        cardId: card.id,
         cardName: card.name || profile.fullName || 'My VC Card',
         qrSvg: qrSvgRef.current,
         shareUrl,

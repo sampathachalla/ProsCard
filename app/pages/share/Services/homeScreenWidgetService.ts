@@ -63,10 +63,12 @@ export async function writeWidgetQrImage(qrSvg: QrSvgRef | null, fileName: strin
 }
 
 export async function prepareHomeScreenWidget({
+  cardId,
   cardName,
   qrSvg,
   shareUrl,
 }: {
+  cardId: string;
   cardName: string;
   qrSvg: QrSvgRef | null;
   shareUrl: string;
@@ -80,6 +82,7 @@ export async function prepareHomeScreenWidget({
   ]);
   VCProsCardWidget.updateSnapshot({
     cardName: cardName || 'My VC Card',
+    openUrl: `vcpros:///cards/${encodeURIComponent(cardId)}?source=widget`,
     qrImageUri,
     shareUrl,
   });

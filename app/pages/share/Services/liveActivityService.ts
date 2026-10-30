@@ -33,7 +33,7 @@ export async function startCardLiveActivity({
   if (Constants.appOwnership === 'expo') return 'requires-native-build';
 
   const [qrImageUri, factory] = await Promise.all([
-    writeWidgetQrImage(qrSvg, 'vcpros-live-activity-qr.png'),
+    qrSvg ? writeWidgetQrImage(qrSvg, 'vcpros-live-activity-qr.png') : Promise.resolve(undefined),
     loadFactory(),
   ]);
   const props = { cardName: cardName || 'My VC Card', qrImageUri };

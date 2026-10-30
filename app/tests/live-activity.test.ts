@@ -29,8 +29,21 @@ describe('card Live Activity', () => {
 
     await expect(startCardLiveActivity(input)).resolves.toBe('started');
     expect(factory.start).toHaveBeenCalledWith(
-      { cardName: 'Sampath', qrImageUri: 'file:///group/vcpros-live-activity-qr.png' },
+      { cardName: 'Sampath', qrImageUri: undefined },
       'https://vcpros.example/share/card-1',
+    );
+    expect(writeWidgetQrImage).not.toHaveBeenCalled();
+  });
+
+  it('includes QR artwork when a rendered QR is provided', async () => {
+    factory.getInstances.mockReturnValue([]);
+    const qrSvg = { toDataURL: vi.fn() };
+
+    await expect(startCardLiveActivity({ ...input, qrSvg })).resolves.toBe('started');
+    expect(writeWidgetQrImage).toHaveBeenCalledWith(qrSvg, 'vcpros-live-activity-qr.png');
+    expect(factory.start).toHaveBeenCalledWith(
+      { cardName: 'Sampath', qrImageUri: 'file:///group/vcpros-live-activity-qr.png' },
+      input.shareUrl,
     );
   });
 

@@ -51,7 +51,7 @@ export const generateMetadata: GenerateMetadataFunction = async (_request, param
 };
 
 export default function CardDetailPage() {
-  const { cardId } = useLocalSearchParams<{ cardId: string }>();
+  const { cardId, source } = useLocalSearchParams<{ cardId: string; source?: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const cardQuery = useCard(cardId);
@@ -64,6 +64,10 @@ export default function CardDetailPage() {
   const share = useShareUrl(showQr ? cardId : null);
 
   const goBackToCaller = () => {
+    if (source === 'widget' || source === 'liveactivity') {
+      router.replace('/(tabs)/homepage');
+      return;
+    }
     if (router.canGoBack()) router.back();
     else router.replace('/(tabs)/homepage');
   };

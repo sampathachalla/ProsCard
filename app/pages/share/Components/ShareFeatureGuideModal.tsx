@@ -244,12 +244,6 @@ export function ShareFeatureGuideModal({
                 </View>
               ))}
 
-              <View className="rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/60 dark:bg-amber-950/30">
-                <Text variant="none" className="text-sm font-semibold text-amber-900 dark:text-amber-200">
-                  The widget requires the native VC Pros TestFlight/App Store build. It is not available inside Expo Go.
-                </Text>
-              </View>
-
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Prepare VC Pros QR widget"

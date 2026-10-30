@@ -57,6 +57,8 @@ export const SHARE_PAGE_ACTIONS: ShareActionItemConfig[] = [
     label: 'Add QR to lockscreen',
     icon: Lock,
     iconColor: '#38bdf8',
+    // Temporarily hidden while the Lock Screen widget experience is being revised.
+    platforms: [],
   },
   {
     id: 'add_qr_homescreen',

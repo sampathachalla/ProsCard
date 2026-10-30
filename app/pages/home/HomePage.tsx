@@ -24,6 +24,7 @@ import { resolveDisplayMediaUrls } from '@/pages/profile/Services/mediaService';
 import { resolveCoverPhotoPreset } from '@/pages/cards/Services/coverPhotoPresets';
 import type { BusinessCard } from '@/pages/cards/types/card.types';
 import { navigateToSharePreview } from '@/pages/share/Utils/navigateToSharePreview';
+import { startCardLiveActivity } from '@/pages/share/Services/liveActivityService';
 
 function HomeLoadingScreen() {
   const insets = useSafeAreaInsets();
@@ -108,6 +109,18 @@ export default function HomepageScreen() {
   const boundedCardIndex =
     cards.length > 0 ? Math.min(activeCardIndex, cards.length - 1) : 0;
   const currentCard = cards[boundedCardIndex] ?? cards[0];
+  const primaryCard = cards.find((card) => card.isPrimary) ?? cards[0];
+
+  useEffect(() => {
+    if (!cardsFetched || !primaryCard) return;
+    void startCardLiveActivity({
+      cardName: primaryCard.name || profile.fullName || 'My VC Card',
+      qrSvg: null,
+      shareUrl: `vcpros://sharePage?cardId=${encodeURIComponent(primaryCard.id)}`,
+    }).catch(() => {
+      // Live Activities may be disabled in iOS Settings; the app remains fully usable.
+    });
+  }, [cardsFetched, primaryCard?.id, primaryCard?.name, profile.fullName]);
 
   const cardTag = useMemo(() => {
     if (!currentCard) return needsDefaultCard ? 'Creating card…' : 'My card';
