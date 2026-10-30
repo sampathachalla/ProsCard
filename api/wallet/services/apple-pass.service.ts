@@ -41,6 +41,56 @@ async function variants(source: Buffer, name: string, width: number, height: num
   return files;
 }
 
+/**
+ * Apple draws a transparent pass logo directly over the pass background. Give the logo an
+ * adaptive neutral pill so dark brand marks remain visible on dark colours and light marks remain
+ * visible on light colours, without recolouring the user's artwork.
+ */
+async function logoVariants(source: Buffer) {
+  const sample = await sharp(source)
+    .rotate()
+    .ensureAlpha()
+    .resize(64, 64, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .raw()
+    .toBuffer();
+  let luminanceTotal = 0;
+  let alphaTotal = 0;
+  for (let index = 0; index < sample.length; index += 4) {
+    const alpha = sample[index + 3]! / 255;
+    if (alpha < 0.08) continue;
+    const luminance = (0.2126 * sample[index]! + 0.7152 * sample[index + 1]! + 0.0722 * sample[index + 2]!) / 255;
+    luminanceTotal += luminance * alpha;
+    alphaTotal += alpha;
+  }
+  const logoLuminance = alphaTotal ? luminanceTotal / alphaTotal : 0;
+  const backdrop = logoLuminance > 0.62 ? '#0f172a' : '#ffffff';
+  const files: Record<string, Buffer> = {};
+
+  for (const [suffix, scale] of [['', 1], ['@2x', 2], ['@3x', 3]] as const) {
+    const width = 160 * scale;
+    const height = 50 * scale;
+    const insetX = 6 * scale;
+    const insetY = 5 * scale;
+    const logo = await sharp(source)
+      .rotate()
+      .resize(width - insetX * 2, height - insetY * 2, {
+        fit: 'contain',
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      })
+      .png()
+      .toBuffer();
+    const pill = Buffer.from(
+      `<svg width="${width}" height="${height}"><rect width="${width}" height="${height}" rx="${10 * scale}" fill="${backdrop}" fill-opacity=".94"/></svg>`,
+    );
+    files[`logo${suffix}.png`] = await sharp(pill)
+      .composite([{ input: logo, gravity: 'centre' }])
+      .png()
+      .toBuffer();
+  }
+
+  return files;
+}
+
 function rgbParts(color: string): [number, number, number] {
   const values = color.match(/\d+/g)?.map(Number);
   return values?.length === 3 ? values as [number, number, number] : [37, 99, 235];
@@ -163,8 +213,8 @@ export class AppleWalletPassGenerator {
     const logoSource = images.logo ?? readFileSync(DEFAULT_ICON);
     const files: Record<string, Buffer> = {
       ...(await variants(readFileSync(DEFAULT_ICON), 'icon', 29, 29, 'contain')),
-      // Native PassKit logo — Apple places this in the pass header
-      ...(await variants(logoSource, 'logo', 160, 50, 'contain')),
+      // Native PassKit logo — Apple places this directly over the pass background.
+      ...(await logoVariants(logoSource)),
       ...(await variants(strip, 'strip', 375, 144, 'cover')),
     };
 
