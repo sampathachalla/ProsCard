@@ -24,7 +24,7 @@ import { PageHeader } from '@/common/ui/PageHeader';
 import { useThemeContext } from '@/context/ThemeContext';
 import { confirmAction, showMessage } from '@/common/ui/confirmAction';
 
-const SUPPORT_EMAIL = 'support@proscard.app';
+const SUPPORT_EMAIL = 'info@mind-pros.com';
 const switchTrack = { false: Colors.light.border, true: Colors.light.tint } as const;
 
 export default function ProfileScreen() {

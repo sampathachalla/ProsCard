@@ -157,7 +157,7 @@ export default function ShareTabPage() {
 
   // Keep the Share page aligned with the product support address already used
   // by the Profile page.
-  const supportEmail = 'support@proscard.app';
+  const supportEmail = 'info@mind-pros.com';
   const footerSection = (
     <View className="items-center gap-3">
       {offline ? (
