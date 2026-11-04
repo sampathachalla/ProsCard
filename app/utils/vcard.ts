@@ -11,6 +11,7 @@ export type VCardContact = {
   department?: string;
   email?: string;
   phone?: string;
+  secondaryPhone?: string;
   website?: string;
   address?: string;
   note?: string;
@@ -43,6 +44,7 @@ export function buildVCard(contact: VCardContact): string {
   if (contact.title?.trim()) parts.push(`TITLE:${contact.title.trim()}`);
   if (contact.email?.trim()) parts.push(`EMAIL;TYPE=INTERNET,WORK:${contact.email.trim()}`);
   if (contact.phone?.trim()) parts.push(`TEL;TYPE=CELL,VOICE:${contact.phone.trim()}`);
+  if (contact.secondaryPhone?.trim()) parts.push(`TEL;TYPE=WORK,VOICE:${contact.secondaryPhone.trim()}`);
   if (contact.website?.trim()) parts.push(`URL:${contact.website.trim()}`);
   if (contact.address?.trim()) parts.push(`ADR;TYPE=WORK:;;${contact.address.trim()};;;;`);
 
@@ -120,8 +122,7 @@ export async function saveOrShareContact(contact: VCardContact) {
     ) {
       const link = document.createElement('a');
       link.href = contact.vcardDownloadUrl;
-      link.target = '_blank';
-      link.rel = 'noopener';
+      link.download = `${(contact.name || 'contact').replace(/[^a-zA-Z0-9_-]/g, '_')}.vcf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

@@ -39,6 +39,10 @@ describe('contact filters', () => {
     expect(matchesSearchQuery(contact, 'missing')).toBe(false);
   });
 
+  it('searches a secondary phone number', () => {
+    expect(matchesSearchQuery(base({ secondaryPhone: '+1 212 555 0199' }), '0199')).toBe(true);
+  });
+
   it('combines badge source filter and event filter', () => {
     const list = [
       base({ id: '1', name: 'Zoe', captureKind: 'badge', eventName: 'Expo A' }),

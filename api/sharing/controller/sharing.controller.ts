@@ -4,5 +4,5 @@ export class SharingController{constructor(private readonly s:SharingService){}c
   view=async(q:Request,r:Response)=>{r.set({'Cache-Control':'no-store, no-cache, must-revalidate, proxy-revalidate','Pragma':'no-cache','Expires':'0'});r.json(await this.s.view(q.params.slug as string))};
   // Fallback redirect when /view could not inline a signed URL for an image.
   media=async(q:Request,r:Response)=>{const signed=await this.s.mediaUrl(q.params.slug as string,q.params.mediaId as string);r.set('Cache-Control','private, max-age=300');r.redirect(302,signed.url)};
-  vcard=async(q:Request,r:Response)=>{const{vcard,filename}=await this.s.vcard(q.params.slug as string);r.setHeader('Content-Type','text/vcard; charset=utf-8');r.setHeader('Content-Disposition',`inline; filename="${filename}"`);r.send(vcard)};
+  vcard=async(q:Request,r:Response)=>{const{vcard,filename}=await this.s.vcard(q.params.slug as string);r.setHeader('Content-Type','text/vcard; charset=utf-8');r.setHeader('Content-Disposition',`attachment; filename="${filename}"`);r.send(vcard)};
   revoke=async(q:AuthenticatedRequest,r:Response)=>{await this.s.revoke(q.user.id,q.params.id as string);r.status(204).end()};}

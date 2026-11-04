@@ -86,10 +86,22 @@ export function QRCodeView({
   style,
 }: QRCodeViewProps) {
   const captureRootRef = useRef<any>(null);
+  const svgRef = useRef<Svg | null>(null);
 
   const publishExportRef = useCallback(() => {
     if (!getRef) return;
     getRef({
+      // Export the SVG itself first. Capturing the surrounding native view can
+      // produce a solid background on iOS when react-native-view-shot runs
+      // before react-native-svg has committed its drawing layer.
+      toDataURL: (callback) => {
+        const svg = svgRef.current;
+        if (!svg?.toDataURL) {
+          callback('');
+          return;
+        }
+        svg.toDataURL(callback);
+      },
       capturePngUri: async () => {
         const node = captureRootRef.current;
         if (!node) return null;
@@ -164,6 +176,7 @@ export function QRCodeView({
         className="items-center justify-center"
       >
         <Svg
+          ref={svgRef}
           width={size}
           height={size}
           viewBox={`0 0 ${qrData.matrixSize} ${qrData.matrixSize}`}

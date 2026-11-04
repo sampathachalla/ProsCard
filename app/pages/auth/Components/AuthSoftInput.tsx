@@ -6,7 +6,7 @@ import {
   View,
   type KeyboardTypeOptions,
 } from 'react-native';
-import { Eye, EyeOff } from 'lucide-react-native';
+import { Eye, EyeOff, LockKeyhole } from 'lucide-react-native';
 import { useThemeContext } from '@/context/ThemeContext';
 import { Text } from '@/common/ui/Text';
 
@@ -73,6 +73,14 @@ export function AuthSoftInput({
           Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null,
         ]}
       >
+        {secureTextEntry ? (
+          <LockKeyhole
+            accessibilityElementsHidden
+            size={18}
+            color={theme === 'dark' ? '#94a3b8' : '#64748b'}
+            style={{ marginRight: 10 }}
+          />
+        ) : null}
         <TextInput
           value={value}
           onChangeText={onChangeText}

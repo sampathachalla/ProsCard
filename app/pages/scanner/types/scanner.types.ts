@@ -32,6 +32,7 @@ export type CardContactFields = {
   title: string;
   company: string;
   phone: string;
+  secondaryPhone: string;
   email: string;
   website: string;
   address: string;

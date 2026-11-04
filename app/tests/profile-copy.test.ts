@@ -38,7 +38,7 @@ describe('tagline and bio writer inputs', () => {
   it('offers focus starters that match the job title', () => {
     expect(focusStartersFor('Senior Data Analyst')).toContain('Data pipelines');
     expect(focusStartersFor('Co-founder & CEO').length).toBeGreaterThan(0);
-    expect(focusStartersFor('Astronaut')).toEqual([]);
+    expect(focusStartersFor('Astronaut')).toContain('Helping customers solve');
   });
 });
 

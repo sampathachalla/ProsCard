@@ -57,9 +57,9 @@ const RESPONSE_SCHEMA = {
       type: 'object',
       additionalProperties: false,
       // Notes are the user's own; the reader never fills them.
-      required: ['name', 'title', 'company', 'phone', 'email', 'website', 'address'],
+      required: ['name', 'title', 'company', 'phone', 'secondaryPhone', 'email', 'website', 'address'],
       properties: {
-        name: contactField, title: contactField, company: contactField, phone: contactField,
+        name: contactField, title: contactField, company: contactField, phone: contactField, secondaryPhone: contactField,
         email: contactField, website: contactField, address: contactField,
       },
     },
@@ -81,7 +81,8 @@ Rules:
   "upright" (left to right, normal), "upside_down", "top_to_bottom" (lines run downward, letters' tops face right),
   or "bottom_to_top" (lines run upward, letters' tops face left).
 - contact: copy text exactly as printed. name is the person's full name; title their job title; company the organisation.
-  phone: the first (main) phone number, including country code if printed. Ignore any other numbers.
+  phone: the first (main) phone number, including country code if printed.
+  secondaryPhone: the second distinct phone number if printed; otherwise "". Do not duplicate phone.
   email and website without extra words; address as one line.
 - Use "" for anything that is not printed on the card. Never invent, guess or move details into another field.
 - Template placeholder text is not a real detail: use "" for fields that only contain generic filler such as

@@ -39,9 +39,10 @@ export async function saveDirectlyToNativeContacts(contact: VCardContact): Promi
         company: contact.company?.trim() || undefined,
         jobTitle: contact.title?.trim() || undefined,
         note: contact.note?.trim() || undefined,
-        phones: contact.phone?.trim()
-          ? [{ label: 'work', number: contact.phone.trim() }]
-          : undefined,
+        phones: [
+          ...(contact.phone?.trim() ? [{ label: 'work', number: contact.phone.trim() }] : []),
+          ...(contact.secondaryPhone?.trim() ? [{ label: 'other', number: contact.secondaryPhone.trim() }] : []),
+        ],
         emails: contact.email?.trim()
           ? [{ label: 'work', address: contact.email.trim() }]
           : undefined,
@@ -80,9 +81,10 @@ export async function saveDirectlyToNativeContacts(contact: VCardContact): Promi
             company: contact.company?.trim() || undefined,
             jobTitle: contact.title?.trim() || undefined,
             note: contact.note?.trim() || undefined,
-            phoneNumbers: contact.phone?.trim()
-              ? [{ label: 'work', number: contact.phone.trim() }]
-              : undefined,
+            phoneNumbers: [
+              ...(contact.phone?.trim() ? [{ label: 'work', number: contact.phone.trim() }] : []),
+              ...(contact.secondaryPhone?.trim() ? [{ label: 'other', number: contact.secondaryPhone.trim() }] : []),
+            ],
             emails: contact.email?.trim()
               ? [{ label: 'work', email: contact.email.trim() }]
               : undefined,

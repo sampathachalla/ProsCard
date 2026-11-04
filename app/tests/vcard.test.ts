@@ -29,6 +29,7 @@ describe('buildVCard', () => {
       department: 'Engineering',
       email: 'sampath@mind-pros.com',
       phone: '3128437250',
+      secondaryPhone: '4105550199',
       website: 'https://mind-pros.com',
       address: 'Baltimore, Maryland',
       note: 'Leading AI and system tools',
@@ -46,6 +47,7 @@ describe('buildVCard', () => {
     expect(vcard).toContain('TITLE:Forward Deployed Engineer');
     expect(vcard).toContain('EMAIL;TYPE=INTERNET,WORK:sampath@mind-pros.com');
     expect(vcard).toContain('TEL;TYPE=CELL,VOICE:3128437250');
+    expect(vcard).toContain('TEL;TYPE=WORK,VOICE:4105550199');
     expect(vcard).toContain('URL:https://mind-pros.com');
     expect(vcard).toContain('ADR;TYPE=WORK:;;Baltimore, Maryland;;;;');
     expect(vcard).toContain('X-SOCIALPROFILE;type=linkedin:https://linkedin.com/in/sampath');

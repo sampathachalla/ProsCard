@@ -8,6 +8,7 @@ import { PasswordRequirementHints } from '@/pages/auth/Components/PasswordRequir
 import { AuthFormBanner } from '@/pages/auth/Components/AuthFormBanner';
 import { Button } from '@/common/ui/Button';
 import { Text } from '@/common/ui/Text';
+import { showMessage } from '@/common/ui/confirmAction';
 import { establishRecoverySession, logout, resetPassword } from '@/pages/auth/Services/authService';
 import { getSession } from '@/services/api/session';
 
@@ -69,6 +70,7 @@ export default function ResetPasswordScreen() {
     try {
       await resetPassword(password);
       await logout();
+      showMessage('Password updated', 'Your password was updated successfully. You can now log in with your new password.');
       router.replace('/auth/login');
     } catch (error) {
       setFormError(error instanceof Error ? error.message : 'Could not update your password.');

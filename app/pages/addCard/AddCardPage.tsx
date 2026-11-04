@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
+  Keyboard,
   Platform,
   ScrollView,
   View,
@@ -126,6 +127,7 @@ export default function AddCardPage() {
   };
 
   const save = async () => {
+    Keyboard.dismiss();
     if (!validate()) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     const saved = await editor.save();
@@ -135,6 +137,7 @@ export default function AddCardPage() {
   };
 
   const preview = () => {
+    Keyboard.dismiss();
     Haptics.selectionAsync().catch(() => {});
     setPreviewVisible(true);
   };
@@ -337,8 +340,8 @@ export default function AddCardPage() {
             <QuickAddContacts
               existing={editor.draft.connectionFields}
               pendingFieldId={addedContactId}
-              onConfirm={() => setAddedContactId(null)}
-              onMore={() => setPanel('contacts')}
+              onConfirm={() => { Keyboard.dismiss(); setAddedContactId(null); }}
+              onMore={() => { Keyboard.dismiss(); setPanel('contacts'); }}
             />
 
           </View>

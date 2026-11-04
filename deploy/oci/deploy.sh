@@ -2,7 +2,7 @@
 # Deploys the VC Pros backend (Postgres + API + share page) to the OCI instance.
 #
 #   zsh deploy/oci/deploy.sh               # code changes: sync, rebuild, migrate, health check
-#   zsh deploy/oci/deploy.sh --web         # also rebuild the public share page first (app → api/web)
+# The public share page is always rebuilt; a deploy must never leave QR preview URLs without their web bundle.
 #   zsh deploy/oci/deploy.sh --secrets     # also re-send api/.env and the credential files
 #
 # Data lives in the server's Docker volume and is never touched by this script.
@@ -21,10 +21,10 @@ SECRET_FILES=(oci_private.pem pass-cert.pem pass-key.pem wwdr.pem google-wallet.
 SSH=(ssh -o BatchMode=yes -i "${OCI_SSH_KEY}" "${OCI_USER}@${OCI_HOST}")
 COMPOSE="docker compose --env-file api/.env -f deploy/oci/docker-compose.yml"
 
-with_web=0 with_secrets=0
+with_secrets=0
 for arg in "$@"; do
   case "${arg}" in
-    --web) with_web=1 ;;
+    --web) ;; # Kept as a backwards-compatible no-op; web is now mandatory.
     --secrets) with_secrets=1 ;;
     *) print -u2 "Unknown option ${arg}"; exit 1 ;;
   esac
@@ -32,10 +32,9 @@ done
 
 cd "${ROOT}"
 
-if (( with_web )); then
-  print "→ Building the share page"
-  (cd app && npm run build:share >/dev/null)
-fi
+print "→ Building the share page"
+(cd app && npm run build:share >/dev/null)
+[[ -s api/web/index.html ]] || { print -u2 "Share build failed: api/web/index.html is missing"; exit 1; }
 
 print "→ Syncing code"
 rsync -az --delete -e "ssh -o BatchMode=yes -i ${OCI_SSH_KEY}" \
@@ -62,3 +61,7 @@ print "→ Running migrations"
 
 print "→ Public health check"
 curl -fsS -m 10 "${PUBLIC_URL}/ready" && print "\n✓ Deployed: ${PUBLIC_URL}"
+print "→ Share preview check"
+share_content_type="$(curl -fsSI -m 10 "${PUBLIC_URL}/share/deploy-check" | tr -d '\r' | awk -F': ' 'tolower($1)=="content-type"{print tolower($2)}')"
+[[ "${share_content_type}" == text/html* ]] || { print -u2 "Share preview did not return HTML"; exit 1; }
+print "✓ Share preview is available"

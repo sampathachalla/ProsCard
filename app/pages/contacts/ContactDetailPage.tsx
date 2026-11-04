@@ -16,6 +16,7 @@ const formValues = (contact: Contact): ContactFormValues => ({
   title: contact.title ?? '',
   company: contact.company ?? '',
   phone: contact.phone ?? '',
+  secondaryPhone: contact.secondaryPhone ?? '',
   email: contact.email ?? '',
   website: contact.website ?? '',
   address: contact.address ?? '',

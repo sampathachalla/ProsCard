@@ -139,6 +139,17 @@ export function SocialLinksFieldsBlock({
     () => SOCIAL_PLATFORMS.filter((p) => Boolean(draft[p.key]?.trim())).map((p) => p.key),
     [draft]
   );
+  const [savedOrder, setSavedOrder] = useState<SocialDraftKey[]>(savedKeys);
+
+  // A newly saved profile belongs at the top, while existing items retain the
+  // order in which the user added them.
+  useEffect(() => {
+    setSavedOrder((current) => {
+      const newlyAdded = savedKeys.filter((key) => !current.includes(key));
+      const stillSaved = current.filter((key) => savedKeys.includes(key));
+      return [...newlyAdded.reverse(), ...stillSaved];
+    });
+  }, [savedKeys]);
   const linkCount = countOnboardingLinks(draft);
   const hasMinimumLinks = linkCount >= minimumContactMethods;
 
@@ -148,7 +159,7 @@ export function SocialLinksFieldsBlock({
     const nextKey =
       selectedKey && !draft[selectedKey]?.trim()
         ? selectedKey
-        : firstEmptyPlatformKey(draft) ?? savedKeys[0] ?? SOCIAL_PLATFORMS[0].key;
+        : firstEmptyPlatformKey(draft) ?? savedOrder[0] ?? SOCIAL_PLATFORMS[0].key;
     setSelectedKey(nextKey);
     setFormOpen(true);
     setDropdownOpen(false);
@@ -440,9 +451,9 @@ export function SocialLinksFieldsBlock({
       ) : null}
 
       {/* Added Social Profiles List (Flat rounded-lg rows matching the new field style) */}
-      {savedKeys.length > 0 ? (
+      {savedOrder.length > 0 ? (
         <View className={`gap-2.5 ${formOpen ? 'mt-3.5' : ''}`}>
-          {savedKeys.map((key) => {
+          {savedOrder.map((key) => {
             const platform = platformByKey.get(key);
             if (!platform) return null;
             const value = draft[key]?.trim() ?? '';

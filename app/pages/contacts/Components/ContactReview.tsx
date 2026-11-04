@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
+  Keyboard,
   Linking,
   Platform,
   ScrollView,
@@ -72,6 +73,7 @@ const FIELDS: FieldConfig[] = [
   { key: 'title', label: 'Job Title', placeholder: 'Title', icon: Briefcase },
   { key: 'company', label: 'Company', placeholder: 'Company', icon: Briefcase },
   { key: 'phone', label: 'Phone', placeholder: 'Phone number', keyboardType: 'phone-pad', icon: Phone },
+  { key: 'secondaryPhone', label: 'Secondary Phone', placeholder: 'Second phone number', keyboardType: 'phone-pad', icon: Phone },
   { key: 'email', label: 'Email', placeholder: 'Email address', keyboardType: 'email-address', icon: Mail },
   { key: 'website', label: 'Website', placeholder: 'website.com', keyboardType: 'url', icon: Globe },
   { key: 'address', label: 'Address', placeholder: 'Street address', multiline: true, icon: MapPin },
@@ -83,6 +85,7 @@ export const EMPTY_CONTACT_FORM: ContactFormValues = {
   title: '',
   company: '',
   phone: '',
+  secondaryPhone: '',
   email: '',
   website: '',
   address: '',
@@ -138,17 +141,20 @@ const normalizedPhone = (value: string | undefined) => (value ?? '').replace(/\D
 
 export function findDuplicateContact(
   contacts: Contact[],
-  values: Pick<ContactFormValues, 'name' | 'company' | 'phone' | 'email'>,
+  values: Pick<ContactFormValues, 'name' | 'company' | 'phone' | 'secondaryPhone' | 'email'>,
   excludedContactId?: string,
 ): Contact | undefined {
   const email = normalizedText(values.email);
   const phone = normalizedPhone(values.phone);
+  const secondaryPhone = normalizedPhone(values.secondaryPhone);
   const name = normalizedText(values.name);
   const company = normalizedText(values.company);
   return contacts.find((contact) => {
     if (contact.id === excludedContactId) return false;
     if (email && email === normalizedText(contact.email)) return true;
-    if (phone.length >= 7 && phone === normalizedPhone(contact.phone)) return true;
+    const contactPhones = [normalizedPhone(contact.phone), normalizedPhone(contact.secondaryPhone)];
+    if (phone.length >= 7 && contactPhones.includes(phone)) return true;
+    if (secondaryPhone.length >= 7 && contactPhones.includes(secondaryPhone)) return true;
     return Boolean(name && company && name === normalizedText(contact.name) && company === normalizedText(contact.company));
   });
 }
@@ -214,6 +220,7 @@ export function ContactReview({
         title: form.title,
         company: form.company,
         phone: form.phone,
+        secondaryPhone: form.secondaryPhone,
         email: form.email,
         website: form.website,
         address: form.address,
@@ -305,6 +312,7 @@ export function ContactReview({
   };
 
   const save = async () => {
+    Keyboard.dismiss();
     if (busy || !validate()) return;
     if (duplicateContact && onReplaceDuplicate && onDiscardDuplicate) {
       setDuplicatePromptOpen(true);
@@ -367,6 +375,7 @@ export function ContactReview({
   const initials = initialsFor(form.name);
   const avatarBg = getAvatarBgColor(form.name);
   const cleanedPhone = form.phone.trim().replace(/[^\d+]/g, '');
+  const cleanedSecondaryPhone = form.secondaryPhone.trim().replace(/[^\d+]/g, '');
   const cleanedEmail = form.email.trim();
   const cleanedWebsite = form.website.trim();
   const formattedWebsiteUrl = cleanedWebsite
@@ -542,7 +551,7 @@ export function ContactReview({
         {/* ===================== INSET GROUPED DETAILS ===================== */}
         <View className="space-y-4">
           {/* GROUP 1: Contact Methods (Phone, Email, Website) */}
-          {(editing || form.phone.trim() || form.email.trim() || form.website.trim()) && (
+          {(editing || form.phone.trim() || form.secondaryPhone.trim() || form.email.trim() || form.website.trim()) && (
             <View className="rounded-2xl bg-card dark:bg-[#1c1c1e] border border-black/5 dark:border-white/10 overflow-hidden shadow-sm mb-3">
               {/* Phone */}
               {(editing || form.phone.trim()) && (
@@ -577,8 +586,30 @@ export function ContactReview({
                 </TouchableOpacity>
               )}
 
+              {(editing || form.secondaryPhone.trim()) && (
+                <>
+                  <View className="h-[1px] bg-slate-100 dark:bg-slate-800/80 ml-4" />
+                  <TouchableOpacity
+                    disabled={editing || !form.secondaryPhone.trim()}
+                    onPress={() => cleanedSecondaryPhone && openLink(`tel:${cleanedSecondaryPhone}`, `Could not call ${form.secondaryPhone}`)}
+                    className="px-4 py-3 flex-row items-center justify-between active:bg-black/5 dark:active:bg-white/5"
+                  >
+                    <View className="flex-1 pr-2">
+                      <View className="flex-row items-center">
+                        <Phone color={autoFilled.includes('secondaryPhone') ? '#059669' : Colors.light.tint} size={13} strokeWidth={2.2} />
+                        <Text className="ml-1.5 text-xs font-medium text-primary dark:text-[#38bdf8]">Secondary Phone</Text>
+                      </View>
+                      {editing ? (
+                        <TextInput value={form.secondaryPhone} onChangeText={(v) => setField('secondaryPhone', v)} placeholder="Add second phone" placeholderTextColor="#64748b" keyboardType="phone-pad" className="mt-2 min-h-[54px] rounded-lg border border-transparent bg-slate-100 px-4 py-3 text-[16px] font-normal text-textPrimary dark:bg-dark-card dark:text-dark-textPrimary" />
+                      ) : <Text className="text-base text-textPrimary dark:text-dark-textPrimary mt-0.5 font-normal">{form.secondaryPhone}</Text>}
+                    </View>
+                    {!editing && form.secondaryPhone.trim() ? <Phone color={Colors.light.tint} size={16} strokeWidth={2} /> : null}
+                  </TouchableOpacity>
+                </>
+              )}
+
               {/* Divider */}
-              {(editing || form.phone.trim()) && (editing || form.email.trim() || form.website.trim()) && (
+              {(editing || form.phone.trim() || form.secondaryPhone.trim()) && (editing || form.email.trim() || form.website.trim()) && (
                 <View className="h-[1px] bg-slate-100 dark:bg-slate-800/80 ml-4" />
               )}
 

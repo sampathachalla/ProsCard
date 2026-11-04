@@ -115,6 +115,11 @@ export function CardDetailView({
 
   const handleSaveContact = () => {
     const socials: { label?: string; type?: string; url: string }[] = [];
+    let contactEmail = card.email || profile.email;
+    let contactPhone = card.phone || profile.phone;
+    let secondaryPhone = '';
+    let contactWebsite = profile.website;
+    let contactAddress = profile.businessAddress;
 
     if (profile.social) {
       Object.entries(profile.social).forEach(([key, value]) => {
@@ -127,11 +132,31 @@ export function CardDetailView({
     if (card.connectionFields) {
       card.connectionFields.forEach((field) => {
         if (field.value && typeof field.value === 'string' && field.value.trim()) {
+          const value = field.value.trim();
+          const normalizedId = field.id.toLowerCase();
+          const normalizedTitle = field.title.toLowerCase();
+          if (field.type === 'email') {
+            contactEmail = value;
+            return;
+          }
+          if (field.type === 'phone') {
+            if (!contactPhone || contactPhone === card.phone || contactPhone === profile.phone) contactPhone = value;
+            else if (value !== contactPhone) secondaryPhone = value;
+            return;
+          }
+          if (normalizedId === 'website' || normalizedTitle === 'website') {
+            contactWebsite = value;
+            return;
+          }
+          if (normalizedId === 'address' || normalizedTitle.includes('address')) {
+            contactAddress = value;
+            return;
+          }
           if (!socials.some((s) => s.url === field.value.trim())) {
             socials.push({
               label: field.title || field.type,
               type: field.type,
-              url: field.value.trim(),
+              url: value,
             });
           }
         }
@@ -152,10 +177,11 @@ export function CardDetailView({
       title: card.title || profile.title,
       company: card.company || profile.organization,
       department: profile.department,
-      email: card.email || profile.email,
-      phone: card.phone || profile.phone,
-      website: profile.website,
-      address: profile.businessAddress,
+      email: contactEmail,
+      phone: contactPhone,
+      secondaryPhone,
+      website: contactWebsite,
+      address: contactAddress,
       note,
       photoUrl,
       socials,

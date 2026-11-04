@@ -636,9 +636,19 @@ export async function setPrimaryCard(cardId: string): Promise<BusinessCard> {
 /** Saves a copy of a card as a new, non-primary card with the same design and details. */
 export function duplicateCard(source: BusinessCard): Promise<BusinessCard> {
   const { createdAt: _createdAt, updatedAt: _updatedAt, ...rest } = source;
+  const sourceName = source.name.trim() || 'Untitled card';
+  const baseName = sourceName.replace(/\s+\((\d+)\)$/, '');
+  const usedNames = new Set(CARDS.map((card) => card.name.trim().toLocaleLowerCase()));
+  let copyNumber = 2;
+  let duplicateName = `${baseName} (${copyNumber})`;
+  while (usedNames.has(duplicateName.toLocaleLowerCase())) {
+    copyNumber += 1;
+    duplicateName = `${baseName} (${copyNumber})`;
+  }
   return saveCard(normalizeCard({
     ...rest,
     id: `new-${Date.now()}`,
+    name: duplicateName,
     isPrimary: false,
     sectionOverrides: { ...source.sectionOverrides },
     connectionFields: source.connectionFields.map((field) => ({ ...field })),

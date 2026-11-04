@@ -1,5 +1,5 @@
 import React from 'react';
-import { ActivityIndicator, Pressable, View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 
 import { QRCodeView } from '@/common/ui/QRCodeView';
 import { Text } from '@/common/ui/Text';
@@ -18,7 +18,6 @@ export interface ShareQrHeroCardProps {
   centerLogoBorderColor?: string;
   customization: QrCustomization;
   onQrRef?: (ref: QrSvgRef | null) => void;
-  onPressExpand?: () => void;
 }
 
 export function ShareQrHeroCard({
@@ -32,22 +31,19 @@ export function ShareQrHeroCard({
   centerLogoBorderColor,
   customization,
   onQrRef,
-  onPressExpand,
 }: ShareQrHeroCardProps) {
   const isLightSurface = preset.backgroundColor.toLowerCase() === '#ffffff';
 
   return (
-    <Pressable
-      accessibilityRole="button"
+    <View
+      accessibilityRole="image"
       accessibilityLabel={`${cardName} QR code. Scan to share card.`}
-      disabled={!shareUrl || !onPressExpand}
-      onPress={onPressExpand}
       style={{
         backgroundColor: preset.backgroundColor,
         borderColor: customization.frameStyle === 'none' ? 'transparent' : isLightSurface ? 'rgba(148,163,184,0.35)' : 'rgba(148,163,184,0.22)',
         borderRadius: customization.frameStyle === 'simple' ? 8 : customization.frameStyle === 'none' ? 0 : 18,
       }}
-      className="w-full items-center justify-center border px-6 pb-6 pt-7 active:opacity-95"
+      className="w-full items-center justify-center border px-6 pb-6 pt-7"
     >
       {shareUrl ? (
         <QRCodeView
@@ -92,6 +88,6 @@ export function ShareQrHeroCard({
         {customization.caption}
       </Text>
       </View> : null}
-    </Pressable>
+    </View>
   );
 }

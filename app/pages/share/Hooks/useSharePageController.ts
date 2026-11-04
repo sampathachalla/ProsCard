@@ -44,7 +44,6 @@ export function useSharePageController() {
   const { profile } = useProfileSnapshot();
   const [cardIndex, setCardIndex] = useState(0);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [qrModalOpen, setQrModalOpen] = useState(false);
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const [guideModal, setGuideModal] = useState<ShareGuideModalKind>(null);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -380,12 +379,15 @@ export function useSharePageController() {
           break;
 
         case 'share_namedrop':
-          if (!card) {
-            Alert.alert('No card yet', 'Create a card on the Cards tab first.');
-            return;
-          }
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-          setGuideModal('namedrop');
+          // Apple does not expose an API that starts the proximity animation.
+          // The iOS share sheet is the supported entry point and includes AirDrop.
+          requireCardAndUrl((url, cardName) => {
+            void Share.share({
+              message: buildCardShareMessage(cardName, url),
+              title: `${cardName} | VC Pros`,
+              url: Platform.OS === 'ios' ? url : undefined,
+            });
+          });
           break;
 
         case 'share_linkedin':
@@ -455,8 +457,6 @@ export function useSharePageController() {
     shareLoading: share.loading,
     shareError,
     copiedLink,
-    qrModalOpen,
-    setQrModalOpen,
     customizeOpen,
     setCustomizeOpen,
     guideModal,

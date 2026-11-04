@@ -21,7 +21,7 @@ export const cardReadingSchema = z.object({
   /** Clockwise degrees to make the text upright. 0 and 180 are reliable; sideways (90/270) guesses often are not. */
   rotation: z.union([z.literal(0), z.literal(90), z.literal(180), z.literal(270)]).catch(0),
   contact: z.object({
-    name: text, title: text, company: text, phone: text, email: text, website: text, address: text, notes: text,
+    name: text, title: text, company: text, phone: text, secondaryPhone: text, email: text, website: text, address: text, notes: text,
   }),
 });
 

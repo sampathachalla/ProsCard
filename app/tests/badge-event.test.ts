@@ -65,4 +65,21 @@ describe('current badge event', () => {
       'Web Summit', 'Zeta Expo', 'Alpha Conf',
     ]);
   });
+
+  it('hides a scanner event without changing contact event data', async () => {
+    const events = await load();
+    await events.setCurrentEvent('Private Expo');
+    await events.hideEventName('Private Expo');
+    const contacts = [{ eventName: 'Private Expo' }, { eventName: 'Public Expo' }] as Contact[];
+    expect(await events.loadCurrentEvent()).toBeNull();
+    expect(events.mergeEventNameSuggestions(contacts, await events.loadRecentEventNames(), await events.loadHiddenEventNames())).toEqual(['Public Expo']);
+  });
+
+  it('renames stored event state and makes the new name visible', async () => {
+    const events = await load();
+    await events.setCurrentEvent('Old Expo');
+    await events.renameStoredEventName('Old Expo', 'New Expo');
+    expect(await events.loadCurrentEvent()).toMatchObject({ name: 'New Expo' });
+    expect(await events.loadRecentEventNames()).toEqual(['New Expo']);
+  });
 });

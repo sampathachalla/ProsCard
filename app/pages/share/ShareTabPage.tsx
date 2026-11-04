@@ -1,11 +1,11 @@
 import React from 'react';
-import { Pressable, View } from 'react-native';
+import { Linking, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { resolveCardTagLabel } from '@/pages/cards/Utils/resolveCardTagLabel';
 import { ChevronDown } from 'lucide-react-native';
 
-import { QRCodeModal } from '@/common/ui/QRCodeModal';
 import { Text } from '@/common/ui/Text';
+import { showMessage } from '@/common/ui/confirmAction';
 import { useThemeContext } from '@/context/ThemeContext';
 import { CustomizeQrModal } from './Components/CustomizeQrModal';
 import { ShareActionsList } from './Components/ShareActionsList';
@@ -36,8 +36,6 @@ export default function ShareTabPage() {
     shareLoading,
     shareError,
     copiedLink,
-    qrModalOpen,
-    setQrModalOpen,
     customizeOpen,
     setCustomizeOpen,
     guideModal,
@@ -145,7 +143,6 @@ export default function ShareTabPage() {
       centerLogoBorderColor={centerLogoBorderColor}
       customization={qrCustomization}
       onQrRef={setQrRef}
-      onPressExpand={() => setQrModalOpen(true)}
     />
   );
 
@@ -158,14 +155,32 @@ export default function ShareTabPage() {
     />
   );
 
-  const footerSection = offline ? (
-    <Text
-      variant="none"
-      className="text-center text-[13px] text-slate-500 dark:text-slate-400"
-    >
-      You are offline. Some share actions may require an internet connection.
-    </Text>
-  ) : null;
+  // Keep the Share page aligned with the product support address already used
+  // by the Profile page.
+  const supportEmail = 'support@proscard.app';
+  const footerSection = (
+    <View className="items-center gap-3">
+      {offline ? (
+        <Text variant="none" className="text-center text-[13px] text-slate-500 dark:text-slate-400">
+          You are offline. Some share actions may require an internet connection.
+        </Text>
+      ) : null}
+      <Pressable
+        accessibilityRole="link"
+        accessibilityLabel={`Email MindPros support at ${supportEmail}`}
+        onPress={() => {
+          void Linking.openURL(`mailto:${supportEmail}?subject=VC%20Pros%20Support`).catch(() => {
+            showMessage('MindPros support', `Email us at ${supportEmail}.`);
+          });
+        }}
+        className="min-h-11 items-center justify-center px-4 active:opacity-70"
+      >
+        <Text variant="none" className="text-center text-[13px] font-semibold text-primary dark:text-sky-400">
+          Need help? Contact MindPros · {supportEmail}
+        </Text>
+      </Pressable>
+    </View>
+  );
 
   return (
     <>
@@ -176,19 +191,6 @@ export default function ShareTabPage() {
         qrHero={qrHeroSection}
         actionsList={actionsListSection}
         footer={footerSection}
-      />
-
-      <QRCodeModal
-        visible={qrModalOpen}
-        cardName={card?.name ?? 'VC Pros'}
-        url={shareUrl}
-        error={shareError}
-        centerLogoUrl={centerLogoUrl}
-        centerLogoBackground={centerLogoBackground}
-        centerLogoBorderColor={centerLogoBorderColor}
-        customization={qrCustomization}
-        preset={activeQrPreset}
-        onClose={() => setQrModalOpen(false)}
       />
 
       <CustomizeQrModal

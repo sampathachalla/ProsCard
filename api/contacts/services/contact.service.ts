@@ -44,6 +44,11 @@ export class ContactService {
     return shape(r);
   }
 
+  async renameEvent(u: string, fromEventName: string, toEventName: string) {
+    const contacts = (await this.repo.renameEvent(u, fromEventName, toEventName)).map(shape);
+    return { count: contacts.length, contacts };
+  }
+
   async delete(u: string, id: string) {
     if (!await this.repo.find(u, id)) throw new HttpError(404, 'Contact not found.');
     await this.media?.cleanupContact(u, id);

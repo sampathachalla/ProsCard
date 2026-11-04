@@ -7,7 +7,7 @@ const reading: CardReading = {
   isBusinessCard: true,
   cardBounds: { x: 0.1, y: 0.2, width: 0.8, height: 0.5 },
   rotation: 0,
-  contact: { name: 'Ada Lovelace', title: 'Analyst', company: 'Engines Ltd', phone: '+44 20 1234 5678', email: 'MAILTO:Ada@Engines.io', website: 'engines.io', address: '', notes: '' },
+  contact: { name: 'Ada Lovelace', title: 'Analyst', company: 'Engines Ltd', phone: '+44 20 1234 5678', secondaryPhone: '+44 20 8765 4321', email: 'MAILTO:Ada@Engines.io', website: 'engines.io', address: '', notes: '' },
 };
 
 function fakeFetch(body: unknown, status = 200) {
@@ -71,6 +71,7 @@ describe('business card scanner', () => {
     expect(sent.response_format.json_schema.strict).toBe(true);
     expect(sent.response_format.json_schema.schema.properties.cardType.enum).toEqual(['business_card', 'payment_card', 'other']);
     expect(sent.messages[0].content).toContain('credit, debit, bank, prepaid, ATM or gift card');
+    expect(sent.messages[0].content).toContain('second distinct phone number');
     expect(sent.messages[1].content[1].image_url.url).toBe('data:image/png;base64,aGVsbG8=');
     expect((calls[0]!.headers as Record<string, string>).Authorization).toBe('Bearer sk-test');
   });
@@ -80,7 +81,7 @@ describe('business card scanner', () => {
       cardType: 'payment_card',
       cardBounds: { x: 0.1, y: 0.2, width: 0.8, height: 0.5 },
       textDirection: 'upright',
-      contact: { name: 'Ada Lovelace', title: '', company: 'Example Bank', phone: '', email: '', website: '', address: '' },
+      contact: { name: 'Ada Lovelace', title: '', company: 'Example Bank', phone: '', secondaryPhone: '', email: '', website: '', address: '' },
     }) } }] });
     const reader = new OpenAiCardReader({ apiKey: 'sk-test', timeoutMs: 1000, fetchImpl: impl });
 

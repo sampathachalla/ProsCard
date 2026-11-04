@@ -38,6 +38,14 @@ export class ContactRepository {
     ).then((r) => r.rows[0] ?? null);
   }
 
+  renameEvent(u: string, fromEventName: string, toEventName: string) {
+    return this.db.query<Row>(
+      `UPDATE contacts SET data=jsonb_set(data,'{eventName}',to_jsonb($3::text),true),updated_at=now()
+       WHERE user_id=$1 AND lower(trim(coalesce(data->>'eventName','')))=lower(trim($2)) RETURNING *`,
+      [u, fromEventName, toEventName],
+    ).then((r) => r.rows);
+  }
+
   delete(u: string, id: string) {
     return this.db.query('DELETE FROM contacts WHERE id=$1 AND user_id=$2', [id, u]).then((r) => (r.rowCount ?? 0) > 0);
   }

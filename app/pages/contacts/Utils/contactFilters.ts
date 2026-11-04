@@ -70,6 +70,7 @@ export function matchesSearchQuery(contact: Contact, query: string): boolean {
     contact.title.toLowerCase().includes(q) ||
     (contact.email ?? '').toLowerCase().includes(q) ||
     (contact.phone ?? '').toLowerCase().includes(q) ||
+    (contact.secondaryPhone ?? '').toLowerCase().includes(q) ||
     (contact.eventName ?? '').toLowerCase().includes(q) ||
     (contact.notes ?? '').toLowerCase().includes(q)
   );

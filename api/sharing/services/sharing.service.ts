@@ -179,13 +179,30 @@ export class SharingService {
     if (org) parts.push(`ORG:${esc(org)}`);
     const title = String(card.title || profile.title || '');
     if (title) parts.push(`TITLE:${esc(title)}`);
-    const email = String(card.email || profile.email || '');
+    const connectionFields = Array.isArray(card.connectionFields)
+      ? card.connectionFields.filter((field): field is Record<string, unknown> => Boolean(field) && typeof field === 'object')
+      : [];
+    const valuesForType = (type: string) => connectionFields
+      .filter((field) => String(field.type || '').toLowerCase() === type)
+      .map((field) => String(field.value || '').trim())
+      .filter(Boolean);
+    const valueForIdentity = (identity: string) => connectionFields.find((field) => {
+      const id = String(field.id || '').toLowerCase();
+      const label = String(field.title || '').toLowerCase();
+      return id === identity || label === identity || label.includes(identity);
+    });
+    const emails = valuesForType('email');
+    const phones = valuesForType('phone');
+    const email = String(emails[0] || card.email || profile.email || '');
     if (email) parts.push(`EMAIL;TYPE=INTERNET,WORK:${esc(email)}`);
-    const phone = String(card.phone || profile.phone || '');
+    const phone = String(phones[0] || card.phone || profile.phone || '');
     if (phone) parts.push(`TEL;TYPE=CELL,VOICE:${esc(phone)}`);
-    const website = String(profile.website || '');
+    if (phones[1] && phones[1] !== phone) parts.push(`TEL;TYPE=WORK,VOICE:${esc(phones[1])}`);
+    const websiteField = valueForIdentity('website');
+    const website = String(websiteField?.value || profile.website || '');
     if (website) parts.push(`URL:${esc(website)}`);
-    const address = String(profile.businessAddress || '');
+    const addressField = valueForIdentity('address');
+    const address = String(addressField?.value || profile.businessAddress || '');
     if (address) parts.push(`ADR;TYPE=WORK:;;${esc(address)};;;;`);
 
     const noteLines: string[] = [];
@@ -202,8 +219,8 @@ export class SharingService {
       }
     }
 
-    if (Array.isArray(card.connectionFields)) {
-      for (const f of card.connectionFields) {
+    if (connectionFields.length > 0) {
+      for (const f of connectionFields) {
         if (f && typeof f === 'object' && 'value' in f && typeof f.value === 'string' && f.value.trim()) {
           const label = ('title' in f && typeof f.title === 'string' && f.title) || ('type' in f && typeof f.type === 'string' && f.type) || 'Link';
           noteLines.push(`${label}: ${f.value.trim()}`);

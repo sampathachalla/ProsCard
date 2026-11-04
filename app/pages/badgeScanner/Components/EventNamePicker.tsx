@@ -7,10 +7,11 @@ type Props = {
   suggestions: string[];
   autoFocus?: boolean;
   onSubmitEditing?: () => void;
+  onLongPressSuggestion?: (name: string) => void;
 };
 
 /** Type a new event name or tap one used before. */
-export function EventNamePicker({ value, onChangeText, suggestions, autoFocus, onSubmitEditing }: Props) {
+export function EventNamePicker({ value, onChangeText, suggestions, autoFocus, onSubmitEditing, onLongPressSuggestion }: Props) {
   const selected = value.trim().toLowerCase();
   return (
     <View>
@@ -40,6 +41,7 @@ export function EventNamePicker({ value, onChangeText, suggestions, autoFocus, o
                 accessibilityRole="button"
                 accessibilityState={{ selected: selected === name.toLowerCase() }}
                 onPress={() => onChangeText(name)}
+                onLongPress={() => onLongPressSuggestion?.(name)}
                 className={`rounded-full border px-3 py-2 active:opacity-80 ${
                   selected === name.toLowerCase()
                     ? 'border-primary bg-primary/10 dark:border-dark-primary'

@@ -47,8 +47,10 @@ export function validateSignupFields(
     errors.password = 'Password must be at least 8 characters.';
   }
 
-  if (form.confirmPassword !== undefined && form.confirmPassword !== '') {
-    if (form.password !== form.confirmPassword) {
+  if (form.confirmPassword !== undefined) {
+    if (!form.confirmPassword) {
+      errors.confirmPassword = 'Enter your password again.';
+    } else if (form.password !== form.confirmPassword) {
       errors.confirmPassword = 'Passwords do not match.';
     }
   }

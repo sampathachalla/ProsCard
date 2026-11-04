@@ -37,7 +37,7 @@ const storage:ObjectStorageGateway={
 
 const config=loadConfig();
 const pool=createPool(config);
-const cardReader={read:async()=>({isBusinessCard:true,cardBounds:{x:0.1,y:0.1,width:0.8,height:0.5},rotation:0 as const,contact:{name:'Grace Hopper',title:'Rear Admiral',company:'US Navy',phone:'',email:'grace@navy.mil',website:'',address:'',notes:''}})};
+const cardReader={read:async()=>({isBusinessCard:true,cardBounds:{x:0.1,y:0.1,width:0.8,height:0.5},rotation:0 as const,contact:{name:'Grace Hopper',title:'Rear Admiral',company:'US Navy',phone:'',secondaryPhone:'',email:'grace@navy.mil',website:'',address:'',notes:''}})};
 const profileCopywriter={generate:async()=>({tagline:'Engineer shaping useful products',taglines:['Engineer shaping useful products','Engineer at Analytical Engines'],shortBio:'I build useful products with a focus on thoughtful engineering.'})};
 const app=createApp({db:pool,supabase,storage,cardReader,profileCopywriter});
 const auth={Authorization:'Bearer test-token'};
@@ -162,6 +162,7 @@ describe('VC Pros API routes',()=>{
     const vcf=await request(app).get(`/api/v1/sharing/public/${shareSlug}/vcard`);
     expect(vcf.status).toBe(200);
     expect(vcf.headers['content-type']).toContain('text/vcard');
+    expect(vcf.headers['content-disposition']).toContain('attachment');
     expect(vcf.text).toContain('BEGIN:VCARD');
     expect(vcf.text).toContain('FN:Ada Lovelace');
     expect((await request(app).delete(`/api/v1/sharing/${shareId}`).set(auth)).status).toBe(204);

@@ -75,6 +75,7 @@ describe('account and card field precedence', () => {
     expect(professionalValue(input, 'company')).toBe('Account Company');
     expect(professionalValue(input, 'tagline')).toBe('Account tagline');
     expect(professionalValue(input, 'bio')).toBe('Account biography');
+    expect(professionalValue(input, 'bioEnabled')).toBe('true');
     expect(identityValue(input, 'coverPhoto')).toBe('https://example.com/account-cover.png');
     expect(identityValue(input, 'profilePhoto')).toBe('https://example.com/account-photo.png');
     expect(identityValue(input, 'logo')).toBe('https://example.com/account-logo.png');
@@ -87,6 +88,12 @@ describe('account and card field precedence', () => {
     expect(draft.sectionOverrides.coverPhoto).toBeUndefined();
     expect(draft.sectionOverrides.profilePhoto).toBeUndefined();
     expect(draft.sectionOverrides.logo).toBeUndefined();
+  });
+
+  it('honors an explicit choice to hide an existing biography', () => {
+    expect(professionalValue(card({
+      sectionOverrides: { bio: 'Saved biography', bioEnabled: 'false' },
+    }), 'bioEnabled')).toBe('false');
   });
 
   it('keeps card-level details ahead of account defaults', () => {

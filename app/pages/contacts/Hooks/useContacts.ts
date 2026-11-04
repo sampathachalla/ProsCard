@@ -44,15 +44,20 @@ export function useContacts() {
     setEventName('');
   };
 
+  const changeQuery = (value: string) => { setEventName(''); setQuery(value); };
+  const changeSort = (value: ContactSortId) => { setEventName(''); setSort(value); };
+  const changeSource = (value: ContactSourceFilter) => { setEventName(''); setSource(value); };
+  const changeRecent = (value: ContactRecentFilter) => { setEventName(''); setRecent(value); };
+
   return {
     query,
-    setQuery,
+    setQuery: changeQuery,
     sort,
-    setSort,
+    setSort: changeSort,
     source,
-    setSource,
+    setSource: changeSource,
     recent,
-    setRecent,
+    setRecent: changeRecent,
     eventName,
     setEventName,
     eventNames,

@@ -41,8 +41,14 @@ const FOCUS_STARTERS: { match: RegExp; starters: string[] }[] = [
   { match: /teach|professor|educat|lectur/i, starters: ['Teaching', 'Research on', 'Curriculum design'] },
 ];
 
+const DEFAULT_FOCUS_STARTERS = [
+  'Helping customers solve',
+  'Building better experiences',
+  'Connecting people with',
+];
+
 export function focusStartersFor(title: string): string[] {
-  return FOCUS_STARTERS.find((entry) => entry.match.test(title))?.starters ?? [];
+  return FOCUS_STARTERS.find((entry) => entry.match.test(title))?.starters ?? DEFAULT_FOCUS_STARTERS;
 }
 
 export interface GeneratedProfileCopy {

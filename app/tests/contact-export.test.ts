@@ -27,6 +27,12 @@ describe('contact export', () => {
     expect(csv).toContain('Expo 2026');
   });
 
+  it('exports the secondary phone in its own column', () => {
+    const csv = buildContactsCsv([contact({ secondaryPhone: '+1 410 555 0199' })]);
+    expect(csv.split('\n')[0]).toContain('Secondary Phone');
+    expect(csv).toContain('+1 410 555 0199');
+  });
+
   it('resolves export scopes', () => {
     const all = [
       contact({ id: '1' }),

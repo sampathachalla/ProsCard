@@ -7,6 +7,7 @@ export type Contact = {
   title: string;
   company: string;
   phone: string;
+  secondaryPhone?: string;
   email?: string;
   website?: string;
   address?: string;

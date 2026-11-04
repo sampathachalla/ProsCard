@@ -11,6 +11,7 @@ export function useSignup() {
   const initialFields = getSignupInitialFields();
   const [email, setEmail] = useState(initialFields.email);
   const [password, setPassword] = useState(initialFields.password);
+  const [confirmPassword, setConfirmPassword] = useState(initialFields.confirmPassword);
   const [errors, setErrors] = useState<AuthFieldErrors>({});
   const [formError, setFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -25,7 +26,7 @@ export function useSignup() {
   };
 
   const handleSignup = async () => {
-    const nextErrors = validateSignupFields({ email, password });
+    const nextErrors = validateSignupFields({ email, password, confirmPassword });
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
       return;
@@ -34,7 +35,7 @@ export function useSignup() {
     setFormError('');
     setIsSubmitting(true);
     try {
-      const user = await signup({ email: email.trim(), password, confirmPassword: password });
+      const user = await signup({ email: email.trim(), password, confirmPassword });
       if (user.emailConfirmationRequired) {
         Alert.alert('Check your email', 'Confirm your email address, then sign in to continue.');
         router.replace('/auth/login');
@@ -59,6 +60,12 @@ export function useSignup() {
     setPassword: (value: string) => {
       setPassword(value);
       clearFieldError('password');
+      if (formError) setFormError('');
+    },
+    confirmPassword,
+    setConfirmPassword: (value: string) => {
+      setConfirmPassword(value);
+      clearFieldError('confirmPassword');
       if (formError) setFormError('');
     },
     errors,

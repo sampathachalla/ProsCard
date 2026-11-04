@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
+  Keyboard,
   Platform,
   ScrollView,
   View,
@@ -44,6 +45,7 @@ export default function AccountScreen() {
 
   const handleSave = async () => {
     if (!hasChanges || offline) return;
+    Keyboard.dismiss();
     await submit('all', 'Account');
   };
 

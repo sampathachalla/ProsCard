@@ -33,7 +33,7 @@ export function OnboardingFocusField({ spec, draft, updateDraft }: Props) {
         value={focus}
         onChangeText={(text) => updateDraft({ focus: text })}
         placeholder={spec.placeholder}
-        hint="Optional, but it’s what makes your headline about you."
+        hint="Describe the work you do, the people you help, or the outcome you create. Tap an example below to get started."
         maxLength={maxLength}
         multiline
         numberOfLines={2}
@@ -41,7 +41,11 @@ export function OnboardingFocusField({ spec, draft, updateDraft }: Props) {
         variant="boxed"
       />
       {starters.length > 0 ? (
-        <View className="mt-1 flex-row flex-wrap gap-2">
+        <View className="mt-1">
+          <Text variant="none" className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            Examples
+          </Text>
+          <View className="flex-row flex-wrap gap-2">
           {starters.map((starter) => (
             <Pressable
               key={starter}
@@ -55,6 +59,7 @@ export function OnboardingFocusField({ spec, draft, updateDraft }: Props) {
               </Text>
             </Pressable>
           ))}
+          </View>
         </View>
       ) : null}
     </View>

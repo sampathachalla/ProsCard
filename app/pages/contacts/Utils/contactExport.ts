@@ -20,6 +20,7 @@ const CSV_COLUMNS = [
   'Company',
   'Email',
   'Phone',
+  'Secondary Phone',
   'Website',
   'Address',
   'Event',
@@ -62,6 +63,7 @@ export function contactToExportRow(contact: Contact): string[] {
     contact.company,
     contact.email ?? '',
     contact.phone ?? '',
+    contact.secondaryPhone ?? '',
     contact.website ?? '',
     contact.address ?? '',
     contact.eventName ?? '',
@@ -131,7 +133,7 @@ export function buildContactsListHtml(contacts: Contact[], context: ContactExpor
   <div class="meta">${metaLines.map(escapeHtml).join('<br/>')}</div>
   <table>
     <thead><tr>${headerCells}</tr></thead>
-    <tbody>${tableRows || '<tr><td colspan="11">No contacts</td></tr>'}</tbody>
+    <tbody>${tableRows || '<tr><td colspan="12">No contacts</td></tr>'}</tbody>
   </table>
 </body>
 </html>`;

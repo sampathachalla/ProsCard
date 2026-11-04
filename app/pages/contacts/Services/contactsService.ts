@@ -39,6 +39,7 @@ function normalizeContact(raw: Contact): Contact {
     title: text(raw.title),
     company: text(raw.company),
     phone: text(raw.phone),
+    secondaryPhone: text(raw.secondaryPhone),
     email: text(raw.email),
     website: text(raw.website),
     address: text(raw.address),
@@ -151,4 +152,14 @@ export async function updateContactWithCard(id: string, input: ContactInput, ima
 export async function deleteContact(id: string): Promise<void> {
   if (AUTH_TEST_MODE) return;
   await apiRequest(`/contacts/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
+export async function renameContactEvent(fromEventName: string, toEventName: string): Promise<number> {
+  if (AUTH_TEST_MODE) return 0;
+  const result = await apiRequest<{ count: number; contacts: Contact[] }>('/contacts/events/rename', {
+    method: 'PUT', body: { fromEventName, toEventName },
+  });
+  for (const contact of result.contacts ?? []) cacheContact(normalizeContact(contact), 'inPlace');
+  await queryClient.invalidateQueries({ queryKey: queryKeys.contacts });
+  return result.count ?? 0;
 }

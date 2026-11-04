@@ -20,6 +20,8 @@ export default function SignupScreen() {
     setEmail,
     password,
     setPassword,
+    confirmPassword,
+    setConfirmPassword,
     errors,
     formError,
     setFormError,
@@ -71,6 +73,15 @@ export default function SignupScreen() {
             accessibilityLabel="Password"
           />
           <PasswordRequirementHints password={password} />
+
+          <AuthSoftInput
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            placeholder="Confirm password"
+            error={errors.confirmPassword}
+            secureTextEntry
+            accessibilityLabel="Confirm password"
+          />
 
           <Button
             label={isSubmitting ? 'Signing up…' : 'Sign up'}

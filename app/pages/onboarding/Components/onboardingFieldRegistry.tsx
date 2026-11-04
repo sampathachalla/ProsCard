@@ -244,7 +244,23 @@ export function PresenceFieldsBlock({
 }) {
   return (
     <View className="w-full">
-      {ONBOARDING_MEDIA_ROWS.map((row) => (
+      {ONBOARDING_MEDIA_ROWS.map((row) => row.key === 'companyLogoUrl' ? (
+        <View key={row.key}>
+          <ImageUploadField
+            label="Company logo"
+            description="Search the same company logo library used by the card editor, or upload your own."
+            value={draft.companyLogoUrl}
+            onChange={(uri) => updateDraft({ companyLogoUrl: uri })}
+            onRemove={() => updateDraft({ companyLogoUrl: '' })}
+            variant="logo"
+          />
+          {errors.companyLogoUrl ? (
+            <Text className="-mt-2 mb-3 px-1 text-xs font-medium text-error dark:text-dark-error">
+              {errors.companyLogoUrl}
+            </Text>
+          ) : null}
+        </View>
+      ) : (
         <OnboardingMediaRowCard
           key={row.key}
           config={row}

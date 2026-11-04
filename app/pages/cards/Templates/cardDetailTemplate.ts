@@ -135,7 +135,9 @@ export function createCardDetailTemplate(card: BusinessCard, profile: Profile): 
           id: 'bioEnabled',
           title: 'Show biography',
           type: 'text',
-          value: override(card, 'bioEnabled', 'false'),
+          // Cards created before the visibility toggle existed should display
+          // an already-saved biography on their first load.
+          value: override(card, 'bioEnabled', override(card, 'bio', profile.shortBio || '').trim() ? 'true' : 'false'),
         },
         {
           id: 'accreditations',
