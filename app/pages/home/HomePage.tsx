@@ -25,6 +25,7 @@ import { resolveCoverPhotoPreset } from '@/pages/cards/Services/coverPhotoPreset
 import type { BusinessCard } from '@/pages/cards/types/card.types';
 import { navigateToSharePreview } from '@/pages/share/Utils/navigateToSharePreview';
 import { ensureCardLiveActivity } from '@/pages/share/Services/liveActivityService';
+import { resolveActiveCardIndex, useActiveCardStore } from './Stores/activeCardStore';
 
 /** Longest the first load waits for images; a slow network shows the card with images still arriving. */
 const INITIAL_MEDIA_WAIT_MS = 6_000;
@@ -50,7 +51,8 @@ function HomeLoadingScreen() {
 
 export default function HomepageScreen() {
   const { cards, fetched, initialFetchComplete: cardsFetched, error: cardsError, offline } = useCards();
-  const [activeCardIndex, setActiveCardIndex] = useState(0);
+  const activeCardId = useActiveCardStore((state) => state.activeCardId);
+  const setActiveCardId = useActiveCardStore((state) => state.setActiveCardId);
   const [showcaseHeight, setShowcaseHeight] = useState(0);
   const { hydrated: viewModeHydrated } = useCardViewPreference();
   const { profile, fetched: profileFetched } = useProfileSnapshot();
@@ -113,9 +115,12 @@ export default function HomepageScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [needsDefaultCard]);
 
-  const boundedCardIndex =
-    cards.length > 0 ? Math.min(activeCardIndex, cards.length - 1) : 0;
+  const boundedCardIndex = resolveActiveCardIndex(cards, activeCardId);
   const currentCard = cards[boundedCardIndex] ?? cards[0];
+  const setActiveCardIndex = (index: number) => {
+    const cardId = cards[index]?.id;
+    if (cardId) setActiveCardId(cardId);
+  };
   const primaryCard = cards.find((card) => card.isPrimary) ?? cards[0];
 
   useEffect(() => {

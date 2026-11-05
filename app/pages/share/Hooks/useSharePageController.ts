@@ -38,6 +38,7 @@ import { normalizeQrCustomization } from '../Utils/normalizeQrCustomization';
 import { publishQrCustomization } from '../Services/qrCustomizationStorage';
 import { useShareUrl } from './useShareUrl';
 import { resolveCardTagLabel } from '@/pages/cards/Utils/resolveCardTagLabel';
+import { resolveActiveCardIndex, useActiveCardStore } from '@/pages/home/Stores/activeCardStore';
 
 /** Opens a share target; a phone with no app for it gets a message instead of a silent no-op. */
 function openShareLink(url: string, fallbackUrl?: string) {
@@ -51,7 +52,8 @@ function openShareLink(url: string, fallbackUrl?: string) {
 export function useSharePageController() {
   const { cards, fetched, offline } = useCards();
   const { profile } = useProfileSnapshot();
-  const [cardIndex, setCardIndex] = useState(0);
+  const activeCardId = useActiveCardStore((state) => state.activeCardId);
+  const setActiveCardId = useActiveCardStore((state) => state.setActiveCardId);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const [guideModal, setGuideModal] = useState<ShareGuideModalKind>(null);
@@ -70,14 +72,14 @@ export function useSharePageController() {
     if (params.cardId && index < 0) return; // Wait until the cards have loaded.
     const guide = params.guide;
     const frame = requestAnimationFrame(() => {
-      if (index >= 0) setCardIndex(index);
+      if (params.cardId && index >= 0) setActiveCardId(params.cardId);
       if (guide === 'lockscreen' || guide === 'homescreen' || guide === 'wallet' || guide === 'liveactivity') {
         setGuideModal(guide);
       }
       router.setParams({ cardId: undefined, guide: undefined });
     });
     return () => cancelAnimationFrame(frame);
-  }, [cards, params.cardId, params.guide, router]);
+  }, [cards, params.cardId, params.guide, router, setActiveCardId]);
 
   useEffect(() => {
     const refresh = () => {
@@ -90,8 +92,12 @@ export function useSharePageController() {
     return () => subscription.remove();
   }, []);
 
-  const boundedIndex = cards.length > 0 ? Math.min(cardIndex, cards.length - 1) : 0;
+  const boundedIndex = resolveActiveCardIndex(cards, activeCardId);
   const card = cards[boundedIndex];
+  const setCardIndex = (index: number) => {
+    const cardId = cards[index]?.id;
+    if (cardId) setActiveCardId(cardId);
+  };
 
   useEffect(() => {
     if (!card?.id) {
