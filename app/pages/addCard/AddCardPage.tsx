@@ -187,7 +187,7 @@ export default function AddCardPage() {
       [
         { text: 'This card only', style: 'cancel' },
         {
-          text: 'Account & this card',
+          text: 'Account & all cards',
           onPress: () => void editor.saveFieldToAccount(field, value),
         },
       ],
@@ -227,7 +227,7 @@ export default function AddCardPage() {
         [
           { text: 'This card only', style: 'cancel' },
           {
-            text: 'Account & this card',
+            text: 'Account & all cards',
             onPress: () => void editor.saveFieldsToAccount([
               { field, value },
               ...(selectedCompany

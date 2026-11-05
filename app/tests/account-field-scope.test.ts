@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Profile } from '@/pages/profile/types/profile.types';
-import { applyCardFieldToProfile } from '@/pages/addCard/Utils/accountFieldScope';
+import { applyAccountFieldToCard, applyCardFieldToProfile } from '@/pages/addCard/Utils/accountFieldScope';
+import type { BusinessCard } from '@/pages/cards/types/card.types';
 
 const profile = {
   preferredName: '',
@@ -47,5 +48,27 @@ describe('card detail account scope', () => {
 
     expect(updated.companyLogoUrl).toBe('simple-icons:google');
     expect(updated.organization).toBe('Google');
+  });
+
+  it.each([
+    ['accreditations', 'MBA, PMP'],
+    ['tagline', 'Building trusted products'],
+    ['bio', 'Product leader and mentor'],
+    ['company', 'MindPros'],
+    ['title', 'Director'],
+    ['logo', 'simple-icons:google'],
+  ] as const)('applies account-scoped %s changes to every card payload', (field, value) => {
+    const card = {
+      name: 'Sampath',
+      title: 'Engineer',
+      company: 'Old Company',
+      sectionOverrides: {},
+    } as BusinessCard;
+
+    const updated = applyAccountFieldToCard(card, field, value);
+
+    if (field === 'title' || field === 'company') expect(updated[field]).toBe(value);
+    expect(updated.sectionOverrides[field]).toBe(value);
+    expect(card.sectionOverrides[field]).toBeUndefined();
   });
 });

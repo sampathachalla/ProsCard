@@ -31,8 +31,8 @@ import {
 } from '../Config/cardTagDesignPresets';
 import { getCachedLogoPalette } from '@/pages/profile/Services/mediaService';
 import { saveProfile } from '@/pages/profile/Services/profileService';
-import { applyCardFieldToProfile, type AccountScopedCardField } from '../Utils/accountFieldScope';
-import { getCards } from '@/pages/cards/Services/cardsService';
+import { applyAccountFieldToCard, applyCardFieldToProfile, type AccountScopedCardField } from '../Utils/accountFieldScope';
+import { getCards, saveCard as saveExistingCard } from '@/pages/cards/Services/cardsService';
 import { withAutomaticCardName } from '@/pages/cards/Utils/cardDisplayName';
 
 /** Applies one theme to every card section so the whole card matches. */
@@ -177,6 +177,25 @@ export function useAddCard(options: UseAddCardOptions = {}) {
         profile,
       );
       await saveProfile(updatedProfile);
+      const failedCardNames: string[] = [];
+      for (const existingCard of [...getCards()]) {
+        const updatedCard = changes.reduce(
+          (current, change) => applyAccountFieldToCard(current, change.field, change.value),
+          existingCard,
+        );
+        try {
+          await saveExistingCard(updatedCard);
+        } catch {
+          failedCardNames.push(existingCard.displayName?.trim() || existingCard.name || 'Untitled card');
+        }
+      }
+      if (failedCardNames.length) {
+        Alert.alert(
+          'Some cards were not updated',
+          `The account was updated, but these cards could not be synchronized: ${failedCardNames.join(', ')}. Please try again.`,
+        );
+        return false;
+      }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       return true;
     } catch (error) {

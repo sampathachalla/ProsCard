@@ -6,6 +6,7 @@ import { AuthScreenShell } from '@/pages/auth/Components/AuthScreenShell';
 import { AuthSoftInput } from '@/pages/auth/Components/AuthSoftInput';
 import { PasswordRequirementHints } from '@/pages/auth/Components/PasswordRequirementHints';
 import { AuthFormBanner } from '@/pages/auth/Components/AuthFormBanner';
+import { BrandLogo } from '@/common/ui/BrandLogo';
 import { Button } from '@/common/ui/Button';
 import { Text } from '@/common/ui/Text';
 import { showMessage } from '@/common/ui/confirmAction';
@@ -115,10 +116,16 @@ export default function ResetPasswordScreen() {
 
   return (
     <AuthScreenShell>
-      <View className="w-full gap-2">
-        <Text variant="heading" className="mb-2 text-center">
-          Choose a new password
-        </Text>
+      <View className="w-full">
+        <View className="mb-6 items-center">
+          <BrandLogo accessibilityLabel="VCPROS logo" size="xxl" variant="wordmark" />
+          <Text className="mt-3 text-center text-[22px] font-bold text-[#1c1c1c] dark:text-white">
+            Choose a new password
+          </Text>
+          <Text className="mt-2 px-2 text-center text-[14px] leading-5 text-[#8e8e8e] dark:text-slate-400">
+            Enter your new password twice to confirm it.
+          </Text>
+        </View>
         <AuthFormBanner message={formError} />
         <AuthSoftInput
           value={password}
