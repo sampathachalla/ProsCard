@@ -23,11 +23,7 @@ async function readCapturedQrPng(qrSvg: QrSvgRef | null): Promise<string | null>
 }
 
 async function readQrPng(qrSvg: QrSvgRef | null): Promise<string | null> {
-  // A company logo sits over the SVG, so only a capture of the view includes it.
-  if (qrSvg?.hasImageOverlay) {
-    const capturedPng = await readCapturedQrPng(qrSvg);
-    if (capturedPng) return capturedPng;
-  }
+  await qrSvg?.whenLogoReady?.();
 
   if (qrSvg?.toDataURL) {
     const svgPng = await new Promise<string | null>((resolve) => {
@@ -134,12 +130,18 @@ export async function prepareHomeScreenWidget({
     writeWidgetQrImage(qrSvg, `vcpros-card-qr-${safeCardId}-${Date.now()}.png`),
     import('@/widgets/VCProsCardWidget'),
   ]);
-  VCProsCardWidget.updateSnapshot({
+  const widgetProps = {
     cardName: cardName || 'My VC Card',
     openUrl: `vcpros:///cards/${encodeURIComponent(cardId)}?source=widget`,
     qrImageUri,
     shareUrl,
-  });
-  VCProsCardWidget.reload();
+  };
+  if (Platform.OS === 'ios') {
+    // Make the replacement entry unambiguously active. An entry stamped at the exact current
+    // millisecond can be treated as future data while WidgetKit is loading the timeline.
+    VCProsCardWidget.updateTimeline([{ date: new Date(Date.now() - 1_000), props: widgetProps }]);
+  } else {
+    VCProsCardWidget.updateSnapshot(widgetProps);
+  }
   return 'ready';
 }

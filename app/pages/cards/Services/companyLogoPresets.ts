@@ -132,8 +132,12 @@ const CURATED_LOGO_LABELS: Record<string, string> = {
  * Curated full-color wordmarks are preferred where available. The complete local Simple Icons
  * catalog remains the searchable offline fallback without API keys or user tracking.
  */
-const simpleIconPresets: CompanyLogoPreset[] = Object.values(SimpleIcons)
-  .filter(isSimpleIcon)
+const simpleIcons = Object.values(SimpleIcons).filter(isSimpleIcon);
+const simpleIconByValue = new Map<string, SimpleIcon>(
+  simpleIcons.map((icon) => [`${COMPANY_LOGO_PRESET_PREFIX}${icon.slug}`, icon] as const),
+);
+
+const simpleIconPresets: CompanyLogoPreset[] = simpleIcons
   .map((icon) => ({
     id: icon.slug,
     label: icon.title,
@@ -196,6 +200,12 @@ export function resolveCompanyLogoPreset(value: string): CompanyLogoPreset | und
     ...legacy,
     source: curatedLogoSource(legacy.id) ?? require('../../../assets/vcpros-logo-v3-dark.png'),
   } : undefined;
+}
+
+/** Vector metadata lets QR exports draw Simple Icons inside the SVG instead of a lossy view overlay. */
+export function resolveCompanyLogoVector(value: string): { path: string; color: string } | undefined {
+  const icon = simpleIconByValue.get(value);
+  return icon ? { path: icon.path, color: `#${icon.hex}` } : undefined;
 }
 
 function normalizeCompanySearch(value: string): string {
