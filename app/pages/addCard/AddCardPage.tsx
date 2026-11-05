@@ -37,7 +37,7 @@ import { useAddCard } from './Hooks/useAddCard';
 import type { AddCardImageField, AddCardPanel, AddCardTextFieldId, ContactOption } from './types/addCard.types';
 import { validateAddCard } from './Utils/validateAddCard';
 import type { AccountScopedCardField } from './Utils/accountFieldScope';
-import { CARD_TEXT_LIMITS } from '@/utils/cardTextLayout';
+import { CARD_TEXT_LIMITS, fitCardText } from '@/utils/cardTextLayout';
 
 function textValue(
   id: AddCardTextFieldId,
@@ -194,15 +194,19 @@ export default function AddCardPage() {
     );
   };
 
-  const handleMediaChange = (field: AddCardImageField, value: string) => {
+  const handleMediaChange = (field: AddCardImageField, value: string, companyName?: string) => {
+    const selectedCompany = field === 'logo' && companyName
+      ? fitCardText(companyName, CARD_TEXT_LIMITS.company)
+      : '';
     editor.setOverride(field, value);
+    if (selectedCompany) editor.setTextField('company', selectedCompany);
 
     const labels: Record<AddCardImageField, string> = {
       coverPhoto: 'Cover photo',
       profilePhoto: 'Profile photo',
       logo: 'Logo',
     };
-    const label = labels[field];
+    const label = selectedCompany ? 'Logo and company' : labels[field];
 
     const currentAccountValue =
       field === 'coverPhoto'
@@ -211,7 +215,8 @@ export default function AddCardPage() {
           ? (profile.photoUrl ?? '')
           : (profile.companyLogoUrl ?? '');
 
-    if ((currentAccountValue || '') === (value || '')) {
+    const companyMatchesAccount = !selectedCompany || (profile.organization ?? '') === selectedCompany;
+    if ((currentAccountValue || '') === (value || '') && companyMatchesAccount) {
       return;
     }
 
@@ -223,7 +228,12 @@ export default function AddCardPage() {
           { text: 'This card only', style: 'cancel' },
           {
             text: 'Account & this card',
-            onPress: () => void editor.saveFieldToAccount(field, value),
+            onPress: () => void editor.saveFieldsToAccount([
+              { field, value },
+              ...(selectedCompany
+                ? [{ field: 'company' as const, value: selectedCompany }]
+                : []),
+            ]),
           },
         ],
       );

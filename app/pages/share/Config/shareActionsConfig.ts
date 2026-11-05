@@ -27,11 +27,10 @@ import type { ShareActionId, ShareActionItemConfig } from '../types/share.types'
  * 6. Save QR to Photos
  * 7. Customize QR code
  * 8. Share via email
- * 9. Share with NameDrop
- * 10. Share via linkedin
- * 11. Share via whatsapp
- * 12. Share via insta
- * 13. Share via X
+ * 9. Share via linkedin
+ * 10. Share via whatsapp
+ * 11. Share via insta
+ * 12. Share via X
  */
 export const SHARE_PAGE_ACTIONS: ShareActionItemConfig[] = [
   {
@@ -96,6 +95,8 @@ export const SHARE_PAGE_ACTIONS: ShareActionItemConfig[] = [
     label: 'Share with NameDrop',
     icon: Smartphone,
     iconColor: '#38bdf8',
+    // Hidden until a native NameDrop experience is ready to ship.
+    platforms: [],
   },
   {
     id: 'share_linkedin',

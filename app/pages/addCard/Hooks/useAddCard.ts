@@ -166,11 +166,17 @@ export function useAddCard(options: UseAddCardOptions = {}) {
     }));
   }, []);
 
-  const saveFieldToAccount = useCallback(async (field: AccountScopedCardField, value: string) => {
+  const saveFieldsToAccount = useCallback(async (
+    changes: Array<{ field: AccountScopedCardField; value: string }>,
+  ) => {
     if (isUpdatingAccount) return false;
     setIsUpdatingAccount(true);
     try {
-      await saveProfile(applyCardFieldToProfile(profile, field, value));
+      const updatedProfile = changes.reduce(
+        (current, change) => applyCardFieldToProfile(current, change.field, change.value),
+        profile,
+      );
+      await saveProfile(updatedProfile);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       return true;
     } catch (error) {
@@ -183,6 +189,11 @@ export function useAddCard(options: UseAddCardOptions = {}) {
       setIsUpdatingAccount(false);
     }
   }, [isUpdatingAccount, profile]);
+
+  const saveFieldToAccount = useCallback(
+    (field: AccountScopedCardField, value: string) => saveFieldsToAccount([{ field, value }]),
+    [saveFieldsToAccount],
+  );
 
   const setContactValue = useCallback((id: string, value: string) => {
     setDraft((prev) => ({
@@ -301,6 +312,7 @@ export function useAddCard(options: UseAddCardOptions = {}) {
     setTextField,
     setDisplayName,
     saveFieldToAccount,
+    saveFieldsToAccount,
     setContactValue,
     addContact,
     removeContact,

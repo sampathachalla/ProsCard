@@ -6,7 +6,7 @@ import type { OnboardingDraft } from '../types/onboardingStepper.types';
 import { OnboardingFormField } from './OnboardingFormField';
 import { OptionalFieldsDisclosure } from './OptionalFieldsDisclosure';
 import { StepInfoBanner } from './StepInfoBanner';
-import { CARD_TEXT_LIMITS } from '@/utils/cardTextLayout';
+import { CARD_TEXT_LIMITS, fitCardText } from '@/utils/cardTextLayout';
 
 export interface StepProfessionalProps {
   draft: OnboardingDraft;
@@ -124,6 +124,7 @@ export function StepProfessional({ draft, updateDraft, errors }: StepProfessiona
             description="Optional mark shown on your card."
             value={draft.companyLogoUrl}
             onChange={(uri) => updateDraft({ companyLogoUrl: uri })}
+            onLogoCompanyName={(organization) => updateDraft({ organization: fitCardText(organization, CARD_TEXT_LIMITS.company) })}
             onRemove={() => updateDraft({ companyLogoUrl: '' })}
             variant="logo"
           />

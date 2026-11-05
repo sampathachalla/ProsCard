@@ -7,7 +7,7 @@ import { useThemeContext } from '@/context/ThemeContext';
 import { ImageUploadField } from '@/common/ui/ImageUploadField';
 import { SocialLinksFieldsBlock, type SocialLinksDraft } from '@/pages/onboarding/Components/SocialLinksFieldsBlock';
 import type { Profile, ProfileFieldKey, SocialFieldKey } from '../types/profile.types';
-import { CARD_TEXT_LIMITS } from '@/utils/cardTextLayout';
+import { CARD_TEXT_LIMITS, fitCardText } from '@/utils/cardTextLayout';
 
 type ProfileField = { key: ProfileFieldKey; label: string; keyboardType?: 'email-address' | 'phone-pad' | 'url'; maxLength?: number; multiline?: boolean };
 type SocialField = { key: SocialFieldKey; label: string };
@@ -133,7 +133,7 @@ export function ProfileSectionEditor({ sectionId, draft, onChange, onSocialChang
       {section.media ? <>
         <ImageUploadField label="Profile photo" variant="avatar" value={draft.photoUrl} onChange={(value) => onChange('photoUrl', value)} onRemove={() => onChange('photoUrl', '')} />
         <ImageUploadField label="Cover photo" variant="banner" value={draft.coverPhotoUrl} onChange={(value) => onChange('coverPhotoUrl', value)} onRemove={() => onChange('coverPhotoUrl', '')} />
-        <ImageUploadField label="Company logo" variant="logo" value={draft.companyLogoUrl} onChange={(value) => onChange('companyLogoUrl', value)} onRemove={() => onChange('companyLogoUrl', '')} />
+        <ImageUploadField label="Company logo" variant="logo" value={draft.companyLogoUrl} onChange={(value) => onChange('companyLogoUrl', value)} onLogoCompanyName={(value) => onChange('organization', fitCardText(value, CARD_TEXT_LIMITS.company))} onRemove={() => onChange('companyLogoUrl', '')} />
       </> : null}
       {section.socialEditor ? (
         <SocialLinksFieldsBlock

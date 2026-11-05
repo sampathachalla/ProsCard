@@ -56,6 +56,7 @@ vi.mock('expo-file-system', () => {
 
 import { SHARE_ACTION_IDS } from '@/pages/share/Config/shareActionIds';
 import {
+  SHARE_PAGE_ACTIONS,
   SHARE_VIA_SOCIAL_ACTION,
   SOCIAL_SHARE_ACTION_IDS,
 } from '@/pages/share/Config/shareActionsConfig';
@@ -87,6 +88,7 @@ describe('share-page shipping contract', () => {
       'share_x',
     ]);
     expect(new Set(SHARE_ACTION_IDS).size).toBe(14);
+    expect(SHARE_PAGE_ACTIONS.find((action) => action.id === 'share_namedrop')?.platforms).toEqual([]);
   });
 
   it('builds valid destinations for every dedicated share channel', () => {

@@ -27,6 +27,7 @@ import type { FieldSpec } from '../types/onboardingFlow.types';
 import { OnboardingFormField } from './OnboardingFormField';
 import { SocialLinksFieldsBlock } from './SocialLinksFieldsBlock';
 import { OnboardingFocusField } from './OnboardingFocusField';
+import { CARD_TEXT_LIMITS, fitCardText } from '@/utils/cardTextLayout';
 
 function rebuildFullName(parts: OnboardingDraft): string {
   return [parts.prefix, parts.firstName, parts.middleName, parts.lastName, parts.suffix]
@@ -251,6 +252,7 @@ export function PresenceFieldsBlock({
             description="Search the same company logo library used by the card editor, or upload your own."
             value={draft.companyLogoUrl}
             onChange={(uri) => updateDraft({ companyLogoUrl: uri })}
+            onLogoCompanyName={(organization) => updateDraft({ organization: fitCardText(organization, CARD_TEXT_LIMITS.company) })}
             onRemove={() => updateDraft({ companyLogoUrl: '' })}
             variant="logo"
           />
@@ -322,6 +324,7 @@ export function renderOnboardingField(
           description="Optional logo on your card."
           value={String(draft[spec.key] ?? '')}
           onChange={(uri) => updateDraft({ [spec.key]: uri } as Partial<OnboardingDraft>)}
+          onLogoCompanyName={(organization) => updateDraft({ organization: fitCardText(organization, CARD_TEXT_LIMITS.company) })}
           onRemove={() => updateDraft({ [spec.key]: '' } as Partial<OnboardingDraft>)}
           variant="logo"
         />

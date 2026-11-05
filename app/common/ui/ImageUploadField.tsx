@@ -34,6 +34,8 @@ type ImageUploadFieldProps = {
   description?: string;
   value?: string;
   onChange: (uri: string) => void;
+  /** Called only for a named logo selected from the brand library. */
+  onLogoCompanyName?: (companyName: string) => void;
   onRemove?: () => void;
   variant?: ImageUploadVariant;
   disabled?: boolean;
@@ -70,6 +72,7 @@ export function ImageUploadField({
   description,
   value,
   onChange,
+  onLogoCompanyName,
   onRemove,
   variant = 'banner',
   disabled = false,
@@ -351,7 +354,11 @@ export function ImageUploadField({
           value={value}
           isUploading={isPicking}
           onClose={() => setLogoModalVisible(false)}
-          onSelectLogo={(logoUri) => onChange(logoUri)}
+          onSelectLogo={(logoUri, companyName) => {
+            onChange(logoUri);
+            const normalizedCompanyName = companyName?.trim();
+            if (normalizedCompanyName) onLogoCompanyName?.(normalizedCompanyName);
+          }}
           onUploadFromDevice={handlePickFromDevice}
           onRemoveLogo={hasImage ? handleRemove : undefined}
         />

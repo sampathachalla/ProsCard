@@ -52,7 +52,7 @@ import { LayoutTemplatePicker } from './LayoutTemplatePicker';
 import { EditorPresentationCrossfade } from '@/common/ui/editor/EditorPresentationCrossfade';
 import { EditorSectionLabel } from '@/common/ui/editor/EditorSectionLabel';
 import { getFieldIcon } from '@/pages/cards/Templates/sections/SectionSharedComponents';
-import { CARD_TEXT_LIMITS, fitAccreditationsToViewport, fitTaglineToViewport, getResponsiveAccreditationLimit, getResponsiveTaglineLimit } from '@/utils/cardTextLayout';
+import { CARD_TEXT_LIMITS, fitAccreditationsToViewport, fitCardText, fitTaglineToViewport, getResponsiveAccreditationLimit, getResponsiveTaglineLimit } from '@/utils/cardTextLayout';
 import {
   connectionCounts,
   MINIMUM_CARD_CONNECTION_FIELDS,
@@ -607,6 +607,9 @@ export function CardSectionEditor({
         variant={option.variant}
         value={getFieldValue(option.id)}
         onChange={(uri) => onFieldChange(option.id, uri)}
+        onLogoCompanyName={option.id === 'logo'
+          ? (companyName) => onFieldChange('company', fitCardText(companyName, CARD_TEXT_LIMITS.company))
+          : undefined}
         onRemove={() => onFieldChange(option.id, '')}
       />
     );
@@ -767,6 +770,7 @@ export function CardSectionEditor({
         variant="logo"
         value={getFieldValue('logo')}
         onChange={(uri) => onFieldChange('logo', uri)}
+        onLogoCompanyName={(companyName) => onFieldChange('company', fitCardText(companyName, CARD_TEXT_LIMITS.company))}
         onRemove={() => onFieldChange('logo', '')}
       />
     </View>

@@ -35,4 +35,17 @@ describe('card detail account scope', () => {
     expect(updated).not.toBe(profile);
     expect(profile.organization).toBe('');
   });
+
+  it('can persist a selected logo and its company name as one account update', () => {
+    const updated = [
+      { field: 'logo' as const, value: 'simple-icons:google' },
+      { field: 'company' as const, value: 'Google' },
+    ].reduce(
+      (current, change) => applyCardFieldToProfile(current, change.field, change.value),
+      profile,
+    );
+
+    expect(updated.companyLogoUrl).toBe('simple-icons:google');
+    expect(updated.organization).toBe('Google');
+  });
 });

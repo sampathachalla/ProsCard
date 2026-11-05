@@ -4,7 +4,7 @@ import { Text } from '@/common/ui/Text';
 import { CardMediaHeader } from '@/pages/addCard/Components/CardMediaHeader';
 import { FormField } from '@/pages/addCard/Components/FormField';
 import { TAGLINE_FIELD } from '@/pages/addCard/Config/addCardFields';
-import { CARD_TEXT_LIMITS } from '@/utils/cardTextLayout';
+import { CARD_TEXT_LIMITS, fitCardText } from '@/utils/cardTextLayout';
 import { SocialLinksFieldsBlock, type SocialLinksDraft } from '@/pages/onboarding/Components/SocialLinksFieldsBlock';
 import type { Profile, ProfileFieldKey, SocialFieldKey } from '@/pages/profile/types/profile.types';
 import type { AddCardImageField } from '@/pages/addCard/types/addCard.types';
@@ -52,8 +52,11 @@ function FieldRow({ children }: { children: ReactNode }) {
 }
 
 export function AccountDetailsForm({ draft, onChange, onSocialChange }: Props) {
-  const setImageField = (field: AddCardImageField, value: string) => {
+  const setImageField = (field: AddCardImageField, value: string, companyName?: string) => {
     onChange(PROFILE_IMAGE_FIELD[field], value);
+    if (field === 'logo' && companyName?.trim()) {
+      onChange('organization', fitCardText(companyName, CARD_TEXT_LIMITS.company));
+    }
   };
 
   const field = (config: TextFieldConfig, options?: { dense?: boolean; flex?: number }) => {

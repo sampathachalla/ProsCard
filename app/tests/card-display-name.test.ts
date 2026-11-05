@@ -25,8 +25,12 @@ describe('card names from the tag', () => {
     expect(nextAutomaticCardName(card('new', 'Personal'), [...existing, card('c', 'Personal', 'Personal 2')]).name).toBe('Personal 3');
   });
 
-  it('does not reuse a number given before on this device', () => {
-    expect(nextAutomaticCardName(card('new', 'Personal'), [], 2).name).toBe('Personal 3');
+  it('reuses the lowest available name after a card is deleted', () => {
+    expect(nextAutomaticCardName(card('new', 'Business'), [card('b', 'Business', 'Business 2')]).name).toBe('Business');
+    expect(nextAutomaticCardName(card('new', 'Business'), [
+      card('a', 'Business', 'Business'),
+      card('c', 'Business', 'Business 3'),
+    ]).name).toBe('Business 2');
   });
 
   it('renames a card whose automatic name came from another tag (e.g. the onboarding card)', () => {

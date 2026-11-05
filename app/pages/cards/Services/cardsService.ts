@@ -17,7 +17,6 @@ import { hasAutomaticNameForTag, isCustomCardName, nextAutomaticCardName } from 
 
 const PRIMARY_CARD_KEY = 'primaryCard';
 const USER_CARDS_KEY = 'userCards';
-const CARD_LABEL_COUNTERS_KEY = 'cardDisplayNameCounters';
 let lastCardsSyncFailed = false;
 export const cardsAreOffline = () => lastCardsSyncFailed;
 async function scopedCardKey(key: string) {
@@ -35,22 +34,12 @@ async function ensureCardDisplayName(card: BusinessCard): Promise<BusinessCard> 
       sectionOverrides: { ...card.sectionOverrides, displayName: storedLabel, displayNameCustomized: 'true' },
     };
   }
-  const counterKey = await scopedCardKey(CARD_LABEL_COUNTERS_KEY);
-  const stored = parseStoredJson<Record<string, number>>(await AsyncStorage.getItem(counterKey)) ?? {};
-  // An automatic name follows the card's tag; one left over from another tag is replaced. A name the
-  // editor already filled in is kept, and its number recorded so a later card does not reuse it.
+  // An automatic name follows the card's tag; one left over from another tag is replaced. Existing
+  // automatic names are kept, while newly created cards fill the lowest available sequence gap.
   if (hasAutomaticNameForTag(card)) {
-    const tag = resolveCardTag(card);
-    const sequence = Number(storedLabel?.match(/\s(\d+)$/)?.[1] ?? 1);
-    if (sequence > (stored[tag] ?? 0)) {
-      stored[tag] = sequence;
-      await AsyncStorage.setItem(counterKey, JSON.stringify(stored));
-    }
     return card;
   }
-  const next = nextAutomaticCardName(card, CARDS, stored[resolveCardTag(card)] ?? 0);
-  stored[next.tag] = next.sequence;
-  await AsyncStorage.setItem(counterKey, JSON.stringify(stored));
+  const next = nextAutomaticCardName(card, CARDS);
   return {
     ...card,
     displayName: next.name,

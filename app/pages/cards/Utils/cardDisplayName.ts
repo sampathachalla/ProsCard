@@ -30,20 +30,23 @@ export function hasAutomaticNameForTag(card: BusinessCard) {
 
 /**
  * Next automatic name for the card's tag: the tag itself for the first card, then "Tag 2", "Tag 3"…
- * `highestUsed` is the largest number ever given for that tag on this device, so numbers are not reused.
+ * Deleted-card gaps are reused, so removing "Business" makes the next Business card "Business" even
+ * when "Business 2" still exists.
  */
-export function nextAutomaticCardName(card: BusinessCard, otherCards: BusinessCard[], highestUsed = 0) {
+export function nextAutomaticCardName(card: BusinessCard, otherCards: BusinessCard[]) {
   const tag = resolveCardTag(card);
   const numbered = new RegExp(`^${escapeRegExp(tag)}\\s+(\\d+)$`, 'i');
-  const usedNumbers = otherCards
+  const usedNumbers = new Set(otherCards
     .filter((item) => item.id !== card.id && resolveCardTag(item) === tag)
     .map((item) => {
       const name = storedName(item);
       if (!name || name.toLowerCase() === tag.toLowerCase()) return 1;
       const match = name.match(numbered);
       return match ? Number(match[1]) : 0;
-    });
-  const sequence = Math.max(highestUsed, ...usedNumbers, 0) + 1;
+    })
+    .filter((sequence) => sequence > 0));
+  let sequence = 1;
+  while (usedNumbers.has(sequence)) sequence += 1;
   return { tag, sequence, name: sequence === 1 ? tag : `${tag} ${sequence}` };
 }
 

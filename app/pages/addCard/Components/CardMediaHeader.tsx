@@ -25,7 +25,7 @@ type Props = {
   logo: string;
   logoBackdrop: string;
   gradient: [string, string];
-  onChange: (field: AddCardImageField, value: string) => void;
+  onChange: (field: AddCardImageField, value: string, companyName?: string) => void;
   onAutoThemeFromLogo?: (theme: CardVisualTheme) => void;
   onPaletteExtracted?: (palette: LogoPalette) => void;
   uploadScope?: MediaScope;
@@ -183,8 +183,8 @@ export function CardMediaHeader({ coverPhoto, profilePhoto, logo, logoBackdrop, 
         value={logo}
         isUploading={busyField === 'logo'}
         onClose={() => setLogoModalVisible(false)}
-        onSelectLogo={async (logoValue) => {
-          onChange('logo', logoValue);
+        onSelectLogo={async (logoValue, companyName) => {
+          onChange('logo', logoValue, companyName?.trim() || undefined);
           setLogoModalVisible(false);
           if (logoValue.trim()) {
             try {
