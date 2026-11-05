@@ -9,6 +9,7 @@ import type { QrExportFormat } from '../types/share.types';
 export interface QrSvgRef {
   toDataURL?: (callback: (dataUrl: string) => void) => void;
   capturePngUri?: () => Promise<string | null>;
+  hasImageOverlay?: boolean;
 }
 
 function extractBase64Png(qrSvg: QrSvgRef | null): Promise<string | null> {

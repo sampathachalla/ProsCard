@@ -22,6 +22,8 @@ export interface QrSvgRef {
   toDataURL?: (callback: (dataUrl: string) => void) => void;
   /** Rasterizes the on-screen QR (native) for Photos / widget export. */
   capturePngUri?: () => Promise<string | null>;
+  /** The center logo is an image over the SVG, so toDataURL alone would leave it out. */
+  hasImageOverlay?: boolean;
 }
 
 export type QRCodeViewProps = {
@@ -87,10 +89,12 @@ export function QRCodeView({
 }: QRCodeViewProps) {
   const captureRootRef = useRef<any>(null);
   const svgRef = useRef<Svg | null>(null);
+  const hasImageOverlay = showCenterLogo && (useBrandIconAsset || Boolean(centerLogoUrl?.trim()));
 
   const publishExportRef = useCallback(() => {
     if (!getRef) return;
     getRef({
+      hasImageOverlay,
       // Export the SVG itself first. Capturing the surrounding native view can
       // produce a solid background on iOS when react-native-view-shot runs
       // before react-native-svg has committed its drawing layer.
@@ -116,7 +120,7 @@ export function QRCodeView({
         }
       },
     });
-  }, [getRef]);
+  }, [getRef, hasImageOverlay]);
 
   React.useEffect(() => {
     publishExportRef();

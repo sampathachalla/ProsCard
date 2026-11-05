@@ -10,7 +10,25 @@ export type PrepareWidgetResult = 'ready' | 'requires-native-build' | 'unsupport
 /** Largest size, in points, that any widget or Live Activity draws the QR at. */
 const WIDGET_QR_MAX_POINTS = 148;
 
+async function readCapturedQrPng(qrSvg: QrSvgRef | null): Promise<string | null> {
+  const uri = await qrSvg?.capturePngUri?.();
+  if (!uri) return null;
+  try {
+    const file = new File(uri);
+    const base64 = await file.base64();
+    return base64.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
 async function readQrPng(qrSvg: QrSvgRef | null): Promise<string | null> {
+  // A company logo sits over the SVG, so only a capture of the view includes it.
+  if (qrSvg?.hasImageOverlay) {
+    const capturedPng = await readCapturedQrPng(qrSvg);
+    if (capturedPng) return capturedPng;
+  }
+
   if (qrSvg?.toDataURL) {
     const svgPng = await new Promise<string | null>((resolve) => {
       try {
@@ -24,16 +42,7 @@ async function readQrPng(qrSvg: QrSvgRef | null): Promise<string | null> {
     if (svgPng) return svgPng;
   }
 
-  if (!qrSvg?.capturePngUri) return null;
-  const uri = await qrSvg.capturePngUri();
-  if (!uri) return null;
-  try {
-    const file = new File(uri);
-    const base64 = await file.base64();
-    return base64.trim() || null;
-  } catch {
-    return null;
-  }
+  return readCapturedQrPng(qrSvg);
 }
 
 function decodeBase64(base64: string): Uint8Array {
