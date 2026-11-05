@@ -269,6 +269,13 @@ export function useAddCard(options: UseAddCardOptions = {}) {
     setIsSaving(true);
     try {
       const saved = await createCard(draft);
+      if (isEditMode) {
+        // The editor stays open, so the saved card becomes the new baseline. This also adopts the
+        // uploaded media URLs; anything typed while the save was running is left in place.
+        const savedDraft = withAutomaticCardName(buildAddCardDraftFromCard(saved, profile), getCards());
+        initialSnapshot.current = JSON.stringify(savedDraft);
+        setDraft((current) => (current === draft ? savedDraft : current));
+      }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       return saved;
     } catch (error) {
@@ -280,7 +287,7 @@ export function useAddCard(options: UseAddCardOptions = {}) {
     } finally {
       setIsSaving(false);
     }
-  }, [checkReady, draft, isEditMode, isSaving]);
+  }, [checkReady, draft, isEditMode, isSaving, profile]);
 
   return {
     draft,

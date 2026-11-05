@@ -6,6 +6,8 @@ import type { CardDetailSection } from '../cardDetailTemplate';
 import type { CardVisualTheme, ResolvedLayoutSlots } from '../../types/card.types';
 import { getCardFontFamily, getCardLetterSpacing } from '../cardTheme';
 import {
+  CARD_TEXT_LIMITS,
+  fitCardText,
   fitAccreditationsToViewport,
   fitTaglineToViewport,
   getEffectiveCardContentWidth,
@@ -109,7 +111,7 @@ function ProfessionalRole({
 }) {
   const alignmentClass = align === 'center' ? 'items-center' : align === 'right' ? 'items-end' : 'items-start';
   return (
-    <View className={alignmentClass}>
+    <View className={alignmentClass} style={{ maxWidth: '100%', minWidth: 0, overflow: 'hidden' }}>
       <Text
         variant="none"
         adjustsFontSizeToFit={!titleFontSize}
@@ -125,6 +127,8 @@ function ProfessionalRole({
           fontFamily: titleFontSize ? undefined : getCardFontFamily(cardTheme.fontStyle),
           letterSpacing: getCardLetterSpacing(cardTheme.fontStyle),
           textAlign: align,
+          flexShrink: 1,
+          maxWidth: '100%',
         }}
       >
         {title}
@@ -341,13 +345,16 @@ export function ProfessionalSectionRenderer({
   /** Wallet pass = section 2 core fields only (no tagline / bio-style quote). */
   const showTagline = !walletPass && Boolean(tagline);
   const accreditations = fitAccreditationsToViewport(getVal('accreditations'), viewportWidth);
-  const title = getVal('title') || (showEmpty ? 'Job Title' : 'Professional Title');
-  const company = getVal('company') || (showEmpty ? 'Company Name' : 'Company / Organization');
+  const title = fitCardText(getVal('title') || (showEmpty ? 'Job Title' : 'Professional Title'), CARD_TEXT_LIMITS.title);
+  const company = fitCardText(getVal('company') || (showEmpty ? 'Company Name' : 'Company / Organization'), CARD_TEXT_LIMITS.company);
   const prefix = getVal('prefix');
   const suffix = getVal('suffix');
   const coreName = [getVal('firstName'), getVal('middleName'), getVal('lastName')].filter(Boolean).join(' ');
   const fullNameParts = [prefix, coreName, suffix].filter(Boolean);
-  const professionalName = fullNameParts.length > 0 ? fullNameParts.join(' ') : showEmpty ? 'Professional Name' : title;
+  const professionalName = fitCardText(
+    fullNameParts.length > 0 ? fullNameParts.join(' ') : showEmpty ? 'Professional Name' : title,
+    CARD_TEXT_LIMITS.professionalName,
+  );
   const corporateNameText = coreName || (showEmpty ? 'Professional Name' : professionalName);
   const corporateLeftWidth = viewportWidth * 0.64 - (compact ? 24 : 32);
   const corporateRightWidth = viewportWidth * 0.36 - (compact ? 24 : 32);
@@ -775,7 +782,7 @@ export function ProfessionalSectionRenderer({
                   fontFamily: getCardFontFamily(cardTheme.fontStyle),
                   fontSize: enterpriseCompanyFontSize,
                   lineHeight: Math.ceil(enterpriseCompanyFontSize * 1.2),
-                  maxWidth: '88%',
+                  flexShrink: 1,
                   textAlign: 'center',
                 }}
               >
@@ -783,9 +790,9 @@ export function ProfessionalSectionRenderer({
               </Text>
             </View>
           </View>
-          <View className="mt-3 flex-row items-center justify-between">
+          <View className="mt-3 flex-row flex-wrap items-center justify-between gap-y-1.5">
             <View
-              className={`${accreditations ? 'max-w-[55%]' : 'max-w-full'} rounded-full border px-3 py-1.5`}
+              className="max-w-full rounded-full border px-3 py-1.5"
               style={{
                 backgroundColor: `${slots.accent}0D`,
                 borderColor: `${slots.accent}35`,
@@ -807,7 +814,7 @@ export function ProfessionalSectionRenderer({
             </View>
             {accreditations ? (
               <View
-                className="ml-3 max-w-[42%] rounded-full border px-3 py-1.5"
+                className="max-w-full rounded-full border px-3 py-1.5"
                 style={{
                   backgroundColor: `${slots.accent}0D`,
                   borderColor: `${slots.accent}35`,
@@ -902,6 +909,7 @@ export function ProfessionalSectionRenderer({
                     flexShrink: 0,
                     height: accreditationLineHeight,
                     justifyContent: 'center',
+                    maxWidth: '45%',
                     opacity: 0,
                     overflow: 'hidden',
                   }}
@@ -1160,7 +1168,7 @@ export function ProfessionalSectionRenderer({
                 0.48,
               )}
               name={professionalName}
-              numberOfLines={1}
+              numberOfLines={2}
             />
             <View className="mt-1 flex-row items-center">
               <Building2 color={slots.textSecondary} size={14} />
@@ -1168,7 +1176,7 @@ export function ProfessionalSectionRenderer({
                 variant="none"
                 adjustsFontSizeToFit
                 minimumFontScale={0.72}
-                numberOfLines={1}
+                numberOfLines={2}
                 className="ml-2 flex-1 font-semibold"
                 style={{
                   color: slots.textSecondary,
@@ -1181,7 +1189,7 @@ export function ProfessionalSectionRenderer({
               </Text>
             </View>
             <View
-              className="mt-2 self-start rounded-full border px-3 py-1.5"
+              className="mt-2 max-w-full self-start rounded-full border px-3 py-1.5"
               style={{
                 backgroundColor: `${slots.accent}0D`,
                 borderColor: `${slots.accent}35`,
@@ -1267,7 +1275,7 @@ export function ProfessionalSectionRenderer({
               variant="none"
               adjustsFontSizeToFit
               minimumFontScale={0.72}
-              numberOfLines={1}
+              numberOfLines={2}
               className="font-black text-white"
               style={{
                 fontSize: executiveDisplayFontSize,
@@ -1278,7 +1286,9 @@ export function ProfessionalSectionRenderer({
             </Text>
             <Text
               variant="none"
-              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.72}
+              numberOfLines={2}
               className="mt-0.5 font-bold text-sky-400"
               style={{
                 fontSize: executiveRoleFontSize,
@@ -1289,7 +1299,7 @@ export function ProfessionalSectionRenderer({
             </Text>
             <View className="mt-1 flex-row items-center">
               <Building2 color="#94a3b8" size={13} />
-              <Text variant="none" numberOfLines={1} className="ml-1 text-xs font-semibold text-slate-400">
+              <Text variant="none" numberOfLines={2} className="ml-1 min-w-0 flex-1 text-xs font-semibold text-slate-400">
                 {company}
               </Text>
             </View>
@@ -1348,7 +1358,7 @@ export function ProfessionalSectionRenderer({
               variant="none"
               adjustsFontSizeToFit
               minimumFontScale={0.72}
-              numberOfLines={1}
+              numberOfLines={2}
               className="text-center font-extrabold text-white text-sm"
               style={{ fontFamily: getCardFontFamily(cardTheme.fontStyle) }}
             >
@@ -1380,7 +1390,7 @@ export function ProfessionalSectionRenderer({
               variant="none"
               adjustsFontSizeToFit
               minimumFontScale={0.72}
-              numberOfLines={1}
+              numberOfLines={2}
               className="font-black text-white"
               style={{
                 fontSize: executiveDisplayFontSize,
@@ -1391,7 +1401,7 @@ export function ProfessionalSectionRenderer({
             </Text>
             {accreditations ? (
               <View
-                className="mt-1.5 self-start rounded-full border border-sky-400/30 bg-sky-500/10 px-2 py-0.5"
+                className="mt-1.5 max-w-full self-start rounded-full border border-sky-400/30 bg-sky-500/10 px-2 py-0.5"
               >
                 <Text variant="none" className="text-[10px] font-bold text-sky-400 uppercase">
                   {accreditations}

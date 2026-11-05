@@ -61,9 +61,9 @@ export function runValidateOnboardingTests(): { passed: number; failed: number }
         const result = validatePersonalStep({
           firstName: 'Jane',
           lastName: 'Doe',
-          title: 'T'.repeat(81),
+          title: 'T'.repeat(33),
         });
-        assertEqual(result.title, 'Title must be 80 characters or less.');
+        assertEqual(result.title, 'Title must be 32 characters or less.');
       },
     ],
     [

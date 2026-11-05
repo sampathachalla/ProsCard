@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { View } from 'react-native';
 import { BrandLogo } from '@/common/ui/BrandLogo';
 import { Button } from '@/common/ui/Button';
@@ -44,12 +44,12 @@ export default function SignupScreen() {
       }
     >
       <View className="w-full">
-        <Animated.View entering={FadeIn.duration(400)} className="mb-6 items-center">
+        <View className="mb-6 items-center">
           <BrandLogo accessibilityLabel="VCPROS logo" size="xxl" variant="wordmark" />
           <Text className="mt-3 text-center text-[22px] font-bold text-[#1c1c1c] dark:text-white">
             Sign up to create your card
           </Text>
-        </Animated.View>
+        </View>
 
         <Animated.View entering={FadeInDown.delay(80).duration(400)} className="w-full">
           <AuthFormBanner message={formError} />
@@ -64,6 +64,7 @@ export default function SignupScreen() {
             accessibilityLabel="Email address"
           />
 
+          <PasswordRequirementHints password={password} className="mb-2 -mt-1" />
           <AuthSoftInput
             value={password}
             onChangeText={setPassword}
@@ -72,7 +73,6 @@ export default function SignupScreen() {
             secureTextEntry
             accessibilityLabel="Password"
           />
-          <PasswordRequirementHints password={password} />
 
           <AuthSoftInput
             value={confirmPassword}

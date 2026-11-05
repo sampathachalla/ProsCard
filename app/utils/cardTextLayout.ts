@@ -1,16 +1,49 @@
 /** Matches SharedCardPage column max width — share URL renders inside this box. */
 export const SHARE_CARD_MAX_CONTENT_WIDTH = 520;
 
+/**
+ * Copy budgets are based on the narrowest professional layout at the minimum
+ * supported card width. Keep every editor and fallback source aligned with
+ * these values so switching layouts cannot introduce horizontal overflow.
+ */
+export const CARD_TEXT_LIMITS = {
+  displayName: 48,
+  professionalName: 32,
+  namePart: 24,
+  title: 32,
+  company: 32,
+  accreditations: 24,
+  tagline: 48,
+  bio: 180,
+} as const;
+
+/** Dense contact rows and wallet-pass fields have less horizontal room than forms. */
+export const CONTACT_TEXT_LIMITS = {
+  name: 48,
+  title: 32,
+  company: 32,
+  eventName: 48,
+  phone: 32,
+  email: 80,
+  website: 96,
+  address: 120,
+  notes: 500,
+} as const;
+
+export function fitCardText(value: string, maxLength: number): string {
+  return (value || '').trim().slice(0, maxLength);
+}
+
 export function getEffectiveCardContentWidth(viewportWidth: number): number {
   return Math.min(Math.max(280, viewportWidth), SHARE_CARD_MAX_CONTENT_WIDTH);
 }
 
 export function getResponsiveTaglineLimit(_viewportWidth?: number): number {
-  return 50;
+  return CARD_TEXT_LIMITS.tagline;
 }
 
 export function fitTaglineToViewport(tagline: string, _viewportWidth?: number): string {
-  return (tagline || '').trim();
+  return fitCardText(tagline, CARD_TEXT_LIMITS.tagline);
 }
 
 /** Tagline font size for up to two lines inside the share card column (web-safe, no adjustsFontSizeToFit). */
@@ -57,9 +90,9 @@ export function getResponsiveSingleLineFontSize(
 
 export function getResponsiveAccreditationLimit(viewportWidth: number): number {
   const usableWidth = Math.min(720, Math.max(260, viewportWidth - 48));
-  return Math.min(100, Math.max(24, Math.floor(usableWidth / 9)));
+  return Math.min(CARD_TEXT_LIMITS.accreditations, Math.max(16, Math.floor(usableWidth / 9)));
 }
 
 export function fitAccreditationsToViewport(value: string, _viewportWidth?: number): string {
-  return (value || '').trim();
+  return fitCardText(value, CARD_TEXT_LIMITS.accreditations);
 }

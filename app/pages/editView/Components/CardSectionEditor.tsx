@@ -52,7 +52,7 @@ import { LayoutTemplatePicker } from './LayoutTemplatePicker';
 import { EditorPresentationCrossfade } from '@/common/ui/editor/EditorPresentationCrossfade';
 import { EditorSectionLabel } from '@/common/ui/editor/EditorSectionLabel';
 import { getFieldIcon } from '@/pages/cards/Templates/sections/SectionSharedComponents';
-import { fitAccreditationsToViewport, fitTaglineToViewport, getResponsiveAccreditationLimit, getResponsiveTaglineLimit } from '@/utils/cardTextLayout';
+import { CARD_TEXT_LIMITS, fitAccreditationsToViewport, fitTaglineToViewport, getResponsiveAccreditationLimit, getResponsiveTaglineLimit } from '@/utils/cardTextLayout';
 import {
   connectionCounts,
   MINIMUM_CARD_CONNECTION_FIELDS,
@@ -71,7 +71,7 @@ type IdentityImageField = 'coverPhoto' | 'profilePhoto' | 'logo';
 type ProfessionalNameField = 'prefix' | 'firstName' | 'middleName' | 'lastName' | 'suffix';
 
 const PROFESSIONAL_NAME_FIELDS: ProfessionalNameField[] = ['prefix', 'firstName', 'middleName', 'lastName', 'suffix'];
-const PROFESSIONAL_NAME_CHARACTER_LIMIT = 32;
+const PROFESSIONAL_NAME_CHARACTER_LIMIT = CARD_TEXT_LIMITS.professionalName;
 
 const CARD_TAG_ICONS: Record<string, LucideIcon> = {
   Business: Briefcase,
@@ -826,6 +826,7 @@ export function CardSectionEditor({
         <View className="flex-1">
           <EditorInput
             label="Job Title"
+            maxLength={CARD_TEXT_LIMITS.title}
             value={getFieldValue('title')}
             onChangeText={(val) => onFieldChange('title', val)}
             onFocus={onProfessionalFieldFocus}
@@ -835,6 +836,7 @@ export function CardSectionEditor({
         <View className="flex-1">
           <EditorInput
             label="Company"
+            maxLength={CARD_TEXT_LIMITS.company}
             value={getFieldValue('company')}
             onChangeText={(val) => onFieldChange('company', val)}
             onFocus={onProfessionalFieldFocus}
@@ -868,7 +870,7 @@ export function CardSectionEditor({
       {bioEnabled ? (
         <EditorInput
           label="Biography"
-          maxLength={180}
+          maxLength={CARD_TEXT_LIMITS.bio}
           minHeight={88}
           multiline
           size="base"
@@ -950,6 +952,7 @@ export function CardSectionEditor({
       <CardEditorFieldGroup title="Job Title & Company" icon={Briefcase}>
         <EditorInput
           label="Job Title"
+          maxLength={CARD_TEXT_LIMITS.title}
           value={getFieldValue('title')}
           onChangeText={(val) => onFieldChange('title', val)}
           onFocus={onProfessionalFieldFocus}
@@ -957,6 +960,7 @@ export function CardSectionEditor({
         />
         <EditorInput
           label="Company Name"
+          maxLength={CARD_TEXT_LIMITS.company}
           value={getFieldValue('company')}
           onChangeText={(val) => onFieldChange('company', val)}
           onFocus={onProfessionalFieldFocus}
@@ -993,7 +997,7 @@ export function CardSectionEditor({
         {bioEnabled ? (
           <EditorInput
             label="Biography"
-            maxLength={180}
+            maxLength={CARD_TEXT_LIMITS.bio}
             minHeight={104}
             multiline
             size="base"
@@ -1038,7 +1042,7 @@ export function CardSectionEditor({
         />
         <EditorInput
           label="Biography"
-          maxLength={240}
+          maxLength={CARD_TEXT_LIMITS.bio}
           // The fully open sheet has room for a writing area about half the screen tall.
           minHeight={fullOpen ? Math.max(260, Math.round(windowHeight * 0.45)) : editBarCollapsed ? 240 : 180}
           size={fullOpen ? 'lg' : 'sm'}
@@ -1501,6 +1505,7 @@ export function CardSectionEditor({
         nativeInput={nativeField}
         hideLabel
         label="Name"
+        maxLength={CARD_TEXT_LIMITS.professionalName}
         value={
           getFieldValue('preferredName').trim() ||
           [getFieldValue('firstName'), getFieldValue('lastName')].filter(Boolean).join(' ').trim()
@@ -1517,6 +1522,7 @@ export function CardSectionEditor({
         nativeInput={nativeField}
         hideLabel
         label="Title"
+        maxLength={CARD_TEXT_LIMITS.title}
         value={getFieldValue('title')}
         onChangeText={(value) => onFieldChange('title', value)}
         placeholder="Title"
@@ -1525,6 +1531,7 @@ export function CardSectionEditor({
         nativeInput={nativeField}
         hideLabel
         label="Company"
+        maxLength={CARD_TEXT_LIMITS.company}
         value={getFieldValue('company')}
         onChangeText={(value) => onFieldChange('company', value)}
         placeholder="Company"
@@ -1586,7 +1593,7 @@ export function CardSectionEditor({
           nativeInput={nativeField}
           hideLabel
           label="Bio"
-          maxLength={180}
+          maxLength={CARD_TEXT_LIMITS.bio}
           minHeight={88}
           multiline
           value={bioVal}

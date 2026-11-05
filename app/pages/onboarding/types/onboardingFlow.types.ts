@@ -1,4 +1,5 @@
 import type { OnboardingDraft } from './onboardingStepper.types';
+import { CARD_TEXT_LIMITS } from '@/utils/cardTextLayout';
 
 export type OnboardingFlowGroupId =
   | 'name_legal'
@@ -97,7 +98,7 @@ export const ONBOARDING_FLOW: OnboardingFlowItem[] = [
         placeholder: 'First name',
         required: true,
         autoCapitalize: 'words',
-        maxLength: 50,
+        maxLength: CARD_TEXT_LIMITS.namePart,
       },
       {
         key: 'lastName',
@@ -105,7 +106,7 @@ export const ONBOARDING_FLOW: OnboardingFlowItem[] = [
         placeholder: 'Last name',
         required: true,
         autoCapitalize: 'words',
-        maxLength: 50,
+        maxLength: CARD_TEXT_LIMITS.namePart,
       },
     ],
   },
@@ -123,21 +124,21 @@ export const ONBOARDING_FLOW: OnboardingFlowItem[] = [
         placeholder: 'Software Developer',
         required: true,
         autoCapitalize: 'words',
-        maxLength: 80,
+        maxLength: CARD_TEXT_LIMITS.title,
       },
       {
         key: 'organization',
         label: 'Company',
         placeholder: 'Company or organization',
         autoCapitalize: 'words',
-        maxLength: 100,
+        maxLength: CARD_TEXT_LIMITS.company,
       },
       {
         key: 'accreditations',
         label: 'Accreditations',
         placeholder: 'Degrees, certs, or licenses (optional)',
         autoCapitalize: 'characters',
-        maxLength: 80,
+        maxLength: CARD_TEXT_LIMITS.accreditations,
       },
     ],
   },
@@ -207,14 +208,14 @@ export const ONBOARDING_FLOW: OnboardingFlowItem[] = [
         label: 'Tagline',
         placeholder: 'One short line that appears on your card',
         autoCapitalize: 'sentences',
-        maxLength: 120,
+        maxLength: CARD_TEXT_LIMITS.tagline,
       },
       {
         key: 'shortBio',
         label: 'Short bio',
         placeholder: 'A line or two about your work',
         autoCapitalize: 'sentences',
-        maxLength: 240,
+        maxLength: CARD_TEXT_LIMITS.bio,
       },
     ],
   },

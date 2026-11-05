@@ -1,5 +1,5 @@
-import type { ComponentProps } from 'react';
-import { Text as NativeText } from 'react-native';
+import { useLayoutEffect, useRef, type ComponentProps } from 'react';
+import { Platform, StyleSheet, Text as NativeText } from 'react-native';
 
 type TextVariant =
   | 'title'
@@ -34,9 +34,48 @@ const variantClasses: Record<TextVariant, string> = {
  */
 export const MAX_FONT_SCALE = 1.35;
 
+const WEB_FIT_STEP = 0.02;
+
+/**
+ * Browsers ignore adjustsFontSizeToFit, so long text would end in "…" on the share page while the
+ * phone shrinks it. This applies the same shrink on web, down to the same minimumFontScale.
+ */
+function WebFitText(props: ComponentProps<typeof NativeText>) {
+  const { minimumFontScale = 0.72, style } = props;
+  const explicitFontSize = StyleSheet.flatten(style)?.fontSize;
+  const ref = useRef<HTMLElement | null>(null);
+
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (!element) return undefined;
+    const fit = () => {
+      if (typeof explicitFontSize !== 'number') element.style.fontSize = '';
+      const base = typeof explicitFontSize === 'number'
+        ? explicitFontSize
+        : parseFloat(getComputedStyle(element).fontSize);
+      for (let scale = 1; scale >= minimumFontScale; scale -= WEB_FIT_STEP) {
+        element.style.fontSize = `${base * scale}px`;
+        if (element.scrollWidth <= element.clientWidth && element.scrollHeight <= element.clientHeight + 1) break;
+      }
+    };
+    fit();
+    let lastWidth = element.clientWidth;
+    const observer = new ResizeObserver(() => {
+      if (element.clientWidth === lastWidth) return;
+      lastWidth = element.clientWidth;
+      fit();
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [explicitFontSize, minimumFontScale, props.children]);
+
+  return <NativeText ref={ref as never} {...props} />;
+}
+
 export function Text({ variant = 'body', className = '', maxFontSizeMultiplier = MAX_FONT_SCALE, ...props }: TextProps) {
+  const TextComponent = Platform.OS === 'web' && props.adjustsFontSizeToFit ? WebFitText : NativeText;
   return (
-    <NativeText className={`${variantClasses[variant]} ${className}`} maxFontSizeMultiplier={maxFontSizeMultiplier} {...props} />
+    <TextComponent className={`${variantClasses[variant]} ${className}`} maxFontSizeMultiplier={maxFontSizeMultiplier} {...props} />
   );
 }
 

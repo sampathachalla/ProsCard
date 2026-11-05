@@ -1,6 +1,7 @@
 import { Fragment, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { useQuery } from '@tanstack/react-query';
 import { Check, ImagePlus, Pencil, Search, Trash2, Upload } from 'lucide-react-native';
 import { Text } from './Text';
 import { pickImageAssetFromLibrary, takePhotoAsset, type PickedImage } from './usePickImage';
@@ -15,7 +16,9 @@ import { AUTH_TEST_MODE } from '@/pages/auth/Config/authMode';
 import {
   clearPendingMedia,
   commitPendingMedia,
+  extractLogoPaletteFromValue,
 } from '@/pages/profile/Services/pendingMedia';
+import { queryKeys } from '@/services/api/queryClient';
 import type { MediaKind } from '@/services/api/types';
 
 export type ImageUploadVariant = 'banner' | 'avatar' | 'logo';
@@ -76,7 +79,19 @@ export function ImageUploadField({
   const [logoModalVisible, setLogoModalVisible] = useState(false);
   const [pendingAsset, setPendingAsset] = useState<PickedImage | null>(null);
   const config = VARIANT_CONFIG[variant];
+  const logoValue = variant === 'logo' ? value?.trim() ?? '' : '';
   const hasImage = Boolean(value?.trim());
+  const logoPalette = useQuery({
+    queryKey: queryKeys.logoPalette(logoValue),
+    queryFn: () => extractLogoPaletteFromValue(logoValue),
+    enabled: Boolean(logoValue) && !isPicking,
+    staleTime: Infinity,
+    retry: false,
+  }).data;
+  // Same backdrop the full card puts behind the logo, so the logo stays readable here too.
+  const logoBackdrop = logoValue && !isPicking
+    ? logoPalette?.logoBackground ?? logoPalette?.suggestedSurface ?? '#f8fafc'
+    : undefined;
 
   const uploadAdjustedImage = async (uri: string) => {
     setPendingAsset(null);
@@ -223,6 +238,7 @@ export function ImageUploadField({
         className={`overflow-hidden border border-dashed border-slate-300 bg-slate-100/70 active:opacity-90 dark:border-slate-700 dark:bg-[#060a14] ${
           variant === 'avatar' ? 'my-2 items-center justify-center self-center' : 'my-1 w-full items-center justify-center'
         } ${config.previewClass}`}
+        style={logoBackdrop ? { backgroundColor: logoBackdrop } : undefined}
       >
         {isPicking ? (
           <ActivityIndicator size="small" color="#38bdf8" />

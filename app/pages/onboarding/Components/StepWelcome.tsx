@@ -1,7 +1,7 @@
 import React from 'react';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { ArrowRight } from 'lucide-react-native';
 
@@ -31,9 +31,7 @@ export function StepWelcome({ onGetStarted, isSaving = false }: StepWelcomeProps
         paddingBottom: Math.max(insets.bottom, 16) + 8,
       }}
     >
-      <Animated.View entering={FadeIn.duration(360)}>
-        <WelcomeBrandHeader />
-      </Animated.View>
+      <WelcomeBrandHeader />
 
       <Animated.View
         entering={FadeInDown.delay(80).duration(400)}

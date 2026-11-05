@@ -6,20 +6,21 @@ import type {
   ContactOption,
   PrimaryContactConfig,
 } from '../types/addCard.types';
+import { CARD_TEXT_LIMITS } from '@/utils/cardTextLayout';
 
 /** Identity and professional fields shown between the media header and the contact rows. */
 export const PROFILE_TEXT_FIELDS: AddCardTextFieldConfig[] = [
-  { id: 'name', label: 'Name', placeholder: 'e.g. Alex Morgan', maxLength: 32, autoCapitalize: 'words' },
-  { id: 'title', label: 'Title', placeholder: 'e.g. Product Designer', maxLength: 60, autoCapitalize: 'words' },
-  { id: 'company', label: 'Company', placeholder: 'e.g. MindPros', maxLength: 60, autoCapitalize: 'words' },
-  { id: 'accreditations', label: 'Accreditations', placeholder: 'e.g. MBA, PMP', maxLength: 48, autoCapitalize: 'characters' },
+  { id: 'name', label: 'Name', placeholder: 'e.g. Alex Morgan', maxLength: CARD_TEXT_LIMITS.professionalName, autoCapitalize: 'words' },
+  { id: 'title', label: 'Title', placeholder: 'e.g. Product Designer', maxLength: CARD_TEXT_LIMITS.title, autoCapitalize: 'words' },
+  { id: 'company', label: 'Company', placeholder: 'e.g. MindPros', maxLength: CARD_TEXT_LIMITS.company, autoCapitalize: 'words' },
+  { id: 'accreditations', label: 'Accreditations', placeholder: 'e.g. MBA, PMP', maxLength: CARD_TEXT_LIMITS.accreditations, autoCapitalize: 'characters' },
 ];
 
 export const TAGLINE_FIELD: AddCardTextFieldConfig = {
   id: 'tagline',
   label: 'Tag',
   placeholder: 'e.g. Building thoughtful digital products',
-  maxLength: 50,
+  maxLength: CARD_TEXT_LIMITS.tagline,
   autoCapitalize: 'sentences',
 };
 
@@ -54,7 +55,7 @@ export const CONTACT_OPTIONS: ContactOption[] = [
   { title: 'Work email', type: 'email', placeholder: 'team@company.com' },
 ];
 
-export const BIO_MAX_LENGTH = 240;
+export const BIO_MAX_LENGTH = CARD_TEXT_LIMITS.bio;
 
 export const IMAGE_ASPECTS: Record<AddCardImageField, [number, number]> = {
   coverPhoto: [16, 9],

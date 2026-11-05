@@ -47,14 +47,14 @@ export function runAdversarialTests(): {
   record(s1, 'empty_lastName_rejected', Boolean(validatePersonalStep({ firstName: 'A', lastName: '', title: 'E' }).lastName));
   record(s1, 'empty_title_rejected', Boolean(validatePersonalStep({ firstName: 'A', lastName: 'L', title: '' }).title));
   record(s1, 'valid_identity_accepted', Object.keys(validatePersonalStep(validIdentity)).length === 0);
-  record(s1, 'firstName_50_chars_accepted', !validatePersonalStep({ ...validIdentity, firstName: 'A'.repeat(50) }).firstName);
-  record(s1, 'firstName_51_chars_rejected', Boolean(validatePersonalStep({ ...validIdentity, firstName: 'A'.repeat(51) }).firstName));
+  record(s1, 'firstName_24_chars_accepted', !validatePersonalStep({ ...validIdentity, firstName: 'A'.repeat(24) }).firstName);
+  record(s1, 'firstName_25_chars_rejected', Boolean(validatePersonalStep({ ...validIdentity, firstName: 'A'.repeat(25) }).firstName));
   record(s1, 'chinese_name_accepted', !validatePersonalStep({ firstName: '李', lastName: '雷', title: '工程师' }).firstName);
   record(s1, 'accented_name_accepted', !validatePersonalStep({ firstName: 'José', lastName: 'González', title: 'Lead' }).firstName);
-  record(s1, 'title_80_chars_accepted', !validatePersonalStep({ ...validIdentity, title: 'T'.repeat(80) }).title);
-  record(s1, 'title_81_chars_rejected', Boolean(validatePersonalStep({ ...validIdentity, title: 'T'.repeat(81) }).title));
-  record(s1, 'tagline_120_chars_accepted', !validatePersonalStep({ ...validIdentity, tagline: 'T'.repeat(120) }).tagline);
-  record(s1, 'tagline_121_chars_rejected', Boolean(validatePersonalStep({ ...validIdentity, tagline: 'T'.repeat(121) }).tagline));
+  record(s1, 'title_32_chars_accepted', !validatePersonalStep({ ...validIdentity, title: 'T'.repeat(32) }).title);
+  record(s1, 'title_33_chars_rejected', Boolean(validatePersonalStep({ ...validIdentity, title: 'T'.repeat(33) }).title));
+  record(s1, 'tagline_48_chars_accepted', !validatePersonalStep({ ...validIdentity, tagline: 'T'.repeat(48) }).tagline);
+  record(s1, 'tagline_49_chars_rejected', Boolean(validatePersonalStep({ ...validIdentity, tagline: 'T'.repeat(49) }).tagline));
 
   // =========================================================================
   // SUITE 2: Validation — Contact (Step 3)
@@ -72,10 +72,10 @@ export function runAdversarialTests(): {
   record(s2, 'email_missing_tld_dot_rejected', Boolean(validateProfessionalStep({ organization: '', email: 'user@localhost', phone: '' }).email));
   record(s2, 'email_double_at_rejected', Boolean(validateProfessionalStep({ organization: '', email: 'user@@domain.com', phone: '' }).email));
   record(s2, 'email_embedded_space_rejected', Boolean(validateProfessionalStep({ organization: '', email: 'user name@domain.com', phone: '' }).email));
-  record(s2, 'organization_100_chars_accepted', !validateProfessionalStep({ organization: 'O'.repeat(100), email: 'a@b.com', phone: '' }).organization);
-  record(s2, 'organization_101_chars_rejected', Boolean(validateProfessionalStep({ organization: 'O'.repeat(101), email: 'a@b.com', phone: '' }).organization));
-  record(s2, 'shortBio_240_chars_accepted', !validateProfessionalStep({ organization: '', email: 'a@b.com', phone: '', shortBio: 'B'.repeat(240) }).shortBio);
-  record(s2, 'shortBio_241_chars_rejected', Boolean(validateProfessionalStep({ organization: '', email: 'a@b.com', phone: '', shortBio: 'B'.repeat(241) }).shortBio));
+  record(s2, 'organization_32_chars_accepted', !validateProfessionalStep({ organization: 'O'.repeat(32), email: 'a@b.com', phone: '' }).organization);
+  record(s2, 'organization_33_chars_rejected', Boolean(validateProfessionalStep({ organization: 'O'.repeat(33), email: 'a@b.com', phone: '' }).organization));
+  record(s2, 'shortBio_180_chars_accepted', !validateProfessionalStep({ organization: '', email: 'a@b.com', phone: '', shortBio: 'B'.repeat(180) }).shortBio);
+  record(s2, 'shortBio_181_chars_rejected', Boolean(validateProfessionalStep({ organization: '', email: 'a@b.com', phone: '', shortBio: 'B'.repeat(181) }).shortBio));
   record(s2, 'phone_us_formatted_accepted', !validateProfessionalStep({ organization: '', email: 'a@b.com', phone: '+1 (555) 123-4567' }).phone);
   record(s2, 'phone_7digits_accepted', !validateProfessionalStep({ organization: '', email: 'a@b.com', phone: '5551234' }).phone);
   record(s2, 'phone_6digits_rejected', Boolean(validateProfessionalStep({ organization: '', email: 'a@b.com', phone: '555123' }).phone));

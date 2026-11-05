@@ -7,6 +7,7 @@ import { cardSectionHeight } from '@/pages/cards/cardSectionLayout';
 import { createCardDetailTemplate } from '@/pages/cards/Templates/cardDetailTemplate';
 import { SectionTemplateRenderer } from '@/pages/cards/Templates/SectionTemplateRenderer';
 import { getCardFontFamily, getCardLetterSpacing } from '@/pages/cards/Templates/cardTheme';
+import { CARD_TEXT_LIMITS, fitCardText } from '@/utils/cardTextLayout';
 import { ActiveSectionHighlight } from '@/pages/editView/Components/ActiveSectionHighlight';
 import { extractLogoPalette, getCachedLogoPalette } from '@/pages/profile/Services/mediaService';
 import { useCardTagDesignPreference } from '@/pages/profile/Hooks/useCardTagDesignPreference';
@@ -261,7 +262,9 @@ export function CardDetailView({
         const handleLayout = (event: LayoutChangeEvent) => onSectionLayout?.(section.id, event.nativeEvent.layout.y);
         const sectionHeight = cardSectionHeight(section.id, layoutViewportHeight);
         const contentDriven = (section.id === 'professional' || section.id === 'connections') && !fitToViewport;
-        const bioText = section.id === 'professional' ? section.fields.find((field) => field.id === 'bio')?.value.trim() : '';
+        const bioText = section.id === 'professional'
+          ? fitCardText(section.fields.find((field) => field.id === 'bio')?.value ?? '', CARD_TEXT_LIMITS.bio)
+          : '';
         const showBio =
           section.id === 'professional' &&
           section.fields.find((field) => field.id === 'bioEnabled')?.value === 'true' &&
@@ -308,7 +311,7 @@ export function CardDetailView({
               >
                 <Text
                   variant="none"
-                  numberOfLines={3}
+                  numberOfLines={5}
                   style={{
                     color: sectionSlots.surfaceTextSecondary,
                     fontFamily,

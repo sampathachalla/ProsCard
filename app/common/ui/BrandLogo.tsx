@@ -1,4 +1,5 @@
-import { Image, View, useWindowDimensions, type ImageSourcePropType } from 'react-native';
+import { View, useWindowDimensions, type ImageSourcePropType } from 'react-native';
+import { Image, type ImageProps, type ImageRef } from 'expo-image';
 import vcProsLogoForLightTheme from '@/assets/vcpros-logo-v3-light.png'; // Enterprise Navy VC + cyan PROS
 import vcProsLogoForDarkTheme from '@/assets/vcpros-logo-v3-dark.png'; // Enterprise White VC + cyan PROS
 import vcProsIconForLightTheme from '@/assets/vcpros-icon-v3-light.png';
@@ -53,6 +54,35 @@ const iconDimensions: Record<BrandLogoSize, { width: number; height: number; bor
 /** Space kept free beside the logo: the screen's padding on both sides. */
 const LOGO_SIDE_MARGIN = 40;
 
+/** Decoded logos held in memory, so a page never has to wait for its logo after it appears. */
+const preloadedLogos = new Map<ImageSourcePropType, ImageRef>();
+
+/** Decodes every logo up front; one that fails simply loads the normal way when it is shown. */
+export async function preloadBrandLogos(): Promise<void> {
+  const logos = [
+    vcProsLogoForLightTheme,
+    vcProsLogoForDarkTheme,
+    vcProsIconForLightTheme,
+    vcProsIconForDarkTheme,
+  ];
+  await Promise.allSettled(
+    logos.map(async (logo) => {
+      preloadedLogos.set(logo, await Image.loadAsync(logo));
+    }),
+  );
+}
+
+/**
+ * expo-image on iOS paints a preloaded image as soon as it receives it, which can be before it
+ * receives contentFit, so the image falls back to "cover" and gets cropped. Sizing the view to the
+ * image's own shape keeps the whole logo visible whichever fit it ends up with.
+ */
+function fitPreloadedLogo(logo: ImageRef, box: { width: number; height: number }) {
+  const aspectRatio = logo.width / logo.height;
+  const width = Math.min(box.width, box.height * aspectRatio);
+  return { width, height: width / aspectRatio };
+}
+
 /** Theme-aware VCPROS wordmark. */
 export function getVcProsLogoSource(theme: 'light' | 'dark'): ImageSourcePropType {
   return theme === 'dark' ? vcProsLogoForDarkTheme : vcProsLogoForLightTheme;
@@ -100,33 +130,29 @@ export function BrandLogo({
 
   const resolvedSource =
     source ?? (theme === 'dark' ? resolvedDark : resolvedLight);
-  // Theme key forces a remount so the correct light/dark PNG always paints when the
-  // app theme or phone system appearance changes.
-  const imageKey = source
-    ? 'override'
-    : `${isIcon ? 'icon' : 'logo'}-${theme}`;
-
   const alignSelf = isIcon || size === 'header' ? 'flex-start' : 'center';
+  const preloadedLogo = isBadge || !resolvedSource ? undefined : preloadedLogos.get(resolvedSource);
 
   return (
     <View
       accessible
       accessibilityLabel={accessibilityLabel}
       accessibilityRole="image"
-      className={`${alignSelf === 'flex-start' ? 'items-start' : 'items-center'} justify-center ${
+      className={`items-center justify-center ${
         isBadge ? 'border border-white/20 bg-slate-950/90 shadow-sm' : ''
       } ${className}`}
-      style={isBadge ? dimensions : { alignSelf }}
+      style={isBadge ? dimensions : { alignSelf, width: dimensions.width, height: dimensions.height }}
     >
       {resolvedSource ? (
         <Image
-          key={imageKey}
-          source={resolvedSource}
-          resizeMode="contain"
+          source={(preloadedLogo ?? resolvedSource) as ImageProps['source']}
+          contentFit="contain"
           style={
             isBadge
               ? { width: '88%', height: '78%' }
-              : { width: dimensions.width, height: dimensions.height, alignSelf }
+              : preloadedLogo
+                ? fitPreloadedLogo(preloadedLogo, dimensions)
+                : { width: dimensions.width, height: dimensions.height }
           }
         />
       ) : (

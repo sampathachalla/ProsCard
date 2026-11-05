@@ -8,6 +8,7 @@ export const queryKeys = {
   share: (cardId: string) => ['share', cardId] as const,
   contacts: ['contacts'] as const,
   contact: (id: string) => ['contacts', id] as const,
+  logoPalette: (logo: string) => ['logoPalette', logo] as const,
 };
 
 export const queryClient = new QueryClient({

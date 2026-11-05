@@ -8,6 +8,7 @@ import { CardDetailView } from '@/pages/fullCard/Components/CardDetailView';
 import { duplicateCard, getCardById } from '@/pages/cards/Services/cardsService';
 import { CardMenuButton } from '@/pages/cards/Components/CardMenuButton';
 import { CardMenuSheet } from '@/pages/cards/Components/CardMenuSheet';
+import { CardSignedOutState } from '@/pages/cards/Components/CardSignedOutState';
 import { CardTitleBadge } from '@/pages/cards/Components/CardTitleBadge';
 import type { CardMenuActionId } from '@/pages/cards/Config/cardMenuActions';
 import { closeBottomSheet } from '@/common/ui/closeBottomSheet';
@@ -23,6 +24,7 @@ import { getShareUrl } from '@/pages/share/Services/sharingService';
 import { navigateToCardEditorAfterSheet } from '@/pages/cards/Utils/navigateToCardEditor';
 import { navigateToSharePreview } from '@/pages/share/Utils/navigateToSharePreview';
 import { resolveCardTagLabel } from '@/pages/cards/Utils/resolveCardTagLabel';
+import { ApiError } from '@/services/api/client';
 import { queryClient, queryKeys } from '@/services/api/queryClient';
 import { useProfileSnapshot } from '@/pages/profile/Hooks/useProfileSnapshot';
 
@@ -74,6 +76,9 @@ export default function CardDetailPage() {
 
   if (!card && cardQuery.isLoading) {
     return <SafeAreaView className="flex-1 items-center justify-center bg-background dark:bg-dark-background"><Text>Loading card…</Text></SafeAreaView>;
+  }
+  if (!card && cardQuery.error instanceof ApiError && cardQuery.error.status === 401) {
+    return <CardSignedOutState onGoToWelcome={() => router.replace('/auth/welcome')} />;
   }
   if (!card) {
     return (

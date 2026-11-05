@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BrandLogo } from './BrandLogo';
 import { QRCodeView } from './QRCodeView';
 import { Text } from './Text';
+import { CARD_TEXT_LIMITS, fitCardText } from '@/utils/cardTextLayout';
 
 type StandardWalletCardProps = {
   category: string;
@@ -39,6 +40,9 @@ export function StandardWalletCard({
   width,
 }: StandardWalletCardProps) {
   const height = width / CARD_ASPECT_RATIO;
+  const safeName = fitCardText(name, CARD_TEXT_LIMITS.professionalName);
+  const safeTitle = fitCardText(title, CARD_TEXT_LIMITS.title);
+  const safeCompany = fitCardText(company, CARD_TEXT_LIMITS.company);
 
   return (
     <LinearGradient
@@ -78,13 +82,13 @@ export function StandardWalletCard({
           numberOfLines={1}
           style={styles.name}
         >
-          {name}
+          {safeName}
         </Text>
         <Text numberOfLines={1} style={styles.title}>
-          {title}
+          {safeTitle}
         </Text>
         <Text numberOfLines={1} style={styles.company}>
-          {company}
+          {safeCompany}
         </Text>
       </View>
     </LinearGradient>

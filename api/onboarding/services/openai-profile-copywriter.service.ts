@@ -5,6 +5,7 @@ import {
   type GenerateProfileCopyInput,
   type GeneratedProfileCopy,
 } from '../utils/onboarding.schemas.js';
+import { CARD_TEXT_LIMITS } from '../../shared/card-text-limits.js';
 
 export interface ProfileCopywriterGateway {
   generate(input: GenerateProfileCopyInput): Promise<GeneratedProfileCopy>;
@@ -24,10 +25,10 @@ const RESPONSE_SCHEMA = {
   additionalProperties: false,
   required: ['taglineWhatTheyDo', 'taglineRoleAndCompany', 'taglinePersonal', 'shortBio'],
   properties: {
-    taglineWhatTheyDo: { type: 'string', maxLength: 120 },
-    taglineRoleAndCompany: { type: 'string', maxLength: 120 },
-    taglinePersonal: { type: 'string', maxLength: 120 },
-    shortBio: { type: 'string', maxLength: 240 },
+    taglineWhatTheyDo: { type: 'string', maxLength: CARD_TEXT_LIMITS.tagline },
+    taglineRoleAndCompany: { type: 'string', maxLength: CARD_TEXT_LIMITS.tagline },
+    taglinePersonal: { type: 'string', maxLength: CARD_TEXT_LIMITS.tagline },
+    shortBio: { type: 'string', maxLength: CARD_TEXT_LIMITS.bio },
   },
 } as const;
 
@@ -61,26 +62,34 @@ const isGeneric = (text: string) => {
  * Input is appended as JSON so names and company text are treated as data, not
  * as additional model instructions.
  */
-export const PROFILE_COPY_PROMPT = `You write copy for a professional digital business card. It must sound like this specific person, not a template.
+export const PROFILE_COPY_PROMPT = `You are a senior communications writer preparing copy for a professional digital business card. It must read as if an accomplished professional wrote it about their own work: composed, confident and specific to this person, never like a template.
 
 Return:
-- taglineWhatTheyDo: what they actually work on or the result of their work, built on "focus" when it is given. At most 120 characters.
-- taglineRoleAndCompany: a crisp line built on their title and company (for example "Data engineer at Smart Analytics"). At most 120 characters.
-- taglinePersonal: a warmer, more human take on the same facts. At most 120 characters.
-- shortBio: a first-person bio, at most 240 characters, that adds detail rather than repeating a tagline.
+- taglineWhatTheyDo: a polished statement of the work they do and who it serves, built on "focus" when it is given. Write a well-formed phrase, not a list of keywords. At most 48 characters.
+- taglineRoleAndCompany: a crisp, formal line built on their title and company (for example "Data engineer at Smart Analytics"). At most 48 characters.
+- taglinePersonal: a warmer, more human take on the same facts that still suits a professional setting. At most 48 characters.
+- shortBio: a first-person bio of two complete sentences, at most 180 characters. The first sentence gives their role, company and the work they do. The second adds a different angle from the facts, such as who the work serves or the credentials behind it, rather than repeating a tagline.
+
+Set the tone:
+- Write in the measured voice of a respected senior colleague: assured and clear, never casual, salesy or boastful.
+- Polish the wording, not the facts. A more mature phrasing must never claim more seniority, scale or impact than the facts support.
+- Use natural, flowing sentences with varied structure. Do not simply chain short statements such as "I'm a X at Y. I work on Z."
+- Rephrase the user's words into finished professional language instead of copying them unchanged.
 
 Make it specific:
 - Every line must use at least one concrete word from the facts (their focus, title, company, department or accreditations).
-- "focus" is the user's own description of their work. When present, it is the most important fact: use its specifics, in plain words.
-- Prefer plain, concrete verbs and nouns over adjectives. Short is better than long.
+- "focus" is the user's own description of their work. When present, it is the most important fact: keep its specifics.
+- Prefer precise verbs and nouns over adjectives.
 - The three taglines must clearly differ in wording and angle.
+- Mention accreditations only where they fit naturally, such as "I hold an MS". Never tack them onto the end of a sentence, and never guess the field of a degree. Leave them out if they do not fit.
 
-Never use these or similar stock phrases: passionate, results-driven, innovative solutions, building the future, results-oriented, dedicated professional, thought leader, cutting-edge, game-changer, synergy, making a difference.
+Never use these or similar stock phrases: passionate, results-driven, innovative solutions, building the future, results-oriented, dedicated professional, thought leader, cutting-edge, game-changer, synergy, making a difference, proven track record.
 
-Examples (facts → good tagline; bad tagline to avoid):
-- Data engineer, focus "pipelines for hospital records" → "Turning hospital records into data doctors can trust"; not "Passionate data engineer driving innovation".
-- Founder, focus "helping farmers sell direct" → "Helping farmers sell straight to their neighbors"; not "Visionary founder building the future".
+Examples (facts → good line; bad line to avoid):
+- Data engineer, focus "pipelines for hospital records" → "Hospital data pipelines clinicians can trust"; not "Passionate data engineer driving innovation".
+- Founder, focus "helping farmers sell direct" → "Connecting farmers directly with customers"; not "Visionary founder building the future".
 - Sales manager at Acme, no focus → "Sales manager at Acme"; not "Results-driven sales leader".
+- Bio for a data engineer at Northwind, focus "pipelines for hospital records", accreditation MS → "As a data engineer at Northwind, I develop the pipelines that carry hospital records. I hold an MS and apply that grounding to data that care teams depend on."; not "I'm a data engineer at Northwind. I work on pipelines for hospital records, with an MS."
 
 Rules:
 - Never invent skills, achievements, experience, clients, education, industries, or goals. If facts are thin, stay plain rather than padding.

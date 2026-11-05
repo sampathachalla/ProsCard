@@ -7,8 +7,9 @@ import { useThemeContext } from '@/context/ThemeContext';
 import { ImageUploadField } from '@/common/ui/ImageUploadField';
 import { SocialLinksFieldsBlock, type SocialLinksDraft } from '@/pages/onboarding/Components/SocialLinksFieldsBlock';
 import type { Profile, ProfileFieldKey, SocialFieldKey } from '../types/profile.types';
+import { CARD_TEXT_LIMITS } from '@/utils/cardTextLayout';
 
-type ProfileField = { key: ProfileFieldKey; label: string; keyboardType?: 'email-address' | 'phone-pad' | 'url'; multiline?: boolean };
+type ProfileField = { key: ProfileFieldKey; label: string; keyboardType?: 'email-address' | 'phone-pad' | 'url'; maxLength?: number; multiline?: boolean };
 type SocialField = { key: SocialFieldKey; label: string };
 export type ProfileSectionId = 'identity' | 'professional' | 'contact' | 'bio' | 'media' | 'social';
 type ProfileSection = { id: ProfileSectionId; heading: string; description: string; icon: LucideIcon; fields?: ProfileField[]; socialFields?: SocialField[]; media?: boolean; socialEditor?: boolean };
@@ -17,13 +18,17 @@ export const PROFILE_SECTIONS: ProfileSection[] = [
   {
     id: 'identity', heading: 'Name & identity', description: 'Name, title, degrees and tagline', icon: Contact2,
     fields: [
-      { key: 'firstName', label: 'First name' }, { key: 'lastName', label: 'Last name' }, { key: 'title', label: 'Title' },
-      { key: 'middleName', label: 'Middle name' }, { key: 'accreditations', label: 'Accreditations / degrees' }, { key: 'tagline', label: 'Tagline' },
+      { key: 'firstName', label: 'First name', maxLength: CARD_TEXT_LIMITS.namePart },
+      { key: 'lastName', label: 'Last name', maxLength: CARD_TEXT_LIMITS.namePart },
+      { key: 'title', label: 'Title', maxLength: CARD_TEXT_LIMITS.title },
+      { key: 'middleName', label: 'Middle name', maxLength: CARD_TEXT_LIMITS.namePart },
+      { key: 'accreditations', label: 'Accreditations / degrees', maxLength: CARD_TEXT_LIMITS.accreditations },
+      { key: 'tagline', label: 'Tagline', maxLength: CARD_TEXT_LIMITS.tagline },
     ],
   },
   {
     id: 'professional', heading: 'Professional', description: 'Company and department', icon: Briefcase,
-    fields: [{ key: 'organization', label: 'Company' }, { key: 'department', label: 'Department' }],
+    fields: [{ key: 'organization', label: 'Company', maxLength: CARD_TEXT_LIMITS.company }, { key: 'department', label: 'Department', maxLength: CARD_TEXT_LIMITS.title }],
   },
   {
     id: 'contact', heading: 'Contact', description: 'Email, phone and website', icon: Phone,
@@ -34,7 +39,7 @@ export const PROFILE_SECTIONS: ProfileSection[] = [
   },
   {
     id: 'bio', heading: 'Address & bio', description: 'Location and introduction', icon: MapPinned,
-    fields: [{ key: 'businessAddress', label: 'Address' }, { key: 'shortBio', label: 'Bio (one or two lines)', multiline: true }],
+    fields: [{ key: 'businessAddress', label: 'Address' }, { key: 'shortBio', label: 'Bio (one or two lines)', maxLength: CARD_TEXT_LIMITS.bio, multiline: true }],
   },
   { id: 'media', heading: 'Photos & logo', description: 'Profile, cover and brand', icon: ImageIcon, media: true },
   {
@@ -83,7 +88,7 @@ export function ProfileSectionGrid({ onSelect }: { profile: Profile; onSelect: (
   );
 }
 
-function FieldInput({ label, value, onChangeText, keyboardType, multiline }: { label: string; value: string; onChangeText: (value: string) => void; keyboardType?: 'email-address' | 'phone-pad' | 'url'; multiline?: boolean }) {
+function FieldInput({ label, value, onChangeText, keyboardType, maxLength, multiline }: { label: string; value: string; onChangeText: (value: string) => void; keyboardType?: 'email-address' | 'phone-pad' | 'url'; maxLength?: number; multiline?: boolean }) {
   const { theme } = useThemeContext();
   const [isFocused, setIsFocused] = useState(false);
 
@@ -92,6 +97,7 @@ function FieldInput({ label, value, onChangeText, keyboardType, multiline }: { l
       <Text className="mb-2 text-[14px] font-normal text-slate-500 dark:text-slate-400">{label}</Text>
       <TextInput
         value={value}
+        maxLength={maxLength}
         onChangeText={onChangeText}
         keyboardType={keyboardType}
         autoCapitalize={keyboardType === 'email-address' || keyboardType === 'url' ? 'none' : 'sentences'}
@@ -123,7 +129,7 @@ export function ProfileSectionEditor({ sectionId, draft, onChange, onSocialChang
   if (!section) return null;
   return (
     <SectionCard heading={section.heading} icon={section.icon}>
-      {section.fields?.map((field) => <FieldInput key={field.key} label={field.label} value={draft[field.key]} onChangeText={(value) => onChange(field.key, value)} keyboardType={field.keyboardType} multiline={field.multiline} />)}
+      {section.fields?.map((field) => <FieldInput key={field.key} label={field.label} value={draft[field.key]} onChangeText={(value) => onChange(field.key, value)} keyboardType={field.keyboardType} maxLength={field.maxLength} multiline={field.multiline} />)}
       {section.media ? <>
         <ImageUploadField label="Profile photo" variant="avatar" value={draft.photoUrl} onChange={(value) => onChange('photoUrl', value)} onRemove={() => onChange('photoUrl', '')} />
         <ImageUploadField label="Cover photo" variant="banner" value={draft.coverPhotoUrl} onChange={(value) => onChange('coverPhotoUrl', value)} onRemove={() => onChange('coverPhotoUrl', '')} />

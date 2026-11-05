@@ -25,6 +25,7 @@ import { resolveLayoutColorSlots } from "@/utils/cardThemeColor";
 import { getCardSectionSpacing } from "./cardSectionSpacing";
 import { ConnectionsBottomDock } from "./ConnectionsBottomDock";
 import { saveDirectlyToNativeContacts } from "@/utils/nativeContacts";
+import { CONTACT_TEXT_LIMITS, fitCardText } from "@/utils/cardTextLayout";
 
 /** Floor only — unlike Identity/Professional/Bio, Connections legitimately
  * varies in height with the number of channels a user has added. This just
@@ -116,9 +117,17 @@ function getConnectionPresentation(
   field: CardDetailField,
   showEmpty: boolean,
 ): ConnectionPresentation {
+  const rawValue = formatDisplayValue(field) || (showEmpty ? "Not added" : "");
+  const valueLimit = isEmail(field)
+    ? CONTACT_TEXT_LIMITS.email
+    : isPhone(field)
+      ? CONTACT_TEXT_LIMITS.phone
+      : field.id.toLowerCase().includes("address") || field.id.toLowerCase().includes("location")
+        ? CONTACT_TEXT_LIMITS.address
+        : CONTACT_TEXT_LIMITS.website;
   return {
-    label: getConnectionLabel(field),
-    value: formatDisplayValue(field) || (showEmpty ? "Not added" : ""),
+    label: fitCardText(getConnectionLabel(field), 24),
+    value: fitCardText(rawValue, valueLimit),
   };
 }
 
@@ -432,13 +441,9 @@ export function ConnectionsSectionRenderer({
       ) : null}
       <Text
         variant="none"
-        {...(preserveTypeScale
-          ? { numberOfLines: 1 }
-          : {
-              adjustsFontSizeToFit: true,
-              minimumFontScale: 0.72,
-              numberOfLines: 1,
-            })}
+        adjustsFontSizeToFit
+        minimumFontScale={0.72}
+        numberOfLines={1}
         className={
           compactHomepagePreview
             ? "text-[13px] font-semibold"
@@ -616,6 +621,8 @@ export function ConnectionsSectionRenderer({
                     </Text>
                     <Text
                       variant="none"
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.72}
                       numberOfLines={1}
                       className="text-sm font-bold text-white"
                       style={{ fontFamily, letterSpacing }}
@@ -700,13 +707,9 @@ export function ConnectionsSectionRenderer({
                     </Text>
                     <Text
                       variant="none"
-                      {...(preserveTypeScale
-                        ? { numberOfLines: 2 }
-                        : {
-                            adjustsFontSizeToFit: true,
-                            minimumFontScale: 0.78,
-                            numberOfLines: 2,
-                          })}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.78}
+                      numberOfLines={2}
                       className="mt-0.5 text-[15px] font-medium leading-5"
                       style={{
                         color: slots.textPrimary,
@@ -817,6 +820,8 @@ export function ConnectionsSectionRenderer({
                     </Text>
                     <Text
                       variant="none"
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.72}
                       numberOfLines={1}
                       className="text-sm font-bold text-white"
                       style={{ fontFamily, letterSpacing }}
@@ -981,13 +986,9 @@ export function ConnectionsSectionRenderer({
                     </Text>
                     <Text
                       variant="none"
-                      {...(preserveTypeScale
-                        ? { numberOfLines: 1 }
-                        : {
-                            adjustsFontSizeToFit: true,
-                            minimumFontScale: 0.72,
-                            numberOfLines: 1,
-                          })}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.72}
+                      numberOfLines={1}
                       className={`${fillSlot ? "text-base" : "text-sm"} font-bold tabular-nums text-white`}
                       style={{ fontFamily }}
                     >
@@ -1033,13 +1034,9 @@ export function ConnectionsSectionRenderer({
                       <View className="ml-2.5 flex-1 min-w-0">
                         <Text
                           variant="none"
-                          {...(preserveTypeScale
-                            ? { numberOfLines: 1 }
-                            : {
-                                adjustsFontSizeToFit: true,
-                                minimumFontScale: 0.72,
-                                numberOfLines: 1,
-                              })}
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.72}
+                          numberOfLines={1}
                           className={`${fillSlot ? "text-sm" : "text-xs"} font-semibold tabular-nums`}
                           style={{ color: slots.textPrimary, fontFamily }}
                         >
@@ -1134,6 +1131,8 @@ export function ConnectionsSectionRenderer({
                     </Text>
                     <Text
                       variant="none"
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.72}
                       numberOfLines={1}
                       className="font-bold text-sm text-white"
                       style={{ fontFamily }}
@@ -1234,6 +1233,8 @@ export function ConnectionsSectionRenderer({
                     </Text>
                     <Text
                       variant="none"
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.72}
                       numberOfLines={1}
                       className={`font-semibold ${fillSlot ? "text-base" : densePreview ? "text-xs" : "text-sm"}`}
                       style={{ color: slots.textPrimary, fontFamily }}
@@ -1416,6 +1417,8 @@ export function ConnectionsSectionRenderer({
                     </Text>
                     <Text
                       variant="none"
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.72}
                       numberOfLines={1}
                       className="text-sm font-bold text-white"
                       style={{ fontFamily, letterSpacing }}

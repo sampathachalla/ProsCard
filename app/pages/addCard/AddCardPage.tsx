@@ -37,6 +37,7 @@ import { useAddCard } from './Hooks/useAddCard';
 import type { AddCardImageField, AddCardPanel, AddCardTextFieldId, ContactOption } from './types/addCard.types';
 import { validateAddCard } from './Utils/validateAddCard';
 import type { AccountScopedCardField } from './Utils/accountFieldScope';
+import { CARD_TEXT_LIMITS } from '@/utils/cardTextLayout';
 
 function textValue(
   id: AddCardTextFieldId,
@@ -58,6 +59,9 @@ function contactConfig(field: DynamicCardField) {
     placeholder: primary?.placeholder ?? extra?.placeholder,
   };
 }
+
+/** How long the header's Save button reads "Saved" after an edit is stored. */
+const SAVED_CONFIRMATION_MS = 2000;
 
 export default function AddCardPage() {
   const router = useRouter();
@@ -81,11 +85,14 @@ export default function AddCardPage() {
   /** The contact row just added, so its input takes focus right away. */
   const [addedContactId, setAddedContactId] = useState<string | null>(null);
   const [previewVisible, setPreviewVisible] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
   const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fieldValueOnFocus = useRef<Partial<Record<AccountScopedCardField, string>>>({});
 
   useEffect(() => () => {
     if (previewTimer.current) clearTimeout(previewTimer.current);
+    if (savedTimer.current) clearTimeout(savedTimer.current);
   }, []);
 
   const primaryContacts = useMemo(
@@ -134,6 +141,12 @@ export default function AddCardPage() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     const saved = await editor.save();
     if (!saved) return;
+    if (editor.isEditMode) {
+      setJustSaved(true);
+      if (savedTimer.current) clearTimeout(savedTimer.current);
+      savedTimer.current = setTimeout(() => setJustSaved(false), SAVED_CONFIRMATION_MS);
+      return;
+    }
     if (router.canGoBack()) router.back();
     else router.replace('/(tabs)/homepage');
   };
@@ -224,6 +237,7 @@ export default function AddCardPage() {
       <AddCardHeader
         title={editor.isEditMode ? 'Edit card' : 'Add card'}
         isSaving={editor.isSaving}
+        justSaved={justSaved}
         onBack={leave}
         onPreview={preview}
         onSave={() => void save()}
@@ -270,7 +284,7 @@ export default function AddCardPage() {
               label="Card name"
               value={editor.draft.displayName ?? editor.draft.sectionOverrides.displayName ?? ''}
               placeholder="Automatically named from the card tag"
-              maxLength={100}
+              maxLength={CARD_TEXT_LIMITS.displayName}
               autoCapitalize="words"
               showCount
               onChangeText={editor.setDisplayName}

@@ -16,10 +16,25 @@ describe('local request validation', () => {
   it('requires at least one card patch property', () => {
     expect(() => cardPatchSchema.parse({})).toThrow();
   });
+  it('rejects card copy that exceeds the layout-safe limits', () => {
+    expect(() => cardPatchSchema.parse({ title: 'T'.repeat(33) })).toThrow();
+    expect(() => cardPatchSchema.parse({ company: 'C'.repeat(33) })).toThrow();
+    expect(() => cardPatchSchema.parse({ sectionOverrides: { tagline: 'T'.repeat(49) } })).toThrow();
+    expect(() => cardPatchSchema.parse({ sectionOverrides: { bio: 'B'.repeat(181) } })).toThrow();
+    expect(cardPatchSchema.parse({ sectionOverrides: { tagline: 'T'.repeat(48) } })).toEqual({
+      sectionOverrides: { tagline: 'T'.repeat(48) },
+    });
+  });
   it('applies contact defaults', () => {
     const contact = contactSchema.parse({ name: 'Ada Lovelace' });
     expect(contact.company).toBe('');
     expect(contact.color).toBe('#2563eb');
+  });
+  it('rejects contact text that exceeds the safe display limits', () => {
+    expect(() => contactSchema.parse({ name: 'N'.repeat(49) })).toThrow();
+    expect(() => contactSchema.parse({ name: 'Ada', title: 'T'.repeat(33) })).toThrow();
+    expect(() => contactSchema.parse({ name: 'Ada', company: 'C'.repeat(33) })).toThrow();
+    expect(contactSchema.parse({ name: 'N'.repeat(48) }).name).toHaveLength(48);
   });
   it('sanitizes media names and enforces the size limit', () => {
     const media = mediaRequestSchema.parse({ kind: 'profilePhoto', fileName: '../avatar.png', contentType: 'image/png', sizeBytes: 1024 });

@@ -40,16 +40,16 @@ const modelReply = (content: unknown) => ({ choices: [{ message: { content: JSON
 describe('AI profile copywriter', () => {
   it('sends the facts (including focus) as untrusted JSON and returns three tagline options', async () => {
     const { writer, calls } = writerFor(modelReply({
-      taglineWhatTheyDo: 'Turning hospital records into data doctors can trust',
+      taglineWhatTheyDo: 'Hospital data pipelines clinicians can trust',
       taglineRoleAndCompany: 'Data engineer at Northwind',
       taglinePersonal: 'Making messy hospital data make sense',
       shortBio: 'I build the pipelines at Northwind that move hospital records into data care teams can rely on.',
     }));
 
     await expect(writer.generate(facts)).resolves.toEqual({
-      tagline: 'Turning hospital records into data doctors can trust',
+      tagline: 'Hospital data pipelines clinicians can trust',
       taglines: [
-        'Turning hospital records into data doctors can trust',
+        'Hospital data pipelines clinicians can trust',
         'Data engineer at Northwind',
         'Making messy hospital data make sense',
       ],
@@ -61,9 +61,9 @@ describe('AI profile copywriter', () => {
     expect(sent.response_format.json_schema.strict).toBe(true);
     const properties = sent.response_format.json_schema.schema.properties;
     for (const key of ['taglineWhatTheyDo', 'taglineRoleAndCompany', 'taglinePersonal']) {
-      expect(properties[key].maxLength).toBe(120);
+      expect(properties[key].maxLength).toBe(48);
     }
-    expect(properties.shortBio.maxLength).toBe(240);
+    expect(properties.shortBio.maxLength).toBe(180);
     expect(sent.messages[0].content).toBe(PROFILE_COPY_PROMPT);
     expect(sent.messages[1].content).toContain('"focus":"pipelines for hospital records"');
     expect(PROFILE_COPY_PROMPT).toContain('Never invent');
@@ -100,7 +100,7 @@ describe('AI profile copywriter', () => {
     await expect(writerFor({ error: {} }, 429).writer.generate(facts)).rejects.toMatchObject({ status: 502 });
 
     const tooLong = writerFor(modelReply({
-      taglineWhatTheyDo: 'T'.repeat(121),
+      taglineWhatTheyDo: 'T'.repeat(49),
       taglineRoleAndCompany: 'Data engineer',
       taglinePersonal: 'Data person',
       shortBio: 'Bio',

@@ -1,4 +1,5 @@
 import { resolveCardDetails } from '../../cards/utils/card-details.js';
+import { CARD_TEXT_LIMITS, CONTACT_TEXT_LIMITS } from '../../shared/card-text-limits.js';
 
 /** What a wallet pass shows: the card's details as `resolveCardDetails` gives them, plus images and colours. */
 export type WalletCard = {
@@ -31,6 +32,7 @@ export type WalletCard = {
 type Json = Record<string, unknown>;
 
 const str = (value: unknown) => (typeof value === 'string' ? value.trim() : '');
+const fit = (value: unknown, maxLength: number) => str(value).slice(0, maxLength);
 const mediaId = (value: string) => value.match(/\/api\/v1\/media\/([0-9a-f-]{36})\/content/)?.[1] ?? null;
 
 /** Capitalize displayed name segments without rewriting the saved card value. */
@@ -136,14 +138,14 @@ export function toWalletCard(cardId: string, card: Json, profile: Json | null): 
   const colors = passColors(card);
   return {
     cardId,
-    name: formatPersonName(details.name) || 'Business card',
-    title: details.title,
-    company: details.company,
-    tag: pick('cardTag'),
-    email: details.emails[0] ?? '',
-    phone: details.phones[0] ?? '',
-    website: details.website,
-    address: details.address,
+    name: fit(formatPersonName(details.name) || 'Business card', CARD_TEXT_LIMITS.professionalName),
+    title: fit(details.title, CARD_TEXT_LIMITS.title),
+    company: fit(details.company, CARD_TEXT_LIMITS.company),
+    tag: fit(pick('cardTag'), 24),
+    email: fit(details.emails[0], CONTACT_TEXT_LIMITS.email),
+    phone: fit(details.phones[0], CONTACT_TEXT_LIMITS.phone),
+    website: fit(details.website, CONTACT_TEXT_LIMITS.website),
+    address: fit(details.address, CONTACT_TEXT_LIMITS.address),
     photoMediaId: mediaId(photo),
     logoMediaId: mediaId(logo),
     logoUrl: !mediaId(logo) && /^https:\/\//i.test(logo) ? logo : null,

@@ -63,6 +63,19 @@ describe('wallet passes', () => {
     expect(toWalletCard('c', { name: 'Only Card' }, null).name).toBe('Only Card');
   });
 
+  it('clips legacy oversized values to wallet-safe lengths', () => {
+    const wallet = toWalletCard('card-long', {
+      name: 'N'.repeat(80),
+      title: 'T'.repeat(80),
+      company: 'C'.repeat(80),
+      email: `${'e'.repeat(75)}@example.com`,
+    }, null);
+    expect(wallet.name).toHaveLength(32);
+    expect(wallet.title).toHaveLength(32);
+    expect(wallet.company).toHaveLength(32);
+    expect(wallet.email.length).toBeLessThanOrEqual(80);
+  });
+
   it('takes its colours from the theme the card shows (logo colours) over the section themes', () => {
     const logoThemed = {
       ...card,

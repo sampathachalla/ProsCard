@@ -5,6 +5,7 @@ import type { OnboardingDraft } from '../types/onboardingStepper.types';
 import { OnboardingFormField } from './OnboardingFormField';
 import { OptionalFieldsDisclosure } from './OptionalFieldsDisclosure';
 import { StepInfoBanner } from './StepInfoBanner';
+import { CARD_TEXT_LIMITS } from '@/utils/cardTextLayout';
 
 export interface StepPersonalProps {
   draft: OnboardingDraft;
@@ -51,7 +52,7 @@ export function StepPersonal({ draft, updateDraft, errors }: StepPersonalProps) 
           icon={User}
           required
           autoCapitalize="words"
-          maxLength={50}
+          maxLength={CARD_TEXT_LIMITS.namePart}
         />
 
         <OnboardingFormField
@@ -63,7 +64,7 @@ export function StepPersonal({ draft, updateDraft, errors }: StepPersonalProps) 
           icon={User}
           required
           autoCapitalize="words"
-          maxLength={50}
+          maxLength={CARD_TEXT_LIMITS.namePart}
         />
 
         <OnboardingFormField
@@ -75,7 +76,7 @@ export function StepPersonal({ draft, updateDraft, errors }: StepPersonalProps) 
           icon={Briefcase}
           required
           autoCapitalize="words"
-          maxLength={80}
+          maxLength={CARD_TEXT_LIMITS.title}
           hint="Shown on the front of your card."
         />
 
@@ -104,7 +105,7 @@ export function StepPersonal({ draft, updateDraft, errors }: StepPersonalProps) 
                 placeholder="Optional"
                 icon={User}
                 autoCapitalize="words"
-                maxLength={50}
+                maxLength={CARD_TEXT_LIMITS.namePart}
               />
             </View>
             <View className="w-24">
@@ -128,7 +129,7 @@ export function StepPersonal({ draft, updateDraft, errors }: StepPersonalProps) 
             error={errors.preferredName}
             icon={User}
             autoCapitalize="words"
-            maxLength={50}
+            maxLength={CARD_TEXT_LIMITS.professionalName}
           />
 
           <OnboardingFormField
@@ -139,7 +140,7 @@ export function StepPersonal({ draft, updateDraft, errors }: StepPersonalProps) 
             error={errors.accreditations}
             icon={Award}
             autoCapitalize="characters"
-            maxLength={80}
+            maxLength={CARD_TEXT_LIMITS.accreditations}
           />
 
           <OnboardingFormField
@@ -149,7 +150,7 @@ export function StepPersonal({ draft, updateDraft, errors }: StepPersonalProps) 
             placeholder="A short one-line introduction"
             error={errors.tagline}
             icon={Quote}
-            maxLength={120}
+            maxLength={CARD_TEXT_LIMITS.tagline}
           />
         </OptionalFieldsDisclosure>
       </ScrollView>

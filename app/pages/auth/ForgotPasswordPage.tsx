@@ -1,6 +1,6 @@
 import { Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { BrandLogo } from '@/common/ui/BrandLogo';
 import { Button } from '@/common/ui/Button';
 import { Text } from '@/common/ui/Text';
@@ -37,7 +37,7 @@ export default function ForgotPasswordScreen() {
       }
     >
       <View className="w-full">
-        <Animated.View entering={FadeIn.duration(400)} className="mb-6 items-center">
+        <View className="mb-6 items-center">
           <BrandLogo accessibilityLabel="VCPROS logo" size="xxl" variant="wordmark" />
           <Text className="mt-3 text-center text-[22px] font-bold text-[#1c1c1c] dark:text-white">
             {sentTo ? 'Check your inbox' : 'Reset your password'}
@@ -47,7 +47,7 @@ export default function ForgotPasswordScreen() {
               ? `Enter the verification code sent to ${sentTo}. You can also open the reset link if your email includes one.`
               : 'Enter the email on your account and we’ll send password-reset instructions.'}
           </Text>
-        </Animated.View>
+        </View>
 
         <Animated.View entering={FadeInDown.delay(80).duration(400)} className="w-full">
           {sentTo ? (

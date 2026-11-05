@@ -33,6 +33,7 @@ import {
   type CompanyLogoPickerItem,
 } from '@/pages/cards/Services/companyLogoPresets';
 import { MediaImage } from './MediaImage';
+import { SkeletonPulse } from './SkeletonPulse';
 import { Text } from './Text';
 
 export type CompanyLogoPickerModalProps = {
@@ -44,6 +45,49 @@ export type CompanyLogoPickerModalProps = {
   onUploadFromDevice: () => void;
   onRemoveLogo?: () => void;
 };
+
+const SKELETON_TILE_COUNT = 6;
+
+/** Pulses in the logo's place until the image has arrived. */
+function LogoThumbnail({ value }: { value: string }) {
+  const [isSettled, setIsSettled] = useState(false);
+  return (
+    <View className="size-12 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white px-1">
+      {isSettled ? null : <SkeletonPulse className="absolute inset-0 bg-slate-200" />}
+      <MediaImage
+        sourceUrl={value}
+        contentFit="contain"
+        style={{ width: 42, height: 34 }}
+        onLoad={() => setIsSettled(true)}
+        onError={() => setIsSettled(true)}
+      />
+    </View>
+  );
+}
+
+function LogoGridSkeleton() {
+  return (
+    <View
+      accessible
+      accessibilityLabel="Loading company logos"
+      className="flex-row flex-wrap justify-between gap-y-3"
+    >
+      {Array.from({ length: SKELETON_TILE_COUNT }, (_, index) => (
+        <View
+          key={index}
+          style={{ width: '48.2%' }}
+          className="min-h-20 flex-row items-center rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-[#0f172a]"
+        >
+          <SkeletonPulse className="size-12 rounded-xl bg-slate-200 dark:bg-slate-700" />
+          <View className="ml-3 flex-1 gap-2">
+            <SkeletonPulse className="h-3.5 w-4/5 rounded-full bg-slate-200 dark:bg-slate-700" />
+            <SkeletonPulse className="h-2.5 w-3/5 rounded-full bg-slate-200 dark:bg-slate-700" />
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
 
 export function CompanyLogoPickerModal({
   visible,
@@ -60,7 +104,8 @@ export function CompanyLogoPickerModal({
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [communityLogos, setCommunityLogos] = useState<CommunityCompanyLogoItem[]>([]);
-  const [isSearchingCommunity, setIsSearchingCommunity] = useState(false);
+  const [loadedQuery, setLoadedQuery] = useState<string | null>(null);
+  const isLoadingLogos = visible && loadedQuery !== searchQuery.trim();
   const isExpanded = isSearchFocused || searchQuery.trim().length > 0;
   const sheetTranslateY = useSharedValue(0);
   const sheetAnimatedStyle = useAnimatedStyle(() => ({
@@ -70,7 +115,7 @@ export function CompanyLogoPickerModal({
     setSearchQuery('');
     setIsSearchFocused(false);
     setCommunityLogos([]);
-    setIsSearchingCommunity(false);
+    setLoadedQuery(null);
     onClose();
   };
   const closeFromSwipe = () => {
@@ -107,16 +152,15 @@ export function CompanyLogoPickerModal({
       const query = searchQuery.trim();
       if (!visible) {
         setCommunityLogos([]);
-        setIsSearchingCommunity(false);
+        setLoadedQuery(null);
         return;
       }
-      setIsSearchingCommunity(true);
       void fetchCommunityUploadedLogos(query)
+        .catch((): CommunityCompanyLogoItem[] => [])
         .then((items) => {
-          if (!cancelled) setCommunityLogos(items);
-        })
-        .finally(() => {
-          if (!cancelled) setIsSearchingCommunity(false);
+          if (cancelled) return;
+          setCommunityLogos(items);
+          setLoadedQuery(query);
         });
     }, 250);
     return () => {
@@ -153,9 +197,7 @@ export function CompanyLogoPickerModal({
                 : 'border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-[#0f172a]'
             }`}
           >
-            <View className="size-12 items-center justify-center rounded-xl border border-slate-200 bg-white px-1">
-              <MediaImage sourceUrl={logo.value} contentFit="contain" style={{ width: 42, height: 34 }} />
-            </View>
+            <LogoThumbnail value={logo.value} />
             <View className="ml-3 min-w-0 flex-1 justify-center">
               <Text numberOfLines={1} className="text-base font-semibold text-slate-900 dark:text-white">
                 {logo.label}
@@ -319,6 +361,8 @@ export function CompanyLogoPickerModal({
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
+            {isLoadingLogos && !hasAnyLogos ? <LogoGridSkeleton /> : null}
+
             {brandLogos.length > 0 ? (
               <>
                 <View className="mb-4 flex-row items-center justify-between">
@@ -326,7 +370,7 @@ export function CompanyLogoPickerModal({
                     {searchQuery.trim() ? 'Brand matches' : 'Popular brands'}
                   </Text>
                   <Text className="text-sm text-slate-500 dark:text-slate-400">
-                    {isSearchingCommunity ? 'Searching…' : 'Brandfetch'}
+                    {isLoadingLogos ? 'Searching…' : 'Brandfetch'}
                   </Text>
                 </View>
                 {renderLogoGrid(brandLogos)}
@@ -347,7 +391,7 @@ export function CompanyLogoPickerModal({
               </View>
             ) : null}
 
-            {searchQuery.trim().length > 0 && !hasAnyLogos && !isSearchingCommunity ? (
+            {searchQuery.trim().length > 0 && !hasAnyLogos && !isLoadingLogos ? (
                   <View className="items-center rounded-xl border border-slate-200 bg-slate-50 p-6 dark:border-slate-800 dark:bg-[#0f172a]">
                     <Building2 color="#64748b" size={28} />
                     <Text className="mt-2 text-center text-sm font-bold text-slate-800 dark:text-slate-200">

@@ -54,6 +54,7 @@ import { saveDirectlyToNativeContacts } from '@/utils/nativeContacts';
 import type { CardContactFields, ProcessedCard } from '@/pages/scanner/types/scanner.types';
 import type { Contact } from '@/pages/contacts/types/contact.types';
 import { DuplicateContactModal } from './DuplicateContactModal';
+import { CONTACT_TEXT_LIMITS, fitCardText } from '@/utils/cardTextLayout';
 
 export type ContactFieldKey = keyof CardContactFields;
 export type ContactFormValues = Record<ContactFieldKey, string>;
@@ -66,19 +67,22 @@ type FieldConfig = {
   keyboardType?: 'email-address' | 'phone-pad' | 'url';
   multiline?: boolean;
   icon: LucideIcon;
+  maxLength: number;
 };
 
 const FIELDS: FieldConfig[] = [
-  { key: 'name', label: 'Full Name', placeholder: 'Name', icon: User },
-  { key: 'title', label: 'Job Title', placeholder: 'Title', icon: Briefcase },
-  { key: 'company', label: 'Company', placeholder: 'Company', icon: Briefcase },
-  { key: 'phone', label: 'Phone', placeholder: 'Phone number', keyboardType: 'phone-pad', icon: Phone },
-  { key: 'secondaryPhone', label: 'Secondary Phone', placeholder: 'Second phone number', keyboardType: 'phone-pad', icon: Phone },
-  { key: 'email', label: 'Email', placeholder: 'Email address', keyboardType: 'email-address', icon: Mail },
-  { key: 'website', label: 'Website', placeholder: 'website.com', keyboardType: 'url', icon: Globe },
-  { key: 'address', label: 'Address', placeholder: 'Street address', multiline: true, icon: MapPin },
-  { key: 'notes', label: 'Notes', placeholder: 'Add note', multiline: true, icon: Notebook },
+  { key: 'name', label: 'Full Name', placeholder: 'Name', icon: User, maxLength: CONTACT_TEXT_LIMITS.name },
+  { key: 'title', label: 'Job Title', placeholder: 'Title', icon: Briefcase, maxLength: CONTACT_TEXT_LIMITS.title },
+  { key: 'company', label: 'Company', placeholder: 'Company', icon: Briefcase, maxLength: CONTACT_TEXT_LIMITS.company },
+  { key: 'phone', label: 'Phone', placeholder: 'Phone number', keyboardType: 'phone-pad', icon: Phone, maxLength: CONTACT_TEXT_LIMITS.phone },
+  { key: 'secondaryPhone', label: 'Secondary Phone', placeholder: 'Second phone number', keyboardType: 'phone-pad', icon: Phone, maxLength: CONTACT_TEXT_LIMITS.phone },
+  { key: 'email', label: 'Email', placeholder: 'Email address', keyboardType: 'email-address', icon: Mail, maxLength: CONTACT_TEXT_LIMITS.email },
+  { key: 'website', label: 'Website', placeholder: 'website.com', keyboardType: 'url', icon: Globe, maxLength: CONTACT_TEXT_LIMITS.website },
+  { key: 'address', label: 'Address', placeholder: 'Street address', multiline: true, icon: MapPin, maxLength: CONTACT_TEXT_LIMITS.address },
+  { key: 'notes', label: 'Notes', placeholder: 'Add note', multiline: true, icon: Notebook, maxLength: CONTACT_TEXT_LIMITS.notes },
 ];
+
+const CONTACT_FIELD_LIMITS = Object.fromEntries(FIELDS.map(({ key, maxLength }) => [key, maxLength])) as Record<ContactFieldKey, number>;
 
 export const EMPTY_CONTACT_FORM: ContactFormValues = {
   name: '',
@@ -99,13 +103,25 @@ export const AUTOFILL_NOTICE: ReviewNotice = {
   text: 'Details filled from business card. Check them before saving.',
 };
 
+function fitContactForm(values: ContactFormValues): ContactFormValues {
+  return Object.fromEntries(
+    Object.entries(values).map(([key, value]) => [
+      key,
+      value.slice(0, CONTACT_FIELD_LIMITS[key as ContactFieldKey]),
+    ]),
+  ) as ContactFormValues;
+}
+
 /** Notes belong to the user, so a card reading never fills them. */
 const AUTOFILL_KEYS = FIELDS.map(({ key }) => key).filter((key) => key !== 'notes');
 
 /** Fills only the empty fields from a card reading; returns the new values and which keys were filled. */
 export function fillEmptyFields(current: ContactFormValues, fields: CardContactFields) {
   const filled = AUTOFILL_KEYS.filter((key) => fields[key]?.trim() && !current[key].trim());
-  const values = { ...current, ...Object.fromEntries(filled.map((key) => [key, fields[key].trim()])) } as ContactFormValues;
+  const values = {
+    ...current,
+    ...Object.fromEntries(filled.map((key) => [key, fitCardText(fields[key], CONTACT_FIELD_LIMITS[key])])),
+  } as ContactFormValues;
   return { values, filled };
 }
 
@@ -191,8 +207,8 @@ export function ContactReview({
 }: ContactReviewProps) {
   const insets = useSafeAreaInsets();
   const [card, setCard] = useState<ProcessedCard | null>(initialCard);
-  const [form, setForm] = useState(initialValues);
-  const [eventName, setEventName] = useState(initialEventName);
+  const [form, setForm] = useState(() => fitContactForm(initialValues));
+  const [eventName, setEventName] = useState(() => initialEventName.slice(0, CONTACT_TEXT_LIMITS.eventName));
   const showEvent = isBadge || Boolean(initialEventName.trim());
   const [autoFilled, setAutoFilled] = useState<ContactFieldKey[]>(initialAutoFilled);
   const [notice, setNotice] = useState<ReviewNotice | null>(initialNotice);
@@ -248,7 +264,7 @@ export function ContactReview({
     });
 
   const setField = (key: ContactFieldKey, value: string) => {
-    setForm((current) => ({ ...current, [key]: value }));
+    setForm((current) => ({ ...current, [key]: value.slice(0, CONTACT_FIELD_LIMITS[key]) }));
     if (errors[key]) setErrors((current) => ({ ...current, [key]: undefined }));
   };
 
@@ -428,6 +444,7 @@ export function ContactReview({
                 </Text>
                 <TextInput
                   value={form.name}
+                  maxLength={CONTACT_TEXT_LIMITS.name}
                   onChangeText={(value) => setField('name', value)}
                   placeholder="Full Name"
                   placeholderTextColor="#64748b"
@@ -447,6 +464,7 @@ export function ContactReview({
                 </Text>
                 <TextInput
                   value={form.title}
+                  maxLength={CONTACT_TEXT_LIMITS.title}
                   onChangeText={(value) => setField('title', value)}
                   placeholder="Job Title"
                   placeholderTextColor="#64748b"
@@ -460,6 +478,7 @@ export function ContactReview({
                 </Text>
                 <TextInput
                   value={form.company}
+                  maxLength={CONTACT_TEXT_LIMITS.company}
                   onChangeText={(value) => setField('company', value)}
                   placeholder="Company Name"
                   placeholderTextColor="#64748b"
@@ -474,7 +493,8 @@ export function ContactReview({
                   </Text>
                   <TextInput
                     value={eventName}
-                    onChangeText={setEventName}
+                    maxLength={CONTACT_TEXT_LIMITS.eventName}
+                    onChangeText={(value) => setEventName(value.slice(0, CONTACT_TEXT_LIMITS.eventName))}
                     placeholder="Event name"
                     placeholderTextColor="#64748b"
                     autoCapitalize="words"
@@ -485,11 +505,11 @@ export function ContactReview({
             </View>
           ) : (
             <View className="items-center mt-3 px-4 w-full">
-              <Text className="text-2xl font-bold text-textPrimary dark:text-dark-textPrimary text-center">
+              <Text numberOfLines={2} className="text-2xl font-bold text-textPrimary dark:text-dark-textPrimary text-center">
                 {form.name || 'Unnamed Contact'}
               </Text>
               {(form.title.trim() || form.company.trim()) ? (
-                <Text className="mt-1 text-sm font-medium text-textMuted dark:text-dark-textMuted text-center">
+                <Text numberOfLines={2} className="mt-1 text-sm font-medium text-textMuted dark:text-dark-textMuted text-center">
                   {[form.title.trim(), form.company.trim()].filter(Boolean).join(' · ')}
                 </Text>
               ) : null}

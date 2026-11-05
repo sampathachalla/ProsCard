@@ -4,6 +4,7 @@ import { Text } from '@/common/ui/Text';
 import { CardMediaHeader } from '@/pages/addCard/Components/CardMediaHeader';
 import { FormField } from '@/pages/addCard/Components/FormField';
 import { TAGLINE_FIELD } from '@/pages/addCard/Config/addCardFields';
+import { CARD_TEXT_LIMITS } from '@/utils/cardTextLayout';
 import { SocialLinksFieldsBlock, type SocialLinksDraft } from '@/pages/onboarding/Components/SocialLinksFieldsBlock';
 import type { Profile, ProfileFieldKey, SocialFieldKey } from '@/pages/profile/types/profile.types';
 import type { AddCardImageField } from '@/pages/addCard/types/addCard.types';
@@ -91,11 +92,11 @@ export function AccountDetailsForm({ draft, onChange, onSocialChange }: Props) {
 
       <FieldRow>
         {field(
-          { key: 'firstName', label: 'First name', placeholder: 'Alex', maxLength: 50, autoCapitalize: 'words' },
+          { key: 'firstName', label: 'First name', placeholder: 'Alex', maxLength: CARD_TEXT_LIMITS.namePart, autoCapitalize: 'words' },
           { dense: true, flex: 1 },
         )}
         {field(
-          { key: 'lastName', label: 'Last name', placeholder: 'Morgan', maxLength: 50, autoCapitalize: 'words' },
+          { key: 'lastName', label: 'Last name', placeholder: 'Morgan', maxLength: CARD_TEXT_LIMITS.namePart, autoCapitalize: 'words' },
           { dense: true, flex: 1 },
         )}
       </FieldRow>
@@ -104,13 +105,13 @@ export function AccountDetailsForm({ draft, onChange, onSocialChange }: Props) {
         key: 'title',
         label: 'Title',
         placeholder: 'e.g. Senior Product Manager',
-        maxLength: 80,
+        maxLength: CARD_TEXT_LIMITS.title,
         autoCapitalize: 'words',
       })}
 
       <FieldRow>
         {field(
-          { key: 'middleName', label: 'Middle name', placeholder: 'Optional', maxLength: 50, autoCapitalize: 'words' },
+          { key: 'middleName', label: 'Middle name', placeholder: 'Optional', maxLength: CARD_TEXT_LIMITS.namePart, autoCapitalize: 'words' },
           { dense: true, flex: 1 },
         )}
         {field(
@@ -118,7 +119,7 @@ export function AccountDetailsForm({ draft, onChange, onSocialChange }: Props) {
             key: 'accreditations',
             label: 'Accreditations',
             placeholder: 'e.g. MS, PhD',
-            maxLength: 80,
+            maxLength: CARD_TEXT_LIMITS.accreditations,
             autoCapitalize: 'characters',
           },
           { dense: true, flex: 1 },
@@ -129,7 +130,7 @@ export function AccountDetailsForm({ draft, onChange, onSocialChange }: Props) {
         label={TAGLINE_FIELD.label}
         value={draft.tagline ?? ''}
         placeholder={TAGLINE_FIELD.placeholder}
-        maxLength={120}
+        maxLength={CARD_TEXT_LIMITS.tagline}
         autoCapitalize={TAGLINE_FIELD.autoCapitalize}
         showCount
         onChangeText={(value) => onChange('tagline', value)}
@@ -152,7 +153,7 @@ export function AccountDetailsForm({ draft, onChange, onSocialChange }: Props) {
             key: 'organization',
             label: 'Company',
             placeholder: 'Acme Innovations',
-            maxLength: 100,
+            maxLength: CARD_TEXT_LIMITS.company,
             autoCapitalize: 'words',
           },
           { dense: true, flex: 1 },
@@ -205,7 +206,7 @@ export function AccountDetailsForm({ draft, onChange, onSocialChange }: Props) {
         label="Short bio"
         value={draft.shortBio ?? ''}
         placeholder="One or two lines about your focus"
-        maxLength={240}
+        maxLength={CARD_TEXT_LIMITS.bio}
         multiline
         autoCapitalize="sentences"
         showCount

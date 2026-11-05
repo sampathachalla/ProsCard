@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { View } from 'react-native';
@@ -8,10 +10,17 @@ import { ThemeProvider, useThemeContext } from '../context/ThemeContext';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/services/api/queryClient';
 import { AppErrorBoundary } from '@/common/ui/AppErrorBoundary';
+import { preloadBrandLogos } from '@/common/ui/BrandLogo';
 import { installGlobalErrorHandler } from '@/utils/globalErrorHandler';
 
 // Errors outside rendering (tap handlers, timers) show an alert instead of closing the app.
 installGlobalErrorHandler();
+
+// Keep the splash up until the logos are decoded, so the first page opens with its logo showing.
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
+/** A logo must never hold the app on the splash screen. */
+const SPLASH_MAX_WAIT_MS = 2000;
 
 // Load Tailwind styles only on web (for NativeWind)
 if (typeof window !== 'undefined') {
@@ -91,6 +100,11 @@ function ThemedLayoutWrapper() {
 export { AppErrorBoundary as ErrorBoundary };
 
 export default function Layout() {
+  useEffect(() => {
+    const maxWait = new Promise((resolve) => setTimeout(resolve, SPLASH_MAX_WAIT_MS));
+    void Promise.race([preloadBrandLogos(), maxWait]).then(() => SplashScreen.hideAsync().catch(() => {}));
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider style={{ flex: 1 }}>

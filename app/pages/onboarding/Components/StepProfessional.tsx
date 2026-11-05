@@ -6,6 +6,7 @@ import type { OnboardingDraft } from '../types/onboardingStepper.types';
 import { OnboardingFormField } from './OnboardingFormField';
 import { OptionalFieldsDisclosure } from './OptionalFieldsDisclosure';
 import { StepInfoBanner } from './StepInfoBanner';
+import { CARD_TEXT_LIMITS } from '@/utils/cardTextLayout';
 
 export interface StepProfessionalProps {
   draft: OnboardingDraft;
@@ -52,7 +53,7 @@ export function StepProfessional({ draft, updateDraft, errors }: StepProfessiona
           error={errors.organization}
           icon={Building}
           autoCapitalize="words"
-          maxLength={100}
+          maxLength={CARD_TEXT_LIMITS.company}
         />
 
         <OnboardingFormField
@@ -80,7 +81,7 @@ export function StepProfessional({ draft, updateDraft, errors }: StepProfessiona
             error={errors.department}
             icon={Building}
             autoCapitalize="words"
-            maxLength={100}
+            maxLength={CARD_TEXT_LIMITS.title}
           />
 
           <OnboardingFormField
@@ -115,7 +116,7 @@ export function StepProfessional({ draft, updateDraft, errors }: StepProfessiona
             icon={FileText}
             multiline
             numberOfLines={3}
-            maxLength={240}
+            maxLength={CARD_TEXT_LIMITS.bio}
           />
 
           <ImageUploadField

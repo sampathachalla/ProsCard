@@ -195,6 +195,9 @@ export function SocialLinksFieldsBlock({
     return null;
   }, [errors]);
 
+  // The profile being edited is already in the form above, so it is not listed a second time.
+  const listedKeys = savedOrder.filter((key) => !(formOpen && key === selectedKey));
+
   useEffect(() => {
     if (!firstSocialErrorKey) return;
     const timeout = setTimeout(() => {
@@ -207,22 +210,12 @@ export function SocialLinksFieldsBlock({
   return (
     <View className="w-full">
       {embedded ? null : <View className="mb-2 flex-row items-center justify-between gap-3">
-        <View className="min-w-0 flex-1">
-          <Text
-            variant="none"
-            className="text-[14px] font-medium text-slate-600 dark:text-slate-300"
-          >
-            Social profiles
-          </Text>
-          <Text
-            variant="none"
-            className="mt-0.5 text-[12px] text-slate-500 dark:text-slate-400"
-          >
-            {minimumContactMethods > 0
-              ? 'Add at least one website or social profile to continue.'
-              : 'Add the social profiles you want to show on your cards.'}
-          </Text>
-        </View>
+        <Text
+          variant="none"
+          className="min-w-0 flex-1 text-[14px] font-medium text-slate-600 dark:text-slate-300"
+        >
+          Social profiles
+        </Text>
         {minimumContactMethods > 0 ? <View
           className={`rounded-full px-2.5 py-1 ${
             hasMinimumLinks
@@ -451,14 +444,13 @@ export function SocialLinksFieldsBlock({
       ) : null}
 
       {/* Added Social Profiles List (Flat rounded-lg rows matching the new field style) */}
-      {savedOrder.length > 0 ? (
+      {listedKeys.length > 0 ? (
         <View className={`gap-2.5 ${formOpen ? 'mt-3.5' : ''}`}>
-          {savedOrder.map((key) => {
+          {listedKeys.map((key) => {
             const platform = platformByKey.get(key);
             if (!platform) return null;
             const value = draft[key]?.trim() ?? '';
             const hasError = Boolean(errors[key]);
-            const isCurrentlyEditing = formOpen && selectedKey === key;
 
             return (
               <Pressable
@@ -469,9 +461,7 @@ export function SocialLinksFieldsBlock({
                 className={`min-h-[54px] flex-row items-center justify-between rounded-lg border px-4 py-2.5 active:opacity-85 ${
                   hasError
                     ? 'border-error bg-red-50/70 dark:border-dark-error dark:bg-red-950/20'
-                    : isCurrentlyEditing
-                      ? 'border-primary/50 bg-slate-100/80 dark:border-dark-primary/50 dark:bg-[#1e293b]'
-                      : 'border-transparent bg-slate-100 dark:bg-dark-card'
+                    : 'border-transparent bg-slate-100 dark:bg-dark-card'
                 }`}
               >
                 <View className="min-w-0 flex-1 flex-row items-center gap-3 pr-2">
@@ -515,43 +505,33 @@ export function SocialLinksFieldsBlock({
       ) : null}
 
       {!formOpen ? (
-        <>
-          {savedKeys.length === 0 ? (
-            <Text
-              variant="none"
-              className="mb-2.5 text-[13px] font-normal text-slate-500 dark:text-slate-400"
-            >
-              No profiles added yet — tap below to connect LinkedIn, X, GitHub, and more.
-            </Text>
-          ) : null}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Add social profile"
-            onPress={openAddForm}
-            className={`min-h-[54px] flex-row items-center justify-between rounded-lg border border-transparent bg-slate-100 px-4 py-3 active:opacity-85 dark:bg-dark-card ${
-              savedKeys.length > 0 ? 'mt-3.5' : ''
-            }`}
-          >
-            <View className="flex-row items-center gap-3">
-              <View className="h-9 w-9 items-center justify-center rounded-lg bg-primary/10 dark:bg-sky-500/15">
-                <Plus color={tintColor} size={19} strokeWidth={2.4} />
-              </View>
-              <Text
-                variant="none"
-                className="text-[16px] font-normal text-textPrimary dark:text-dark-textPrimary"
-              >
-                Add social profile
-              </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Add social profile"
+          onPress={openAddForm}
+          className={`min-h-[54px] flex-row items-center justify-between rounded-lg border border-transparent bg-slate-100 px-4 py-3 active:opacity-85 dark:bg-dark-card ${
+            savedKeys.length > 0 ? 'mt-3.5' : ''
+          }`}
+        >
+          <View className="flex-row items-center gap-3">
+            <View className="h-9 w-9 items-center justify-center rounded-lg bg-primary/10 dark:bg-sky-500/15">
+              <Plus color={tintColor} size={19} strokeWidth={2.4} />
             </View>
             <Text
               variant="none"
-              style={{ color: tintColor }}
-              className="text-[14px] font-semibold"
+              className="text-[16px] font-normal text-textPrimary dark:text-dark-textPrimary"
             >
-              Add
+              Add social profile
             </Text>
-          </Pressable>
-        </>
+          </View>
+          <Text
+            variant="none"
+            style={{ color: tintColor }}
+            className="text-[14px] font-semibold"
+          >
+            Add
+          </Text>
+        </Pressable>
       ) : null}
     </View>
   );

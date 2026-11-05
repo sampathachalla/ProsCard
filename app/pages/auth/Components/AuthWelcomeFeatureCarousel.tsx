@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ScrollView,
   View,
@@ -18,7 +18,18 @@ import Svg, {
   Rect,
   Stop,
 } from 'react-native-svg';
-import { useSharedValue } from 'react-native-reanimated';
+import Animated, {
+  Easing,
+  interpolate,
+  type SharedValue,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
+import { useFocusEffect } from 'expo-router';
+import { ScanLine, TrendingUp, Zap, type LucideIcon } from 'lucide-react-native';
 import { Colors } from '@/constants/Colors';
 import { useThemeContext } from '@/context/ThemeContext';
 import { Text } from '@/common/ui/Text';
@@ -26,7 +37,8 @@ import { PaginationDots } from '@/common/ui/PaginationDots';
 
 export type WelcomeSlide = {
   id: 'tap-network' | 'capture-leads' | 'turn-deals';
-  badge: string;
+  feature: string;
+  featureIcon: LucideIcon;
   headline: string;
   description: string;
 };
@@ -34,21 +46,24 @@ export type WelcomeSlide = {
 export const WELCOME_SLIDES: WelcomeSlide[] = [
   {
     id: 'tap-network',
-    badge: 'INSTANT SHARE',
+    feature: 'Instant Share',
+    featureIcon: Zap,
     headline: 'Your network,\none tap away.',
     description:
       'Create a beautiful digital business card and share it instantly — QR, link, or NFC tap.',
   },
   {
     id: 'capture-leads',
-    badge: 'SMART SCANNER',
+    feature: 'Smart Scanner',
+    featureIcon: ScanLine,
     headline: 'Capture every\nlead on the spot.',
     description:
       'Scan QR cards, paper cards, or event badges — each new contact lands straight in your CRM.',
   },
   {
     id: 'turn-deals',
-    badge: 'GROWTH & FOLLOW-UP',
+    feature: 'Growth & Follow-up',
+    featureIcon: TrendingUp,
     headline: 'Turn contacts\ninto deals.',
     description:
       'See who viewed your card, track your pipeline, and follow up before the moment cools.',
@@ -508,9 +523,103 @@ function SlideIllustration({ id }: { id: WelcomeSlide['id'] }) {
   }
 }
 
+/** A copy of the first slide at the end lets the carousel keep moving forward instead of rewinding. */
+const LOOPED_SLIDES = [...WELCOME_SLIDES, WELCOME_SLIDES[0]];
+
+/** How long each slide stays on screen before the carousel moves on. */
+const AUTO_SLIDE_MS = 4000;
+const FLOAT_DISTANCE = 6;
+
+type WelcomeSlidePageProps = {
+  slide: WelcomeSlide;
+  index: number;
+  width: number;
+  isDark: boolean;
+  progress: SharedValue<number>;
+  float: SharedValue<number>;
+  /** The looping copy of the first slide, hidden from screen readers. */
+  isLoopCopy: boolean;
+};
+
+function WelcomeSlidePage({ slide, index, width, isDark, progress, float, isLoopCopy }: WelcomeSlidePageProps) {
+  const heroStyle = useAnimatedStyle(() => {
+    const inputRange = [index - 1, index, index + 1];
+    return {
+      opacity: interpolate(progress.value, inputRange, [0.5, 1, 0.5], 'clamp'),
+      transform: [{ scale: interpolate(progress.value, inputRange, [0.92, 1, 0.92], 'clamp') }],
+    };
+  });
+  const illustrationStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: float.value * FLOAT_DISTANCE }],
+  }));
+  const copyStyle = useAnimatedStyle(() => {
+    const inputRange = [index - 1, index, index + 1];
+    return {
+      opacity: interpolate(progress.value, inputRange, [0, 1, 0], 'clamp'),
+      transform: [{ translateX: interpolate(progress.value, inputRange, [48, 0, -48], 'clamp') }],
+    };
+  });
+
+  return (
+    <View
+      accessibilityElementsHidden={isLoopCopy}
+      importantForAccessibility={isLoopCopy ? 'no-hide-descendants' : 'auto'}
+      style={{ width }}
+      className="flex-1 justify-center px-6 pb-2 pt-2"
+    >
+      {/* Hero Illustration Card — taller & directly connected to the text below */}
+      <Animated.View
+        className={`w-full flex-1 overflow-hidden rounded-[28px] border ${
+          isDark
+            ? 'border-slate-800/90 bg-[#070d1e]'
+            : 'border-slate-200/90 bg-[#0a1128]'
+        }`}
+        style={[{ minHeight: 240, maxHeight: 330 }, heroStyle]}
+      >
+        <Animated.View className="flex-1" style={illustrationStyle}>
+          <SlideIllustration id={slide.id} />
+        </Animated.View>
+      </Animated.View>
+
+      {/* Tightly Coupled Feature + Headline + Description directly below the image */}
+      <Animated.View className="mt-5 w-full items-start" style={copyStyle}>
+        <View className="mb-3 flex-row items-center gap-2.5">
+          <View className="h-9 w-9 items-center justify-center rounded-xl bg-primary dark:bg-[#2563eb]">
+            <slide.featureIcon color="#FFFFFF" size={20} strokeWidth={2.4} />
+          </View>
+          <Text
+            variant="none"
+            className="text-[18px] font-bold text-primary dark:text-sky-400"
+          >
+            {slide.feature}
+          </Text>
+        </View>
+        <Text
+          variant="none"
+          className="text-left text-[32px] font-extrabold leading-[38px] tracking-tight text-textPrimary dark:text-dark-textPrimary"
+        >
+          {slide.headline}
+        </Text>
+        <Text
+          variant="none"
+          className="mt-2.5 text-left text-[15px] font-normal leading-[22px] text-slate-500 dark:text-slate-400"
+        >
+          {slide.description}
+        </Text>
+      </Animated.View>
+    </View>
+  );
+}
+
 export function AuthWelcomeFeatureCarousel() {
   const [pageWidth, setPageWidth] = useState(0);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+  const reduceMotion = useReducedMotion();
   const progress = useSharedValue(0);
+  const dotProgress = useSharedValue(0);
+  const float = useSharedValue(-1);
   const scrollRef = useRef<ScrollViewInstance>(null);
 
   const { theme } = useThemeContext();
@@ -518,9 +627,39 @@ export function AuthWelcomeFeatureCarousel() {
   const tint = isDark ? Colors.dark.tint : Colors.light.tint;
   const inactiveDot = isDark ? 'rgba(148,163,184,0.35)' : 'rgba(148,163,184,0.45)';
 
+  useFocusEffect(useCallback(() => {
+    setIsFocused(true);
+    return () => setIsFocused(false);
+  }, []));
+
+  useEffect(() => {
+    if (reduceMotion || !isFocused || isDragging || pageWidth === 0) return;
+    const timer = setTimeout(() => {
+      scrollRef.current?.scrollTo({ x: (activeIndex + 1) * pageWidth, animated: true });
+    }, AUTO_SLIDE_MS);
+    return () => clearTimeout(timer);
+  }, [activeIndex, isDragging, isFocused, pageWidth, reduceMotion]);
+
+  useEffect(() => {
+    if (reduceMotion) return;
+    float.value = withRepeat(
+      withTiming(1, { duration: 2400, easing: Easing.inOut(Easing.sin) }),
+      -1,
+      true,
+    );
+  }, [float, reduceMotion]);
+
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    if (pageWidth > 0) {
-      progress.value = event.nativeEvent.contentOffset.x / pageWidth;
+    if (pageWidth === 0) return;
+    const position = event.nativeEvent.contentOffset.x / pageWidth;
+    const lastIndex = WELCOME_SLIDES.length - 1;
+    progress.value = position;
+    // While the loop copy slides in, the active dot glides back to the first slide.
+    dotProgress.value = position > lastIndex ? lastIndex * (WELCOME_SLIDES.length - position) : position;
+    setActiveIndex(Math.round(position) % WELCOME_SLIDES.length);
+    // The copy looks identical to the first slide, so this jump is invisible.
+    if (position >= WELCOME_SLIDES.length - 0.001) {
+      scrollRef.current?.scrollTo({ x: 0, animated: false });
     }
   };
 
@@ -541,53 +680,24 @@ export function AuthWelcomeFeatureCarousel() {
           pagingEnabled
           showsHorizontalScrollIndicator={false}
           onScroll={handleScroll}
+          onScrollBeginDrag={() => setIsDragging(true)}
+          onScrollEndDrag={() => setIsDragging(false)}
           scrollEventThrottle={16}
           decelerationRate="fast"
           bounces={false}
           style={{ width: pageWidth, flex: 1 }}
         >
-          {WELCOME_SLIDES.map((slide) => (
-            <View
-              key={slide.id}
-              style={{ width: pageWidth }}
-              className="flex-1 justify-center px-6 pb-2 pt-2"
-            >
-              {/* Hero Illustration Card — taller & directly connected to the text below */}
-              <View
-                className={`w-full flex-1 overflow-hidden rounded-[28px] border ${
-                  isDark
-                    ? 'border-slate-800/90 bg-[#070d1e]'
-                    : 'border-slate-200/90 bg-[#0a1128]'
-                }`}
-                style={{ minHeight: 240, maxHeight: 330 }}
-              >
-                <SlideIllustration id={slide.id} />
-              </View>
-
-              {/* Tightly Coupled Badge + Headline + Description directly below the image */}
-              <View className="mt-5 w-full items-start">
-                <View className="mb-2.5 rounded-full border border-sky-400/25 bg-sky-500/10 px-3 py-1">
-                  <Text
-                    variant="none"
-                    className="text-[11px] font-bold tracking-wider text-sky-500 dark:text-sky-400"
-                  >
-                    {slide.badge}
-                  </Text>
-                </View>
-                <Text
-                  variant="none"
-                  className="text-left text-[32px] font-extrabold leading-[38px] tracking-tight text-textPrimary dark:text-dark-textPrimary"
-                >
-                  {slide.headline}
-                </Text>
-                <Text
-                  variant="none"
-                  className="mt-2.5 text-left text-[15px] font-normal leading-[22px] text-slate-500 dark:text-slate-400"
-                >
-                  {slide.description}
-                </Text>
-              </View>
-            </View>
+          {LOOPED_SLIDES.map((slide, index) => (
+            <WelcomeSlidePage
+              key={`${slide.id}-${index}`}
+              slide={slide}
+              index={index}
+              width={pageWidth}
+              isDark={isDark}
+              progress={progress}
+              float={float}
+              isLoopCopy={index === WELCOME_SLIDES.length}
+            />
           ))}
         </ScrollView>
       ) : (
@@ -597,7 +707,7 @@ export function AuthWelcomeFeatureCarousel() {
       <View className="mt-3 items-center">
         <PaginationDots
           count={WELCOME_SLIDES.length}
-          progress={progress}
+          progress={dotProgress}
           activeColor={tint}
           inactiveColor={inactiveDot}
         />

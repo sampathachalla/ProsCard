@@ -1,4 +1,5 @@
 import type { CardDetailSection } from '@/pages/cards/Templates/cardDetailTemplate';
+import { CARD_TEXT_LIMITS, fitCardText } from '@/utils/cardTextLayout';
 
 export function walletField(section: CardDetailSection, id: string) {
   return section.fields.find((item) => item.id === id);
@@ -13,7 +14,7 @@ export function walletIdentityFields(section: CardDetailSection) {
     cover: walletField(section, 'coverPhoto'),
     profile: walletField(section, 'profilePhoto'),
     logo: walletField(section, 'logo'),
-    name: walletFieldValue(section, 'preferredName', 'Preferred Name'),
+    name: fitCardText(walletFieldValue(section, 'preferredName', 'Preferred Name'), CARD_TEXT_LIMITS.professionalName),
   };
 }
 
@@ -26,12 +27,12 @@ export function walletProfessionalFields(section: CardDetailSection) {
     getVal('lastName'),
     getVal('suffix'),
   ].filter(Boolean);
-  const title = getVal('title') || 'Professional Title';
+  const title = fitCardText(getVal('title') || 'Professional Title', CARD_TEXT_LIMITS.title);
   return {
-    accreditations: getVal('accreditations'),
-    company: getVal('company') || 'Company',
-    professionalName: fullNameParts.length > 0 ? fullNameParts.join(' ') : title,
+    accreditations: fitCardText(getVal('accreditations'), CARD_TEXT_LIMITS.accreditations),
+    company: fitCardText(getVal('company') || 'Company', CARD_TEXT_LIMITS.company),
+    professionalName: fitCardText(fullNameParts.length > 0 ? fullNameParts.join(' ') : title, CARD_TEXT_LIMITS.professionalName),
     title,
-    bio: getVal('headline') || getVal('bio'),
+    bio: fitCardText(getVal('headline') || getVal('bio'), CARD_TEXT_LIMITS.bio),
   };
 }

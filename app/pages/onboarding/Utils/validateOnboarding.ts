@@ -1,5 +1,6 @@
 // pages/onboarding/Utils/validateOnboarding.ts
 import { isMediaReference } from '@/pages/profile/Services/pendingMedia';
+import { CARD_TEXT_LIMITS } from '@/utils/cardTextLayout';
 import type {
   OnboardingDraft,
   ValidationErrors,
@@ -85,30 +86,30 @@ export function validatePersonalStep(
 
   if (!draft.firstName?.trim()) {
     errors.firstName = 'First name is required.';
-  } else if (draft.firstName.trim().length > 50) {
-    errors.firstName = 'First name must be 50 characters or less.';
+  } else if (draft.firstName.trim().length > CARD_TEXT_LIMITS.namePart) {
+    errors.firstName = `First name must be ${CARD_TEXT_LIMITS.namePart} characters or less.`;
   }
 
   if (!draft.lastName?.trim()) {
     errors.lastName = 'Last name is required.';
-  } else if (draft.lastName.trim().length > 50) {
-    errors.lastName = 'Last name must be 50 characters or less.';
+  } else if (draft.lastName.trim().length > CARD_TEXT_LIMITS.namePart) {
+    errors.lastName = `Last name must be ${CARD_TEXT_LIMITS.namePart} characters or less.`;
   }
 
   if (!draft.title?.trim()) {
     errors.title = 'Title is required.';
-  } else if (draft.title.trim().length > 80) {
-    errors.title = 'Title must be 80 characters or less.';
+  } else if (draft.title.trim().length > CARD_TEXT_LIMITS.title) {
+    errors.title = `Title must be ${CARD_TEXT_LIMITS.title} characters or less.`;
   }
 
-  if (draft.tagline && draft.tagline.trim().length > 120) {
-    errors.tagline = 'Tagline must be 120 characters or less.';
+  if (draft.tagline && draft.tagline.trim().length > CARD_TEXT_LIMITS.tagline) {
+    errors.tagline = `Tagline must be ${CARD_TEXT_LIMITS.tagline} characters or less.`;
   }
-  if (draft.preferredName && draft.preferredName.trim().length > 50) {
-    errors.preferredName = 'Preferred name must be 50 characters or less.';
+  if (draft.preferredName && draft.preferredName.trim().length > CARD_TEXT_LIMITS.professionalName) {
+    errors.preferredName = `Preferred name must be ${CARD_TEXT_LIMITS.professionalName} characters or less.`;
   }
-  if (draft.accreditations && draft.accreditations.trim().length > 80) {
-    errors.accreditations = 'Accreditations must be 80 characters or less.';
+  if (draft.accreditations && draft.accreditations.trim().length > CARD_TEXT_LIMITS.accreditations) {
+    errors.accreditations = `Accreditations must be ${CARD_TEXT_LIMITS.accreditations} characters or less.`;
   }
 
   return errors;
@@ -133,8 +134,8 @@ export function validateProfessionalStep(
     errors.email = 'Enter a valid email address.';
   }
 
-  if (draft.organization && draft.organization.trim().length > 100) {
-    errors.organization = 'Company name must be 100 characters or less.';
+  if (draft.organization && draft.organization.trim().length > CARD_TEXT_LIMITS.company) {
+    errors.organization = `Company name must be ${CARD_TEXT_LIMITS.company} characters or less.`;
   }
 
   if (draft.department && draft.department.trim().length > 100) {
@@ -153,8 +154,8 @@ export function validateProfessionalStep(
     errors.businessAddress = 'Address must be 100 characters or less.';
   }
 
-  if (draft.shortBio && draft.shortBio.trim().length > 240) {
-    errors.shortBio = 'Bio must be 240 characters or less.';
+  if (draft.shortBio && draft.shortBio.trim().length > CARD_TEXT_LIMITS.bio) {
+    errors.shortBio = `Bio must be ${CARD_TEXT_LIMITS.bio} characters or less.`;
   }
 
   if (draft.website?.trim() && !URL_PATTERN.test(draft.website.trim())) {

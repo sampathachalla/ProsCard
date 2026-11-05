@@ -10,12 +10,14 @@ export function getPasswordRules(password: string): Rule[] {
 
 type Props = {
   password: string;
+  /** Spacing around the hints, which depends on whether they sit above or below the field. */
+  className?: string;
 };
 
-export function PasswordRequirementHints({ password }: Props) {
+export function PasswordRequirementHints({ password, className = 'mb-3 -mt-1' }: Props) {
   const rules = getPasswordRules(password);
   return (
-    <View className="mb-3 -mt-1 gap-1.5 px-0.5">
+    <View className={`gap-1.5 px-0.5 ${className}`}>
       {rules.map((rule) => (
         <View key={rule.label} className="flex-row items-center">
           <Check
