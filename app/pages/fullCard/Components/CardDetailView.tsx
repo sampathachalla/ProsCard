@@ -113,13 +113,25 @@ export function CardDetailView({
 
   const firstTheme = effectiveThemeForSection(sections[0]?.id);
 
+  // What the card shows, not the stored top-level fields, so saved contacts match the card.
+  const shownValue = (sectionId: CardSectionId, fieldId: string) =>
+    sections.find((section) => section.id === sectionId)?.fields.find((field) => field.id === fieldId)?.value.trim() ?? '';
+  const shownCard = {
+    // The whole name: the card face may show a short preferred one, which would lose a contact's surname.
+    name: card.sectionOverrides.preferredName?.trim() || card.name,
+    title: shownValue('professional', 'title'),
+    company: shownValue('professional', 'company'),
+  };
+
   const handleSaveContact = () => {
     const socials: { label?: string; type?: string; url: string }[] = [];
-    let contactEmail = card.email || profile.email;
-    let contactPhone = card.phone || profile.phone;
+    // A card with its own contact rows shows exactly those; the others show the account's.
+    const hasOwnRows = Boolean(card.connectionFieldsCustomized);
+    let contactEmail = hasOwnRows ? '' : card.email || profile.email;
+    let contactPhone = hasOwnRows ? '' : card.phone || profile.phone;
     let secondaryPhone = '';
-    let contactWebsite = profile.website;
-    let contactAddress = profile.businessAddress;
+    let contactWebsite = hasOwnRows ? '' : profile.website;
+    let contactAddress = hasOwnRows ? '' : profile.businessAddress;
 
     if (profile.social) {
       Object.entries(profile.social).forEach(([key, value]) => {
@@ -129,18 +141,18 @@ export function CardDetailView({
       });
     }
 
-    if (card.connectionFields) {
+    if (hasOwnRows) {
       card.connectionFields.forEach((field) => {
         if (field.value && typeof field.value === 'string' && field.value.trim()) {
           const value = field.value.trim();
           const normalizedId = field.id.toLowerCase();
           const normalizedTitle = field.title.toLowerCase();
           if (field.type === 'email') {
-            contactEmail = value;
+            if (!contactEmail) contactEmail = value;
             return;
           }
           if (field.type === 'phone') {
-            if (!contactPhone || contactPhone === card.phone || contactPhone === profile.phone) contactPhone = value;
+            if (!contactPhone) contactPhone = value;
             else if (value !== contactPhone) secondaryPhone = value;
             return;
           }
@@ -148,7 +160,7 @@ export function CardDetailView({
             contactWebsite = value;
             return;
           }
-          if (normalizedId === 'address' || normalizedTitle.includes('address')) {
+          if (normalizedId === 'address' || normalizedTitle.includes('address') || normalizedTitle.includes('location')) {
             contactAddress = value;
             return;
           }
@@ -171,11 +183,11 @@ export function CardDetailView({
     const note = [profile.tagline, profile.shortBio].filter(Boolean).join('\n\n');
 
     void saveDirectlyToNativeContacts({
-      name: card.name || profile.fullName,
+      name: shownCard.name || profile.fullName,
       firstName: profile.firstName,
       lastName: profile.lastName,
-      title: card.title || profile.title,
-      company: card.company || profile.organization,
+      title: shownCard.title,
+      company: shownCard.company,
       department: profile.department,
       email: contactEmail,
       phone: contactPhone,
@@ -267,9 +279,9 @@ export function CardDetailView({
               <SectionTemplateRenderer
                 key={`${card.id}-${section.id}-${section.fields.map((field) => field.type === 'image' ? field.value : '').join('|')}-${theme.backgroundColor}-${theme.surfaceColor}-${theme.textColorOverride ?? theme.textColor}-${theme.accentColor}-${theme.customThemeId ?? ''}`}
                 cardMetadata={{
-                  name: card.name,
-                  title: card.title,
-                  company: card.company,
+                  name: shownCard.name,
+                  title: shownCard.title,
+                  company: shownCard.company,
                   id: card.id,
                 }}
                 compact

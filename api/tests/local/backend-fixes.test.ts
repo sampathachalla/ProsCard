@@ -22,7 +22,7 @@ function mediaHarness(rows: MediaRow[], sharedLogos: string[]) {
     cardMedia: async () => rows,
     allForUser: async () => rows,
     find: async (_u: string, id: string) => rows.find((r) => r.id === id) ?? null,
-    logoInUse: async (id: string, exclude: unknown) => { logoChecks.push({ id, exclude }); return sharedLogos.includes(id); },
+    mediaInUse: async (id: string, exclude: unknown) => { logoChecks.push({ id, exclude }); return sharedLogos.includes(id); },
     delete: async (_u: string, id: string) => { deletedRows.push(id); return null; },
     clearCardId: async (_u: string, id: string) => { clearedCardIds.push(id); },
     cleanupFailed: async () => undefined,
@@ -40,7 +40,10 @@ describe('community logos other cards still show', () => {
     await h.service.cleanupCard('user-1', 'card-1');
     expect(h.deletedObjects).toEqual(['obj-cover']);
     expect(h.clearedCardIds).toEqual(['logo']);
-    expect(h.logoChecks).toEqual([{ id: 'logo', exclude: { cardId: 'card-1' } }]);
+    expect(h.logoChecks).toEqual([
+      { id: 'logo', exclude: { cardId: 'card-1' } },
+      { id: 'cover', exclude: { cardId: 'card-1' } },
+    ]);
   });
 
   it('keeps the file when the uploader deletes the logo itself', async () => {
@@ -60,7 +63,32 @@ describe('community logos other cards still show', () => {
     const h = mediaHarness([row('logo', 'companyLogo'), row('photo', 'profilePhoto')], ['logo']);
     expect(await h.service.purgeUser('user-1')).toEqual(['logo']);
     expect(h.deletedObjects).toEqual(['obj-photo']);
-    expect(h.logoChecks).toEqual([{ id: 'logo', exclude: { userId: 'user-1' } }]);
+    expect(h.logoChecks).toEqual([
+      { id: 'logo', exclude: { userId: 'user-1' } },
+      { id: 'photo', exclude: { userId: 'user-1' } },
+    ]);
+  });
+});
+
+describe('photos another card still shows', () => {
+  it('keeps the photo a duplicated card shares when the original card is deleted', async () => {
+    const h = mediaHarness([row('photo', 'profilePhoto'), row('cover', 'coverPhoto')], ['photo', 'cover']);
+    await h.service.cleanupCard('user-1', 'card-1');
+    expect(h.deletedObjects).toEqual([]);
+    expect(h.clearedCardIds).toEqual(['photo', 'cover']);
+  });
+
+  it('keeps an account photo a card still shows when it is deleted from the account', async () => {
+    const h = mediaHarness([row('photo', 'profilePhoto', { attachment_scope: 'profile', card_id: null })], ['photo']);
+    await h.service.delete('user-1', 'photo');
+    expect(h.deletedObjects).toEqual([]);
+  });
+
+  it('never looks up contact card photos, which only ever belong to their contact', async () => {
+    const h = mediaHarness([row('scan', 'contactCard', { attachment_scope: 'contact', card_id: null, contact_id: 'c-1' })], []);
+    await h.service.delete('user-1', 'scan');
+    expect(h.logoChecks).toEqual([]);
+    expect(h.deletedObjects).toEqual(['obj-scan']);
   });
 });
 

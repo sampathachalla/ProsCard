@@ -32,7 +32,7 @@ export default function ForgotPasswordScreen() {
         <AuthFooterSwitch
           prompt="Remember your password?"
           actionLabel="Log in"
-          onPress={() => router.push('/auth/login')}
+          onPress={() => router.dismissTo('/auth/login')}
         />
       }
     >

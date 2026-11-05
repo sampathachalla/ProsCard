@@ -152,20 +152,25 @@ export class MediaRepository {
   }
 
   /**
-   * Whether a company logo is still shown by some card or profile, so deleting its file would break it.
-   * Community logos are picked by other users, so this looks across accounts; `exclude` skips the card
-   * or account that is being removed.
+   * Whether an image is still shown by some card or profile, so deleting its file would break it. Cards
+   * share files: a duplicated card, and a card given the account photo, point at the same media. Community
+   * logos are picked by other users, so this looks across accounts; `exclude` skips the card or account
+   * that is being removed.
    */
-  logoInUse(mediaId: string, exclude: { cardId?: string; userId?: string } = {}) {
+  mediaInUse(mediaId: string, exclude: { cardId?: string; userId?: string } = {}) {
     return this.db.query<{ in_use: boolean }>(
       `SELECT EXISTS (
          SELECT 1 FROM cards
-         WHERE data->'sectionOverrides'->>'logo' = $1
+         WHERE $1 IN (
+             data->'sectionOverrides'->>'logo',
+             data->'sectionOverrides'->>'profilePhoto',
+             data->'sectionOverrides'->>'coverPhoto'
+           )
            AND ($2::uuid IS NULL OR id <> $2::uuid)
            AND ($3::uuid IS NULL OR user_id <> $3::uuid)
        ) OR EXISTS (
          SELECT 1 FROM profiles
-         WHERE data->>'companyLogoUrl' = $1
+         WHERE $1 IN (data->>'companyLogoUrl', data->>'photoUrl', data->>'coverPhotoUrl')
            AND ($3::uuid IS NULL OR user_id <> $3::uuid)
        ) AS in_use`,
       [`/api/v1/media/${mediaId}/content`, exclude.cardId ?? null, exclude.userId ?? null],

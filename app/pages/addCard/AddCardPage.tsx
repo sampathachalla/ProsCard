@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -13,6 +13,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CardPreviewModal } from '@/pages/previewCard/Components/CardPreviewModal';
+import { useGuardedBack } from '@/common/ui/useGuardedBack';
 import { useProfileSnapshot } from '@/pages/profile/Hooks/useProfileSnapshot';
 import type { DynamicCardField } from '@/pages/cards/types/card.types';
 import { AddCardHeader } from './Components/AddCardHeader';
@@ -98,7 +99,7 @@ export default function AddCardPage() {
     [editor.draft.connectionFields],
   );
 
-  const leave = () => {
+  const leave = useCallback(() => {
     const goBack = () => {
       if (router.canGoBack()) router.back();
       else router.replace('/(tabs)/homepage');
@@ -115,7 +116,8 @@ export default function AddCardPage() {
         { text: 'Discard', style: 'destructive', onPress: goBack },
       ],
     );
-  };
+  }, [editor.hasChanges, editor.isEditMode, router]);
+  useGuardedBack(editor.hasChanges, leave);
 
   const validate = () => {
     const problem = validateAddCard(editor.draft);

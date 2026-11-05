@@ -51,9 +51,11 @@ export default function SharedCardPage() {
     );
   }
 
-  if (!view.data) {
-    // Only a 404 means the link is gone; anything else (offline, timeout, server error) can be retried.
-    const linkGone = view.error instanceof ApiError && view.error.status === 404;
+  // Only a 404 means the link is gone; anything else (offline, timeout, server error) can be retried.
+  // A refresh that finds the link gone replaces the card, so an open tab stops showing a revoked one.
+  const linkGone = view.error instanceof ApiError && view.error.status === 404;
+
+  if (!view.data || linkGone) {
     return (
       <View className="flex-1 items-center justify-center bg-background px-8 dark:bg-dark-background">
         {linkGone ? (

@@ -237,8 +237,12 @@ export function useAddCard(options: UseAddCardOptions = {}) {
     setDraft(next);
   }, [isEditMode, options.cardId, profile]);
 
+  // A new creation session starts an empty form. Later profile updates (a background refresh, or
+  // "Account & this card") must not clear what the user has entered, so only the session id counts here.
+  const lastCreationSession = useRef(options.creationSession);
   useEffect(() => {
-    if (!options.creationSession || isEditMode) return;
+    if (!options.creationSession || isEditMode || options.creationSession === lastCreationSession.current) return;
+    lastCreationSession.current = options.creationSession;
     const next = buildAddCardDraft(profile);
     initialSnapshot.current = JSON.stringify(next);
     setDraft(next);

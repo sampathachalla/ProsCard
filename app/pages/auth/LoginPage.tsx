@@ -35,7 +35,7 @@ export default function LoginScreen() {
         <AuthFooterSwitch
           prompt="Don't have an account?"
           actionLabel="Sign up"
-          onPress={() => router.push('/auth/signup')}
+          onPress={() => router.replace('/auth/signup')}
         />
       }
     >

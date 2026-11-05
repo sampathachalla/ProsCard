@@ -46,7 +46,7 @@ function selfSigned() {
 }
 
 describe('wallet passes', () => {
-  it('resolves pass details like the app card: override, then profile, then card', () => {
+  it('resolves pass details like the app card', () => {
     const wallet = toWalletCard('card-1', card, profile);
     expect(wallet.name).toBe('Ada Lovelace');
     expect(wallet.title).toBe('Override Title');

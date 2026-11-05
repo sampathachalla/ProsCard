@@ -1,10 +1,14 @@
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 
 import { writeWidgetQrImage } from './homeScreenWidgetService';
 import type { QrSvgRef } from './qrExportService';
 
 export type StartLiveActivityResult = 'started' | 'updated' | 'requires-native-build' | 'unsupported';
+
+/** Set when the user turns the Live Activity off, so the app does not switch it back on by itself. */
+const LIVE_ACTIVITY_STOPPED_KEY = 'cardLiveActivityStopped';
 
 function isLiveActivityPlatform(): boolean {
   return Platform.OS === 'ios' && Constants.appOwnership !== 'expo';
@@ -42,10 +46,31 @@ export async function startCardLiveActivity({
   await Promise.all(running.map((activity) => activity.end('immediate')));
 
   factory.start(props, shareUrl);
+  await AsyncStorage.removeItem(LIVE_ACTIVITY_STOPPED_KEY).catch(() => undefined);
   return running.length > 0 ? 'updated' : 'started';
 }
 
+/**
+ * Starts the Live Activity when the app opens, unless one is already showing or the user turned it off.
+ * Replacing a running one here would drop the QR the user added from the Share page.
+ */
+export async function ensureCardLiveActivity(
+  input: Parameters<typeof startCardLiveActivity>[0],
+): Promise<StartLiveActivityResult | null> {
+  if (!isLiveActivityPlatform()) return null;
+  if (await AsyncStorage.getItem(LIVE_ACTIVITY_STOPPED_KEY)) return null;
+  if (await isCardLiveActivityRunning()) return null;
+  return startCardLiveActivity(input);
+}
+
 export async function stopCardLiveActivity(): Promise<void> {
+  if (!isLiveActivityPlatform()) return;
+  await AsyncStorage.setItem(LIVE_ACTIVITY_STOPPED_KEY, 'true').catch(() => undefined);
+  await endCardLiveActivity();
+}
+
+/** Clears the Lock Screen without recording a choice, e.g. on logout, so a stranger never sees this card. */
+export async function endCardLiveActivity(): Promise<void> {
   if (!isLiveActivityPlatform()) return;
   const factory = await loadFactory();
   await Promise.all(factory.getInstances().map((activity) => activity.end('immediate')));

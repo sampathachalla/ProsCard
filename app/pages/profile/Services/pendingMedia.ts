@@ -2,10 +2,13 @@ import type { ImagePickerAsset } from 'expo-image-picker';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { ApiError, NETWORK_ERROR_STATUS } from '@/services/api/client';
 import type { MediaKind, MediaScope } from '@/services/api/types';
+import type { LogoPalette } from '@/services/api/types';
 import {
   cacheLogoPalette,
   cacheMediaFileFromUri,
   confirmMedia,
+  extractLogoPalette,
+  getCachedLogoPalette,
   readUriAsArrayBuffer,
   requestMediaUpload,
   uploadToObjectStorage,
@@ -51,6 +54,25 @@ export function isMediaReference(value: string): boolean {
     value.startsWith('proscard-cover:') ||
     value.startsWith('proscard-logo:')
   );
+}
+
+const LOGO_PALETTE_SAMPLE_WIDTH = 256;
+
+/**
+ * Colors of a logo by URL or, for a file still on the phone, from a small copy sent with the request:
+ * the card editor only uploads on save, and the server cannot read a path on this device.
+ */
+export async function extractLogoPaletteFromValue(value: string): Promise<LogoPalette> {
+  if (!isPendingMediaUrl(value)) return extractLogoPalette({ imageUrl: value });
+  const cached = getCachedLogoPalette(value);
+  if (cached) return cached;
+  const context = ImageManipulator.manipulate(value);
+  context.resize({ width: LOGO_PALETTE_SAMPLE_WIDTH });
+  const image = await context.renderAsync();
+  const { base64 } = await image.saveAsync({ format: SaveFormat.PNG, base64: true });
+  const palette = await extractLogoPalette({ imageUrl: `data:image/png;base64,${base64}` });
+  cacheLogoPalette(value, palette);
+  return palette;
 }
 
 async function optimizeProfileMedia(uri: string, kind: MediaKind, asset?: ImagePickerAsset) {

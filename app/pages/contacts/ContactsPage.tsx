@@ -116,7 +116,15 @@ export default function ContactsScreen() {
   };
   const removeContact = (contact: Contact) => {
     deleteContact(contact.id)
-      .then(() => refresh())
+      .then(() => {
+        setSelectedIds((current) => {
+          if (!current.has(contact.id)) return current;
+          const next = new Set(current);
+          next.delete(contact.id);
+          return next;
+        });
+        return refresh();
+      })
       .catch((reason) => Alert.alert('Remove failed', reason instanceof Error ? reason.message : 'Try again.'));
   };
 

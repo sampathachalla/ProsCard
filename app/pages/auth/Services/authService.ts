@@ -7,6 +7,7 @@ import { queryClient, queryKeys } from '@/services/api/queryClient';
 import { clearCardState } from '@/pages/cards/Services/cardsService';
 import { clearMediaCache } from '@/pages/profile/Services/mediaCache';
 import { setHasCompletedOnboarding } from '@/pages/onboarding/Services/onboardingService';
+import { endCardLiveActivity } from '@/pages/share/Services/liveActivityService';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
@@ -174,6 +175,7 @@ export async function establishRecoverySession(accessToken: string, refreshToken
 async function clearLocalSession(): Promise<void> {
   await setSession(null).catch((error) => console.warn('Could not clear the stored session:', error));
   await clearMediaCache().catch((error) => console.warn('Could not clear the media cache:', error));
+  await endCardLiveActivity().catch((error) => console.warn('Could not end the Live Activity:', error));
   try {
     clearCardState();
     queryClient.clear();

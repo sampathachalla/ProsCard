@@ -9,6 +9,8 @@ export function useShareUrl(cardId: string | null | undefined) {
     queryFn: () => getShareUrl(cardId as string),
     enabled: Boolean(cardId),
     staleTime: Infinity,
+    // The Share tab stays mounted, so without this a link that failed offline would never load again.
+    refetchInterval: (query) => (query.state.error ? 15_000 : false),
   });
   return { url: query.data ?? '', loading: query.isFetching, error: query.error };
 }

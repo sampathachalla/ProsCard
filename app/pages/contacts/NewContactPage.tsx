@@ -47,7 +47,7 @@ export default function NewContactScreen() {
   const replaceDuplicate = async (contactId: string, values: ContactFormValues, card: ProcessedCard | null) => {
     await updateContactWithCard(
       contactId,
-      { ...values, initials: initialsFor(values.name), color: Colors.light.tint, sourceCardId: null, captureKind: 'manual' },
+      { ...values, initials: initialsFor(values.name), color: Colors.light.tint, sourceCardId: null, captureKind: scan ? 'business_card' : 'manual' },
       card,
     );
     finish();

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { credentialsSchema } from '../../auth/utils/auth.schemas.js';
 import { cardPatchSchema } from '../../cards/utils/card.schemas.js';
-import { contactSchema } from '../../contacts/utils/contact.schemas.js';
+import { contactPatchSchema, contactSchema } from '../../contacts/utils/contact.schemas.js';
 import { mediaRequestSchema } from '../../media/utils/media.schemas.js';
 import { startMediaCleanupJob } from '../../jobs/mediaCleanupJob.js';
 import type { MediaService } from '../../media/services/media.service.js';
@@ -35,4 +35,25 @@ describe('local request validation', () => {
     expect(() => mediaRequestSchema.parse({ kind: 'profilePhoto', contactId, fileName: 'card.jpg', contentType: 'image/jpeg' })).toThrow();
   });
   it('starts and stops the automatic cleanup job',async()=>{let calls=0;const service={retryAllCleanup:async()=>{calls++;return{examined:0,cleaned:0,failed:0}}} as MediaService;const job=startMediaCleanupJob(service,3600);await new Promise(resolve=>setTimeout(resolve,0));job.stop();expect(calls).toBe(1);});
+});
+
+describe('partial updates only carry the fields that were sent', () => {
+  it('does not add blank card details the client never sent', () => {
+    const patch = cardPatchSchema.parse({ appliedTheme: null, sectionOverrides: { logoBackdrop: '#ffffff' } });
+    expect(Object.keys(patch).sort()).toEqual(['appliedTheme', 'sectionOverrides']);
+  });
+
+  it('does not add blank contact details the client never sent', () => {
+    expect(contactPatchSchema.parse({ name: 'Ada Lovelace' })).toEqual({ name: 'Ada Lovelace' });
+  });
+
+  it('still lets a client clear a field on purpose', () => {
+    expect(cardPatchSchema.parse({ title: '' })).toEqual({ title: '' });
+    expect(contactPatchSchema.parse({ eventName: '' })).toEqual({ eventName: '' });
+  });
+
+  it('still fills defaults when a card or contact is created', () => {
+    expect(contactSchema.parse({ name: 'Ada Lovelace' }).company).toBe('');
+    expect(contactSchema.parse({ name: 'Ada Lovelace' }).color).toBe('#2563eb');
+  });
 });

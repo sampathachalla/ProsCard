@@ -1,4 +1,5 @@
 import { Pressable, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import {
@@ -41,6 +42,7 @@ const VISIBLE_ROUTE_NAMES = new Set(TAB_ITEMS.map((item) => item.routeName));
 
 export function HomeTabBar({ state, navigateToTab }: HomeTabBarProps) {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { theme } = useThemeContext();
   const isDark = theme === 'dark';
   const palette = isDark ? Colors.dark : Colors.light;
@@ -63,6 +65,11 @@ export function HomeTabBar({ state, navigateToTab }: HomeTabBarProps) {
     if (isFocused) return;
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    if (routeName === 'scannerPage') {
+      // The camera opens over the tabs, so closing it returns here with this tab's state intact.
+      router.push('/scanner');
+      return;
+    }
     navigateToTab(route.key);
   };
 

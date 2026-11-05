@@ -24,7 +24,10 @@ import { resolveDisplayMediaUrls } from '@/pages/profile/Services/mediaService';
 import { resolveCoverPhotoPreset } from '@/pages/cards/Services/coverPhotoPresets';
 import type { BusinessCard } from '@/pages/cards/types/card.types';
 import { navigateToSharePreview } from '@/pages/share/Utils/navigateToSharePreview';
-import { startCardLiveActivity } from '@/pages/share/Services/liveActivityService';
+import { ensureCardLiveActivity } from '@/pages/share/Services/liveActivityService';
+
+/** Longest the first load waits for images; a slow network shows the card with images still arriving. */
+const INITIAL_MEDIA_WAIT_MS = 6_000;
 
 function HomeLoadingScreen() {
   const insets = useSafeAreaInsets();
@@ -53,7 +56,7 @@ export default function HomepageScreen() {
   const { profile, fetched: profileFetched } = useProfileSnapshot();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [readyMediaKey, setReadyMediaKey] = useState<string | null>(null);
+  const [mediaReady, setMediaReady] = useState(false);
   const cardPickerRef = useRef<BottomSheet>(null);
 
   const initialMediaUrls = useMemo(
@@ -73,27 +76,31 @@ export default function HomepageScreen() {
       ),
     [cards, profile],
   );
-  const mediaKey = useMemo(() => JSON.stringify(initialMediaUrls), [initialMediaUrls]);
-  const mediaReady = readyMediaKey === mediaKey;
 
+  // Only the first load waits behind the loading screen. Later changes (a new photo, a saved card) load
+  // in place, so the carousel is not torn down and does not jump back to another card.
   useEffect(() => {
-    if (!cardsFetched || !profileFetched) return;
+    if (mediaReady || !cardsFetched || !profileFetched) return;
     let active = true;
+    const finish = () => {
+      if (active) setMediaReady(true);
+    };
+    const timer = setTimeout(finish, INITIAL_MEDIA_WAIT_MS);
     resolveDisplayMediaUrls(initialMediaUrls)
       .then(async (urls) => {
         await Promise.all(urls.map((url) => Image.prefetch(url, 'memory-disk').catch(() => false)));
       })
       .catch(() => {})
-      .finally(() => {
-        if (active) setReadyMediaKey(mediaKey);
-      });
+      .finally(finish);
     return () => {
       active = false;
+      clearTimeout(timer);
     };
-  }, [cardsFetched, initialMediaUrls, mediaKey, profileFetched]);
+  }, [cardsFetched, initialMediaUrls, mediaReady, profileFetched]);
 
   const [defaultCardFailed, setDefaultCardFailed] = useState(false);
-  const needsDefaultCard = fetched && !cardsError && !offline && cards.length === 0 && !defaultCardFailed;
+  // Waits for the profile too: the first card is filled from it, and a blank one would stay blank.
+  const needsDefaultCard = fetched && profileFetched && !cardsError && !offline && cards.length === 0 && !defaultCardFailed;
   useEffect(() => {
     if (!needsDefaultCard) return;
     ensureDefaultCard(profile).catch((reason) => {
@@ -113,7 +120,7 @@ export default function HomepageScreen() {
 
   useEffect(() => {
     if (!cardsFetched || !primaryCard) return;
-    void startCardLiveActivity({
+    void ensureCardLiveActivity({
       cardName: primaryCard.name || profile.fullName || 'My VC Card',
       qrSvg: null,
       shareUrl: `vcpros://sharePage?cardId=${encodeURIComponent(primaryCard.id)}`,
@@ -261,6 +268,7 @@ export default function HomepageScreen() {
         <CategoryBottomSheet
           ref={cardPickerRef}
           cards={cards}
+          profile={profile}
           selectedIndex={boundedCardIndex}
           onSelectCard={setActiveCardIndex}
         />

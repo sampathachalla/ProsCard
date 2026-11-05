@@ -4,6 +4,7 @@ import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import * as Haptics from 'expo-haptics';
 import { Briefcase, Heart, Sparkles, Users } from 'lucide-react-native';
 import type { BusinessCard } from '@/pages/cards/types/card.types';
+import type { Profile } from '@/pages/profile/types/profile.types';
 import { closeBottomSheet } from '@/common/ui/closeBottomSheet';
 import { SheetActionRow } from '@/common/ui/SheetActionRow';
 import { SheetHeader } from '@/common/ui/SheetHeader';
@@ -14,12 +15,13 @@ const CARD_ICONS = [Briefcase, Heart, Sparkles, Users] as const;
 
 type CategoryBottomSheetProps = {
   cards: BusinessCard[];
+  profile: Profile;
   selectedIndex: number;
   onSelectCard: (index: number) => void;
 };
 
 export const CategoryBottomSheet = forwardRef<BottomSheet, CategoryBottomSheetProps>(
-  ({ cards, selectedIndex, onSelectCard }, ref) => {
+  ({ cards, profile, selectedIndex, onSelectCard }, ref) => {
     const snapPoints = useMemo(() => ['50%'], []);
 
     const handleSelect = (index: number) => {
@@ -46,7 +48,10 @@ export const CategoryBottomSheet = forwardRef<BottomSheet, CategoryBottomSheetPr
                 <SheetActionRow
                   key={card.id}
                   label={resolveCardTagLabel(card)}
-                  description={`${card.company} · ${card.title}`}
+                  description={[
+                    card.sectionOverrides.company?.trim() || card.company || profile.organization,
+                    card.sectionOverrides.title?.trim() || card.title || profile.title,
+                  ].filter(Boolean).join(' · ')}
                   icon={Icon}
                   variant="selectable"
                   selected={selectedIndex === index}

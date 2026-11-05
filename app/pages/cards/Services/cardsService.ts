@@ -372,6 +372,16 @@ export async function fetchCardById(cardId: string): Promise<BusinessCard> {
   return card;
 }
 
+/** The backend already has the change, so a failed local cache write must not read as a failed save. */
+async function cacheCardsLocally(primary?: BusinessCard): Promise<void> {
+  try {
+    await AsyncStorage.setItem(await scopedCardKey(USER_CARDS_KEY), JSON.stringify(CARDS));
+    if (primary) await AsyncStorage.setItem(await scopedCardKey(PRIMARY_CARD_KEY), JSON.stringify(primary));
+  } catch (error) {
+    console.warn('Could not cache cards on this device:', error);
+  }
+}
+
 export async function hydrateCards(): Promise<BusinessCard[]> {
   const userCardsKey = await scopedCardKey(USER_CARDS_KEY);
   const primaryCardKey = await scopedCardKey(PRIMARY_CARD_KEY);
@@ -503,10 +513,7 @@ export async function saveCard(updated: BusinessCard): Promise<BusinessCard> {
   else CARDS.push(normalized);
   notifyCardListeners();
   prefetchCardMedia([normalized]);
-  await AsyncStorage.setItem(await scopedCardKey(USER_CARDS_KEY), JSON.stringify(CARDS));
-  if (normalized.id === CARDS[0]?.id) {
-    await AsyncStorage.setItem(await scopedCardKey(PRIMARY_CARD_KEY), JSON.stringify(normalized));
-  }
+  await cacheCardsLocally(normalized.id === CARDS[0]?.id ? normalized : undefined);
   return normalized;
 }
 
@@ -544,6 +551,9 @@ export async function refreshAppliedCardThemes(): Promise<void> {
   let changed = false;
   for (const card of [...CARDS]) {
     const next = await withSavedDisplayTheme(card);
+    // Saved from the editor while the palette loaded: that save already baked the theme, and this older
+    // copy must not overwrite the edit.
+    if (CARDS.find((item) => item.id === card.id) !== card) continue;
     const themeChanged = JSON.stringify(next.appliedTheme ?? null) !== JSON.stringify(card.appliedTheme ?? null);
     const logoBackdropChanged = next.sectionOverrides.logoBackdrop !== card.sectionOverrides.logoBackdrop;
     if (!themeChanged && !logoBackdropChanged) continue;
@@ -562,8 +572,7 @@ export async function refreshAppliedCardThemes(): Promise<void> {
   }
   if (!changed) return;
   notifyCardListeners();
-  await AsyncStorage.setItem(await scopedCardKey(USER_CARDS_KEY), JSON.stringify(CARDS));
-  if (CARDS[0]) await AsyncStorage.setItem(await scopedCardKey(PRIMARY_CARD_KEY), JSON.stringify(CARDS[0]));
+  await cacheCardsLocally(CARDS[0]);
 }
 
 async function prepareCardMedia(card: BusinessCard, previous: BusinessCard): Promise<BusinessCard> {
@@ -610,7 +619,7 @@ export async function deleteCard(cardId: string): Promise<void> {
   }
   const index = CARDS.findIndex((card) => card.id === cardId);
   if (index >= 0) CARDS.splice(index, 1);
-  await AsyncStorage.setItem(await scopedCardKey(USER_CARDS_KEY), JSON.stringify(CARDS));
+  await cacheCardsLocally();
   notifyCardListeners();
   queryClient.removeQueries({ queryKey: queryKeys.card(cardId) });
 }
@@ -625,32 +634,45 @@ export async function setPrimaryCard(cardId: string): Promise<BusinessCard> {
     CARDS[index] = normalizeCard({ ...CARDS[index], isPrimary: CARDS[index].id === cardId });
   }
   CARDS.sort((left, right) => Number(Boolean(right.isPrimary)) - Number(Boolean(left.isPrimary)));
-  await Promise.all([
-    AsyncStorage.setItem(await scopedCardKey(PRIMARY_CARD_KEY), JSON.stringify(primary)),
-    AsyncStorage.setItem(await scopedCardKey(USER_CARDS_KEY), JSON.stringify(CARDS)),
-  ]);
+  await cacheCardsLocally(primary);
   notifyCardListeners();
   return primary;
 }
 
-/** Saves a copy of a card as a new, non-primary card with the same design and details. */
+/**
+ * Saves a copy of a card as a new, non-primary card with the same design and details. Only the card's
+ * label changes: `name` is the person's name, which also goes on the share page, wallet pass and vCard.
+ */
 export function duplicateCard(source: BusinessCard): Promise<BusinessCard> {
   const { createdAt: _createdAt, updatedAt: _updatedAt, ...rest } = source;
-  const sourceName = source.name.trim() || 'Untitled card';
-  const baseName = sourceName.replace(/\s+\((\d+)\)$/, '');
-  const usedNames = new Set(CARDS.map((card) => card.name.trim().toLocaleLowerCase()));
-  let copyNumber = 2;
-  let duplicateName = `${baseName} (${copyNumber})`;
-  while (usedNames.has(duplicateName.toLocaleLowerCase())) {
-    copyNumber += 1;
-    duplicateName = `${baseName} (${copyNumber})`;
+  const sectionOverrides = { ...source.sectionOverrides };
+  let label: Pick<BusinessCard, 'displayName' | 'displayNameCustomized'> = { displayName: undefined, displayNameCustomized: false };
+  if (isCustomCardName(source)) {
+    const displayName = nextCopyName(storedCardName(source));
+    label = { displayName, displayNameCustomized: true };
+    sectionOverrides.displayName = displayName;
+  } else {
+    // An automatic name is left blank so saving gives the copy the next one ("Personal 2").
+    delete sectionOverrides.displayName;
+    delete sectionOverrides.displayNameCustomized;
   }
   return saveCard(normalizeCard({
     ...rest,
+    ...label,
     id: `new-${Date.now()}`,
-    name: duplicateName,
     isPrimary: false,
-    sectionOverrides: { ...source.sectionOverrides },
+    sectionOverrides,
     connectionFields: source.connectionFields.map((field) => ({ ...field })),
   }));
+}
+
+const storedCardName = (card: BusinessCard) => card.displayName?.trim() || card.sectionOverrides.displayName?.trim() || '';
+
+/** "Sales" becomes "Sales (2)", or the next number free among this user's cards. */
+function nextCopyName(name: string): string {
+  const baseName = name.replace(/\s+\((\d+)\)$/, '').slice(0, 90);
+  const usedNames = new Set(CARDS.map((card) => storedCardName(card).toLocaleLowerCase()));
+  let copyNumber = 2;
+  while (usedNames.has(`${baseName} (${copyNumber})`.toLocaleLowerCase())) copyNumber += 1;
+  return `${baseName} (${copyNumber})`;
 }

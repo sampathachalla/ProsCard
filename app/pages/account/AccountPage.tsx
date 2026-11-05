@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -12,6 +12,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/Colors';
 import { Text } from '@/common/ui/Text';
+import { useGuardedBack } from '@/common/ui/useGuardedBack';
 import { AccountDetailsForm } from './Components/AccountDetailsForm';
 import { AccountPageHeader } from './Components/AccountPageHeader';
 import { useProfileEditor } from '@/pages/profile/Hooks/useProfileEditor';
@@ -27,12 +28,11 @@ export default function AccountScreen() {
     useProfileEditor();
   const hasChanges = useMemo(() => !profilesEqual(draft, profile), [draft, profile]);
 
-  const goBackToCaller = () => {
-    if (router.canGoBack()) router.back();
-    else router.replace('/profile');
-  };
-
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
+    const goBackToCaller = () => {
+      if (router.canGoBack()) router.back();
+      else router.replace('/profile');
+    };
     if (!hasChanges) {
       goBackToCaller();
       return;
@@ -41,7 +41,8 @@ export default function AccountScreen() {
       { text: 'Keep editing', style: 'cancel' },
       { text: 'Discard', style: 'destructive', onPress: goBackToCaller },
     ]);
-  };
+  }, [hasChanges, router]);
+  useGuardedBack(hasChanges, handleBack);
 
   const handleSave = async () => {
     if (!hasChanges || offline) return;

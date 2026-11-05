@@ -176,7 +176,8 @@ export function useOnboardingStepper(): UseOnboardingStepperReturn {
         return next;
       });
     }).catch(() => {
-      // Offline with nothing cached: the form simply starts empty.
+      // Offline with nothing cached: the form simply starts empty, and still saves as the user types.
+      hasHydratedFromStorageRef.current = true;
     });
     return () => {
       isMounted = false;

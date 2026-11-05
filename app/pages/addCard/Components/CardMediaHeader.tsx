@@ -11,7 +11,7 @@ import { PhotoAdjustmentModal } from '@/common/ui/PhotoAdjustmentModal';
 import { pickImageAssetFromLibrary, takePhotoAsset, type PickedImage } from '@/common/ui/usePickImage';
 import { recordCommunityUploadedLogo } from '@/pages/cards/Services/companyLogoPresets';
 import type { CardVisualTheme } from '@/pages/cards/types/card.types';
-import { extractLogoPalette } from '@/pages/profile/Services/mediaService';
+import { extractLogoPaletteFromValue } from '@/pages/profile/Services/pendingMedia';
 import type { LogoPalette } from '@/services/api/types';
 import type { MediaScope } from '@/services/api/types';
 import { buildThemeFromLogoPalette } from '@/utils/cardThemeColor';
@@ -73,7 +73,7 @@ export function CardMediaHeader({ coverPhoto, profilePhoto, logo, logoBackdrop, 
         void recordCommunityUploadedLogo({ value: uploadedUrl, isOwn: true });
         setLogoModalVisible(false);
         try {
-          const palette = await extractLogoPalette({ imageUrl: uploadedUrl });
+          const palette = await extractLogoPaletteFromValue(uploadedUrl);
           if (onPaletteExtracted) {
             onPaletteExtracted(palette);
           } else {
@@ -188,7 +188,7 @@ export function CardMediaHeader({ coverPhoto, profilePhoto, logo, logoBackdrop, 
           setLogoModalVisible(false);
           if (logoValue.trim()) {
             try {
-              const palette = await extractLogoPalette({ imageUrl: logoValue });
+              const palette = await extractLogoPaletteFromValue(logoValue);
               if (onPaletteExtracted) {
                 onPaletteExtracted(palette);
               } else {

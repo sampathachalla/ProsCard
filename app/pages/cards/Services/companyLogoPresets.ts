@@ -264,13 +264,17 @@ async function readLocalCommunityLogos(): Promise<CommunityCompanyLogoItem[]> {
   }
 }
 
+const LOCAL_FILE_PATTERN = /^(file:|content:|ph:\/\/|assets-library:|blob:)/i;
+
 export async function recordCommunityUploadedLogo(entry: {
   name?: string;
   value: string;
   isOwn?: boolean;
 }): Promise<void> {
   const cleanValue = entry.value.trim();
-  if (!cleanValue || isCompanyLogoPreset(cleanValue)) return;
+  // A picked file that is not uploaded yet only exists on this phone and can vanish; the picker shows
+  // the uploaded logo from the server once the card is saved.
+  if (!cleanValue || isCompanyLogoPreset(cleanValue) || LOCAL_FILE_PATTERN.test(cleanValue)) return;
   try {
     const existing = await readLocalCommunityLogos();
     const filtered = existing.filter((item) => item.value !== cleanValue);

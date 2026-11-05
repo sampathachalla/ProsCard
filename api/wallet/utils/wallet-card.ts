@@ -1,8 +1,6 @@
-/**
- * What a wallet pass shows, resolved the same way the app's card renderer does
- * (app/components/cardsComponents/Templates/cardDetailTemplate.ts): a card-level override wins,
- * then the owner's profile, then the card's own field.
- */
+import { resolveCardDetails } from '../../cards/utils/card-details.js';
+
+/** What a wallet pass shows: the card's details as `resolveCardDetails` gives them, plus images and colours. */
 export type WalletCard = {
   cardId: string;
   name: string;
@@ -125,11 +123,10 @@ function passColors(card: Json) {
 export function toWalletCard(cardId: string, card: Json, profile: Json | null): WalletCard {
   const overrides = (card.sectionOverrides ?? {}) as Json;
   const p = profile ?? {};
-  // `??` like the app: an override that is an empty string intentionally hides the profile value.
+  // Like the app, a blank card image inherits the account's, so the pass shows what the card shows.
   const pick = (override: string, ...fallbacks: unknown[]) =>
-    overrides[override] !== undefined && overrides[override] !== null
-      ? str(overrides[override])
-      : fallbacks.map(str).find(Boolean) ?? '';
+    [overrides[override], ...fallbacks].map(str).find(Boolean) ?? '';
+  const details = resolveCardDetails(card, p);
 
   const photo = pick('profilePhoto', p.photoUrl);
   const logo = pick('logo', p.companyLogoUrl);
@@ -139,14 +136,14 @@ export function toWalletCard(cardId: string, card: Json, profile: Json | null): 
   const colors = passColors(card);
   return {
     cardId,
-    name: formatPersonName(pick('preferredName', p.preferredName, card.name)) || 'Business card',
-    title: pick('title', p.title, card.title),
-    company: pick('company', p.organization, card.company),
+    name: formatPersonName(details.name) || 'Business card',
+    title: details.title,
+    company: details.company,
     tag: pick('cardTag'),
-    email: str(p.email) || str(card.email),
-    phone: str(p.phone) || str(card.phone),
-    website: str(p.website),
-    address: str(p.businessAddress),
+    email: details.emails[0] ?? '',
+    phone: details.phones[0] ?? '',
+    website: details.website,
+    address: details.address,
     photoMediaId: mediaId(photo),
     logoMediaId: mediaId(logo),
     logoUrl: !mediaId(logo) && /^https:\/\//i.test(logo) ? logo : null,

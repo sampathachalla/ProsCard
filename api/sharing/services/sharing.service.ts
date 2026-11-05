@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { HttpError } from '../../src/errors.js';
 import { log } from '../../src/logger.js';
+import { resolveCardDetails } from '../../cards/utils/card-details.js';
 import type { ObjectStorageGateway } from '../../media/services/oci-storage.service.js';
 import type { SharingRepository } from '../repository/sharing.repository.js';
 
@@ -98,9 +99,19 @@ export class SharingService {
   }
 
   async resolve(slug: string) {
-    const row = await this.repo.public(slug);
+    const row = await this.repo.publicView(slug);
     if (!row) throw new HttpError(404, 'Shared card not found or expired.');
-    return { id: row.card_id, ...row.card_data };
+    // A QR scan saves these as a contact, so they must be what the card shows, not the stored columns.
+    const details = resolveCardDetails(row.card_data, row.profile_data);
+    return {
+      id: row.card_id,
+      ...row.card_data,
+      name: details.contactName,
+      title: details.title,
+      company: details.company,
+      phone: details.phones[0] ?? '',
+      email: details.emails[0] ?? '',
+    };
   }
 
   /**
@@ -163,7 +174,8 @@ export class SharingService {
     if (!row) throw new HttpError(404, 'Shared card not found or expired.');
     const card = (row.card_data ?? {}) as Record<string, unknown>;
     const profile = (row.profile_data ?? {}) as Record<string, unknown>;
-    const name = String(card.name || profile.fullName || 'Contact');
+    const details = resolveCardDetails(card, profile);
+    const name = details.contactName || 'Contact';
     const filename = `${name.replace(/[^a-zA-Z0-9_-]+/g, '_')}.vcf`;
 
     const esc = escapeVcardValue;
@@ -175,35 +187,18 @@ export class SharingService {
     } else {
       parts.push(`N:${esc(name)};;;;`);
     }
-    const org = String(card.company || profile.organization || '');
-    if (org) parts.push(`ORG:${esc(org)}`);
-    const title = String(card.title || profile.title || '');
-    if (title) parts.push(`TITLE:${esc(title)}`);
+    if (details.company) parts.push(`ORG:${esc(details.company)}`);
+    if (details.title) parts.push(`TITLE:${esc(details.title)}`);
     const connectionFields = Array.isArray(card.connectionFields)
       ? card.connectionFields.filter((field): field is Record<string, unknown> => Boolean(field) && typeof field === 'object')
       : [];
-    const valuesForType = (type: string) => connectionFields
-      .filter((field) => String(field.type || '').toLowerCase() === type)
-      .map((field) => String(field.value || '').trim())
-      .filter(Boolean);
-    const valueForIdentity = (identity: string) => connectionFields.find((field) => {
-      const id = String(field.id || '').toLowerCase();
-      const label = String(field.title || '').toLowerCase();
-      return id === identity || label === identity || label.includes(identity);
-    });
-    const emails = valuesForType('email');
-    const phones = valuesForType('phone');
-    const email = String(emails[0] || card.email || profile.email || '');
+    const [email] = details.emails;
     if (email) parts.push(`EMAIL;TYPE=INTERNET,WORK:${esc(email)}`);
-    const phone = String(phones[0] || card.phone || profile.phone || '');
+    const [phone, secondPhone] = details.phones;
     if (phone) parts.push(`TEL;TYPE=CELL,VOICE:${esc(phone)}`);
-    if (phones[1] && phones[1] !== phone) parts.push(`TEL;TYPE=WORK,VOICE:${esc(phones[1])}`);
-    const websiteField = valueForIdentity('website');
-    const website = String(websiteField?.value || profile.website || '');
-    if (website) parts.push(`URL:${esc(website)}`);
-    const addressField = valueForIdentity('address');
-    const address = String(addressField?.value || profile.businessAddress || '');
-    if (address) parts.push(`ADR;TYPE=WORK:;;${esc(address)};;;;`);
+    if (secondPhone && secondPhone !== phone) parts.push(`TEL;TYPE=WORK,VOICE:${esc(secondPhone)}`);
+    if (details.website) parts.push(`URL:${esc(details.website)}`);
+    if (details.address) parts.push(`ADR;TYPE=WORK:;;${esc(details.address)};;;;`);
 
     const noteLines: string[] = [];
     if (profile.tagline) noteLines.push(String(profile.tagline));

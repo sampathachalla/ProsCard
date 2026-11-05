@@ -39,6 +39,15 @@ import { publishQrCustomization } from '../Services/qrCustomizationStorage';
 import { useShareUrl } from './useShareUrl';
 import { resolveCardTagLabel } from '@/pages/cards/Utils/resolveCardTagLabel';
 
+/** Opens a share target; a phone with no app for it gets a message instead of a silent no-op. */
+function openShareLink(url: string, fallbackUrl?: string) {
+  const failed = () => Alert.alert('Could not open', 'This app is not available on your device. Copy the link to share it instead.');
+  Linking.openURL(url).catch(() => {
+    if (fallbackUrl) Linking.openURL(fallbackUrl).catch(failed);
+    else failed();
+  });
+}
+
 export function useSharePageController() {
   const { cards, fetched, offline } = useCards();
   const { profile } = useProfileSnapshot();
@@ -197,9 +206,11 @@ export function useSharePageController() {
   const handleCopyLink = useCallback(
     async (url: string) => {
       const copied = await copyTextToClipboard(url);
-      setCopiedLink(true);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      setTimeout(() => setCopiedLink(false), 2200);
+      if (copied) {
+        setCopiedLink(true);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+        setTimeout(() => setCopiedLink(false), 2200);
+      }
       if (!copied && Platform.OS !== 'web') {
         await Share.share({
           message: url,
@@ -374,7 +385,7 @@ export function useSharePageController() {
 
         case 'share_email':
           requireCardAndUrl((url, cardName) => {
-            void Linking.openURL(buildEmailShareUrl(cardName, url));
+            openShareLink(buildEmailShareUrl(cardName, url));
           });
           break;
 
@@ -392,16 +403,14 @@ export function useSharePageController() {
 
         case 'share_linkedin':
           requireCardAndUrl((url) => {
-            void Linking.openURL(buildLinkedInShareUrl(url));
+            openShareLink(buildLinkedInShareUrl(url));
           });
           break;
 
         case 'share_whatsapp':
           requireCardAndUrl((url, cardName) => {
             const { appUrl, webUrl } = buildWhatsAppShareUrl(cardName, url);
-            void Linking.openURL(appUrl).catch(() => {
-              void Linking.openURL(webUrl);
-            });
+            openShareLink(appUrl, webUrl);
           });
           break;
 
@@ -409,18 +418,14 @@ export function useSharePageController() {
           requireCardAndUrl((url) => {
             void copyTextToClipboard(url);
             const { appUrl, webUrl } = buildInstagramShareUrl();
-            void Linking.openURL(appUrl).catch(() => {
-              void Linking.openURL(webUrl);
-            });
+            openShareLink(appUrl, webUrl);
           });
           break;
 
         case 'share_x':
           requireCardAndUrl((url, cardName) => {
             const { appUrl, webUrl } = buildXShareUrl(cardName, url);
-            void Linking.openURL(appUrl).catch(() => {
-              void Linking.openURL(webUrl);
-            });
+            openShareLink(appUrl, webUrl);
           });
           break;
 

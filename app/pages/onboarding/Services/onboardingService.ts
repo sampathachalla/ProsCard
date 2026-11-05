@@ -41,10 +41,14 @@ export async function getHasCompletedOnboarding(): Promise<boolean> {
   if (!AUTH_TEST_MODE) {
     try {
       const completed = (await getOnboardingState()).completed;
-      await AsyncStorage.setItem(await onboardingStorageKey(), String(completed));
+      await AsyncStorage.setItem(await onboardingStorageKey(), String(completed)).catch(() => undefined);
       return completed;
-    } catch {
-      return (await AsyncStorage.getItem(await onboardingStorageKey())) === 'true';
+    } catch (error) {
+      // Without an answer from the server or this device the state is unknown. Treating that as "not
+      // completed" would send an existing user into onboarding, which then overwrites their primary card.
+      const cached = await AsyncStorage.getItem(await onboardingStorageKey());
+      if (cached === null) throw error;
+      return cached === 'true';
     }
   }
   const raw = await AsyncStorage.getItem(await onboardingStorageKey());

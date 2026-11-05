@@ -91,7 +91,9 @@ async function refreshSession(): Promise<AuthSession | null> {
       return null;
     }
     if (!response.ok) {
-      await setSession(null);
+      // Only a rejected token ends the session. A server error or rate limit is temporary, and signing
+      // out over one would send every user back to the login screen during an outage.
+      if (response.status === 400 || response.status === 401 || response.status === 403) await setSession(null);
       return null;
     }
     const refreshed = await parseResponse(response);

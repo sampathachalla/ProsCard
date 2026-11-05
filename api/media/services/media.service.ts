@@ -35,9 +35,9 @@ const STORED_MEDIA_FETCH_TIMEOUT_MS = 15_000;
 export class MediaService {
   constructor(private readonly repo: MediaRepository, private readonly storage: ObjectStorageGateway) {}
 
-  /** A company logo other cards or profiles still show keeps its file; anything else may be deleted. */
-  private async isSharedLogo(row: MediaRow, exclude: { cardId?: string; userId?: string } = {}) {
-    return row.kind === 'companyLogo' && this.repo.logoInUse(row.id, exclude);
+  /** An image other cards or profiles still show keeps its file; anything else may be deleted. */
+  private async isStillShown(row: MediaRow, exclude: { cardId?: string; userId?: string } = {}) {
+    return row.kind !== 'contactCard' && this.repo.mediaInUse(row.id, exclude);
   }
 
   private async paletteForBuffer(buffer: Buffer, sourceKey?: string): Promise<ExtractedLogoPalette> {
@@ -137,7 +137,7 @@ export class MediaService {
     }
     let replacedMediaId: string | undefined;
     let cleanupPending = false;
-    if (previous && previous.id !== id && !await this.isSharedLogo(previous)) {
+    if (previous && previous.id !== id && !await this.isStillShown(previous)) {
       replacedMediaId = previous.id;
       try {
         await this.storage.deleteObject(previous.object_name);
@@ -217,7 +217,7 @@ export class MediaService {
   async cleanupCard(userId: string, cardId: string) {
     const rows = await this.repo.cardMedia(userId, cardId);
     for (const row of rows) {
-      if (await this.isSharedLogo(row, { cardId })) {
+      if (await this.isStillShown(row, { cardId })) {
         await this.repo.clearCardId(userId, row.id);
         continue;
       }
@@ -252,7 +252,7 @@ export class MediaService {
     const rows = await this.repo.allForUser(userId);
     const retained: string[] = [];
     for (const row of rows) {
-      if (await this.isSharedLogo(row, { userId })) {
+      if (await this.isStillShown(row, { userId })) {
         retained.push(row.id);
         continue;
       }
@@ -352,8 +352,8 @@ export class MediaService {
     const row = await this.requireRow(userId, id);
     try {
       await this.repo.detach(row, fieldFor(row));
-      // Other users picked this logo from the community list; deleting the file would break their cards.
-      if (await this.isSharedLogo(row)) return;
+      // Another card (or, for a community logo, another user) still shows this image.
+      if (await this.isStillShown(row)) return;
       await this.storage.deleteObject(row.object_name);
       await this.repo.delete(userId, id);
     } catch (error) {
