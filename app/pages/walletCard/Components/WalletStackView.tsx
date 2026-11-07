@@ -268,9 +268,9 @@ export function WalletStackView({
                 onSingleTap={() => selectCard(index)}
               />
               {cardTag ? (
-                <View pointerEvents="none" className="absolute -top-3.5 left-3 flex-row items-center rounded-full bg-slate-800 px-2.5 py-0.5 shadow-sm">
+                <View pointerEvents="none" className="absolute -top-3.5 left-3 max-w-[70%] flex-row items-center rounded-full bg-slate-800 px-2.5 py-0.5 shadow-sm">
                   <CardTagIcon color="#ffffff" size={10} strokeWidth={2.5} />
-                  <Text className="ml-1 text-[10px] font-bold uppercase text-white">
+                  <Text numberOfLines={1} ellipsizeMode="tail" className="ml-1 shrink text-[10px] font-bold uppercase text-white">
                     {cardLabel}
                   </Text>
                 </View>

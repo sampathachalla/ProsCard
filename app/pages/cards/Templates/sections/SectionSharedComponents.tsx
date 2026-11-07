@@ -339,7 +339,7 @@ export function AccreditationPills({
       {items.map((item, idx) => (
         <View
           key={idx}
-          className="flex-row items-center rounded-full px-2.5 py-0.5"
+          className="max-w-full flex-row items-center rounded-full px-2.5 py-0.5"
           style={{
             backgroundColor: light ? 'rgba(255, 255, 255, 0.22)' : `${cardTheme.accentColor}18`,
             borderColor: light ? 'rgba(255, 255, 255, 0.4)' : `${cardTheme.accentColor}44`,
@@ -349,11 +349,14 @@ export function AccreditationPills({
           <Award color={light ? '#ffffff' : cardTheme.accentColor} size={compact ? 10 : 12} />
           <Text
             variant="none"
+            numberOfLines={1}
+            ellipsizeMode="tail"
             className={`ml-1 font-bold ${compact ? 'text-[11px]' : 'text-[11px]'}`}
             style={{
               color: light ? '#ffffff' : cardTheme.textColor,
               fontFamily,
               letterSpacing,
+              flexShrink: 1,
             }}
           >
             {item}
@@ -408,7 +411,7 @@ export function SectionHeaderBadge({
       </View>
       {badgeText ? (
         <View
-          className="flex-row items-center rounded-full px-2.5 py-0.5"
+          className="max-w-full flex-row items-center rounded-full px-2.5 py-0.5"
           style={{
             backgroundColor: light ? 'rgba(255, 255, 255, 0.18)' : `${cardTheme.accentColor}15`,
             borderColor: light ? 'rgba(255, 255, 255, 0.3)' : `${cardTheme.accentColor}30`,
@@ -418,11 +421,14 @@ export function SectionHeaderBadge({
           <Sparkles color={light ? '#ffffff' : cardTheme.accentColor} size={10} />
           <Text
             variant="none"
+            numberOfLines={1}
+            ellipsizeMode="tail"
             className="ml-1 text-[11px] font-bold"
             style={{
               color: light ? '#ffffff' : cardTheme.accentColor,
               fontFamily,
               letterSpacing,
+              flexShrink: 1,
             }}
           >
             {badgeText}

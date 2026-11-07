@@ -277,6 +277,8 @@ export function HomePreviewCardFace({
               >
                 <Text
                   variant="none"
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
                   className="text-center text-[13px] font-medium"
                   style={{ color: qrPreset.foregroundColor }}
                 >

@@ -12,6 +12,9 @@ export const CARD_TEXT_LIMITS = {
   accreditations: 24,
   tagline: 48,
   bio: 180,
+  prefix: 12,
+  suffix: 12,
+  cardTag: 24,
 } as const;
 
 export const CONTACT_TEXT_LIMITS = {

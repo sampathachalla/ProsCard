@@ -15,6 +15,9 @@ export const CARD_TEXT_LIMITS = {
   accreditations: 24,
   tagline: 48,
   bio: 180,
+  prefix: 12,
+  suffix: 12,
+  cardTag: 24,
 } as const;
 
 /** Dense contact rows and wallet-pass fields have less horizontal room than forms. */
@@ -30,8 +33,95 @@ export const CONTACT_TEXT_LIMITS = {
   notes: 500,
 } as const;
 
+// Marks, joiners, variation selectors, skin tones and emoji tag characters that
+// continue the previous character rather than starting a new one.
+const GRAPHEME_EXTEND = /^(?:\p{M}|[\u200D\uFE0E\uFE0F\u{1F3FB}-\u{1F3FF}\u{E0020}-\u{E007F}])$/u;
+const REGIONAL_INDICATOR = /^[\u{1F1E6}-\u{1F1FF}]$/u;
+
+/** Splits text into user-visible characters so clipping never cuts an emoji or accent in half. */
+export function splitGraphemes(value: string): string[] {
+  const clusters: string[] = [];
+  let previous = '';
+  let regionalRun = 0;
+  for (const codePoint of Array.from(value || '')) {
+    const last = clusters.length - 1;
+    const joinsPrevious =
+      last >= 0 &&
+      (GRAPHEME_EXTEND.test(codePoint) ||
+        previous === '\u200D' ||
+        (REGIONAL_INDICATOR.test(codePoint) && regionalRun % 2 === 1));
+    if (joinsPrevious) clusters[last] += codePoint;
+    else clusters.push(codePoint);
+    regionalRun = REGIONAL_INDICATOR.test(codePoint) ? regionalRun + 1 : 0;
+    previous = codePoint;
+  }
+  return clusters;
+}
+
+const TRAILING_SEPARATORS = /[\s,;:|/•·\-–—&+]+$/u;
+
+/**
+ * Trims text to a card-safe budget. `maxLength` counts UTF-16 units, the same as
+ * TextInput `maxLength` and the API's zod limits. Clipping keeps whole characters,
+ * prefers ending on a word boundary, and drops dangling separators.
+ */
 export function fitCardText(value: string, maxLength: number): string {
-  return (value || '').trim().slice(0, maxLength);
+  const text = (value || '').trim();
+  if (text.length <= maxLength) return text;
+  if (maxLength <= 0) return '';
+
+  let clipped = '';
+  for (const cluster of splitGraphemes(text)) {
+    if (clipped.length + cluster.length > maxLength) break;
+    clipped += cluster;
+  }
+
+  const nextCharacter = text.charAt(clipped.length);
+  const cutMidWord = nextCharacter !== '' && !/\s/.test(nextCharacter);
+  if (cutMidWord) {
+    const lastSpace = clipped.search(/\s\S*$/);
+    // Only back up to a space when it keeps most of the budget; a single long
+    // word is clipped hard instead of disappearing.
+    if (lastSpace >= Math.ceil(maxLength * 0.6)) clipped = clipped.slice(0, lastSpace);
+  }
+  return clipped.replace(TRAILING_SEPARATORS, '').trim() || clipped.trim();
+}
+
+export type ProfessionalNameParts = {
+  prefix?: string;
+  firstName?: string;
+  middleName?: string;
+  lastName?: string;
+  suffix?: string;
+};
+
+/**
+ * Builds the single-line professional name within the shared budget. Instead of
+ * cutting mid-word it first shortens the middle name to an initial, then drops
+ * the suffix, then the prefix, and only clips as a last resort.
+ */
+export function fitProfessionalName(
+  parts: ProfessionalNameParts,
+  maxLength: number = CARD_TEXT_LIMITS.professionalName,
+): string {
+  const clean = (value?: string) => (value || '').trim().replace(/\s+/g, ' ');
+  const prefix = fitCardText(clean(parts.prefix), CARD_TEXT_LIMITS.prefix);
+  const suffix = fitCardText(clean(parts.suffix), CARD_TEXT_LIMITS.suffix);
+  const first = clean(parts.firstName);
+  const middle = clean(parts.middleName);
+  const last = clean(parts.lastName);
+  const middleInitial = middle ? `${splitGraphemes(middle)[0]}.` : '';
+  const join = (...values: string[]) => values.filter(Boolean).join(' ');
+
+  const candidates = [
+    join(prefix, first, middle, last, suffix),
+    join(prefix, first, middleInitial, last, suffix),
+    join(prefix, first, middleInitial, last),
+    join(first, middleInitial, last),
+    join(first, last),
+  ];
+  const fitting = candidates.find((candidate) => candidate.length > 0 && candidate.length <= maxLength);
+  return fitting ?? fitCardText(candidates[candidates.length - 1] || candidates[0], maxLength);
 }
 
 export function getEffectiveCardContentWidth(viewportWidth: number): number {

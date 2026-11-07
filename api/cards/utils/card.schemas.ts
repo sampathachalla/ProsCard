@@ -8,12 +8,18 @@ const overrideLimits: Record<string, number> = {
   firstName: CARD_TEXT_LIMITS.namePart,
   middleName: CARD_TEXT_LIMITS.namePart,
   lastName: CARD_TEXT_LIMITS.namePart,
+  prefix: CARD_TEXT_LIMITS.prefix,
+  suffix: CARD_TEXT_LIMITS.suffix,
+  cardTag: CARD_TEXT_LIMITS.cardTag,
   title: CARD_TEXT_LIMITS.title,
   company: CARD_TEXT_LIMITS.company,
   accreditations: CARD_TEXT_LIMITS.accreditations,
   tagline: CARD_TEXT_LIMITS.tagline,
   bio: CARD_TEXT_LIMITS.bio,
 };
+
+// The card shows these as one line, so together they share the professional-name budget.
+const professionalNameKeys = ['prefix', 'firstName', 'middleName', 'lastName', 'suffix'] as const;
 
 const sectionOverridesSchema = z.record(z.string(), z.string()).superRefine((overrides, context) => {
   for (const [key, limit] of Object.entries(overrideLimits)) {
@@ -28,6 +34,38 @@ const sectionOverridesSchema = z.record(z.string(), z.string()).superRefine((ove
         message: `${key} must be ${limit} characters or less.`,
       });
     }
+  }
+  const combinedName = professionalNameKeys
+    .map((key) => overrides[key]?.trim() ?? '')
+    .filter(Boolean)
+    .join(' ');
+  if (combinedName.length > CARD_TEXT_LIMITS.professionalName) {
+    context.addIssue({
+      code: 'too_big',
+      maximum: CARD_TEXT_LIMITS.professionalName,
+      origin: 'string',
+      inclusive: true,
+      path: ['firstName'],
+      message: `The full name must be ${CARD_TEXT_LIMITS.professionalName} characters or less.`,
+    });
+  }
+});
+
+// Abuse caps for connection values; renderers still clamp them to one line.
+const connectionValueLimits: Record<string, number> = { email: 254, phone: 100, url: 2048, text: 120 };
+
+const connectionFieldSchema = z.record(z.string(), z.unknown()).superRefine((field, context) => {
+  if (typeof field.value !== 'string') return;
+  const limit = connectionValueLimits[typeof field.type === 'string' ? field.type : 'text'] ?? connectionValueLimits.text;
+  if (field.value.trim().length > limit) {
+    context.addIssue({
+      code: 'too_big',
+      maximum: limit,
+      origin: 'string',
+      inclusive: true,
+      path: ['value'],
+      message: `Connection value must be ${limit} characters or less.`,
+    });
   }
 });
 
@@ -44,7 +82,7 @@ const cardFields = {
   sectionLayouts: z.record(z.string(), z.string()),
   sectionThemes: z.record(z.string(), z.unknown()),
   sectionOverrides: sectionOverridesSchema,
-  connectionFields: z.array(z.record(z.string(), z.unknown())),
+  connectionFields: z.array(connectionFieldSchema),
   connectionFieldsCustomized: z.boolean(),
   cardTheme: z.record(z.string(), z.unknown()),
   customThemes: z.array(z.record(z.string(), z.unknown())).optional(),

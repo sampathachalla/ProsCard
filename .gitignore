@@ -19,3 +19,5 @@
 
 # Exported share web app (built by app: npm run build:share)
 /api/web/
+
+graphify-out/

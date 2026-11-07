@@ -121,7 +121,7 @@ export function StandardWalletCardBack({
       <View style={styles.orbitInner} />
 
       <View style={styles.backHeader}>
-        <Text style={styles.backCategory}>{category}</Text>
+        <Text numberOfLines={1} ellipsizeMode="tail" style={styles.backCategory}>{category}</Text>
         <Text style={styles.backHint}>Tap to flip</Text>
       </View>
 

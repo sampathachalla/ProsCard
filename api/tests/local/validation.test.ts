@@ -21,6 +21,22 @@ describe('local request validation', () => {
     expect(() => cardPatchSchema.parse({ company: 'C'.repeat(33) })).toThrow();
     expect(() => cardPatchSchema.parse({ sectionOverrides: { tagline: 'T'.repeat(49) } })).toThrow();
     expect(() => cardPatchSchema.parse({ sectionOverrides: { bio: 'B'.repeat(181) } })).toThrow();
+    expect(() => cardPatchSchema.parse({ sectionOverrides: { prefix: 'P'.repeat(13) } })).toThrow();
+    expect(() => cardPatchSchema.parse({ sectionOverrides: { suffix: 'S'.repeat(13) } })).toThrow();
+    expect(() => cardPatchSchema.parse({ sectionOverrides: { cardTag: 'T'.repeat(25) } })).toThrow();
+    expect(() =>
+      cardPatchSchema.parse({
+        sectionOverrides: {
+          firstName: 'Alexander',
+          lastName: 'Montgomery-Whitehead-Smithsonian',
+        },
+      }),
+    ).toThrow();
+    expect(() =>
+      cardPatchSchema.parse({
+        connectionFields: [{ id: 'link', type: 'url', value: 'https://example.com/' + 'a'.repeat(2048) }],
+      }),
+    ).toThrow();
     expect(cardPatchSchema.parse({ sectionOverrides: { tagline: 'T'.repeat(48) } })).toEqual({
       sectionOverrides: { tagline: 'T'.repeat(48) },
     });

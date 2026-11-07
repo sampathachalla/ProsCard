@@ -8,6 +8,7 @@ import { getCardFontFamily, getCardLetterSpacing } from '../cardTheme';
 import {
   CARD_TEXT_LIMITS,
   fitCardText,
+  fitProfessionalName,
   fitAccreditationsToViewport,
   fitTaglineToViewport,
   getEffectiveCardContentWidth,
@@ -349,12 +350,19 @@ export function ProfessionalSectionRenderer({
   const company = fitCardText(getVal('company') || (showEmpty ? 'Company Name' : 'Company / Organization'), CARD_TEXT_LIMITS.company);
   const prefix = getVal('prefix');
   const suffix = getVal('suffix');
-  const coreName = [getVal('firstName'), getVal('middleName'), getVal('lastName')].filter(Boolean).join(' ');
-  const fullNameParts = [prefix, coreName, suffix].filter(Boolean);
-  const professionalName = fitCardText(
-    fullNameParts.length > 0 ? fullNameParts.join(' ') : showEmpty ? 'Professional Name' : title,
-    CARD_TEXT_LIMITS.professionalName,
-  );
+  const coreName = fitProfessionalName({
+    firstName: getVal('firstName'),
+    middleName: getVal('middleName'),
+    lastName: getVal('lastName'),
+  });
+  const fullName = fitProfessionalName({
+    prefix,
+    firstName: getVal('firstName'),
+    middleName: getVal('middleName'),
+    lastName: getVal('lastName'),
+    suffix,
+  });
+  const professionalName = fullName || fitCardText(showEmpty ? 'Professional Name' : title, CARD_TEXT_LIMITS.professionalName);
   const corporateNameText = coreName || (showEmpty ? 'Professional Name' : professionalName);
   const corporateLeftWidth = viewportWidth * 0.64 - (compact ? 24 : 32);
   const corporateRightWidth = viewportWidth * 0.36 - (compact ? 24 : 32);
@@ -1427,7 +1435,7 @@ export function ProfessionalSectionRenderer({
   }
 
   // Enterprise Split (spotlight in fixed card slots) / default fallback
-  const spotlightName = [prefix, coreName, suffix].filter(Boolean).join(' ') || professionalName;
+  const spotlightName = professionalName;
   const bandPadding = spacing.tightVertical + 2;
   const spotlightRightWidth = viewportWidth * 0.58 - spacing.horizontal * 2;
   const spotlightNameFontSize = getResponsiveSingleLineFontSize(

@@ -72,6 +72,14 @@ type ProfessionalNameField = 'prefix' | 'firstName' | 'middleName' | 'lastName' 
 
 const PROFESSIONAL_NAME_FIELDS: ProfessionalNameField[] = ['prefix', 'firstName', 'middleName', 'lastName', 'suffix'];
 const PROFESSIONAL_NAME_CHARACTER_LIMIT = CARD_TEXT_LIMITS.professionalName;
+/** Per-part caps; these match the API's sectionOverrides limits. */
+const PROFESSIONAL_NAME_PART_LIMITS: Record<ProfessionalNameField, number> = {
+  prefix: CARD_TEXT_LIMITS.prefix,
+  firstName: CARD_TEXT_LIMITS.namePart,
+  middleName: CARD_TEXT_LIMITS.namePart,
+  lastName: CARD_TEXT_LIMITS.namePart,
+  suffix: CARD_TEXT_LIMITS.suffix,
+};
 
 const CARD_TAG_ICONS: Record<string, LucideIcon> = {
   Business: Briefcase,
@@ -485,7 +493,10 @@ export function CardSectionEditor({
       .filter(Boolean);
     const charactersUsedByOtherParts = otherParts.join(' ').length;
     const separatorLength = otherParts.length > 0 ? 1 : 0;
-    const budgetForField = Math.max(0, PROFESSIONAL_NAME_CHARACTER_LIMIT - charactersUsedByOtherParts - separatorLength);
+    const budgetForField = Math.min(
+      PROFESSIONAL_NAME_PART_LIMITS[fieldId],
+      Math.max(0, PROFESSIONAL_NAME_CHARACTER_LIMIT - charactersUsedByOtherParts - separatorLength),
+    );
     const extraCharacters = Math.max(0, budgetForField - rawValue.trim().length);
     return rawValue.length + extraCharacters;
   };

@@ -50,7 +50,13 @@ export function CardDetailField({ field }: { field: CardDetailFieldData }) {
       </View>
       <View className="min-w-0 flex-1">
         <Text variant="caption" className="text-textMuted dark:text-dark-textMuted">{field.title}</Text>
-        <Text className="mt-0.5 text-textPrimary dark:text-dark-textPrimary">{field.value || 'Not added'}</Text>
+        <Text
+          numberOfLines={field.type === 'multiline' ? 6 : 2}
+          ellipsizeMode={field.type === 'url' || field.type === 'email' ? 'middle' : 'tail'}
+          className="mt-0.5 text-textPrimary dark:text-dark-textPrimary"
+        >
+          {field.value || 'Not added'}
+        </Text>
       </View>
     </TouchableOpacity>
   );
