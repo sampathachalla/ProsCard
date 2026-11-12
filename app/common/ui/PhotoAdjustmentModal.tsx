@@ -2,11 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
+  Platform,
   Pressable,
   useWindowDimensions,
   View,
 } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { File, Paths } from 'expo-file-system';
 import NativeSlider from '@expo/ui/community/slider';
@@ -39,6 +40,8 @@ const MAX_ZOOM = 4;
 /** Longest edge of the working copy: above the 1600px saved output, small enough for Skia to decode. */
 const MAX_WORKING_EDGE = 2048;
 const IDENTITY_TRANSFORM: Transform = { x: 0, y: 0, zoom: 1 };
+// Android modals have a separate native window and need their own gesture root.
+const ModalContent = Platform.OS === 'android' ? GestureHandlerRootView : View;
 
 /** The picked photo as an upright JPEG the preview and crop both use. */
 type WorkingPhoto = { sourceUri: string; uri: string; width: number; height: number };
@@ -246,7 +249,7 @@ export function PhotoAdjustmentModal({ asset, aspect, title, onCancel, onSave }:
 
   return (
     <Modal visible={Boolean(asset)} animationType="slide" presentationStyle="fullScreen" onRequestClose={onCancel}>
-      <View className="flex-1 bg-black" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
+      <ModalContent style={{ flex: 1, backgroundColor: '#000', paddingTop: insets.top, paddingBottom: insets.bottom }}>
         <View className="h-16 flex-row items-center justify-between px-4">
           <Pressable accessibilityLabel="Cancel photo adjustment" onPress={onCancel} className="size-11 items-center justify-center rounded-full bg-white/15">
             <X color="#fff" size={22} />
@@ -316,7 +319,7 @@ export function PhotoAdjustmentModal({ asset, aspect, title, onCancel, onSave }:
           <ToolButton label="Reset" onPress={reset} text="Reset" />
           <ToolButton label="Rotate right" onPress={() => rotate(1)} icon={<RotateCw color="#fff" size={20} />} />
         </View>
-      </View>
+      </ModalContent>
     </Modal>
   );
 }
