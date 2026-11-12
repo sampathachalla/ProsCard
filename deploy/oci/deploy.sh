@@ -17,7 +17,7 @@ OCI_SSH_KEY="${OCI_SSH_KEY:-${HOME}/.ssh/id_rsa}"
 REMOTE_DIR="proscard"
 PUBLIC_URL="https://${OCI_HOST}.nip.io"
 # Only the credential files the API reads (see the *_PATH settings in api/.env).
-SECRET_FILES=(oci_private.pem pass-cert.pem pass-key.pem wwdr.pem google-wallet.json)
+SECRET_FILES=(oci_private.pem pass-cert.pem pass-key.pem wwdr.pem google-wallet.json google-wallet-adc.json)
 SSH=(ssh -o BatchMode=yes -i "${OCI_SSH_KEY}" "${OCI_USER}@${OCI_HOST}")
 COMPOSE="docker compose --env-file api/.env -f deploy/oci/docker-compose.yml"
 
