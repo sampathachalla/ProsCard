@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { View, type ImageSourcePropType, type StyleProp, type ViewStyle } from 'react-native';
+import { Platform, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Image } from 'expo-image';
 import { captureRef } from 'react-native-view-shot';
 import Svg, {
   Circle,
@@ -17,7 +18,7 @@ import QRCodeGenerator from 'qrcode';
 import { getVcProsIconSource } from './BrandLogo';
 import { isRgbaOrHexLight } from '@/utils/cardThemeColor';
 import type { QrCornerStyle, QrLogoSize, QrPatternStyle } from '@/pages/share/types/share.types';
-import { getDisplayMediaUrl, getImmediateDisplayMediaUrl } from '@/pages/profile/Services/mediaService';
+import { getDisplayMediaUrl, getImmediateDisplayMediaUrl, getMediaImageCacheKey, refreshDisplayMediaUrl } from '@/pages/profile/Services/mediaService';
 import { resolveCompanyLogoPreset, resolveCompanyLogoVector } from '@/pages/cards/Services/companyLogoPresets';
 
 export interface QrSvgRef {
@@ -103,32 +104,44 @@ export function QRCodeView({
   const customCenterLogo = centerLogoUrl?.trim() ?? '';
   const customLogoPreset = resolveCompanyLogoPreset(customCenterLogo);
   const customLogoVector = resolveCompanyLogoVector(customCenterLogo);
-  const [resolvedCustomLogo, setResolvedCustomLogo] = useState(() => (
-    customCenterLogo && !customLogoPreset ? getImmediateDisplayMediaUrl(customCenterLogo) : ''
-  ));
+  const useNativeLogo = Platform.OS === 'android' && showCenterLogo && Boolean(customCenterLogo && !customLogoVector);
+  const [resolvedLogo, setResolvedLogo] = useState({ source: '', attempt: 0, uri: '' });
+  const [logoAttempt, setLogoAttempt] = useState({ source: '', count: 0 });
+  const attempt = logoAttempt.source === customCenterLogo ? logoAttempt.count : 0;
+  const logoFailed = attempt >= 2;
+  const resolvedCustomLogo = resolvedLogo.source === customCenterLogo && resolvedLogo.attempt === attempt
+    ? resolvedLogo.uri
+    : useNativeLogo ? '' : getImmediateDisplayMediaUrl(customCenterLogo);
+  const handleLogoError = useCallback(() => {
+    if (!useNativeLogo || logoFailed) return;
+    setLogoAttempt((current) => current.source === customCenterLogo && current.count > attempt
+      ? current
+      : { source: customCenterLogo, count: attempt + 1 });
+  }, [attempt, customCenterLogo, logoFailed, useNativeLogo]);
 
   React.useEffect(() => {
-    if (!customCenterLogo || customLogoPreset) {
-      setResolvedCustomLogo('');
-      return;
-    }
+    if (!customCenterLogo || customLogoPreset || logoFailed) return;
     let active = true;
-    const immediate = getImmediateDisplayMediaUrl(customCenterLogo);
-    setResolvedCustomLogo(immediate);
-    getDisplayMediaUrl(customCenterLogo).then((url) => {
-      if (active) setResolvedCustomLogo(url);
-    }).catch(() => {});
+    const resolve = attempt ? refreshDisplayMediaUrl : getDisplayMediaUrl;
+    resolve(customCenterLogo).then((uri) => {
+      if (active) setResolvedLogo({ source: customCenterLogo, attempt, uri });
+    }).catch(() => { if (active) handleLogoError(); });
     return () => { active = false; };
-  }, [customCenterLogo, customLogoPreset]);
+  }, [attempt, customCenterLogo, customLogoPreset, handleLogoError, logoFailed]);
 
-  const customLogoSource: ImageSourcePropType | undefined = customLogoVector
+  const cacheKey = getMediaImageCacheKey(customCenterLogo);
+  const customLogoSource = customLogoVector || logoFailed
     ? undefined
-    : customLogoPreset?.source ?? (resolvedCustomLogo ? { uri: resolvedCustomLogo, headers: LOGO_IMAGE_HEADERS } : undefined);
+    : customLogoPreset?.source ?? (resolvedCustomLogo ? {
+      uri: resolvedCustomLogo,
+      headers: LOGO_IMAGE_HEADERS,
+      cacheKey: cacheKey && attempt === 0 ? cacheKey : undefined,
+    } : undefined);
   const brandIconSource = useBrandIconAsset && !customCenterLogo
     ? getVcProsIconSource('light')
     : undefined;
-  const logoImageKey = customCenterLogo ? `${customCenterLogo}|${resolvedCustomLogo}` : 'brand-icon';
-  const needsLogoImage = showCenterLogo && !customLogoVector && Boolean(customCenterLogo || brandIconSource);
+  const logoImageKey = customCenterLogo ? `${customCenterLogo}|${resolvedCustomLogo}|${attempt}` : 'brand-icon';
+  const needsLogoImage = showCenterLogo && !customLogoVector && !logoFailed && Boolean(customCenterLogo || brandIconSource);
   const [loadedLogoKey, setLoadedLogoKey] = useState('');
   const logoReady = !needsLogoImage || loadedLogoKey === logoImageKey;
   const logoReadyRef = useRef(logoReady);
@@ -139,7 +152,7 @@ export function QRCodeView({
       logoReadyRef.current = false;
       return undefined;
     }
-    // react-native-svg reports onLoad just before it stores the image, so wait a frame.
+    // Allow the image layer to draw before an export captures it.
     const frame = requestAnimationFrame(() => {
       logoReadyRef.current = true;
       logoWaitersRef.current.forEach((finish) => finish());
@@ -169,6 +182,11 @@ export function QRCodeView({
       // produce a solid background on iOS when react-native-view-shot runs
       // before react-native-svg has committed its drawing layer.
       toDataURL: (callback) => {
+        if (useNativeLogo && captureRootRef.current) {
+          void captureRef(captureRootRef.current, { format: 'png', result: 'base64' })
+            .then(callback, () => callback(''));
+          return;
+        }
         const svg = svgRef.current;
         if (!svg?.toDataURL) {
           callback('');
@@ -190,7 +208,7 @@ export function QRCodeView({
         }
       },
     });
-  }, [getRef, whenLogoReady]);
+  }, [getRef, useNativeLogo, whenLogoReady]);
 
   React.useEffect(() => {
     publishExportRef();
@@ -316,7 +334,7 @@ export function QRCodeView({
           ))}
 
           {/* Exact Enterprise VC Logo Vector Mark from vcpros-logo-v3 */}
-          {showCenterLogo && !useBrandIconAsset && !customCenterLogo ? (
+          {showCenterLogo && (logoFailed || (!useBrandIconAsset && !customCenterLogo)) ? (
             <G
               transform={`translate(${qrData.matrixSize / 2}, ${qrData.matrixSize / 2}) scale(${
                 (qrData.matrixSize * 0.29) / 348
@@ -410,7 +428,7 @@ export function QRCodeView({
                 >
                   <Path d={customLogoVector.path} fill={customLogoVector.color} />
                 </G>
-              ) : (
+              ) : !useNativeLogo ? (
                 <SvgImage
                   key={logoImageKey}
                   href={(customLogoSource ?? brandIconSource)!}
@@ -421,10 +439,24 @@ export function QRCodeView({
                   height={(customCenterLogo ? customLogoHeight : centerIconSize) / size * qrData.matrixSize}
                   preserveAspectRatio="xMidYMid meet"
                 />
-              )}
+              ) : null}
             </G>
           ) : null}
         </Svg>
+        {useNativeLogo && customLogoSource ? (
+          <View pointerEvents="none" style={{ position: 'absolute', left: (size - customLogoWidth) / 2, top: (size - customLogoHeight) / 2 }}>
+            <Image
+              key={logoImageKey}
+              source={customLogoSource}
+              style={{ width: customLogoWidth, height: customLogoHeight }}
+              contentFit="contain"
+              cachePolicy={attempt ? 'none' : 'memory-disk'}
+              allowDownscaling={false}
+              onDisplay={() => setLoadedLogoKey(logoImageKey)}
+              onError={handleLogoError}
+            />
+          </View>
+        ) : null}
       </View>
     ) : (
       <View style={{ width: size, height: size, backgroundColor, opacity: 0.6 }} />

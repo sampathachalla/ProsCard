@@ -133,11 +133,11 @@ describe('wallet passes', () => {
     expect(withService.toString('latin1')).toContain('"webServiceURL":"https://example.test/api/v1/wallet/apple/ws"');
   });
 
-  it('creates a signed "Save to Google Wallet" link carrying the generic pass', () => {
+  it('creates a signed "Save to Google Wallet" link carrying the generic pass', async () => {
     const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
     const accountPath = path.join(dir, 'service-account.json');
     writeFileSync(accountPath, JSON.stringify({ client_email: 'wallet@test.iam.gserviceaccount.com', private_key: privateKey.export({ type: 'pkcs8', format: 'pem' }), private_key_id: 'kid-1' }));
-    const url = new GoogleWalletLinkGenerator({ issuerId: '3388000000012345', serviceAccountPath: accountPath })
+    const url = await new GoogleWalletLinkGenerator({ issuerId: '3388000000012345', serviceAccountPath: accountPath })
       .createSaveUrl(toWalletCard('card-1', card, profile), 'https://example.test/share/abc', {
         media: (id) => `https://example.test/img/${id}`,
         brandLogo: 'https://example.test/assets/vcpros-logo.png',
@@ -168,12 +168,12 @@ describe('wallet passes', () => {
       });
   });
 
-  it('uses a bundled card cover in Google Wallet when the card selected a preset', () => {
+  it('uses a bundled card cover in Google Wallet when the card selected a preset', async () => {
     const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
     const accountPath = path.join(dir, 'preset-service-account.json');
     writeFileSync(accountPath, JSON.stringify({ client_email: 'wallet@test.iam.gserviceaccount.com', private_key: privateKey.export({ type: 'pkcs8', format: 'pem' }) }));
     const presetCard = toWalletCard('card-2', card, { ...profile, coverPhotoUrl: 'proscard-cover:ocean-glass' });
-    const url = new GoogleWalletLinkGenerator({ issuerId: '3388000000012345', serviceAccountPath: accountPath }).createSaveUrl(
+    const url = await new GoogleWalletLinkGenerator({ issuerId: '3388000000012345', serviceAccountPath: accountPath }).createSaveUrl(
       presetCard,
       'https://example.test/share/abc',
       {

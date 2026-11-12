@@ -169,7 +169,7 @@ export class WalletService {
     const { card, slug } = await this.load(userId, cardId);
     try {
       // Google fetches pass images itself, so they go through the public, share-scoped image route.
-      const url = this.deps.google.createSaveUrl(
+      const url = await this.deps.google.createSaveUrl(
         card,
         `${base}/share/${slug}`,
         {

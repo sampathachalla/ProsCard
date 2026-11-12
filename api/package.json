@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "predev": "node scripts/authenticate-google-wallet.mjs",
     "dev": "tsx watch src/server.ts",
+    "prestart": "node scripts/authenticate-google-wallet.mjs",
     "start": "tsx src/server.ts",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -39,6 +41,7 @@
     "dotenv": "^18.0.4",
     "express": "^5.2.1",
     "express-rate-limit": "^8.7.0",
+    "google-auth-library": "^11.3.4",
     "helmet": "^8.3.0",
     "oci-sdk": "^2.142.0",
     "passkit-generator": "^3.6.1",

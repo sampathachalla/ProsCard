@@ -61,6 +61,7 @@ const schema = z.object({
   // Google Wallet: issuer ID and a service-account key from the Google Pay & Wallet Console. Empty disables it.
   GOOGLE_WALLET_ISSUER_ID: z.string().default(''),
   GOOGLE_WALLET_SERVICE_ACCOUNT_PATH: z.string().default(''),
+  GOOGLE_WALLET_SERVICE_ACCOUNT_EMAIL: z.string().email().or(z.literal('')).default(''),
   // Signs the short-lived Apple pass download links; a random per-process value is used when empty.
   WALLET_LINK_SECRET: z.string().default(''),
 }).superRefine((config, context) => {

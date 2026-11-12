@@ -124,6 +124,7 @@ async function main() {
   const googleWallet = {
     issuerId: config.GOOGLE_WALLET_ISSUER_ID,
     serviceAccountPath: config.GOOGLE_WALLET_SERVICE_ACCOUNT_PATH,
+    serviceAccountEmail: config.GOOGLE_WALLET_SERVICE_ACCOUNT_EMAIL,
   };
 
   let apple: AppleWalletPassGenerator | undefined;

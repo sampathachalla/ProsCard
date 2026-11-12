@@ -208,6 +208,12 @@ export async function getDisplayMediaUrl(storedUrl: string): Promise<string> {
     : resolveProtectedMediaUrl(storedUrl);
 }
 
+export async function refreshDisplayMediaUrl(storedUrl: string): Promise<string> {
+  const mediaId = storedUrl.match(PROTECTED_MEDIA_PATTERN)?.[1];
+  if (mediaId) await invalidateCachedMedia(mediaId);
+  return getDisplayMediaUrl(storedUrl);
+}
+
 export function getImmediateDisplayMediaUrl(storedUrl: string): string {
   const match = storedUrl.match(PROTECTED_MEDIA_PATTERN);
   return match
