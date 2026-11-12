@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -11,7 +12,7 @@ import { CameraView } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { AlertCircle, Check, ChevronLeft, ImagePlus, PencilLine, RefreshCw, RotateCcw, ScanLine, X } from 'lucide-react-native';
+import { AlertCircle, Check, ChevronLeft, Crop, ImagePlus, PencilLine, RefreshCw, RotateCcw, ScanLine, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/Colors';
 import { MAX_FONT_SCALE } from '@/common/ui/Text';
@@ -27,11 +28,12 @@ import { ScannerModeBar, type ScannerKind } from './Components/ScannerModeBar';
 import { ScannerOverlay } from './Components/ScannerOverlay';
 import { useScanner } from './Hooks/useScanner';
 import { PageHeader } from '@/common/ui/PageHeader';
+import { PhotoAdjustmentModal } from '@/common/ui/PhotoAdjustmentModal';
 import { useCardCapture } from './Hooks/useCardCapture';
 import { useBadgeReader } from './Hooks/useBadgeReader';
 import { useCardReader } from './Hooks/useCardReader';
 import { saveScanResult, type ScanResult } from './Services/scanHandoff';
-import type { CapturedCard } from './types/scanner.types';
+import type { CapturedCard, CardReading, ProcessedCard } from './types/scanner.types';
 import { lookupScannedCard } from './Services/scannerService';
 import type { SharedCard } from '@/pages/share/Services/sharingService';
 import { loadCurrentEvent, setCurrentEvent, type CurrentEvent } from '@/pages/contacts/Services/eventNamesService';
@@ -42,7 +44,10 @@ type ScanStage = 'camera' | 'processing' | 'result';
 const liveCardDetection = isCardRectangleDetectorAvailable();
 
 /** Why a captured photo could not go straight to review. */
-type PhotoIssue = { kind: 'notACard' | 'failed'; title: string; message: string };
+type PhotoIssue = { title: string; message: string } & (
+  | { kind: 'notACard' | 'failed' }
+  | { kind: 'noCrop'; reading: CardReading }
+);
 
 export default function ScannerScreen() {
   const router = useRouter();
@@ -85,7 +90,8 @@ export default function ScannerScreen() {
   const [cardState, setCardState] = useState<CardScanState>('none');
   const [shooting, setShooting] = useState(false);
   /** Width ÷ height of the captured photo, so the scanning animation covers exactly the photo. */
-  const [photoAspectRatio, setPhotoAspectRatio] = useState<number>();
+  const [photoSize, setPhotoSize] = useState<{ width: number; height: number }>();
+  const [manualCropOpen, setManualCropOpen] = useState(false);
   const { permission, requestPermission, isActive, handleBarcodeScanned, resumeScanning, saveContact } = useScanner();
   const { busy: capturing, captureCard: capturePhoto } = useCardCapture();
   const cardReader = useCardReader();
@@ -148,13 +154,13 @@ export default function ScannerScreen() {
   };
 
   /** Shows the scanning animation over the photo until the backend has read it, then opens the review. */
-  const processPhoto = async (card: CapturedCard) => {
+  const processPhoto = async (card: ProcessedCard) => {
     if (badgeMode && !sessionEventName) {
       setStage('camera');
       setEventSheetOpen(true);
       return;
     }
-    if (card.uri !== photo?.uri) setPhotoAspectRatio(undefined);
+    if (card.uri !== photo?.uri) setPhotoSize(undefined);
     setPhoto(card);
     setPhotoIssue(null);
     setStage('processing');
@@ -169,12 +175,28 @@ export default function ScannerScreen() {
           meta: badgeMode ? { kind: 'badge', eventName: sessionEventName } : { kind: 'business_card' },
         });
         return;
-      case 'unavailable':
+      case 'unavailable': {
+        const reviewCard = 'card' in result && result.card ? result.card : card;
+        if (!badgeMode && Platform.OS === 'android' && !reviewCard.edgeDetected && !reviewCard.autoCropped) {
+          setPhotoIssue({ kind: 'failed', title: 'Couldn’t crop the card', message: result.error });
+          setStage('result');
+          return;
+        }
         openReview({
-          card,
+          card: reviewCard,
           reading: null,
           meta: badgeMode ? { kind: 'badge', eventName: sessionEventName } : { kind: 'business_card' },
         });
+        return;
+      }
+      case 'noCrop':
+        setPhotoIssue({
+          kind: 'noCrop',
+          title: 'Adjust the card crop',
+          message: 'The card was read. Crop this photo manually or retake it.',
+          reading: result.reading,
+        });
+        setStage('result');
         return;
       case 'notACard':
       case 'notABadge':
@@ -188,6 +210,7 @@ export default function ScannerScreen() {
         setStage('result');
         return;
       case 'failed':
+        if ('card' in result && result.card) setPhoto(result.card);
         setPhotoIssue({
           kind: 'failed',
           title: badgeMode ? 'Couldn’t read the badge' : 'Couldn’t read the card',
@@ -376,13 +399,13 @@ export default function ScannerScreen() {
             source={{ uri: photo.uri }}
             style={StyleSheet.absoluteFill}
             contentFit="contain"
-            onLoad={({ source }) => setPhotoAspectRatio(source.width && source.height ? source.width / source.height : undefined)}
+            onLoad={({ source }) => setPhotoSize(source.width && source.height ? { width: source.width, height: source.height } : undefined)}
           />
-          {stage === 'processing' && photoAspectRatio && (
+          {stage === 'processing' && photoSize && (
             <ScannerOverlay
               isActive
               isProcessing
-              imageAspectRatio={photoAspectRatio}
+              imageAspectRatio={photoSize.width / photoSize.height}
               hintBottom={controlsBottom + 64}
               processingHint={badgeMode ? 'Reading badge details…' : 'Reading card details…'}
             />
@@ -415,7 +438,12 @@ export default function ScannerScreen() {
               <RotateCcw color="#FFFFFF" size={18} />
               <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.secondaryActionText}>Retake</Text>
             </Pressable>
-            {photoIssue.kind === 'notACard' ? (
+            {photoIssue.kind === 'noCrop' ? (
+              <Pressable onPress={() => setManualCropOpen(true)} disabled={!photoSize} style={[styles.primaryAction, !photoSize && { opacity: 0.5 }]}>
+                <Crop color="#FFFFFF" size={18} />
+                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.primaryActionText}>Crop photo</Text>
+              </Pressable>
+            ) : photoIssue.kind === 'notACard' ? (
               <Pressable onPress={openLibrary} disabled={capturing} style={styles.primaryAction}>
                 <ImagePlus color="#FFFFFF" size={18} />
                 <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.primaryActionText}>Upload</Text>
@@ -508,6 +536,23 @@ export default function ScannerScreen() {
           </TouchableOpacity>
         </View>
       )}
+
+      {manualCropOpen && photo && photoSize && photoIssue?.kind === 'noCrop' ? (
+        <PhotoAdjustmentModal
+          asset={{ uri: photo.uri, ...photoSize }}
+          aspect={[7, 4]}
+          title="Crop business card"
+          onCancel={() => setManualCropOpen(false)}
+          onSave={(uri) => {
+            setManualCropOpen(false);
+            openReview({
+              card: { ...photo, uri, originalUri: photo.uri, autoCropped: true, mimeType: 'image/jpeg', fileName: undefined },
+              reading: photoIssue.reading,
+              meta: { kind: 'business_card' },
+            });
+          }}
+        />
+      ) : null}
 
       <BadgeEventSheet
         visible={badgeMode && eventSheetOpen}

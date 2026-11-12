@@ -3,6 +3,7 @@ package com.mindpros.cardrectangledetector
 import android.annotation.SuppressLint
 import android.content.Context
 import android.os.SystemClock
+import android.util.Log
 import android.view.Surface
 import android.view.ViewGroup
 import android.widget.FrameLayout
@@ -45,6 +46,7 @@ class CardScannerView(context: Context, appContext: AppContext) : ExpoView(conte
   private var missedFrames = 0
   private var reportedState = "none"
   private var lastBarcode: Pair<String, Long>? = null
+  private var lastAnalysisError: String? = null
 
   companion object {
     private const val steadyFrameCount = 7
@@ -162,8 +164,9 @@ class CardScannerView(context: Context, appContext: AppContext) : ExpoView(conte
       buffer.get(bytes)
       source = CardDetector.matFromRgba(bytes, image.width, image.height, plane.rowStride, image.imageInfo.rotationDegrees)
       preview.update(source)
-      val detection = CardDetector.detect(source)
-      val quad = track(detection?.quad)
+      val candidate = DynamsoftCardDetector.detect(context, source, minimumAreaRatio = 0.08)
+        ?: CardDetector.detect(source, minimumAreaRatio = 0.08)?.quad
+      val quad = track(candidate)
       val state = if (quad == null) "none" else if (steadyFrames >= steadyFrameCount) "steady" else "detected"
       val changed = state != reportedState
       reportedState = state
@@ -185,8 +188,14 @@ class CardScannerView(context: Context, appContext: AppContext) : ExpoView(conte
         if (changed) onCardStateChange(CardStateEvent(state))
         barcode?.let { onBarcodeScanned(BarcodeEvent(it)) }
       }
-    } catch (_: Throwable) {
+    } catch (error: Throwable) {
       // A single malformed or incomplete camera frame must not interrupt the preview.
+      // Log each new failure once so a detector that fails on every frame is visible in logcat.
+      val message = error.toString()
+      if (message != lastAnalysisError) {
+        lastAnalysisError = message
+        Log.w("CardScanner", "Frame analysis failed", error)
+      }
     } finally {
       source?.release()
       image.close()
@@ -254,7 +263,9 @@ class CardScannerView(context: Context, appContext: AppContext) : ExpoView(conte
       val bitmap = CardDetector.bitmapFromFile(file) ?: throw IllegalStateException("The captured photo is unreadable")
       source = CardDetector.fromBitmap(bitmap)
       bitmap.recycle()
-      val detected = CardDetector.detect(source, 0.08)?.quad ?: trackedQuad
+      // Analysis and still capture can have different framing. Only warp using corners from this photo.
+      val detected = DynamsoftCardDetector.detect(context, source, minimumAreaRatio = 0.04)
+        ?: CardDetector.detect(source, minimumAreaRatio = 0.04)?.quad
       output = detected?.let { CardDetector.straighten(source, it) } ?: source.clone()
       val corrected = File(context.cacheDir, "vcpros-card-corrected-${System.currentTimeMillis()}.jpg")
       val (width, height) = CardDetector.saveJpeg(output, corrected)

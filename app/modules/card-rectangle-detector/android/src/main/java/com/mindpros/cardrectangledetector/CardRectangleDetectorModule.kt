@@ -56,17 +56,19 @@ class CardRectangleDetectorModule : Module() {
     bitmap.recycle()
     try {
       val minimumArea = (options.minimumSize * options.minimumSize).coerceIn(0.03, 0.75)
-      val detection = CardDetector.detect(source, minimumArea) ?: return null
-      val straightened = CardDetector.straighten(source, detection.quad)
+      val context = requireNotNull(appContext.reactContext)
+      val quad = DynamsoftCardDetector.detect(context, source, minimumArea)
+        ?: CardDetector.detect(source, minimumArea)?.quad ?: return null
+      val straightened = CardDetector.straighten(source, quad)
       try {
-        val output = File(requireNotNull(appContext.reactContext).cacheDir, "vcpros-detected-${System.currentTimeMillis()}.jpg")
+        val output = File(context.cacheDir, "vcpros-detected-${System.currentTimeMillis()}.jpg")
         val (width, height) = CardDetector.saveJpeg(straightened, output, (options.quality.coerceIn(0.1, 1.0) * 100).toInt())
         return mapOf(
           "uri" to output.toURI().toString(),
           "width" to width,
           "height" to height,
           "edgeDetected" to true,
-          "corners" to detection.quad.asMap()
+          "corners" to quad.asMap()
         )
       } finally {
         straightened.release()

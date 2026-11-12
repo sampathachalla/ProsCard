@@ -105,7 +105,7 @@ object CardDetector {
    * Edge thresholds adapt to each frame (a fixed Canny(55, 165) misses a light card on a light desk),
    * edges are thickened so small gaps from glare join, and every outline is judged by its convex hull,
    * so an outline that is not perfectly closed still counts. Each candidate must then look like a real
-   * card: near-right corners, inside brightness different from just outside, and edges along all sides.
+   * card: plausible corner angles, inside brightness different from just outside, and edges along all sides.
    */
   fun detect(source: Mat, minimumAreaRatio: Double = 0.12): Detection? {
     if (source.empty()) return null
@@ -146,7 +146,7 @@ object CardDetector {
         }
         if (best != null) return best
       }
-      return null
+      return detectRegion(binary, blurred, hierarchy, frameArea, minimumAreaRatio)
     } finally {
       working.release()
       gray.release()
@@ -154,6 +154,42 @@ object CardDetector {
       binary.release()
       edges.release()
       hierarchy.release()
+      kernel.release()
+    }
+  }
+
+  /**
+   * Edge outlines break when desk texture, a hand or a shadow touches the card. This pass instead finds
+   * the card as one region brighter (or darker) than its surroundings, which needs no closed outline.
+   * Regions touching the frame border are skipped: they are the background, and a card must be fully in view.
+   */
+  private fun detectRegion(binary: Mat, gray: Mat, hierarchy: Mat, frameArea: Double, minimumAreaRatio: Double): Detection? {
+    val region = Mat()
+    val kernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, Size(7.0, 7.0))
+    try {
+      for (inverted in listOf(false, true)) {
+        if (inverted) Core.bitwise_not(binary, region) else binary.copyTo(region)
+        // Cuts thin bridges such as fingers or texture that join the card to other bright areas.
+        Imgproc.morphologyEx(region, region, Imgproc.MORPH_OPEN, kernel)
+        val contours = mutableListOf<MatOfPoint>()
+        Imgproc.findContours(region, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE)
+        var best: Detection? = null
+        for (contour in contours.sortedByDescending { Imgproc.contourArea(it) }.take(8)) {
+          val bounds = Imgproc.boundingRect(contour)
+          if (bounds.x <= 2 || bounds.y <= 2 || bounds.x + bounds.width >= binary.cols() - 2 || bounds.y + bounds.height >= binary.rows() - 2) continue
+          val points = hull(contour)
+          val convexArea = hullArea(points)
+          if (convexArea <= 0.0 || Imgproc.contourArea(contour) / convexArea < 0.85) continue
+          val candidate = quadFrom(points, frameArea, minimumAreaRatio, binary.cols(), binary.rows()) ?: continue
+          if (!insideDiffersFromOutside(gray, candidate.quad)) continue
+          if (best == null || candidate.areaRatio > best.areaRatio) best = candidate
+        }
+        contours.forEach(MatOfPoint::release)
+        if (best != null) return best
+      }
+      return null
+    } finally {
+      region.release()
       kernel.release()
     }
   }
@@ -197,8 +233,9 @@ object CardDetector {
     val width = max(distance(ordered[0], ordered[1]), distance(ordered[3], ordered[2]))
     val height = max(distance(ordered[0], ordered[3]), distance(ordered[1], ordered[2]))
     val ratio = max(width, height) / max(1.0, min(width, height))
-    if (ratio !in 1.20..2.15) return null
-    // Corners between roughly 65 and 115 degrees, allowing for perspective.
+    // Perspective can make a rectangular card look nearly square or more elongated.
+    if (ratio !in 1.05..2.50) return null
+    // Corners between roughly 55 and 125 degrees, allowing for perspective.
     for (i in 0 until 4) {
       val a = ordered[(i + 3) % 4]
       val b = ordered[i]
@@ -208,7 +245,7 @@ object CardDetector {
       val v2x = c.x - b.x
       val v2y = c.y - b.y
       val cosine = abs(v1x * v2x + v1y * v2y) / max(1e-6, hypot(v1x, v1y) * hypot(v2x, v2y))
-      if (cosine > 0.42) return null
+      if (cosine > 0.57) return null
     }
     val quad = DetectedQuad(
       NormalizedPoint(ordered[0].x / cols, ordered[0].y / rows),
@@ -327,7 +364,19 @@ object CardDetector {
     val bottomRight = points.maxBy { it.x + it.y }
     val topRight = points.maxBy { it.x - it.y }
     val bottomLeft = points.minBy { it.x - it.y }
-    return arrayOf(topLeft, topRight, bottomRight, bottomLeft)
+    val corners = arrayOf(topLeft, topRight, bottomRight, bottomLeft)
+    if (corners.toSet().size == 4) return corners
+
+    // A diagonal or skewed card can put the same point at two coordinate extrema.
+    // OpenCV already supplies the contour in perimeter order. Keep that order, clockwise in image coordinates.
+    val signedArea = points.indices.sumOf { i ->
+      val a = points[i]
+      val b = points[(i + 1) % points.size]
+      a.x * b.y - b.x * a.y
+    }
+    val clockwise = if (signedArea >= 0.0) points else points.reversedArray()
+    val start = clockwise.indexOf(topLeft)
+    return Array(clockwise.size) { clockwise[(start + it) % clockwise.size] }
   }
 
   private fun distance(a: Point, b: Point) = hypot(a.x - b.x, a.y - b.y)

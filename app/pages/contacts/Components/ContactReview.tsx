@@ -38,7 +38,6 @@ import {
   Sparkles,
   Trash2,
   User,
-  UserRoundCheck,
   UserPlus,
   type LucideIcon,
 } from 'lucide-react-native';
@@ -54,10 +53,10 @@ import { saveDirectlyToNativeContacts } from '@/utils/nativeContacts';
 import type { CardContactFields, ProcessedCard } from '@/pages/scanner/types/scanner.types';
 import type { Contact } from '@/pages/contacts/types/contact.types';
 import { DuplicateContactModal } from './DuplicateContactModal';
+import { DuplicateContactBanner } from './DuplicateContactBanner';
 import { CONTACT_TEXT_LIMITS, fitCardText } from '@/utils/cardTextLayout';
 
 const AutofillIcon = Platform.OS === 'android' ? IdCard : Sparkles;
-const DuplicateIcon = Platform.OS === 'android' ? Check : UserRoundCheck;
 
 export type ContactFieldKey = keyof CardContactFields;
 export type ContactFormValues = Record<ContactFieldKey, string>;
@@ -222,6 +221,7 @@ export function ContactReview({
   const [viewerOpen, setViewerOpen] = useState(false);
   const [savingToPhone, setSavingToPhone] = useState(false);
   const [duplicatePromptOpen, setDuplicatePromptOpen] = useState(false);
+  const [replacementContact, setReplacementContact] = useState<Contact>();
   const { busy: capturing, captureCard } = useCardCapture();
   const reader = useCardReader();
   const formRef = useRef(form);
@@ -229,6 +229,8 @@ export function ContactReview({
     () => mode === 'create' ? findDuplicateContact(existingContacts, form, contactId) : undefined,
     [contactId, existingContacts, form, mode],
   );
+  const replacementTarget = replacementContact ?? duplicateContact;
+  const showDuplicateActions = Platform.OS === 'android' && Boolean(card && replacementTarget && onReplaceDuplicate && onDiscardDuplicate);
 
   const handleSaveToPhoneContacts = async () => {
     if (savingToPhone) return;
@@ -280,11 +282,13 @@ export function ContactReview({
     setNotice(null);
     const result = await reader.read(next);
     if (result.status === 'stale') return;
-    if (result.status === 'notACard') {
+    if (result.status === 'notACard' || result.status === 'noCrop') {
       setCard(previous);
       Alert.alert(
-        'No business card found',
-        'We couldn’t find a business card in that photo. Try again with a clear photo of the card.',
+        result.status === 'noCrop' ? 'Couldn’t crop the card' : 'No business card found',
+        result.status === 'noCrop'
+          ? 'Keep all four corners visible and try again with the card on a plain surface.'
+          : 'We couldn’t find a business card in that photo. Try again with a clear photo of the card.',
         [
           { text: 'Take photo', onPress: () => { void replaceCard('scan'); } },
           { text: 'Upload photo', onPress: () => { void replaceCard('library'); } },
@@ -293,7 +297,9 @@ export function ContactReview({
       );
       return;
     }
+    setReplacementContact(undefined);
     if (result.status !== 'done') {
+      if (result.card) setCard(result.card);
       setNotice({ tone: 'warning', text: 'Couldn’t read the card. The photo was added; enter the details yourself.' });
       return;
     }
@@ -331,6 +337,10 @@ export function ContactReview({
   };
 
   const save = async () => {
+    if (showDuplicateActions) {
+      if (replacementContact) await replaceDuplicate();
+      return;
+    }
     Keyboard.dismiss();
     if (busy || !validate()) return;
     if (duplicateContact && onReplaceDuplicate && onDiscardDuplicate) {
@@ -350,21 +360,22 @@ export function ContactReview({
     }
   };
 
-  const replaceDuplicate = async () => {
-    if (!duplicateContact || !onReplaceDuplicate || saving) return;
+  async function replaceDuplicate() {
+    Keyboard.dismiss();
+    if (!replacementTarget || !onReplaceDuplicate || busy || !validate()) return;
     setDuplicatePromptOpen(false);
     setSaving(true);
     try {
       const values = Object.fromEntries(
         Object.entries(form).map(([key, value]) => [key, value.trim()]),
       ) as ContactFormValues;
-      await onReplaceDuplicate(duplicateContact.id, values, card);
+      await onReplaceDuplicate(replacementTarget.id, values, card);
     } catch (reason) {
       Alert.alert('Replace failed', reason instanceof Error ? reason.message : 'Could not replace this contact. Please try again.');
     } finally {
       setSaving(false);
     }
-  };
+  }
 
   const confirmDelete = () => {
     if (!onDelete || busy) return;
@@ -415,6 +426,14 @@ export function ContactReview({
         }}
         showsVerticalScrollIndicator={false}
       >
+        {showDuplicateActions && replacementTarget && !replacementContact ? (
+          <DuplicateContactBanner
+            contactName={replacementTarget.name}
+            disabled={busy}
+            onReplace={() => setReplacementContact(replacementTarget)}
+            onDiscard={onDiscardDuplicate}
+          />
+        ) : null}
         {/* ===================== HERO PROFILE HEADER ===================== */}
         <View className="items-center justify-center pt-2 pb-5">
           {/* Avatar Circle */}
@@ -559,16 +578,8 @@ export function ContactReview({
           </View>
         ) : null}
 
-        {duplicateContact ? (
-          <View className="mb-4 flex-row items-center rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
-            <DuplicateIcon color="#d97706" size={17} strokeWidth={2.3} />
-            <View className="ml-2.5 flex-1">
-              <Text className="text-xs font-bold text-amber-700 dark:text-amber-400">Already saved</Text>
-              <Text className="mt-0.5 text-xs text-textMuted dark:text-slate-400">
-                Matches {duplicateContact.name} in your contacts.
-              </Text>
-            </View>
-          </View>
+        {duplicateContact && !showDuplicateActions ? (
+          <DuplicateContactBanner contactName={duplicateContact.name} />
         ) : null}
 
         {/* ===================== INSET GROUPED DETAILS ===================== */}
@@ -964,7 +975,7 @@ export function ContactReview({
               label={mode === 'create' ? 'Save Contact' : 'Save Changes'}
               icon={Check}
               loading={saving}
-              disabled={busy && !saving}
+              disabled={(busy && !saving) || (showDuplicateActions && !replacementContact)}
               onPress={save}
             />
 

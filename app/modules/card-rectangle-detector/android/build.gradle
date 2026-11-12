@@ -8,9 +8,22 @@ version = '1.0.0'
 
 android {
   namespace 'com.mindpros.cardrectangledetector'
+  buildFeatures {
+    buildConfig true
+  }
   defaultConfig {
     versionCode 1
     versionName '1.0.0'
+    buildConfigField 'String', 'DYNAMSOFT_LICENSE', groovy.json.JsonOutput.toJson(providers.environmentVariable('DYNAMSOFT_LICENSE').getOrElse(''))
+  }
+}
+
+rootProject.allprojects {
+  repositories {
+    maven {
+      url 'https://download2.dynamsoft.com/maven/aar'
+      content { includeGroup 'com.dynamsoft' }
+    }
   }
 }
 
@@ -26,4 +39,5 @@ dependencies {
   implementation 'androidx.camera:camera-view:1.6.0'
   implementation 'androidx.exifinterface:exifinterface:1.4.2'
   implementation 'org.opencv:opencv:4.10.0'
+  implementation 'com.dynamsoft:capturevisionbundle:3.4.1200'
 }

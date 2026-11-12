@@ -39,6 +39,19 @@ export function isPlaceholder(value: string): boolean {
   return PLACEHOLDER_PATTERNS.some((pattern) => pattern.test(value));
 }
 
+function separatePhoneNumbers(phone: string, secondaryPhone: string) {
+  const numbers = phone.split(/\s*[\r\n;|,]+\s*|\s+\/\s+/).map((value) => value.trim());
+  const digits = (value: string) => value.replace(/\D/g, '');
+  // Split only clearly delimited numbers. Leave extensions and ordinary phone formatting intact.
+  if (numbers.length < 2 || !numbers.every((value) => /^\+?[\d().\s-]+$/.test(value) && digits(value).length >= 7)) {
+    return { phone, secondaryPhone };
+  }
+  const [primary = phone, ...others] = numbers;
+  const alternate = others.find((value) => digits(value) !== digits(primary));
+  const distinctSecondary = digits(secondaryPhone) !== digits(primary) ? secondaryPhone : '';
+  return { phone: primary, secondaryPhone: distinctSecondary || alternate || '' };
+}
+
 export class ScannerService {
   constructor(
     private readonly reader?: CardReaderGateway,
@@ -70,6 +83,7 @@ export class ScannerService {
       cardBounds: reading.isBusinessCard ? normalizeBounds(reading.cardBounds) : null,
       contact: {
         ...contact,
+        ...separatePhoneNumbers(contact.phone, contact.secondaryPhone),
         email: contact.email.replace(/^mailto:/i, '').toLowerCase(),
         // Notes are the user's own; never filled from the card.
         notes: '',

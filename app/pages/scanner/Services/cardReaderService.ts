@@ -1,5 +1,6 @@
 // pages/scanner/Services/cardReaderService.ts
 import { ImageManipulator, SaveFormat, type ImageRef } from 'expo-image-manipulator';
+import { Platform } from 'react-native';
 import { detectCardAsync } from '@/modules/card-rectangle-detector';
 import { apiRequest } from '@/services/api/client';
 import type { CapturedCard, CardBounds, CardReading, ProcessedCard } from '../types/scanner.types';
@@ -37,22 +38,30 @@ async function orientedSize(uri: string): Promise<Size> {
   return { width: image.width, height: image.height };
 }
 
-async function requestReading(uri: string, size: Size): Promise<CardReading> {
+async function requestReading(uri: string, size: Size) {
   const resize = resizeFor(size, READER_MAX_EDGE);
   const small = await render(uri, (context) => {
     if (resize) context.resize(resize);
   });
-  const { base64 } = await small.saveAsync({ format: SaveFormat.JPEG, compress: 0.7, base64: true });
+  const { base64, uri: readerUri } = await small.saveAsync({ format: SaveFormat.JPEG, compress: 0.7, base64: true });
   if (!base64) throw new Error('Could not prepare the photo.');
   // Uploading the photo and reading it with the model can take longer than an ordinary request.
-  return apiRequest<CardReading>('/scanner/read', { method: 'POST', body: { image: base64, mimeType: 'image/jpeg' }, timeoutMs: 90_000 });
+  const reading = await apiRequest<CardReading>('/scanner/read', { method: 'POST', body: { image: base64, mimeType: 'image/jpeg' }, timeoutMs: 90_000 });
+  return { reading, readerUri, readerSize: { width: small.width, height: small.height } };
 }
 
-async function cropToCard(uri: string, size: Size, bounds: CardBounds, rotation: CardReading['rotation']): Promise<string> {
-  const left = Math.floor(Math.max(0, bounds.x - CROP_PADDING) * size.width);
-  const top = Math.floor(Math.max(0, bounds.y - CROP_PADDING) * size.height);
-  const right = Math.ceil(Math.min(1, bounds.x + bounds.width + CROP_PADDING) * size.width);
-  const bottom = Math.ceil(Math.min(1, bounds.y + bounds.height + CROP_PADDING) * size.height);
+async function cropToCard(
+  uri: string,
+  size: Size,
+  bounds: CardBounds,
+  rotation: CardReading['rotation'],
+  padX = CROP_PADDING,
+  padY = CROP_PADDING,
+): Promise<string> {
+  const left = Math.floor(Math.max(0, bounds.x - padX) * size.width);
+  const top = Math.floor(Math.max(0, bounds.y - padY) * size.height);
+  const right = Math.ceil(Math.min(1, bounds.x + bounds.width + padX) * size.width);
+  const bottom = Math.ceil(Math.min(1, bounds.y + bounds.height + padY) * size.height);
   const crop = {
     originX: left,
     originY: top,
@@ -69,10 +78,7 @@ async function cropToCard(uri: string, size: Size, bounds: CardBounds, rotation:
   return (await cropped.saveAsync({ format: SaveFormat.JPEG, compress: STORED_QUALITY })).uri;
 }
 
-/**
- * Finds the card on the device with Apple Vision (iOS dev builds only) and straightens it, which also
- * fixes photos taken at an angle. Null when the detector is unavailable or finds no card.
- */
+/** Finds and straightens the card using the device's native detector. */
 async function straightenOnDevice(card: CapturedCard): Promise<ProcessedCard | null> {
   try {
     const detected = await detectCardAsync(card.uri, { quality: STORED_QUALITY });
@@ -84,15 +90,26 @@ async function straightenOnDevice(card: CapturedCard): Promise<ProcessedCard | n
   }
 }
 
-/**
- * Reads the contact details on a card photo and, unless the native scanner already cropped it,
- * crops the photo to the card: on the device with Apple Vision when it can, otherwise from the reader's bounds.
- */
-export async function readCardPhoto(captured: CapturedCard): Promise<{ card: ProcessedCard; reading: CardReading }> {
-  const card: ProcessedCard = (!captured.edgeDetected && (await straightenOnDevice(captured))) || captured;
+export async function prepareCardPhoto(captured: ProcessedCard): Promise<ProcessedCard> {
+  if (captured.edgeDetected || captured.autoCropped) return captured;
+  return (await straightenOnDevice(captured)) ?? captured;
+}
+
+/** Reads the card and uses the reader's bounds to guide a fallback crop. */
+export async function readCardPhoto(card: ProcessedCard): Promise<{ card: ProcessedCard; reading: CardReading }> {
   const size = await orientedSize(card.uri);
-  const reading = await requestReading(card.uri, size);
-  if (card.edgeDetected || !reading.isBusinessCard || !reading.cardBounds) return { card, reading };
+  const { reading, readerUri, readerSize } = await requestReading(card.uri, size);
+  if (card.edgeDetected || card.autoCropped || !reading.isBusinessCard || !reading.cardBounds) return { card, reading };
+
+  if (Platform.OS === 'android') {
+    // The reader's box can be offset. Search a wider area of the exact JPEG it saw and let
+    // OpenCV find all four physical corners before showing a crop in Review Contact.
+    const bounds = reading.cardBounds;
+    const searchUri = await cropToCard(readerUri, readerSize, bounds, 0, bounds.width / 2, bounds.height / 2);
+    const detected = await straightenOnDevice({ ...card, uri: searchUri });
+    return { card: detected ? { ...detected, originalUri: card.uri } : card, reading };
+  }
+
   const uri = await cropToCard(card.uri, size, reading.cardBounds, reading.rotation);
   return {
     card: { ...card, uri, originalUri: card.uri, autoCropped: true, mimeType: 'image/jpeg', fileName: undefined },

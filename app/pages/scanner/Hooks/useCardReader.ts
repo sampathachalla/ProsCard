@@ -1,17 +1,19 @@
 // pages/scanner/Hooks/useCardReader.ts
 import { useCallback, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 import { AUTH_TEST_MODE } from '@/pages/auth/Config/authMode';
 import { ApiError } from '@/services/api/client';
-import { readCardPhoto } from '../Services/cardReaderService';
+import { prepareCardPhoto, readCardPhoto } from '../Services/cardReaderService';
 import type { CapturedCard, CardReading, ProcessedCard } from '../types/scanner.types';
 
-export type CardReadStatus = 'idle' | 'reading' | 'done' | 'notACard' | 'failed' | 'unavailable';
+export type CardReadStatus = 'idle' | 'reading' | 'done' | 'notACard' | 'noCrop' | 'failed' | 'unavailable';
 
 /** Outcome of one read; `stale` means a newer read started, so this result must be ignored. */
 export type CardReadResult =
   | { status: 'done'; card: ProcessedCard; reading: CardReading }
   | { status: 'notACard'; reading: CardReading }
-  | { status: 'failed' | 'unavailable'; error: string }
+  | { status: 'noCrop'; reading: CardReading }
+  | { status: 'failed' | 'unavailable'; error: string; card?: ProcessedCard }
   | { status: 'stale' };
 
 /**
@@ -31,12 +33,19 @@ export function useCardReader() {
       return { status: 'unavailable', error: 'Card reading needs the backend.' };
     }
     setStatus('reading');
+    let prepared: ProcessedCard = card;
     try {
-      const result = await readCardPhoto(card);
+      prepared = await prepareCardPhoto(card);
+      if (request !== latest.current) return { status: 'stale' };
+      const result = await readCardPhoto(prepared);
       if (request !== latest.current) return { status: 'stale' };
       if (!result.reading.isBusinessCard) {
         setStatus('notACard');
         return { status: 'notACard', reading: result.reading };
+      }
+      if (Platform.OS === 'android' && !result.card.edgeDetected && !result.card.autoCropped) {
+        setStatus('noCrop');
+        return { status: 'noCrop', reading: result.reading };
       }
       setStatus('done');
       return { status: 'done', ...result };
@@ -46,7 +55,7 @@ export function useCardReader() {
       const message = reason instanceof Error ? reason.message : 'Could not read the card.';
       setStatus(outcome);
       setError(message);
-      return { status: outcome, error: message };
+      return { status: outcome, error: message, ...(Platform.OS === 'android' && prepared !== card ? { card: prepared } : {}) };
     }
   }, []);
 
