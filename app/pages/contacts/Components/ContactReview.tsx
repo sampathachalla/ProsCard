@@ -56,6 +56,9 @@ import type { Contact } from '@/pages/contacts/types/contact.types';
 import { DuplicateContactModal } from './DuplicateContactModal';
 import { CONTACT_TEXT_LIMITS, fitCardText } from '@/utils/cardTextLayout';
 
+const AutofillIcon = Platform.OS === 'android' ? IdCard : Sparkles;
+const DuplicateIcon = Platform.OS === 'android' ? Check : UserRoundCheck;
+
 export type ContactFieldKey = keyof CardContactFields;
 export type ContactFormValues = Record<ContactFieldKey, string>;
 export type ReviewNotice = { tone: 'success' | 'warning'; text: string };
@@ -549,7 +552,7 @@ export function ContactReview({
                 : 'bg-amber-500/10 border-amber-500/20'
             }`}
           >
-            {notice.tone === 'success' ? <Sparkles color="#059669" size={16} /> : <AlertCircle color="#D97706" size={16} />}
+            {notice.tone === 'success' ? <AutofillIcon color="#059669" size={16} /> : <AlertCircle color="#D97706" size={16} />}
             <Text className="ml-2.5 flex-1 text-xs font-medium text-textPrimary dark:text-dark-textPrimary">
               {notice.text}
             </Text>
@@ -558,7 +561,7 @@ export function ContactReview({
 
         {duplicateContact ? (
           <View className="mb-4 flex-row items-center rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
-            <UserRoundCheck color="#d97706" size={17} strokeWidth={2.3} />
+            <DuplicateIcon color="#d97706" size={17} strokeWidth={2.3} />
             <View className="ml-2.5 flex-1">
               <Text className="text-xs font-bold text-amber-700 dark:text-amber-400">Already saved</Text>
               <Text className="mt-0.5 text-xs text-textMuted dark:text-slate-400">

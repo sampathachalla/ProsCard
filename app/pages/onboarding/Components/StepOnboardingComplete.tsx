@@ -1,5 +1,5 @@
 import React from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
@@ -77,6 +77,10 @@ export function StepOnboardingComplete({
     onBack();
   };
 
+  const isAndroid = Platform.OS === 'android';
+  const Container = isAndroid ? ScrollView : View;
+  const padding = { paddingTop: 8, paddingBottom: Math.max(insets.bottom, 16) + 16 };
+
   return (
     <View className="flex-1 bg-background dark:bg-dark-background">
       <LinearGradient
@@ -99,14 +103,11 @@ export function StepOnboardingComplete({
         }`}
       />
 
-      <View
-        className="flex-1 px-5"
-        style={{
-          paddingTop: 8,
-          paddingBottom: Math.max(insets.bottom, 16) + 16,
-        }}
+      <Container
+        className={isAndroid ? 'flex-1' : 'flex-1 px-5'}
+        {...(isAndroid ? { contentContainerStyle: { ...padding, flexGrow: 1, paddingHorizontal: 20 } } : { style: padding })}
       >
-        <View className="w-full max-w-[440px] flex-1 self-center">
+        <View className={`w-full max-w-[440px] self-center ${isAndroid ? 'grow' : 'flex-1'}`}>
           <Animated.View
             entering={FadeIn.duration(360)}
             className="w-full flex-row items-center justify-between pt-2"
@@ -283,7 +284,7 @@ export function StepOnboardingComplete({
             </LinearGradient>
           </Animated.View>
         </View>
-      </View>
+      </Container>
     </View>
   );
 }

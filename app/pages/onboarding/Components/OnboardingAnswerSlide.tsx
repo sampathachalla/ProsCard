@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useRef } from 'react';
-import { ActivityIndicator, View, ScrollView } from 'react-native';
+import { ActivityIndicator, Platform, View, ScrollView } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { Text } from '@/common/ui/Text';
 import type { OnboardingDraft, ProfileCopyAssist } from '../types/onboardingStepper.types';
@@ -80,8 +80,9 @@ export function OnboardingAnswerSlide({
             paddingBottom: 28,
           }}
           showsVerticalScrollIndicator={false}
+          nestedScrollEnabled={Platform.OS === 'android'}
           keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive"
+          keyboardDismissMode={Platform.OS === 'android' ? 'on-drag' : 'interactive'}
           automaticallyAdjustKeyboardInsets
           bounces={false}
           overScrollMode="never"

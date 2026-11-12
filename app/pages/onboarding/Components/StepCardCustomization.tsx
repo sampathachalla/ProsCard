@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import {
+  Platform,
   View,
   Text,
   ScrollView,
@@ -189,6 +190,7 @@ export function StepCardCustomization({
           paddingBottom: 48,
         }}
         showsVerticalScrollIndicator={false}
+        {...(Platform.OS === 'android' ? { nestedScrollEnabled: true, keyboardShouldPersistTaps: 'handled' as const } : {})}
       >
         {/* Informational Banner */}
         <View className="mb-5 flex-row items-start rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/50">

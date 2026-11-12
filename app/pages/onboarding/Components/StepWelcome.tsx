@@ -1,5 +1,5 @@
 import React from 'react';
-import { ActivityIndicator, Pressable, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
@@ -16,6 +16,9 @@ export interface StepWelcomeProps {
 
 export function StepWelcome({ onGetStarted, isSaving = false }: StepWelcomeProps) {
   const insets = useSafeAreaInsets();
+  const isAndroid = Platform.OS === 'android';
+  const Container = isAndroid ? ScrollView : View;
+  const padding = { paddingTop: 6, paddingBottom: Math.max(insets.bottom, 16) + 8 };
 
   const handleGetStarted = () => {
     if (isSaving) return;
@@ -24,18 +27,15 @@ export function StepWelcome({ onGetStarted, isSaving = false }: StepWelcomeProps
   };
 
   return (
-    <View
-      className="flex-1 justify-between bg-background dark:bg-dark-background"
-      style={{
-        paddingTop: 6,
-        paddingBottom: Math.max(insets.bottom, 16) + 8,
-      }}
+    <Container
+      className={`flex-1 bg-background dark:bg-dark-background ${isAndroid ? '' : 'justify-between'}`}
+      {...(isAndroid ? { contentContainerStyle: { ...padding, flexGrow: 1 } } : { style: padding })}
     >
       <WelcomeBrandHeader />
 
       <Animated.View
         entering={FadeInDown.delay(80).duration(400)}
-        className="min-h-0 flex-1 w-full"
+        className={isAndroid ? 'min-h-[420px] w-full grow' : 'min-h-0 flex-1 w-full'}
       >
         <AuthWelcomeFeatureCarousel />
       </Animated.View>
@@ -65,6 +65,6 @@ export function StepWelcome({ onGetStarted, isSaving = false }: StepWelcomeProps
           )}
         </Pressable>
       </Animated.View>
-    </View>
+    </Container>
   );
 }
