@@ -163,6 +163,6 @@ export function toWalletCard(cardId: string, card: Json, profile: Json | null): 
 }
 
 export function backgroundHex(card: WalletCard): string {
-  const parts = card.colors.background.match(/\d+/g)?.map(Number) as [number, number, number] | undefined;
+  const parts = card.colors.headerBackground.match(/\d+/g)?.map(Number) as [number, number, number] | undefined;
   return parts ? hex(parts) : '#2563eb';
 }

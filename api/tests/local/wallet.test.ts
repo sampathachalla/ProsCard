@@ -150,25 +150,19 @@ describe('wallet passes', () => {
     expect(body.aud).toBe('google');
     expect(body.typ).toBe('savetowallet');
     const object = body.payload.genericObjects[0];
-    expect(object.id).toBe('3388000000012345.card_v2_card-1');
+    expect(object.id).toBe('3388000000012345.card_v4_card-1');
     expect(object.header.defaultValue.value).toBe('Ada Lovelace');
-    expect(object.textModulesData).toContainEqual({ id: 'tag', header: 'Card tag', body: 'Business' });
+    expect(object.textModulesData).toBeUndefined();
     expect(object.barcode.value).toBe('https://example.test/share/abc');
-    expect(object.logo.sourceUri.uri).toBe('https://example.test/assets/vcpros-logo.png');
-    expect(object.heroImage.sourceUri.uri).toBe(`https://example.test/img/${MEDIA}`);
-    expect(object.hexBackgroundColor).toBe('#2563eb');
-    expect(body.payload.genericClasses[0].id).toBe('3388000000012345.vcpros_business_card_v2');
-    expect(body.payload.genericClasses[0].classTemplateInfo.cardTemplateOverride.cardRowTemplateInfos[0])
-      .toEqual({
-        threeItems: {
-          startItem: { firstValue: { fields: [{ fieldPath: "object.textModulesData['company']" }] } },
-          middleItem: { firstValue: { fields: [{ fieldPath: "object.textModulesData['title']" }] } },
-          endItem: { firstValue: { fields: [{ fieldPath: "object.textModulesData['tag']" }] } },
-        },
-      });
+    expect(object.logo.sourceUri.uri).toBe(`https://example.test/img/${MEDIA}`);
+    expect(object.heroImage).toBeUndefined();
+    expect(object.hexBackgroundColor).toBe('#eff6ff');
+    expect(body.payload.genericClasses[0].id).toBe('3388000000012345.vcpros_business_card_v4');
+    expect(body.payload.genericClasses[0].classTemplateInfo).toBeUndefined();
+    expect(object.linksModuleData).toBeUndefined();
   });
 
-  it('uses a bundled card cover in Google Wallet when the card selected a preset', async () => {
+  it('leaves the card cover off the Google Wallet pass, even for a preset cover', async () => {
     const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
     const accountPath = path.join(dir, 'preset-service-account.json');
     writeFileSync(accountPath, JSON.stringify({ client_email: 'wallet@test.iam.gserviceaccount.com', private_key: privateKey.export({ type: 'pkcs8', format: 'pem' }) }));
@@ -184,7 +178,7 @@ describe('wallet passes', () => {
     );
     const claims = url.split('/').pop()!.split('.')[1]!;
     const object = JSON.parse(Buffer.from(claims, 'base64url').toString()).payload.genericObjects[0];
-    expect(object.heroImage.sourceUri.uri).toBe('https://example.test/assets/covers/ocean-glass.jpg');
+    expect(object.heroImage).toBeUndefined();
   });
 
   it('only accepts plain cover preset names, so a cover cannot read files outside the covers folder', () => {

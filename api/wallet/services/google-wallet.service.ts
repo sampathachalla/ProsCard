@@ -12,7 +12,7 @@ type ServiceAccount = { client_email: string; private_key: string; private_key_i
  * Version the class and object together when the front-of-pass template changes. Google keeps
  * previously saved objects, so a new id guarantees that an existing tester sees the redesign.
  */
-const PASS_VERSION = 'v2';
+const PASS_VERSION = 'v4';
 const CLASS_SUFFIX = `vcpros_business_card_${PASS_VERSION}`;
 const WALLET_API = 'https://walletobjects.googleapis.com/walletobjects/v1';
 
@@ -22,9 +22,6 @@ export function googleWalletConfigured(config: GoogleWalletConfig): boolean {
 
 const base64url = (value: string | Buffer) => Buffer.from(value).toString('base64url');
 const text = (value: string) => ({ defaultValue: { language: 'en-US', value } });
-const templateField = (id: string) => ({
-  firstValue: { fields: [{ fieldPath: `object.textModulesData['${id}']` }] },
-});
 
 function contactQr(card: WalletCard): string {
   const fields = [['FN', card.name], ['ORG', card.company], ['TITLE', card.title], ['TEL', card.phone], ['EMAIL', card.email], ['URL', card.website]] as const;
@@ -63,52 +60,26 @@ export class GoogleWalletLinkGenerator {
     const objectId = `${this.config.issuerId}.card_${PASS_VERSION}_${card.cardId.replace(/[^\w.-]/g, '_')}`;
     const share = new URL(shareUrl);
     const includeShare = Boolean(this.account) || (share.protocol === 'https:' && !['localhost', '127.0.0.1', '[::1]'].includes(share.hostname));
-    const heroUrl = card.coverMediaId
-      ? images.media(card.coverMediaId)
-      : card.coverPresetId
-        ? images.presetCover(card.coverPresetId)
-        : card.photoMediaId
-          ? images.media(card.photoMediaId)
-          : null;
-    const details = [
-      ['company', 'Company', card.company],
-      ['title', 'Job title', card.title],
-      ['tag', 'Card tag', card.tag],
-      ['email', 'Email', card.email],
-      ['phone', 'Phone', card.phone],
-      ['website', 'Website', card.website],
-      ['address', 'Address', card.address],
-    ].filter(([, , value]) => value);
+    // The round pass logo shows the card's profile photo; without one, the user's logo, then ours.
+    const userLogo = card.logoMediaId ? images.media(card.logoMediaId) : card.logoUrl;
+    const logoUrl = card.photoMediaId ? images.media(card.photoMediaId) : userLogo ?? images.brandLogo;
 
     const passObject = {
+      // Only the front of the card: photo, company, name, title, QR and the user's logo. No cover image or details list.
       id: objectId,
       classId,
       state: 'ACTIVE',
       cardTitle: text(card.company || 'VC Pros'),
       header: text(card.name),
       ...(card.title ? { subheader: text(card.title) } : {}),
-      ...(includeShare ? { logo: { sourceUri: { uri: images.brandLogo }, contentDescription: text('VC Pros') } } : {}),
-      ...(includeShare && heroUrl ? { heroImage: { sourceUri: { uri: heroUrl }, contentDescription: text(`${card.name} card cover`) } } : {}),
-      hexBackgroundColor: backgroundHex(card),
-      barcode: { type: 'QR_CODE', value: includeShare ? shareUrl : contactQr(card), alternateText: includeShare ? 'Scan to view card' : 'Scan to save contact' },
-      textModulesData: details.map(([id, header, body]) => ({ id, header, body })),
-      ...(includeShare ? { linksModuleData: { uris: [{ id: 'card', uri: shareUrl, description: 'View full card' }] } } : {}),
+      ...(includeShare ? { logo: { sourceUri: { uri: logoUrl }, contentDescription: text(card.photoMediaId ? card.name : userLogo ? card.company || 'Company logo' : 'VC Pros') } } : {}),
+      // The user's logo sits in the banner under the QR (Google draws the QR itself, so it cannot hold the logo).
+      ...(includeShare && userLogo ? { heroImage: { sourceUri: { uri: userLogo }, contentDescription: text(card.company || 'Company logo') } } : {}),
+      hexBackgroundColor: backgroundHex(card), // the card's top (identity) section colour, as on the Apple pass
+      barcode: { type: 'QR_CODE', value: includeShare ? shareUrl : contactQr(card), alternateText: includeShare ? 'Scan to share card' : 'Scan to save contact' },
     };
 
-    const passClass = {
-          id: classId,
-          classTemplateInfo: {
-            cardTemplateOverride: {
-              cardRowTemplateInfos: [{
-                threeItems: {
-                  startItem: templateField('company'),
-                  middleItem: templateField('title'),
-                  endItem: templateField('tag'),
-                },
-              }],
-            },
-          },
-    };
+    const passClass = { id: classId };
     const claims = {
       iss: this.accountEmail,
       aud: 'google',
