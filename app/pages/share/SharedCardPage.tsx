@@ -21,6 +21,7 @@ export default function SharedCardPage() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const insets = useSafeAreaInsets();
   const [showDownloadPrompt, setShowDownloadPrompt] = useState(false);
+  const [hasShownDownloadPrompt, setHasShownDownloadPrompt] = useState(false);
   const view = useQuery({
     queryKey: ['sharedCard', slug],
     queryFn: async () => {
@@ -103,7 +104,12 @@ export default function SharedCardPage() {
           <CardDetailView
             card={view.data.card}
             fullBleed
-            onContactSaved={Platform.OS === 'web' ? () => setShowDownloadPrompt(true) : undefined}
+            onBeforeSaveContact={Platform.OS === 'web' ? () => {
+              if (hasShownDownloadPrompt) return false;
+              setHasShownDownloadPrompt(true);
+              setShowDownloadPrompt(true);
+              return true;
+            } : undefined}
             profile={view.data.profile}
             publicShareView
             vcardDownloadUrl={vcardUrlForSlug(slug)}

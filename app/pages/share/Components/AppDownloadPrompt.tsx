@@ -1,5 +1,6 @@
 import { Linking, Modal, Platform, Pressable, View } from 'react-native';
-import { Apple, Download, Play, X } from 'lucide-react-native';
+import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
+import { Download, X } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Text } from '@/common/ui/Text';
@@ -24,7 +25,6 @@ function detectMobilePlatform(): MobilePlatform {
 }
 
 function StoreButton({ label, store, url }: { label: string; store: 'ios' | 'android'; url: string }) {
-  const Icon = store === 'ios' ? Apple : Play;
   return (
     <Pressable
       accessibilityRole="link"
@@ -32,7 +32,7 @@ function StoreButton({ label, store, url }: { label: string; store: 'ios' | 'and
       onPress={() => void Linking.openURL(url)}
       className="min-h-[54px] flex-1 flex-row items-center justify-center gap-2.5 rounded-2xl bg-primary px-5 py-3.5 active:opacity-85 dark:bg-[#2563eb]"
     >
-      <Icon color="#FFFFFF" size={20} fill={store === 'ios' ? '#FFFFFF' : 'none'} strokeWidth={2.2} />
+      <FontAwesome6 color="#FFFFFF" name={store === 'ios' ? 'app-store-ios' : 'google-play'} size={22} />
       <Text variant="none" className="text-center text-[15px] font-semibold text-white">
         {label}
       </Text>

@@ -29,7 +29,7 @@ export function CardDetailView({
   fitToViewport = false,
   fullBleed = false,
   interactiveActions = true,
-  onContactSaved,
+  onBeforeSaveContact,
   onEditSection,
   onSectionLayout,
   profile,
@@ -43,7 +43,7 @@ export function CardDetailView({
   fitToViewport?: boolean;
   fullBleed?: boolean;
   interactiveActions?: boolean;
-  onContactSaved?: () => void;
+  onBeforeSaveContact?: () => boolean;
   onEditSection?: (section: CardSectionId) => void;
   onSectionLayout?: (section: CardSectionId, y: number) => void;
   profile: Profile;
@@ -127,6 +127,8 @@ export function CardDetailView({
   };
 
   const handleSaveContact = async () => {
+    if (onBeforeSaveContact?.()) return;
+
     const socials: { label?: string; type?: string; url: string }[] = [];
     // A card with its own contact rows shows exactly those; the others show the account's.
     const hasOwnRows = Boolean(card.connectionFieldsCustomized);
@@ -185,7 +187,7 @@ export function CardDetailView({
 
     const note = [profile.tagline, profile.shortBio].filter(Boolean).join('\n\n');
 
-    const saved = await saveDirectlyToNativeContacts({
+    await saveDirectlyToNativeContacts({
       name: shownCard.name || profile.fullName,
       firstName: profile.firstName,
       lastName: profile.lastName,
@@ -202,7 +204,6 @@ export function CardDetailView({
       socials,
       vcardDownloadUrl,
     });
-    if (saved) onContactSaved?.();
   };
 
   const handleShareCard = async () => {
