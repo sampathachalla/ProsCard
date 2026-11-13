@@ -12,7 +12,7 @@ type ServiceAccount = { client_email: string; private_key: string; private_key_i
  * Version the class and object together when the front-of-pass template changes. Google keeps
  * previously saved objects, so a new id guarantees that an existing tester sees the redesign.
  */
-const PASS_VERSION = 'v4';
+const PASS_VERSION = 'v5';
 const CLASS_SUFFIX = `vcpros_business_card_${PASS_VERSION}`;
 const WALLET_API = 'https://walletobjects.googleapis.com/walletobjects/v1';
 
@@ -33,6 +33,8 @@ export type GoogleWalletImages = {
   media: (mediaId: string) => string;
   brandLogo: string;
   presetCover: (presetId: string) => string;
+  /** The card's logo pre-fitted to the banner size (see WalletService.logoBanner). */
+  logoBanner: string;
 };
 
 /**
@@ -74,7 +76,7 @@ export class GoogleWalletLinkGenerator {
       ...(card.title ? { subheader: text(card.title) } : {}),
       ...(includeShare ? { logo: { sourceUri: { uri: logoUrl }, contentDescription: text(card.photoMediaId ? card.name : userLogo ? card.company || 'Company logo' : 'VC Pros') } } : {}),
       // The user's logo sits in the banner under the QR (Google draws the QR itself, so it cannot hold the logo).
-      ...(includeShare && userLogo ? { heroImage: { sourceUri: { uri: userLogo }, contentDescription: text(card.company || 'Company logo') } } : {}),
+      ...(includeShare && userLogo ? { heroImage: { sourceUri: { uri: images.logoBanner }, contentDescription: text(card.company || 'Company logo') } } : {}),
       hexBackgroundColor: backgroundHex(card), // the card's top (identity) section colour, as on the Apple pass
       barcode: { type: 'QR_CODE', value: includeShare ? shareUrl : contactQr(card), alternateText: includeShare ? 'Scan to share card' : 'Scan to save contact' },
     };

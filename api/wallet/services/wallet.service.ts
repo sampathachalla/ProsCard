@@ -8,7 +8,7 @@ import { log } from '../../src/logger.js';
 import type { ObjectStorageGateway } from '../../media/services/oci-storage.service.js';
 import type { SharingService } from '../../sharing/services/sharing.service.js';
 import type { WalletRepository } from '../repository/wallet.repository.js';
-import { toWalletCard, type WalletCard } from '../utils/wallet-card.js';
+import { backgroundHex, toWalletCard, type WalletCard } from '../utils/wallet-card.js';
 import type { AppleWalletPassGenerator, PassImages } from './apple-pass.service.js';
 import type { GoogleWalletLinkGenerator } from './google-wallet.service.js';
 import { BROWSER_IMAGE_HEADERS, fetchPublicImage } from '../../media/utils/public-image-fetch.js';
@@ -19,6 +19,8 @@ const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
 const WALLET_ASSETS_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'assets');
 const CARD_COVERS_DIR = path.join(WALLET_ASSETS_DIR, 'card-covers');
 const VCPROS_LOGO = path.join(WALLET_ASSETS_DIR, 'vcpros-logo.png');
+/** Google Wallet's banner (hero) size; the logo is fitted inside it with padding so Google never crops or stretches it. */
+const BANNER = { width: 1032, height: 336, logoWidth: 720, logoHeight: 200 };
 
 type WalletDeps = {
   repo: WalletRepository;
@@ -176,6 +178,8 @@ export class WalletService {
           media: (mediaId) => `${base}/api/v1/sharing/public/${slug}/media/${mediaId}`,
           brandLogo: `${base}/api/v1/wallet/assets/vcpros-logo.png`,
           presetCover: (presetId) => `${base}/api/v1/wallet/assets/card-covers/${encodeURIComponent(presetId)}.jpg`,
+          // Google caches images by URL, so the logo's identity is in the query: a new logo is fetched again.
+          logoBanner: `${base}/api/v1/wallet/banner/${slug}.png?v=${createHmac('sha256', 'banner').update(card.logoMediaId ?? card.logoUrl ?? '').digest('hex').slice(0, 12)}`,
         },
       );
       return { url };
@@ -220,6 +224,28 @@ export class WalletService {
       : await this.deps.sharing.findActive(userId, cardId);
     if (!share) throw new HttpError(410, 'This card is no longer shared.');
     return { card: toWalletCard(cardId, row.card_data, row.profile_data), slug: share.slug, userId };
+  }
+
+  /**
+   * The card's logo centred on the card colour at Google Wallet's banner size. Public (Google fetches it
+   * without a login) but only for an active share link, and only the logo the card already shows publicly.
+   */
+  async logoBanner(slug: string): Promise<Buffer> {
+    const row = await this.deps.repo.sharedCard(slug);
+    if (!row) throw new HttpError(404, 'Shared card not found or expired.');
+    const card = toWalletCard(row.card_id, row.card_data, row.profile_data ?? null);
+    const logo = card.logoMediaId
+      ? await this.image(row.user_id, card.logoMediaId)
+      : card.logoUrl ? await this.remoteImage(card.logoUrl) : null;
+    if (!logo) throw new HttpError(404, 'This card has no logo.');
+    const fitted = await sharp(logo)
+      .resize({ width: BANNER.logoWidth, height: BANNER.logoHeight, fit: 'inside', kernel: 'lanczos3' })
+      .png()
+      .toBuffer();
+    return sharp({ create: { width: BANNER.width, height: BANNER.height, channels: 4, background: backgroundHex(card) } })
+      .composite([{ input: fitted, gravity: 'centre' }])
+      .png()
+      .toBuffer();
   }
 
   /** Downloads a stored image for the pass; a missing or failed image just leaves it off the pass. */

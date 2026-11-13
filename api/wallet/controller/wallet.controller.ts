@@ -29,6 +29,16 @@ export class WalletController {
     response.send(this.service.presetCover(request.params.presetId as string));
   };
 
+  logoBanner = async (request: Request, response: Response) => {
+    const buffer = await this.service.logoBanner(request.params.slug as string);
+    response.set({
+      'Content-Type': 'image/png',
+      'Cache-Control': 'public, max-age=86400',
+      'Cross-Origin-Resource-Policy': 'cross-origin',
+    });
+    response.send(buffer);
+  };
+
   appleLink = async (request: AuthenticatedRequest, response: Response) =>
     response.json(await this.service.appleLink(request.user.id, request.params.cardId as string, this.service.baseUrl(requestBase(request))));
 

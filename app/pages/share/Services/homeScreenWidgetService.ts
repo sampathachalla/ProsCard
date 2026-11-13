@@ -85,7 +85,13 @@ async function downscaleQrPng(bytes: Uint8Array): Promise<Uint8Array> {
     }
   } finally {
     context.release();
-    source.delete();
+    // Clean-up only: Android can drop the cache file before this runs, and a failed delete must
+    // not hide the resized QR (or the real error) from the caller.
+    try {
+      if (source.exists) source.delete();
+    } catch {
+      // The OS clears the cache directory on its own.
+    }
   }
 }
 
@@ -100,7 +106,9 @@ export async function writeWidgetQrImage(qrSvg: QrSvgRef | null, fileName: strin
   const bytes = decodeBase64(base64);
   if (!isPng(bytes)) throw new Error('The QR image could not be prepared.');
 
-  const widgetBytes = await downscaleQrPng(bytes);
+  // The size limit is WidgetKit's (iOS). Android widgets draw the exported PNG as is, and Android
+  // cannot reload the temporary file the resize needs ("Loading bitmap failed").
+  const widgetBytes = Platform.OS === 'ios' ? await downscaleQrPng(bytes) : bytes;
   if (!isPng(widgetBytes)) throw new Error('The QR image could not be prepared.');
 
   const { widgetsDirectory } = await import('expo-widgets');

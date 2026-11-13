@@ -8,6 +8,7 @@ export function createWalletRouter(authenticate: RequestHandler, limiter: Reques
   // Google Wallet's servers fetch these public HTTPS assets when rendering a pass.
   router.get('/assets/vcpros-logo.png', asyncHandler(controller.brandLogo));
   router.get('/assets/card-covers/:presetId.jpg', asyncHandler(controller.presetCover));
+  router.get('/banner/:slug.png', limiter, asyncHandler(controller.logoBanner));
   // Apple's pass web service, called by Wallet on the iPhone (authorised by each pass's own token).
   router.post('/apple/ws/v1/devices/:device/registrations/:passType/:serial', limiter, asyncHandler(controller.registerDevice));
   router.delete('/apple/ws/v1/devices/:device/registrations/:passType/:serial', limiter, asyncHandler(controller.unregisterDevice));

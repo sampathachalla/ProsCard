@@ -142,6 +142,7 @@ describe('wallet passes', () => {
         media: (id) => `https://example.test/img/${id}`,
         brandLogo: 'https://example.test/assets/vcpros-logo.png',
         presetCover: (id) => `https://example.test/assets/covers/${id}.jpg`,
+        logoBanner: 'https://example.test/banner/abc.png',
       });
     expect(url.startsWith('https://pay.google.com/gp/v/save/')).toBe(true);
     const [header, claims, signature] = url.split('/').pop()!.split('.');
@@ -150,14 +151,14 @@ describe('wallet passes', () => {
     expect(body.aud).toBe('google');
     expect(body.typ).toBe('savetowallet');
     const object = body.payload.genericObjects[0];
-    expect(object.id).toBe('3388000000012345.card_v4_card-1');
+    expect(object.id).toBe('3388000000012345.card_v5_card-1');
     expect(object.header.defaultValue.value).toBe('Ada Lovelace');
     expect(object.textModulesData).toBeUndefined();
     expect(object.barcode.value).toBe('https://example.test/share/abc');
     expect(object.logo.sourceUri.uri).toBe(`https://example.test/img/${MEDIA}`);
     expect(object.heroImage).toBeUndefined();
     expect(object.hexBackgroundColor).toBe('#eff6ff');
-    expect(body.payload.genericClasses[0].id).toBe('3388000000012345.vcpros_business_card_v4');
+    expect(body.payload.genericClasses[0].id).toBe('3388000000012345.vcpros_business_card_v5');
     expect(body.payload.genericClasses[0].classTemplateInfo).toBeUndefined();
     expect(object.linksModuleData).toBeUndefined();
   });
@@ -174,6 +175,7 @@ describe('wallet passes', () => {
         media: (id) => `https://example.test/img/${id}`,
         brandLogo: 'https://example.test/assets/vcpros-logo.png',
         presetCover: (id) => `https://example.test/assets/covers/${id}.jpg`,
+        logoBanner: 'https://example.test/banner/abc.png',
       },
     );
     const claims = url.split('/').pop()!.split('.')[1]!;

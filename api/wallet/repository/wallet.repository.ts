@@ -17,6 +17,16 @@ export class WalletRepository {
     ).then((result) => result.rows[0] ?? null);
   }
 
+  /** The card behind an active share link, for images Google Wallet fetches without a login. */
+  sharedCard(slug: string) {
+    return this.db.query<CardWithProfile & { user_id: string; card_id: string }>(
+      `SELECT s.user_id, s.card_id, c.data card_data, p.data profile_data FROM shares s
+       JOIN cards c ON c.id=s.card_id LEFT JOIN profiles p ON p.user_id=s.user_id
+       WHERE s.slug=$1 AND s.is_active=true AND (s.expires_at IS NULL OR s.expires_at>now())`,
+      [slug],
+    ).then((result) => result.rows[0] ?? null);
+  }
+
   /** The serial comes from Wallet's URL; compare as a uuid so the primary key index is used. */
   cardOwner(cardId: string) {
     if (!UUID.test(cardId)) return Promise.resolve(null);
