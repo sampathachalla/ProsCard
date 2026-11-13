@@ -87,9 +87,10 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   }, [theme, setColorScheme]);
 
   const setPreference = useCallback((next: ThemePreference) => {
+    setColorScheme(resolveTheme(next, systemTheme));
     setPreferenceState(next);
     AsyncStorage.setItem(THEME_PREFERENCE_KEY, next).catch(() => {});
-  }, []);
+  }, [setColorScheme, systemTheme]);
 
   const toggleTheme = useCallback(() => {
     setPreference(theme === 'dark' ? 'light' : 'dark');
