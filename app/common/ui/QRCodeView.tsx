@@ -104,7 +104,7 @@ export function QRCodeView({
   const customCenterLogo = centerLogoUrl?.trim() ?? '';
   const customLogoPreset = resolveCompanyLogoPreset(customCenterLogo);
   const customLogoVector = resolveCompanyLogoVector(customCenterLogo);
-  const useNativeLogo = Platform.OS === 'android' && showCenterLogo && Boolean(customCenterLogo && !customLogoVector);
+  const useNativeLogo = Platform.OS !== 'web' && showCenterLogo && Boolean(customCenterLogo && !customLogoVector);
   const [resolvedLogo, setResolvedLogo] = useState({ source: '', attempt: 0, uri: '' });
   const [logoAttempt, setLogoAttempt] = useState({ source: '', count: 0 });
   const attempt = logoAttempt.source === customCenterLogo ? logoAttempt.count : 0;

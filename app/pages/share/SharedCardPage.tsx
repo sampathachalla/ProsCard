@@ -1,5 +1,5 @@
 // pages/share/SharedCardPage.tsx
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, ScrollView, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -11,6 +11,7 @@ import { normalizeProfile } from '@/pages/profile/Services/profileService';
 import { getSharedCardView, vcardUrlForSlug } from '@/pages/share/Services/sharingService';
 import { Text } from '@/common/ui/Text';
 import { ApiError } from '@/services/api/client';
+import { AppDownloadPrompt } from '@/pages/share/Components/AppDownloadPrompt';
 
 /**
  * Public page behind a card's QR code / share link. Anyone can open it without an account; it renders
@@ -19,6 +20,7 @@ import { ApiError } from '@/services/api/client';
 export default function SharedCardPage() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const insets = useSafeAreaInsets();
+  const [showDownloadPrompt, setShowDownloadPrompt] = useState(false);
   const view = useQuery({
     queryKey: ['sharedCard', slug],
     queryFn: async () => {
@@ -90,22 +92,26 @@ export default function SharedCardPage() {
   }
 
   return (
-    <ScrollView
-      className="flex-1 bg-background dark:bg-dark-background"
-      contentContainerStyle={{ paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, 24) + 16 }}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Phone-width column so the card keeps its proportions on desktop browsers too. */}
-      <View style={{ width: '100%', maxWidth: 520, alignSelf: 'center' }}>
-        <CardDetailView
-          card={view.data.card}
-          fullBleed
-          profile={view.data.profile}
-          publicShareView
-          vcardDownloadUrl={vcardUrlForSlug(slug)}
-        />
-        <Text variant="muted" className="mt-6 text-center text-xs">Shared with VC Pros</Text>
-      </View>
-    </ScrollView>
+    <View className="flex-1 bg-background dark:bg-dark-background">
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, 24) + 16 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Phone-width column so the card keeps its proportions on desktop browsers too. */}
+        <View style={{ width: '100%', maxWidth: 520, alignSelf: 'center' }}>
+          <CardDetailView
+            card={view.data.card}
+            fullBleed
+            onContactSaved={Platform.OS === 'web' ? () => setShowDownloadPrompt(true) : undefined}
+            profile={view.data.profile}
+            publicShareView
+            vcardDownloadUrl={vcardUrlForSlug(slug)}
+          />
+          <Text variant="muted" className="mt-6 text-center text-xs">Shared with VC Pros</Text>
+        </View>
+      </ScrollView>
+      <AppDownloadPrompt visible={showDownloadPrompt} onClose={() => setShowDownloadPrompt(false)} />
+    </View>
   );
 }
